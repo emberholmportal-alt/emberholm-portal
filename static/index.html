@@ -412,136 +412,135 @@ a.social-link:hover {
 
 <body>
 
-<!-- EMBERHOLM CONSOLE // REALM AMBIENCE CHANNEL -->
+<!-- EMBERHOLM CONSOLE // REALM AMBIENCE CHANNEL (HORIZONTAL BAR) -->
 <style>
-    /* consola fija vertical a la izquierda, fuera del marco principal */
-    .ember-console {
-        position: fixed;
-        top: 20px;
-        left: 20px;
-        width: 160px;
-        background: #000;
-        border: 2px solid #ffb400;
-        color: #ffb400;
-        font-family: "VT323", monospace;
-        font-size: 12px;
-        line-height: 1.4em;
-        padding: 8px;
-        box-shadow: 0 0 8px rgba(255,180,0,0.4);
-        z-index: 9999;
+.ember-console-bar {
+    position: fixed;
+    top: 6px;
+    left: 6px;
+    right: 6px;
+    background:#000;
+    border:2px solid #ffb400;
+    box-shadow:0 0 8px rgba(255,180,0,0.4);
+    color:#ffb400;
+    font-family:"VT323", monospace;
+    font-size:12px;
+    line-height:1.3em;
+    padding:6px 8px;
+    display:flex;
+    flex-wrap:wrap;
+    align-items:center;
+    gap:10px;
+    z-index:9999;
+}
 
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
-    }
+.console-block-label {
+    font-weight:bold;
+    text-transform:uppercase;
+    border-right:1px solid #ffb400;
+    padding-right:8px;
+    margin-right:4px;
+    white-space:nowrap;
+    font-size:12px;
+    line-height:1.3em;
+}
 
-    .ember-console .console-header {
-        text-align: center;
-        text-transform: uppercase;
-        font-weight: bold;
-        font-size: 12px;
-        line-height: 1.3em;
-        border-bottom: 1px solid #ffb400;
-        padding-bottom: 4px;
-    }
-    .ember-console .console-sub {
-        font-size: 10px;
-        color: #ffb400;
-        margin-top: 2px;
-    }
+.console-track-now {
+    min-width:180px;
+    font-size:12px;
+    line-height:1.3em;
+    color:#ffb400;
+    white-space:nowrap;
+}
 
-    .ember-console .console-trackbox {
-        border: 1px solid #ffb400;
-        background:#000;
-        padding: 6px;
-        font-size: 11px;
-        line-height:1.3em;
-        min-height: 40px;
-        word-break: break-word;
-    }
+.console-btn {
+    background:#000;
+    color:#ffb400;
+    border:2px solid #ffb400;
+    font-family:"VT323", monospace;
+    font-size:12px;
+    line-height:1.2em;
+    padding:2px 6px;
+    cursor:pointer;
+    text-transform:uppercase;
+}
+.console-btn:hover{
+    background:#ffb400;
+    color:#000;
+}
 
-    .ember-console .console-buttons {
-        display: flex;
-        flex-direction: column;
-        gap: 6px;
-    }
+.console-vol-wrap {
+    display:flex;
+    flex-wrap:nowrap;
+    align-items:center;
+    gap:6px;
+    font-size:12px;
+    line-height:1.2em;
+    white-space:nowrap;
+}
 
-    .ember-console .console-buttons button {
-        background:#000;
-        color:#ffb400;
-        border:2px solid #ffb400;
-        font-family:"VT323", monospace;
-        font-size:12px;
-        line-height:1.2em;
-        padding:4px 0;
-        text-transform:uppercase;
-        cursor:pointer;
-        text-align:center;
-    }
-    .ember-console .console-buttons button:hover {
-        background:#ffb400;
-        color:#000;
-    }
+.console-vol-label {
+    text-transform:uppercase;
+    font-size:12px;
+}
 
-    .ember-console .vol-label {
-        font-size:10px;
-        text-transform:uppercase;
-    }
+.console-volume-slider {
+    -webkit-appearance:none;
+    appearance:none;
+    width:100px;
+    max-width:120px;
+    background:#000;
+    border:1px solid #ffb400;
+    height:4px;
+    cursor:pointer;
+}
+.console-volume-slider::-webkit-slider-thumb {
+    -webkit-appearance:none;
+    appearance:none;
+    width:10px;
+    height:14px;
+    background:#ffb400;
+    border:1px solid #ffb400;
+    cursor:pointer;
+}
+.console-volume-slider::-moz-range-thumb {
+    width:10px;
+    height:14px;
+    background:#ffb400;
+    border:1px solid #ffb400;
+    cursor:pointer;
+}
 
-    .ember-console .vol-row {
-        display:flex;
-        flex-direction:column;
-        gap:4px;
-    }
-
-    .ember-console input[type="range"] {
-        width:100%;
-        -webkit-appearance:none;
-        background:#000;
-        border:1px solid #ffb400;
-        height:4px;
-        cursor:pointer;
-    }
-    .ember-console input[type="range"]::-webkit-slider-thumb {
-        -webkit-appearance:none;
-        appearance:none;
-        width:10px;
-        height:14px;
-        background:#ffb400;
-        border:1px solid #ffb400;
-        cursor:pointer;
-    }
-    .ember-console input[type="range"]::-moz-range-thumb {
-        width:10px;
-        height:14px;
-        background:#ffb400;
-        border:1px solid #ffb400;
-        cursor:pointer;
-    }
+/* Empujamos el contenido real hacia abajo para que la barra no lo tape */
+body {
+    padding-top:60px; /* altura aprox de la barra */
+}
+@media(max-width:600px){
+    body { padding-top:80px; } /* un poco más en mobile */
+}
 </style>
 
-<div class="ember-console" id="ember-console">
-    <div class="console-header">
-        EMBERHOLM CONSOLE
-        <div class="console-sub">// REALM AMBIENCE CHANNEL //</div>
+<div class="ember-console-bar" id="ember-console">
+    <div class="console-block-label">
+        EMBERHOLM CONSOLE<br/>
+        <span style="font-size:10px;">// REALM AMBIENCE CHANNEL //</span>
     </div>
 
-    <div class="console-trackbox" id="console-trackbox">
+    <div class="console-track-now" id="console-trackbox">
         Track: (loading)
     </div>
 
-    <div class="console-buttons">
-        <button id="console-mute-btn">[MUTE]</button>
-        <button id="console-next-btn">[NEXT]</button>
-    </div>
+    <button class="console-btn" id="console-mute-btn">[MUTE]</button>
+    <button class="console-btn" id="console-next-btn">[NEXT]</button>
 
-    <div class="vol-row">
-        <div class="vol-label">VOL</div>
-        <input type="range"
-               id="console-volume"
-               min="0"
-               max="100"
-               value="70" />
+    <div class="console-vol-wrap">
+        <div class="console-vol-label">VOL</div>
+        <input  type="range"
+                class="console-volume-slider"
+                id="console-volume"
+                min="0"
+                max="100"
+                value="70"/>
     </div>
 </div>
 
