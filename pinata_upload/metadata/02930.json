@@ -1,0 +1,55 @@
+{
+  "name": "StockEn, Crime of Dread Miss from Rachelside",
+  "description": "Elf Necromancer of Emberholm. Rarity: Common. Guild: Void Echoes.",
+  "image": "ipfs://TO_BE_DEFINED/02930.png",
+  "fixed_profile": {
+    "token_id": "02930",
+    "race": "Elf",
+    "class": "Necromancer",
+    "rarity": "Common",
+    "age": 169,
+    "starting_guild": "Void Echoes",
+    "str": 8,
+    "dex": 12,
+    "con": 9,
+    "int": 18,
+    "wis": 15,
+    "cha": 11
+  },
+  "dynamic_state": {
+    "current_guild": "Void Echoes",
+    "xp_total": 0,
+    "xp_level": 1,
+    "aura_level": 0,
+    "energy_current": 100,
+    "energy_max": 100,
+    "power_current": 12,
+    "last_update": "2025-10-26T22:56:42.510780Z"
+  },
+  "attributes": [
+    {
+      "trait_type": "ID",
+      "value": "02930"
+    },
+    {
+      "trait_type": "Race",
+      "value": "Elf"
+    },
+    {
+      "trait_type": "Class",
+      "value": "Necromancer"
+    },
+    {
+      "trait_type": "Rarity",
+      "value": "Common"
+    },
+    {
+      "trait_type": "Guild",
+      "value": "Void Echoes"
+    },
+    {
+      "trait_type": "Age",
+      "value": 169
+    }
+  ]
+}

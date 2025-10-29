@@ -1,0 +1,55 @@
+{
+  "name": "HumanIon, Keeper of Owner Have",
+  "description": "Orc Alchemist of Emberholm. Rarity: Common. Guild: Circle of Mist.",
+  "image": "ipfs://TO_BE_DEFINED/24859.png",
+  "fixed_profile": {
+    "token_id": "24859",
+    "race": "Orc",
+    "class": "Alchemist",
+    "rarity": "Common",
+    "age": 36,
+    "starting_guild": "Circle of Mist",
+    "str": 12,
+    "dex": 10,
+    "con": 14,
+    "int": 14,
+    "wis": 12,
+    "cha": 9
+  },
+  "dynamic_state": {
+    "current_guild": "Circle of Mist",
+    "xp_total": 0,
+    "xp_level": 1,
+    "aura_level": 0,
+    "energy_current": 100,
+    "energy_max": 100,
+    "power_current": 12,
+    "last_update": "2025-10-26T22:59:49.913847Z"
+  },
+  "attributes": [
+    {
+      "trait_type": "ID",
+      "value": "24859"
+    },
+    {
+      "trait_type": "Race",
+      "value": "Orc"
+    },
+    {
+      "trait_type": "Class",
+      "value": "Alchemist"
+    },
+    {
+      "trait_type": "Rarity",
+      "value": "Common"
+    },
+    {
+      "trait_type": "Guild",
+      "value": "Circle of Mist"
+    },
+    {
+      "trait_type": "Age",
+      "value": 36
+    }
+  ]
+}

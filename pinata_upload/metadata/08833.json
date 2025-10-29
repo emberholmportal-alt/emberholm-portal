@@ -1,0 +1,55 @@
+{
+  "name": "Richmonden, Caller of Image of the Broken Market",
+  "description": "Human Cleric of Emberholm. Rarity: Common. Guild: Order of Dawn.",
+  "image": "ipfs://TO_BE_DEFINED/08833.png",
+  "fixed_profile": {
+    "token_id": "08833",
+    "race": "Human",
+    "class": "Cleric",
+    "rarity": "Common",
+    "age": 65,
+    "starting_guild": "Order of Dawn",
+    "str": 10,
+    "dex": 11,
+    "con": 12,
+    "int": 14,
+    "wis": 15,
+    "cha": 12
+  },
+  "dynamic_state": {
+    "current_guild": "Order of Dawn",
+    "xp_total": 0,
+    "xp_level": 1,
+    "aura_level": 0,
+    "energy_current": 100,
+    "energy_max": 100,
+    "power_current": 11,
+    "last_update": "2025-10-26T22:57:35.416066Z"
+  },
+  "attributes": [
+    {
+      "trait_type": "ID",
+      "value": "08833"
+    },
+    {
+      "trait_type": "Race",
+      "value": "Human"
+    },
+    {
+      "trait_type": "Class",
+      "value": "Cleric"
+    },
+    {
+      "trait_type": "Rarity",
+      "value": "Common"
+    },
+    {
+      "trait_type": "Guild",
+      "value": "Order of Dawn"
+    },
+    {
+      "trait_type": "Age",
+      "value": 65
+    }
+  ]
+}

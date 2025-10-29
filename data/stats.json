@@ -1,0 +1,47 @@
+{
+    "total_characters": 35000,
+    "active_guilds": 6,
+    "missions_completed": 3,
+    "missions_failed": 0,
+    "total_exp_collected": 300,
+    "total_aura_collected": 27,
+    "guild_ranking": {
+        "Forge Legion": {
+            "xp": 180,
+            "aura": 16,
+            "successes": 0,
+            "failures": 0
+        },
+        "Circle of Mist": {
+            "xp": 120,
+            "aura": 11,
+            "successes": 0,
+            "failures": 0
+        },
+        "Shadow Guild": {
+            "xp": 0,
+            "aura": 0,
+            "successes": 0,
+            "failures": 0
+        },
+        "Horizon Watch": {
+            "xp": 0,
+            "aura": 0,
+            "successes": 0,
+            "failures": 0
+        },
+        "Dawnkeepers": {
+            "xp": 0,
+            "aura": 0,
+            "successes": 0,
+            "failures": 0
+        },
+        "Echoes of the Veil": {
+            "xp": 0,
+            "aura": 0,
+            "successes": 0,
+            "failures": 0
+        }
+    },
+    "player_leaderboard": []
+}

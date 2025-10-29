@@ -1,0 +1,55 @@
+{
+  "name": "VeronicaIon, Caller of Energy",
+  "description": "Spectral Wizard of Emberholm. Rarity: Legendary. Guild: Void Echoes.",
+  "image": "ipfs://TO_BE_DEFINED/07538.png",
+  "fixed_profile": {
+    "token_id": "07538",
+    "race": "Spectral",
+    "class": "Wizard",
+    "rarity": "Legendary",
+    "age": 0,
+    "starting_guild": "Void Echoes",
+    "str": 10,
+    "dex": 12,
+    "con": 11,
+    "int": 17,
+    "wis": 14,
+    "cha": 11
+  },
+  "dynamic_state": {
+    "current_guild": "Void Echoes",
+    "xp_total": 0,
+    "xp_level": 1,
+    "aura_level": 0,
+    "energy_current": 100,
+    "energy_max": 100,
+    "power_current": 13,
+    "last_update": "2025-10-26T22:57:23.876004Z"
+  },
+  "attributes": [
+    {
+      "trait_type": "ID",
+      "value": "07538"
+    },
+    {
+      "trait_type": "Race",
+      "value": "Spectral"
+    },
+    {
+      "trait_type": "Class",
+      "value": "Wizard"
+    },
+    {
+      "trait_type": "Rarity",
+      "value": "Legendary"
+    },
+    {
+      "trait_type": "Guild",
+      "value": "Void Echoes"
+    },
+    {
+      "trait_type": "Age",
+      "value": 0
+    }
+  ]
+}

@@ -1,0 +1,55 @@
+{
+  "name": "Enchristine, Teacher of Garden of Research Flame",
+  "description": "Demon Druid of Emberholm. Rarity: Rare. Guild: Circle of Mist.",
+  "image": "ipfs://TO_BE_DEFINED/22971.png",
+  "fixed_profile": {
+    "token_id": "22971",
+    "race": "Demon",
+    "class": "Druid",
+    "rarity": "Rare",
+    "age": 86,
+    "starting_guild": "Circle of Mist",
+    "str": 12,
+    "dex": 11,
+    "con": 13,
+    "int": 14,
+    "wis": 15,
+    "cha": 9
+  },
+  "dynamic_state": {
+    "current_guild": "Circle of Mist",
+    "xp_total": 0,
+    "xp_level": 1,
+    "aura_level": 0,
+    "energy_current": 100,
+    "energy_max": 100,
+    "power_current": 12,
+    "last_update": "2025-10-26T22:59:34.779541Z"
+  },
+  "attributes": [
+    {
+      "trait_type": "ID",
+      "value": "22971"
+    },
+    {
+      "trait_type": "Race",
+      "value": "Demon"
+    },
+    {
+      "trait_type": "Class",
+      "value": "Druid"
+    },
+    {
+      "trait_type": "Rarity",
+      "value": "Rare"
+    },
+    {
+      "trait_type": "Guild",
+      "value": "Circle of Mist"
+    },
+    {
+      "trait_type": "Age",
+      "value": 86
+    }
+  ]
+}

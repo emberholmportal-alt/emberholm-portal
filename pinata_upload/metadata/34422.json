@@ -1,0 +1,55 @@
+{
+  "name": "OpenEth, Bearer of Cause the Future",
+  "description": "Demon Paladin of Emberholm. Rarity: Rare. Guild: Order of Dawn.",
+  "image": "ipfs://TO_BE_DEFINED/34422.png",
+  "fixed_profile": {
+    "token_id": "34422",
+    "race": "Demon",
+    "class": "Paladin",
+    "rarity": "Rare",
+    "age": 68,
+    "starting_guild": "Order of Dawn",
+    "str": 15,
+    "dex": 10,
+    "con": 13,
+    "int": 11,
+    "wis": 13,
+    "cha": 9
+  },
+  "dynamic_state": {
+    "current_guild": "Order of Dawn",
+    "xp_total": 0,
+    "xp_level": 1,
+    "aura_level": 0,
+    "energy_current": 100,
+    "energy_max": 100,
+    "power_current": 12,
+    "last_update": "2025-10-26T23:01:10.459884Z"
+  },
+  "attributes": [
+    {
+      "trait_type": "ID",
+      "value": "34422"
+    },
+    {
+      "trait_type": "Race",
+      "value": "Demon"
+    },
+    {
+      "trait_type": "Class",
+      "value": "Paladin"
+    },
+    {
+      "trait_type": "Rarity",
+      "value": "Rare"
+    },
+    {
+      "trait_type": "Guild",
+      "value": "Order of Dawn"
+    },
+    {
+      "trait_type": "Age",
+      "value": 68
+    }
+  ]
+}

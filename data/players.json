@@ -1,0 +1,66 @@
+{
+    "0xAriel...F13c": {
+        "wallet": "0xAriel...F13c",
+        "totals": {
+            "heroes_count": 2,
+            "xp_total_all": 600,
+            "aura_total_all": 36,
+            "energy_total_available": 96
+        },
+        "heroes": [
+            {
+                "token_id": "00001",
+                "name": "Emissary #00001",
+                "image_url": "img/00001.png",
+                "race_class": "Gith Druid",
+                "guild": "Circle of Mist",
+                "dynamic_state": {
+                    "xp_total": 135,
+                    "xp_level": 1,
+                    "aura_level": 13,
+                    "energy_current": 67,
+                    "energy_max": 100,
+                    "power_current": 15,
+                    "current_guild": "Circle of Mist",
+                    "state": "READY",
+                    "last_update": "2025-10-28T14:06:53.255261Z",
+                    "last_energy_refresh": "2025-10-27T03:00:00Z",
+                    "mission_history": {
+                        "003": "2025-10-28T14:06:53.255261Z"
+                    }
+                },
+                "mission_history": {
+                    "001": "2025-10-28T01:02:04Z"
+                }
+            },
+            {
+                "token_id": "00077",
+                "name": "Brax-Ironjaw",
+                "image_url": "img/00077.png",
+                "race_class": "Orc Warrior",
+                "guild": "Forge Legion",
+                "dynamic_state": {
+                    "xp_total": 465,
+                    "xp_level": 1,
+                    "aura_level": 23,
+                    "energy_current": 29,
+                    "energy_max": 100,
+                    "power_current": 18,
+                    "current_guild": "Forge Legion",
+                    "state": "READY",
+                    "last_update": "2025-10-28T21:00:05.826308Z",
+                    "last_energy_refresh": "2025-10-27T03:00:00Z",
+                    "mission_history": {
+                        "003": "2025-10-28T14:07:26.987958Z",
+                        "002": "2025-10-28T21:00:05.826308Z"
+                    },
+                    "last_mission": "Circle Interference Node"
+                },
+                "mission_history": {
+                    "002": "2025-10-28T01:09:24Z",
+                    "001": "2025-10-28T01:09:49Z"
+                }
+            }
+        ]
+    }
+}

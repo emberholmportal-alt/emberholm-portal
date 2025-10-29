@@ -1,0 +1,50 @@
+[
+    {
+        "name": "Forge Legion",
+        "flavor": "strength, steel, sworn oaths",
+        "members": 1,
+        "avg_xp": 180,
+        "avg_aura": 16,
+        "badge": "img/forge_legion.JPG"
+    },
+    {
+        "name": "Circle of Mist",
+        "flavor": "alchemy, mana, forbidden knowledge",
+        "members": 1,
+        "avg_xp": 120,
+        "avg_aura": 11,
+        "badge": "img/circle_of_mist.JPG"
+    },
+    {
+        "name": "Shadow Guild",
+        "flavor": "information, silence, sanctioned crime",
+        "members": 0,
+        "avg_xp": 0,
+        "avg_aura": 0,
+        "badge": "img/shadow_guild.JPG"
+    },
+    {
+        "name": "Horizon Watch",
+        "flavor": "scouts, tideborn, edge-of-world patrols",
+        "members": 0,
+        "avg_xp": 0,
+        "avg_aura": 0,
+        "badge": "img/horizon_watch.JPG"
+    },
+    {
+        "name": "Dawnkeepers",
+        "flavor": "clerics and oathbound paladins of the Core",
+        "members": 0,
+        "avg_xp": 0,
+        "avg_aura": 0,
+        "badge": "img/dawnkeepers.JPG"
+    },
+    {
+        "name": "Echoes of the Veil",
+        "flavor": "necromancy, spectrals, negotiated death-rights",
+        "members": 0,
+        "avg_xp": 0,
+        "avg_aura": 0,
+        "badge": "img/echoes_of_the_veil.JPG"
+    }
+]

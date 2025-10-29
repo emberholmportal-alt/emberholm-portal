@@ -1,0 +1,55 @@
+{
+  "name": "Nicholasriel the Silent Middle",
+  "description": "Gith Cleric of Emberholm. Rarity: Rare. Guild: Order of Dawn.",
+  "image": "ipfs://TO_BE_DEFINED/07613.png",
+  "fixed_profile": {
+    "token_id": "07613",
+    "race": "Gith",
+    "class": "Cleric",
+    "rarity": "Rare",
+    "age": 54,
+    "starting_guild": "Order of Dawn",
+    "str": 11,
+    "dex": 11,
+    "con": 12,
+    "int": 15,
+    "wis": 15,
+    "cha": 11
+  },
+  "dynamic_state": {
+    "current_guild": "Order of Dawn",
+    "xp_total": 0,
+    "xp_level": 1,
+    "aura_level": 0,
+    "energy_current": 100,
+    "energy_max": 100,
+    "power_current": 12,
+    "last_update": "2025-10-26T22:57:24.515440Z"
+  },
+  "attributes": [
+    {
+      "trait_type": "ID",
+      "value": "07613"
+    },
+    {
+      "trait_type": "Race",
+      "value": "Gith"
+    },
+    {
+      "trait_type": "Class",
+      "value": "Cleric"
+    },
+    {
+      "trait_type": "Rarity",
+      "value": "Rare"
+    },
+    {
+      "trait_type": "Guild",
+      "value": "Order of Dawn"
+    },
+    {
+      "trait_type": "Age",
+      "value": 54
+    }
+  ]
+}

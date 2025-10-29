@@ -1,0 +1,55 @@
+{
+  "name": "Mostgra the YellowGreen",
+  "description": "Beast Warrior of Emberholm. Rarity: Legendary. Guild: Forge Legion.",
+  "image": "ipfs://TO_BE_DEFINED/17244.png",
+  "fixed_profile": {
+    "token_id": "17244",
+    "race": "Beast",
+    "class": "Warrior",
+    "rarity": "Legendary",
+    "age": 11,
+    "starting_guild": "Forge Legion",
+    "str": 15,
+    "dex": 13,
+    "con": 14,
+    "int": 9,
+    "wis": 12,
+    "cha": 8
+  },
+  "dynamic_state": {
+    "current_guild": "Forge Legion",
+    "xp_total": 0,
+    "xp_level": 1,
+    "aura_level": 0,
+    "energy_current": 100,
+    "energy_max": 100,
+    "power_current": 12,
+    "last_update": "2025-10-26T22:58:48.110939Z"
+  },
+  "attributes": [
+    {
+      "trait_type": "ID",
+      "value": "17244"
+    },
+    {
+      "trait_type": "Race",
+      "value": "Beast"
+    },
+    {
+      "trait_type": "Class",
+      "value": "Warrior"
+    },
+    {
+      "trait_type": "Rarity",
+      "value": "Legendary"
+    },
+    {
+      "trait_type": "Guild",
+      "value": "Forge Legion"
+    },
+    {
+      "trait_type": "Age",
+      "value": 11
+    }
+  ]
+}

@@ -1,0 +1,55 @@
+{
+  "name": "Valuerion, Case of Dread Mention",
+  "description": "Elf Wizard of Emberholm. Rarity: Common. Guild: Circle of Mist.",
+  "image": "ipfs://TO_BE_DEFINED/01305.png",
+  "fixed_profile": {
+    "token_id": "01305",
+    "race": "Elf",
+    "class": "Wizard",
+    "rarity": "Common",
+    "age": 146,
+    "starting_guild": "Circle of Mist",
+    "str": 8,
+    "dex": 14,
+    "con": 9,
+    "int": 18,
+    "wis": 15,
+    "cha": 12
+  },
+  "dynamic_state": {
+    "current_guild": "Circle of Mist",
+    "xp_total": 0,
+    "xp_level": 1,
+    "aura_level": 0,
+    "energy_current": 100,
+    "energy_max": 100,
+    "power_current": 13,
+    "last_update": "2025-10-26T22:56:27.623524Z"
+  },
+  "attributes": [
+    {
+      "trait_type": "ID",
+      "value": "01305"
+    },
+    {
+      "trait_type": "Race",
+      "value": "Elf"
+    },
+    {
+      "trait_type": "Class",
+      "value": "Wizard"
+    },
+    {
+      "trait_type": "Rarity",
+      "value": "Common"
+    },
+    {
+      "trait_type": "Guild",
+      "value": "Circle of Mist"
+    },
+    {
+      "trait_type": "Age",
+      "value": 146
+    }
+  ]
+}

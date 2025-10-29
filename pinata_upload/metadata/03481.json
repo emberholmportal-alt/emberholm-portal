@@ -1,0 +1,55 @@
+{
+  "name": "Schmidtvash, Herald of Rich Course",
+  "description": "Demon Paladin of Emberholm. Rarity: Rare. Guild: Order of Dawn.",
+  "image": "ipfs://TO_BE_DEFINED/03481.png",
+  "fixed_profile": {
+    "token_id": "03481",
+    "race": "Demon",
+    "class": "Paladin",
+    "rarity": "Rare",
+    "age": 73,
+    "starting_guild": "Order of Dawn",
+    "str": 15,
+    "dex": 10,
+    "con": 13,
+    "int": 11,
+    "wis": 13,
+    "cha": 9
+  },
+  "dynamic_state": {
+    "current_guild": "Order of Dawn",
+    "xp_total": 0,
+    "xp_level": 1,
+    "aura_level": 0,
+    "energy_current": 100,
+    "energy_max": 100,
+    "power_current": 12,
+    "last_update": "2025-10-26T22:56:47.373060Z"
+  },
+  "attributes": [
+    {
+      "trait_type": "ID",
+      "value": "03481"
+    },
+    {
+      "trait_type": "Race",
+      "value": "Demon"
+    },
+    {
+      "trait_type": "Class",
+      "value": "Paladin"
+    },
+    {
+      "trait_type": "Rarity",
+      "value": "Rare"
+    },
+    {
+      "trait_type": "Guild",
+      "value": "Order of Dawn"
+    },
+    {
+      "trait_type": "Age",
+      "value": 73
+    }
+  ]
+}

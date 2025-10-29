@@ -1,0 +1,55 @@
+{
+  "name": "Despitekar the Water",
+  "description": "Dragonborn Warrior of Emberholm. Rarity: Rare. Guild: Forge Legion.",
+  "image": "ipfs://TO_BE_DEFINED/04289.png",
+  "fixed_profile": {
+    "token_id": "04289",
+    "race": "Dragonborn",
+    "class": "Warrior",
+    "rarity": "Rare",
+    "age": 58,
+    "starting_guild": "Forge Legion",
+    "str": 16,
+    "dex": 10,
+    "con": 15,
+    "int": 8,
+    "wis": 11,
+    "cha": 10
+  },
+  "dynamic_state": {
+    "current_guild": "Forge Legion",
+    "xp_total": 0,
+    "xp_level": 1,
+    "aura_level": 0,
+    "energy_current": 100,
+    "energy_max": 100,
+    "power_current": 11,
+    "last_update": "2025-10-26T22:56:54.517597Z"
+  },
+  "attributes": [
+    {
+      "trait_type": "ID",
+      "value": "04289"
+    },
+    {
+      "trait_type": "Race",
+      "value": "Dragonborn"
+    },
+    {
+      "trait_type": "Class",
+      "value": "Warrior"
+    },
+    {
+      "trait_type": "Rarity",
+      "value": "Rare"
+    },
+    {
+      "trait_type": "Guild",
+      "value": "Forge Legion"
+    },
+    {
+      "trait_type": "Age",
+      "value": 58
+    }
+  ]
+}

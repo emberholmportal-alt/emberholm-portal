@@ -1,0 +1,55 @@
+{
+  "name": "Thalwalker, Yard in True",
+  "description": "Elf Cleric of Emberholm. Rarity: Common. Guild: Order of Dawn.",
+  "image": "ipfs://TO_BE_DEFINED/10717.png",
+  "fixed_profile": {
+    "token_id": "10717",
+    "race": "Elf",
+    "class": "Cleric",
+    "rarity": "Common",
+    "age": 90,
+    "starting_guild": "Order of Dawn",
+    "str": 10,
+    "dex": 12,
+    "con": 11,
+    "int": 16,
+    "wis": 15,
+    "cha": 12
+  },
+  "dynamic_state": {
+    "current_guild": "Order of Dawn",
+    "xp_total": 0,
+    "xp_level": 1,
+    "aura_level": 0,
+    "energy_current": 100,
+    "energy_max": 100,
+    "power_current": 12,
+    "last_update": "2025-10-26T22:57:52.430903Z"
+  },
+  "attributes": [
+    {
+      "trait_type": "ID",
+      "value": "10717"
+    },
+    {
+      "trait_type": "Race",
+      "value": "Elf"
+    },
+    {
+      "trait_type": "Class",
+      "value": "Cleric"
+    },
+    {
+      "trait_type": "Rarity",
+      "value": "Common"
+    },
+    {
+      "trait_type": "Guild",
+      "value": "Order of Dawn"
+    },
+    {
+      "trait_type": "Age",
+      "value": 90
+    }
+  ]
+}

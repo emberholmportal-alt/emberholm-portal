@@ -1,0 +1,55 @@
+{
+  "name": "Irspring, Leg of the Brother of the Billion",
+  "description": "Dragonborn Cleric of Emberholm. Rarity: Rare. Guild: Order of Dawn.",
+  "image": "ipfs://TO_BE_DEFINED/26792.png",
+  "fixed_profile": {
+    "token_id": "26792",
+    "race": "Dragonborn",
+    "class": "Cleric",
+    "rarity": "Rare",
+    "age": 46,
+    "starting_guild": "Order of Dawn",
+    "str": 12,
+    "dex": 9,
+    "con": 14,
+    "int": 13,
+    "wis": 14,
+    "cha": 10
+  },
+  "dynamic_state": {
+    "current_guild": "Order of Dawn",
+    "xp_total": 0,
+    "xp_level": 1,
+    "aura_level": 0,
+    "energy_current": 100,
+    "energy_max": 100,
+    "power_current": 11,
+    "last_update": "2025-10-26T23:00:06.026486Z"
+  },
+  "attributes": [
+    {
+      "trait_type": "ID",
+      "value": "26792"
+    },
+    {
+      "trait_type": "Race",
+      "value": "Dragonborn"
+    },
+    {
+      "trait_type": "Class",
+      "value": "Cleric"
+    },
+    {
+      "trait_type": "Rarity",
+      "value": "Rare"
+    },
+    {
+      "trait_type": "Guild",
+      "value": "Order of Dawn"
+    },
+    {
+      "trait_type": "Age",
+      "value": 46
+    }
+  ]
+}

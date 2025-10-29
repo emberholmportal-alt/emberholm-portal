@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: emberholm-portal
+    runtime: python
+    region: oregon
+    plan: free
+    buildCommand: ""
+    startCommand: gunicorn app:app
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.10
+    autoDeploy: true

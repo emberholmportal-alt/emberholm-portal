@@ -1,0 +1,1262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>EMBERHOLM PORTAL // NODE-Δ</title>
+
+<style>
+@font-face {
+    font-family: "VT323";
+    src: local("VT323"),
+         url("https://fonts.gstatic.com/s/vt323/v17/pxiKyp0ihIEF2isfFJU.woff2")
+         format("woff2");
+    font-display: swap;
+}
+
+/* GLOBAL LOOK */
+body {
+    background-color: #000;
+    color: #ffb400;
+    font-family: "VT323", monospace;
+    font-size: 16px;
+    line-height: 1.4em;
+    margin: 0;
+    padding: 0;
+}
+
+.wrapper {
+    max-width: 1100px;
+    margin: 10px auto 60px auto;
+    border: 2px solid #ffb400;
+    padding: 10px;
+    background-color: #000;
+    box-shadow: 0 0 8px rgba(255,180,0,0.4);
+    position: relative;
+}
+
+/* SECTION BLOCKS */
+.section-block {
+    border: 1px solid #ffb400;
+    padding: 10px;
+    margin-bottom: 20px;
+    background-color: #000;
+}
+
+.section-title {
+    border-bottom: 1px solid #ffb400;
+    padding-bottom: 6px;
+    margin-bottom: 10px;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+.subheading {
+    font-weight:bold;
+    text-transform:uppercase;
+    margin-bottom:8px;
+    border-bottom:1px solid #ffb400;
+    padding-bottom:4px;
+    font-size:14px;
+}
+
+hr.emberline {
+    border: none;
+    border-top: 2px solid #ffb400;
+    margin: 10px 0;
+}
+
+/* HEADER + NAV */
+.top-header {
+    font-size: 14px;
+    line-height: 1.4em;
+    color: #ffb400;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+}
+
+.top-status-row {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 20px;
+    align-items: flex-start;
+}
+
+.top-status-row span {
+    white-space: nowrap;
+}
+
+.top-command-bar {
+    margin-top: 10px;
+    border-top: 1px solid #ffb400;
+    padding-top: 8px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+}
+
+.cmd-link {
+    background: #000;
+    color: #ffb400;
+    border: 2px solid #ffb400;
+    font-family: "VT323", monospace;
+    font-size: 14px;
+    line-height: 1.2em;
+    padding: 4px 6px;
+    cursor: pointer;
+    text-transform: uppercase;
+}
+.cmd-link:hover {
+    background: #ffb400;
+    color: #000;
+}
+
+.command-hint {
+    font-size: 12px;
+    margin-top: 8px;
+    margin-bottom: 6px;
+    color: #ffb400;
+}
+
+.double-line {
+    border-top: 2px solid #ffb400;
+    border-bottom: 2px solid #ffb400;
+    height: 4px;
+    margin-bottom: 10px;
+}
+
+/* MUSIC PLAYER UI (floating top-left OUTSIDE frame) */
+.music-player {
+    position: fixed;
+    top: 8px;
+    left: 8px;
+    width: 240px;
+    border: 1px solid #ffb400;
+    background:#000;
+    padding:8px;
+    box-shadow:0 0 6px rgba(255,180,0,0.4);
+    font-size:12px;
+    line-height:1.3em;
+    z-index: 9999;
+}
+
+.music-title {
+    font-size:12px;
+    font-weight:bold;
+    text-transform:uppercase;
+    border-bottom:1px solid #ffb400;
+    padding-bottom:4px;
+    margin-bottom:6px;
+    color:#ffb400;
+    text-align:center;
+}
+
+.track-name-display {
+    font-size:12px;
+    color:#ffb400;
+    text-align:center;
+    min-height:16px;
+    word-break:break-word;
+    margin-bottom:6px;
+}
+
+.music-row {
+    display:flex;
+    flex-wrap:wrap;
+    gap:6px;
+    align-items:center;
+    margin-bottom:6px;
+    color:#ffb400;
+}
+
+.music-label {
+    font-size:12px;
+    min-width:40px;
+}
+
+.music-btn {
+    background:#000;
+    color:#ffb400;
+    border:2px solid #ffb400;
+    font-family:"VT323", monospace;
+    font-size:12px;
+    padding:2px 4px;
+    line-height:1.2em;
+    cursor:pointer;
+    text-transform:uppercase;
+}
+.music-btn:hover {
+    background:#ffb400;
+    color:#000;
+}
+
+/* volume slider retro */
+.music-volume {
+    -webkit-appearance:none;
+    width:100%;
+    background:#000;
+    border:1px solid #ffb400;
+    height:4px;
+    cursor:pointer;
+}
+.music-volume::-webkit-slider-thumb {
+    -webkit-appearance:none;
+    appearance:none;
+    width:10px;
+    height:14px;
+    background:#ffb400;
+    border:1px solid #ffb400;
+    cursor:pointer;
+}
+.music-volume::-moz-range-thumb {
+    width:10px;
+    height:14px;
+    background:#ffb400;
+    border:1px solid #ffb400;
+    cursor:pointer;
+}
+
+/* SCREENS */
+.screen {
+    display: none;
+    color: #ffb400;
+}
+.screen.active {
+    display: block;
+}
+
+/* HOME */
+.warning-block {
+    border: 1px solid #ffb400;
+    padding: 10px;
+    margin-bottom: 16px;
+    background:#000;
+}
+
+.logo-wrapper {
+    border: 1px solid #ffb400;
+    background:#000;
+    padding:10px;
+    text-align:center;
+    margin-bottom:10px;
+}
+.project-logo-img {
+    max-width: 320px;
+    image-rendering: pixelated;
+    display: block;
+    margin: 0 auto 6px auto;
+}
+
+.center-text-line {
+    text-align:center;
+    font-size:14px;
+    margin-bottom:4px;
+}
+
+.status-block {
+    border:1px solid #ffb400;
+    padding:10px;
+    margin-top:16px;
+    background:#000;
+    font-size:14px;
+}
+
+/* STATS */
+.stats-row {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    font-size: 14px;
+    margin-bottom: 6px;
+}
+.stats-col {
+    width: 48%;
+}
+@media(max-width:700px){
+    .stats-col{
+        width:100%;
+    }
+}
+
+/* GUILDS */
+.guild-entry {
+    border: 1px solid #ffb400;
+    padding: 10px;
+    margin-bottom: 10px;
+    background-color: #000;
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: flex-start;
+    gap: 10px;
+    font-size:14px;
+}
+.guild-badge {
+    width: 64px;
+    height: 64px;
+    min-width: 64px;
+    min-height: 64px;
+    border: 1px solid #ffb400;
+    background-color: #000;
+    image-rendering: pixelated;
+    object-fit: contain;
+}
+
+/* PROFILE */
+.player-profile-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+}
+
+.profile-col-left {
+    flex: 1 1 300px;
+    min-width: 260px;
+}
+
+.profile-col-right {
+    flex: 0 0 200px;
+    min-width: 200px;
+    max-width: 240px;
+    border: 1px solid #ffb400;
+    background-color: #000;
+    padding: 10px;
+    align-self: flex-start;
+    text-align: center;
+    font-size:14px;
+}
+
+.profile-emissary-img {
+    width: 128px;
+    height: 128px;
+    background-color: #000;
+    border: 1px solid #ffb400;
+    image-rendering: pixelated;
+    object-fit: contain;
+    margin: 0 auto 10px auto;
+    display:block;
+    color:#ffb400;
+    font-size:12px;
+    text-align:center;
+    line-height:128px;
+}
+
+.roster-table {
+    width: 100%;
+    border-collapse: collapse;
+    background-color: #000;
+    color: #ffb400;
+    margin-top: 10px;
+    font-size:14px;
+}
+.roster-table th,
+.roster-table td {
+    border: 1px solid #ffb400;
+    padding: 6px;
+    vertical-align: top;
+    text-align: left;
+}
+.roster-table th {
+    background-color: #000;
+    font-weight: bold;
+    text-transform: uppercase;
+    font-size: 14px;
+}
+
+.terminal-btn {
+    background: #000;
+    color: #ffb400;
+    border: 2px solid #ffb400;
+    font-family: "VT323", monospace;
+    font-size: 14px;
+    line-height: 1.2em;
+    cursor: pointer;
+    text-transform: uppercase;
+}
+.terminal-btn.small-btn {
+    padding: 4px 6px;
+    display: inline-block;
+}
+.terminal-btn:hover {
+    background: #ffb400;
+    color: #000;
+}
+
+/* GENERIC BLOCKS */
+.mono-block {
+    border: 1px solid #ffb400;
+    background-color: #000;
+    padding: 10px;
+    margin-bottom: 12px;
+    font-size:14px;
+}
+.mono-small-note {
+    font-size: 12px;
+    opacity: 0.9;
+}
+
+/* LINKS */
+a.social-link {
+    color: #ffb400;
+    text-decoration: underline;
+}
+a.social-link:hover {
+    background:#ffb400;
+    color:#000;
+}
+</style>
+</head>
+
+<body>
+
+<!-- MUSIC FLOATING PLAYER (top-left OUTSIDE main frame) -->
+<div class="music-player" id="music-player">
+    <div class="music-title">AUDIO FEED // REALM AMBIENCE</div>
+
+    <div class="track-name-display" id="track-name">
+        Track: (loading)
+    </div>
+
+    <div class="music-row">
+        <button class="music-btn" id="mute-btn">[MUTE]</button>
+        <button class="music-btn" id="next-btn">[NEXT]</button>
+    </div>
+
+    <div class="music-row" style="flex-direction:column;align-items:flex-start;width:100%;">
+        <div class="music-label">VOL</div>
+        <input id="volume-slider" class="music-volume" type="range" min="0" max="100" value="80"/>
+    </div>
+</div>
+
+<div class="wrapper">
+
+    <!-- HEADER -->
+    <header class="top-header">
+        <div class="top-status-row">
+            <span>EMBERHOLM PORTAL : NODE-Δ / REALM MONITOR</span>
+            <span>ACCESS LEVEL: [CITIZEN]</span>
+            <span>STATUS: FLAME WEAKENING // MISSIONS REQUIRED</span>
+        </div>
+
+        <div class="top-command-bar" id="nav-bar">
+            <button class="cmd-link" data-target="home">[HOME]</button>
+            <button class="cmd-link" data-target="stats">[STATS]</button>
+            <button class="cmd-link" data-target="guilds">[GUILDS]</button>
+            <button class="cmd-link" data-target="missions">[MISSIONS]</button>
+            <button class="cmd-link" data-target="profile">[PROFILE]</button>
+            <button class="cmd-link" data-target="help">[HELP]</button>
+            <button class="cmd-link" data-target="lore">[LORE]</button>
+            <button class="cmd-link" data-target="announcements">[ANNOUNCEMENTS]</button>
+            <button class="cmd-link" data-target="events">[EVENTS]</button>
+            <button class="cmd-link" data-target="credits">[SOCIAL/CREDITS]</button>
+        </div>
+
+        <div class="command-hint">
+            USE COMMAND KEYS TO NAVIGATE. ACCESS OUTSIDE AUTHORIZATION WILL BE LOGGED BY EMBER PROTOCOL.
+        </div>
+
+        <div class="double-line"></div>
+    </header>
+
+    <!-- HOME -->
+    <section class="screen active" data-screen="home">
+        <div class="section-block">
+            <div class="section-title">EMBERHOLM PORTAL // WARNING NODE</div>
+
+            <div class="logo-wrapper">
+                <img src="img/logo-site.png" class="project-logo-img" alt="Emberholm Portal" />
+                <div class="center-text-line" style="font-weight:bold;">
+                    Emberholm Portal
+                </div>
+                <div class="center-text-line mono-small-note" style="margin-top:6px;">
+                    UNAUTHORIZED ACCESS WILL BE LOGGED BY EMBER PROTOCOL
+                </div>
+            </div>
+
+            <div class="warning-block">
+                <div class="subheading" style="margin-bottom:6px;">
+                    CAMPAIGN: SEASON I // THE DYING FLAME
+                </div>
+                <div style="font-size:14px;">
+                    The Flame is weakening. Missions are required. The Realm is counting on you.<br/><br/>
+                    If you are not an authorized bearer of a hero-class asset, disconnect now.
+                </div>
+            </div>
+
+            <div class="status-block">
+                <div class="subheading" style="margin-bottom:6px;">
+                    REALM-STATUS // CRITICAL
+                </div>
+                <div>EMBER CORE STABILITY: 12%</div>
+                <div>AURA DEMAND EXCEEDS SUPPLY.</div>
+                <div>EMISSARIES OF EMBERHOLM REQUIRED.</div>
+            </div>
+
+            <div class="mono-small-note" style="margin-top:10px;">
+                NOTE: Campaign window ~45 days. Mission board refreshes every 72h.
+                Each hero can only attempt each mission once per rotation.
+            </div>
+        </div>
+    </section>
+
+    <!-- STATS -->
+    <section class="screen" data-screen="stats">
+        <div class="section-block">
+            <div class="section-title">REALM STATUS // GLOBAL STATS</div>
+
+            <div class="stats-row">
+                <div class="stats-col">
+                    <div>[TOTAL EMISSARIES OF EMBERHOLM]: <span id="stat-total-emissaries">35000</span></div>
+                    <div>[MISSIONS COMPLETED]: <span id="stat-missions-done">0</span></div>
+                    <div>[TOTAL XP ACCUMULATED]: <span id="stat-total-xp">0</span></div>
+                    <div>[TOTAL AURA STABILIZED]: <span id="stat-total-aura">0</span></div>
+                </div>
+                <div class="stats-col">
+                    <div>[ACTIVE GUILDS]: <span id="stat-active-guilds">6</span></div>
+                    <div>[MISSIONS FAILED]: <span id="stat-missions-failed">0</span></div>
+                    <div>[SEASONAL WINDOW]: ROTATING // 45 DAYS</div>
+                    <div>[MISSION ROTATION]: EVERY 72h</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="section-block">
+            <div class="section-title">GUILD RANKING // FACTION PERFORMANCE</div>
+            <div id="guild-ranking-list"></div>
+        </div>
+
+        <div class="section-block">
+            <div class="section-title">PLAYER EXPERIENCE LEADERBOARD // TOP OPERATIVES</div>
+            <div id="leaderboard-list">
+                <div class="mono-small-note">
+                    NOTE: Ranking is by XP gathered across all owned Emissaries.
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- GUILDS -->
+    <section class="screen" data-screen="guilds">
+        <div class="section-block">
+            <div class="section-title">ORDERS OF EMBERHOLM</div>
+            <div id="guilds-container"></div>
+            <div class="mono-small-note">
+                NOTE: Orders maintain independent doctrine. Unauthorized infiltration is not advised.
+            </div>
+        </div>
+    </section>
+
+    <!-- MISSIONS -->
+    <section class="screen" data-screen="missions">
+        <div class="section-block">
+            <div class="section-title">MISSION BOARD // 72H ROTATION</div>
+            <div id="mission-list"></div>
+            <div class="mono-small-note">
+                Each Emissary can only run each mission once per rotation.<br/>
+                Failure possible. Energy will be consumed on SEND.
+            </div>
+        </div>
+    </section>
+
+    <!-- PROFILE -->
+    <section class="screen" data-screen="profile">
+        <div class="section-block">
+            <div class="section-title">PLAYER PROFILE // WALLET LINK</div>
+
+            <div class="player-profile-row">
+                <div class="profile-col-left">
+                    <div>
+                        <label>WALLET (BASE): </label>
+                        <input id="wallet-input" type="text"
+                            style="background:#000;color:#ffb400;border:1px solid #ffb400;font-family:'VT323',monospace;padding:4px;min-width:220px;"
+                            value="0xAriel...F13c">
+                        <button class="terminal-btn small-btn" id="load-profile-btn">[LOAD PROFILE]</button>
+                    </div>
+
+                    <div id="wallet-summary" style="margin-top:10px;"></div>
+                </div>
+
+                <div class="profile-col-right">
+                    <div class="subheading">TOP EMISSARY</div>
+                    <div id="prime-emissary-img" class="profile-emissary-img">NO DATA</div>
+                    <div id="prime-emissary-desc" style="font-size:14px;text-align:left;"></div>
+                </div>
+            </div>
+
+            <hr class="emberline"/>
+
+            <div class="subheading">ROSTER // ACTIVE EMISSARIES</div>
+            <div id="roster-table-wrap"></div>
+
+            <div class="mono-small-note" style="margin-top:8px;">
+                ENERGY regenerates naturally every 48h. Emergency recovery is possible by sacrificing XP (see [RECOVER]).
+                SEND will assign an Emissary to a live mission, spending Energy and generating XP / Aura if successful.
+            </div>
+        </div>
+    </section>
+
+    <!-- HELP -->
+    <section class="screen" data-screen="help">
+        <div class="section-block">
+            <div class="section-title">HELP // BASIC PRINCIPLES</div>
+
+            <div class="mono-block">
+                <b>ENERGY:</b> Used to attempt missions. Drains on each run.
+                Energy auto-refills to MAX every 48h (natural recovery). You can also burn XP to instantly
+                restore Energy before the 48h window ends (Emergency Field Recovery via [RECOVER]).<br/><br/>
+
+                <b>XP TOTAL:</b> Experience gained by successful missions. Increases your standing.
+                XP can also be burned to restore Energy on demand.<br/><br/>
+
+                <b>AURA LEVEL:</b> Resonance harvested to keep the Ember Core alive.
+                Aura will become a spendable currency for tactical items (Ember Exchange).
+                Items can alter mission risk / reward in the future.<br/><br/>
+
+                <b>PASSIVE GAIN (24h):</b> Every registered Emissary receives a small automatic trickle
+                of XP and Aura every 24 hours, even offline. This keeps the Realm supplied, but rewards
+                are lower than live missions.<br/><br/>
+
+                <b>FAILURE:</b> Missions can fail. You may lose Energy with little/no reward.
+                Repeated mission failure is logged against Realm stability.<br/><br/>
+
+                <b>HERO SELECTION:</b> Each NFT hero in your wallet is an active Emissary aligned to a Guild.
+                Only deployed Emissaries can join missions (SEND).<br/><br/>
+
+                <b>OBJECTIVE:</b> Complete missions before the Flame dies. Stabilize the Ember Core.
+                Raise Guild standing. Survive Season I // THE DYING FLAME.<br/><br/>
+
+                <b>ROTATION LIMITS:</b> Mission Board refreshes every 72h.
+                Each hero can only attempt each mission once per rotation.
+                Events are special cases and may ignore Guild targeting.
+            </div>
+
+            <div class="section-title">COMMAND FLOW</div>
+            <div class="mono-block" style="font-size:14px;">
+                1. [PROFILE] Link / enter wallet (Base chain).<br/>
+                2. [MISSIONS] Choose a mission from the 72h board.<br/>
+                3. Select hero &amp; confirm Energy cost using [SEND].<br/>
+                4. Mission resolves. XP and Aura increase if success.<br/>
+                5. If Energy is low: use [RECOVER] to spend XP and refill early, or wait for the 48h natural Energy refresh.<br/>
+                6. Save Aura. Soon, Aura can buy tactical items that modify mission risk / payout via Ember Exchange.<br/><br/>
+
+                <span class="mono-small-note">
+                    NOTE: All operations are logged by Ember Protocol.
+                    Unauthorized interference with mission records may trigger Guild sanctions.
+                </span>
+            </div>
+        </div>
+    </section>
+
+    <!-- LORE -->
+    <section class="screen" data-screen="lore">
+    <div class="section-block">
+        <div class="section-title">LORE // REALM DOSSIER</div>
+
+        <div class="mono-block">
+            Emberholm is not on your world.
+
+            It is a sealed frontier realm built around the Ember Core — a burning heart of living fire that held back the dark pressure outside the borders. For generations, that Flame kept reality stable. The rivers stayed where they belonged. The dead stayed dead. Time obeyed.
+
+            Now the Ember Core is failing.
+
+            The Flame is collapsing faster than the Orders predicted. Breaches are opening along the edges of the realm. Voidforms are sighted in places that were once safe roads. Entire watchtowers fade, reappear twisted, and then go silent. Reality is thinning.
+
+            No one agrees on why. The Circle of Mist claims the Core is starving and demands more aura to feed it. The Forge Legion swears this is sabotage — that something intelligent is drilling into the heart of Emberholm from beyond. Horizon Watch reports “pressure tides” from somewhere outside the plane entirely.
+        </div>
+
+        <div class="mono-block">
+            Emberholm is defended by six Orders, each sworn to protect the Core in their own way:
+
+            • Forge Legion – iron oathkeepers, front-line steel, sworn weaponsmiths of the realm.  
+            • Circle of Mist – alchemists, mana-binders, forbidden knowledge and controlled heresy.  
+            • Shadow Guild – sanctioned spies, information brokers, invisible knives in the dark.  
+            • Horizon Watch – scouts and tideborn outriders stationed at the world’s thinning edges.  
+            • Dawnkeepers – clerics and oathbound paladins who swear directly to the Ember Core.  
+            • Echoes of the Veil – necromancers and spectral binders who negotiate with the dead instead of burying them.
+
+            These are not peaceful alliances. They don’t trust each other — but they are forced to cooperate, because if the Core dies, they all die with it.
+        </div>
+
+        <div class="mono-block">
+            Every hero bound to a wallet in your world is registered in Emberholm as an Emissary.
+
+            An Emissary is not a spectator. An Emissary is deployed.
+
+            When you link your wallet, the Portal recognizes your Emissaries and assigns them to one of the Orders above. That Order treats them as operative assets — and sends them into the field.
+
+            Missions are not decoration. Every mission run by an Emissary gathers XP (field experience), stabilizes Aura (the Core’s lifeblood), clears threats, and delays collapse.
+
+            XP is proof-of-action. Aura is survival fuel.
+        </div>
+
+        <div class="mono-block">
+            The Ember Core is dying, and something out there wants it dead.
+
+            Emberholm does not have enough agents left within its own borders to hold the line. So the Orders authorized something desperate — the Portal.
+
+            This Portal is a live bridge between our realm and yours. Through it, off-realm holders (you) can deploy Emissaries into Emberholm. You choose which heroes respond to which missions. You spend their Energy. You risk their safety. You stabilize our world.
+
+            In return, their XP and Aura grow — and your standing inside the Realm is logged permanently.
+        </div>
+
+        <div class="mono-block">
+            Understand this clearly:
+
+            • The Flame is weakening.  
+            • The realm cannot last without continuous missions.  
+            • Aura demand already exceeds supply.  
+            • If the Ember Core drops past critical, Emberholm will fracture — and whatever is pushing in from the outside will not stop at this world.
+
+            You are not just “playing.” You are supplying force to a failing reality.
+
+            The Realm is counting on you.
+        </div>
+
+        <div class="mono-small-note">
+            NOTICE: All Emissary deployments and mission outcomes are logged by Ember Protocol. Refusal to act will also be logged.
+        </div>
+    </div>
+</section>
+
+    <!-- ANNOUNCEMENTS -->
+    <section class="screen" data-screen="announcements">
+        <div class="section-block">
+            <div class="section-title">ANNOUNCEMENTS // SYSTEM BROADCAST</div>
+
+            <div class="mono-block">
+                Guild-to-guild communication channel is under construction.
+                Future updates will include faction chat and inter-Order strategic calls.
+
+                Seasonal rewards will soon apply:
+                - Rank bonuses for top Guild performance.
+                - Individual commendations for high XP / Aura output.
+            </div>
+
+            <div class="mono-block">
+                NEXT CAMPAIGN LAUNCH ETA: ~45 days.
+                Mission Board rotation every 72 hours. Central mission may update
+                when new breaches appear.
+
+                Aura expenditure protocol in development:
+                Certain black-market "items" may be acquired by sacrificing Aura.
+                These items will modify mission odds and survivability.
+            </div>
+
+            <div class="mono-small-note">
+                NOTICE: Energy can be force-recovered at cost of XP.
+                Aura may become spendable for tactical items. This is experimental.
+            </div>
+        </div>
+    </section>
+
+    <!-- EVENTS -->
+    <section class="screen" data-screen="events">
+        <div class="section-block">
+            <div class="section-title">EVENTS // SPECIAL OPERATIONS</div>
+
+            <div class="mono-block">
+                CURRENT EVENT: FIRST FLAME RALLY [LAUNCH EVENT]<br/><br/>
+
+                Description: Emergency call to all Emissaries. A universal operation
+                that any registered hero can attempt. Risk profile is controlled.
+                Rewards grant baseline XP and Aura more evenly than standard Guild-targeted missions.<br/><br/>
+
+                Purpose: Stabilize morale and let new Emissaries prove presence in the field.
+                This event is independent of the 72h mission board rotation,
+                but participation will still be logged.<br/><br/>
+
+                RULE: Each Emissary can participate once per event.
+            </div>
+
+            <div class="mono-small-note">
+                NOTE: Special Events may appear without warning and may ignore standard Guild targeting.
+            </div>
+        </div>
+    </section>
+
+    <!-- SOCIAL / CREDITS -->
+    <section class="screen" data-screen="credits">
+        <div class="section-block">
+            <div class="section-title">OFFICIAL NODE // SOCIAL + CREDITS</div>
+
+            <div class="mono-block">
+                <div class="subheading" style="border-bottom:none;padding-bottom:0;margin-bottom:4px;">
+                    PROJECT ACCOUNT [X / EMBERHOLM PORTAL]:
+                </div>
+                <div>
+                    <a class="social-link" href="https://x.com/emberholmportal" target="_blank">
+                        https://x.com/emberholmportal
+                    </a>
+                </div>
+            </div>
+
+            <div class="mono-block">
+                World Lore / Art Direction / System Design / Programming:<br/>
+                Ariel Flores Valdez<br/>
+                with technical assistance from ChatGpt5
+            </div>
+
+            <div class="mono-block">
+                Music &amp; Audio Atmosphere (8-bit Medieval RPG Score):<br/>
+                xDeviruchi<br/>
+                <a class="social-link" href="https://youtube.com/xdeviruchi" target="_blank">
+                    youtube.com/xdeviruchi
+                </a>
+            </div>
+
+            <div class="mono-small-note">
+                NOTICE: Unauthorized extraction of Realm assets will be logged by Ember Protocol.
+            </div>
+        </div>
+    </section>
+
+</div><!-- /.wrapper -->
+
+<script>
+/* --------- BASIC NAV --------- */
+function switchScreen(screenName){
+    document.querySelectorAll(".screen").forEach(s=>{
+        if(s.getAttribute("data-screen") === screenName){
+            s.classList.add("active");
+        } else {
+            s.classList.remove("active");
+        }
+    });
+}
+document.querySelectorAll(".cmd-link").forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+        const target = btn.getAttribute("data-target");
+        switchScreen(target);
+
+        if(target === "stats"){
+            fetchStatsAndRender();
+        } else if (target === "guilds"){
+            fetchGuildsAndRender();
+        } else if (target === "missions"){
+            fetchMissionsAndRender();
+        }
+    });
+});
+
+/* --------- FETCH UTILS --------- */
+async function fetchJSON(url, opts={}){
+    const res = await fetch(url, opts);
+    if(!res.ok){
+        throw new Error("HTTP "+res.status+" "+(await res.text()));
+    }
+    return await res.json();
+}
+
+/* --------- STATS PANEL --------- */
+async function fetchStatsAndRender(){
+    try {
+        const stats = await fetchJSON("/api/stats");
+        document.getElementById("stat-total-emissaries").textContent = stats.total_characters ?? 35000;
+        document.getElementById("stat-active-guilds").textContent    = stats.active_guilds ?? 6;
+        document.getElementById("stat-missions-done").textContent    = stats.missions_completed ?? 0;
+        document.getElementById("stat-missions-failed").textContent  = stats.missions_failed ?? 0;
+        document.getElementById("stat-total-xp").textContent         = stats.total_exp_collected ?? 0;
+        document.getElementById("stat-total-aura").textContent       = stats.total_aura_collected ?? 0;
+
+        const gr = stats.guild_ranking || [];
+        let htmlGR = "";
+        gr.forEach(g=>{
+            htmlGR += `
+            <div class="mono-block">
+                <b>${g.name}</b><br/>
+                XP Total: ${g.xp_total} | Aura Total: ${g.aura_total} | Success Rate: ${g.success_rate}
+            </div>`;
+        });
+        if(!htmlGR){
+            htmlGR = `<div class="mono-small-note">No guild performance data yet.</div>`;
+        }
+        document.getElementById("guild-ranking-list").innerHTML = htmlGR;
+
+        const lb = stats.player_leaderboard || [];
+        let htmlLB = "";
+        lb.slice(0,10).forEach((p,idx)=>{
+            htmlLB += `
+            <div class="mono-block">
+                #${idx+1} Wallet: ${p.wallet}<br/>
+                Heroes: ${p.heroes_count} | Total XP: ${p.xp_total_all} | Aura: ${p.aura_total_all}
+            </div>`;
+        });
+        if(!htmlLB){
+            htmlLB = `<div class="mono-small-note">No ranking data yet.</div>`;
+        }
+        document.getElementById("leaderboard-list").innerHTML = htmlLB;
+
+    } catch(e){
+        console.error(e);
+    }
+}
+
+/* --------- GUILDS PANEL --------- */
+async function fetchGuildsAndRender(){
+    try {
+        const guilds = await fetchJSON("/api/guilds");
+        let html = "";
+        guilds.forEach(g=>{
+            html += `
+            <div class="guild-entry">
+                <img src="${g.badge}" alt="${g.name} badge" class="guild-badge"/>
+                <div style="flex:1">
+                    <div style="font-weight:bold;text-transform:uppercase;margin-bottom:4px;">
+                        ${g.name} – ${g.flavor}
+                    </div>
+                    <div>Members: ${g.members} | Avg XP: ${g.avg_xp} | Avg Aura: ${g.avg_aura}</div>
+                </div>
+            </div>
+            `;
+        });
+        document.getElementById("guilds-container").innerHTML = html;
+    } catch(e){
+        console.error(e);
+        document.getElementById("guilds-container").innerHTML =
+            `<div class="mono-small-note">Failed to load guild data.</div>`;
+    }
+}
+
+/* --------- MISSIONS PANEL --------- */
+async function fetchMissionsAndRender(){
+    try {
+        const missions = await fetchJSON("/api/missions");
+        let html = "";
+        missions.forEach(m=>{
+            html += `
+            <div class="mono-block">
+                <b>${m.id}: ${m.name}</b><br/>
+                Difficulty: ${m.difficulty}<br/>
+                Energy Cost: ${m.energy_cost}<br/>
+                Reward XP: ${m.reward_xp} | Reward Aura: ${m.reward_aura}<br/>
+                Favored: ${m.favored}<br/>
+            </div>`;
+        });
+        document.getElementById("mission-list").innerHTML = html;
+    } catch(e){
+        console.error(e);
+        document.getElementById("mission-list").innerHTML =
+            `<div class="mono-small-note">Mission Board offline.</div>`;
+    }
+}
+
+/* --------- PROFILE PANEL --------- */
+async function loadPlayerAndRender(){
+    const wallet = (document.getElementById("wallet-input").value || "").trim() || "0xAriel...F13c";
+
+    try {
+        const player = await fetchJSON(`/api/player/${encodeURIComponent(wallet)}`);
+
+        const totals = player.totals || {};
+        const walletSummaryEl = document.getElementById("wallet-summary");
+        walletSummaryEl.innerHTML = `
+            <div>Wallet: ${player.wallet || wallet}</div>
+            <div>Heroes Linked: ${totals.heroes_count || 0}</div>
+            <div>XP Total (All Heroes): ${totals.xp_total_all || 0}</div>
+            <div>Aura Level (All Heroes): ${totals.aura_total_all || 0}</div>
+            <div>Energy Pool Available: ${totals.energy_total_available || 0}</div>
+        `;
+
+        // choose top emissary by XP
+        let prime = null;
+        (player.heroes || []).forEach(h=>{
+            if(!prime){
+                prime = h;
+            } else {
+                const xpH = (h.dynamic_state && h.dynamic_state.xp_total) || 0;
+                const xpP = (prime.dynamic_state && prime.dynamic_state.xp_total) || 0;
+                if(xpH > xpP){ prime = h; }
+            }
+        });
+
+        const primeImgEl  = document.getElementById("prime-emissary-img");
+        const primeDescEl = document.getElementById("prime-emissary-desc");
+
+        if(prime){
+            primeImgEl.innerHTML = "";
+            primeImgEl.style.display="flex";
+            primeImgEl.style.alignItems="center";
+            primeImgEl.style.justifyContent="center";
+
+            if(prime.image_url){
+                primeImgEl.innerHTML = `<img src="${prime.image_url}"
+                    style="max-width:128px;max-height:128px;image-rendering:pixelated;object-fit:contain;"
+                    alt="${prime.name}"/>`;
+            } else {
+                primeImgEl.textContent = prime.token_id || "NO IMG";
+            }
+
+            const ds = prime.dynamic_state || {};
+            primeDescEl.innerHTML = `
+                <div><b>${prime.name || prime.token_id}</b></div>
+                <div>${prime.race_class || ""}</div>
+                <div>Guild: ${prime.guild || ds.current_guild || "UNKNOWN"}</div>
+                <div>XP: ${ds.xp_total || 0} | Aura: ${ds.aura_level || 0}</div>
+                <div>Energy: ${ds.energy_current || 0}/${ds.energy_max || 100}</div>
+                <div>Status: ${ds.state || "READY"}</div>
+            `;
+        } else {
+            primeImgEl.textContent = "NO DATA";
+            primeDescEl.innerHTML = "No Emissaries registered.";
+        }
+
+        // roster table
+        let tbodyRows = "";
+        (player.heroes || []).forEach(h=>{
+            const ds = h.dynamic_state || {};
+            tbodyRows += `
+            <tr>
+                <td>${h.name || h.token_id}</td>
+                <td>${h.race_class || ""}</td>
+                <td>${ds.xp_total || 0}</td>
+                <td>${ds.aura_level || 0}</td>
+                <td>${ds.energy_current || 0}/${ds.energy_max || 100}</td>
+                <td>${h.guild || ds.current_guild || ""}</td>
+                <td>${ds.state || "READY"}</td>
+                <td>
+                    <button class="terminal-btn small-btn send-btn" data-hero="${h.token_id}">
+                        [SEND]
+                    </button>
+                </td>
+                <td>
+                    <button class="terminal-btn small-btn recover-btn" data-hero="${h.token_id}">
+                        [RECOVER]
+                    </button>
+                </td>
+            </tr>`;
+        });
+
+        const rosterTableHtml = `
+            <table class="roster-table">
+                <thead>
+                    <tr>
+                        <th>NAME</th>
+                        <th>CLASS</th>
+                        <th>XP</th>
+                        <th>AURA</th>
+                        <th>ENERGY</th>
+                        <th>GUILD</th>
+                        <th>STATE</th>
+                        <th>SEND</th>
+                        <th>RECOVER</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${tbodyRows}
+                </tbody>
+            </table>
+        `;
+        document.getElementById("roster-table-wrap").innerHTML = rosterTableHtml;
+
+        /* SEND mission */
+        document.querySelectorAll(".send-btn").forEach(btn=>{
+            btn.addEventListener("click", async ()=>{
+                const heroId = btn.getAttribute("data-hero");
+
+                const missionId = window.prompt(
+                    "MISSION DISPATCH INTERFACE\n\n" +
+                    "Enter mission ID to SEND this Emissary:\n" +
+                    "001 = The Lost Forge (EASY)\n" +
+                    "002 = Circle Interference Node (MEDIUM)\n" +
+                    "003 = Veil Breach Containment (HARD)\n\n" +
+                    "WARNING: Energy will be consumed. One attempt per rotation.",
+                    "001"
+                );
+                if(!missionId) return;
+
+                const inputWallet = document.getElementById("wallet-input").value.trim() || "0xAriel...F13c";
+
+                try {
+                    const res = await fetch("/api/mission/execute", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            wallet: inputWallet,
+                            hero_id: heroId,
+                            mission_id: missionId
+                        })
+                    });
+
+                    if(!res.ok){
+                        const errText = await res.text();
+                        alert(
+                            "MISSION FAILED:\n\n" +
+                            errText + "\n\n" +
+                            "Possible causes:\n" +
+                            "- Not enough ENERGY\n" +
+                            "- Mission on cooldown (already attempted this rotation)\n" +
+                            "- Invalid mission ID"
+                        );
+                        return;
+                    }
+
+                    const result = await res.json();
+
+                    alert(
+                        "MISSION COMPLETE\n\n" +
+                        "Emissary #" + result.hero_id + " ran mission " + result.mission_id +
+                        " (" + result.mission_name + ")\n" +
+                        "Energy Spent: " + result.energy_spent + "\n" +
+                        "XP Gained: " + result.xp_gained + "\n" +
+                        "Aura Gained: " + result.aura_gained + "\n\n" +
+                        "Current Energy: " + result.hero_energy_now + "\n" +
+                        "Current XP: " + result.hero_xp_now + "\n" +
+                        "Current Aura: " + result.hero_aura_now
+                    );
+
+                    loadPlayerAndRender();
+                } catch(e){
+                    console.error(e);
+                    alert("MISSION ERROR: Connection issue.");
+                }
+            });
+        });
+
+        /* RECOVER energy (burn XP) */
+        document.querySelectorAll(".recover-btn").forEach(btn=>{
+            btn.addEventListener("click", async ()=>{
+                const heroId = btn.getAttribute("data-hero");
+
+                const amountStr = window.prompt(
+                    "EMERGENCY FIELD RECOVERY:\n" +
+                    "How much ENERGY do you want to restore to this Emissary?\n\n" +
+                    "Cost: 5 XP per 1 Energy.\n\n" +
+                    "Enter amount (number):",
+                    "10"
+                );
+                if(!amountStr) return;
+                const energyRequest = parseInt(amountStr,10);
+                if(isNaN(energyRequest) || energyRequest <= 0){
+                    alert("Invalid amount.");
+                    return;
+                }
+
+                const inputWallet = document.getElementById("wallet-input").value.trim() || "0xAriel...F13c";
+
+                try {
+                    const res = await fetch("/api/player/spend_xp_for_energy", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            wallet: inputWallet,
+                            hero_id: heroId,
+                            energy_request: energyRequest
+                        })
+                    });
+
+                    if(!res.ok){
+                        const errText = await res.text();
+                        alert("RECOVERY FAILED:\n" + errText);
+                        return;
+                    }
+
+                    const dataAfter = await res.json();
+
+                    alert(
+                        "RECOVERY COMPLETE\n\n" +
+                        "Hero: #" + dataAfter.hero_id + "\n" +
+                        "Energy Now: " + dataAfter.energy_current + "\n" +
+                        "XP Remaining: " + dataAfter.xp_total
+                    );
+
+                    loadPlayerAndRender();
+                } catch(e){
+                    console.error(e);
+                    alert("RECOVERY ERROR: connection issue.");
+                }
+            });
+        });
+
+    } catch(e){
+        console.error(e);
+        document.getElementById("wallet-summary").innerHTML =
+            `<div class="mono-small-note">Wallet not found / invalid.</div>`;
+        document.getElementById("prime-emissary-img").textContent = "NO DATA";
+        document.getElementById("prime-emissary-desc").innerHTML = "No Emissaries registered.";
+        document.getElementById("roster-table-wrap").innerHTML =
+            `<div class="mono-small-note">No roster data.</div>`;
+    }
+}
+
+/* LOAD PROFILE BUTTON */
+document.getElementById("load-profile-btn").addEventListener("click", ()=>{
+    loadPlayerAndRender();
+});
+
+/* AUTO-INIT PROFILE */
+loadPlayerAndRender();
+
+/* --------- AMBIENT MUSIC SYSTEM ---------
+   Tu estructura en disco es:
+   C:\EmberholmServer\static\music\track01.wav ... track11.wav
+   Flask sirve /static como raíz estática.
+   Entonces el navegador accede como /music/track01.wav
+*/
+const tracks = [
+    {file:"/music/track01.wav", name:"Ash Monastery Vigil"},
+    {file:"/music/track02.wav", name:"Circle of Mist Ritual"},
+    {file:"/music/track03.wav", name:"Horizon Watch Beacon"},
+    {file:"/music/track04.wav", name:"Veil Breach Containment"},
+    {file:"/music/track05.wav", name:"Forge Legion March"},
+    {file:"/music/track06.wav", name:"Dawnkeepers Prayer in Static"},
+    {file:"/music/track07.wav", name:"Shadow Guild Intercept Channel"},
+    {file:"/music/track08.wav", name:"Tideborn Patrol Signal"},
+    {file:"/music/track09.wav", name:"Isolated Ember Core Hum"},
+    {file:"/music/track10.wav", name:"First Flame Rally Drum"},
+    {file:"/music/track11.wav", name:"Emberholm Lament / Low Vox"}
+];
+
+let currentTrackIndex = 0;
+let isMuted = false;
+
+const audioEl = new Audio();
+audioEl.loop = false;
+audioEl.volume = 0.8; // 80% default
+
+const trackNameEl = document.getElementById("track-name");
+const muteBtn      = document.getElementById("mute-btn");
+const nextBtn      = document.getElementById("next-btn");
+const volumeSlider = document.getElementById("volume-slider");
+
+function loadTrack(i){
+    currentTrackIndex = i % tracks.length;
+    const data = tracks[currentTrackIndex];
+    audioEl.src = data.file;
+    trackNameEl.textContent = "Track: " + data.name;
+    // intentar reproducir (algunos navegadores bloquean autoplay hasta que el user haga click)
+    audioEl.play().catch(()=>{ /* espera la primera interacción */ });
+}
+
+function nextTrack(){
+    currentTrackIndex = (currentTrackIndex + 1) % tracks.length;
+    loadTrack(currentTrackIndex);
+}
+
+function toggleMute(){
+    isMuted = !isMuted;
+    audioEl.muted = isMuted;
+    muteBtn.textContent = isMuted ? "[UNMUTE]" : "[MUTE]";
+}
+
+function setVolumeFromSlider(){
+    const v = parseInt(volumeSlider.value,10)/100;
+    audioEl.volume = v;
+}
+
+muteBtn.addEventListener("click", toggleMute);
+nextBtn.addEventListener("click", nextTrack);
+volumeSlider.addEventListener("input", setVolumeFromSlider);
+
+/* auto-next */
+audioEl.addEventListener("ended", ()=>{
+    nextTrack();
+});
+
+/* start first track */
+loadTrack(0);
+</script>
+</body>
+</html>

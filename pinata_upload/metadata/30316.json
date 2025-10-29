@@ -1,0 +1,55 @@
+{
+  "name": "Javier-ar of the Broken Section",
+  "description": "Dragonborn Rogue of Emberholm. Rarity: Rare. Guild: Shadow Guild.",
+  "image": "ipfs://TO_BE_DEFINED/30316.png",
+  "fixed_profile": {
+    "token_id": "30316",
+    "race": "Dragonborn",
+    "class": "Rogue",
+    "rarity": "Rare",
+    "age": 42,
+    "starting_guild": "Shadow Guild",
+    "str": 14,
+    "dex": 13,
+    "con": 13,
+    "int": 10,
+    "wis": 10,
+    "cha": 10
+  },
+  "dynamic_state": {
+    "current_guild": "Shadow Guild",
+    "xp_total": 0,
+    "xp_level": 1,
+    "aura_level": 0,
+    "energy_current": 100,
+    "energy_max": 100,
+    "power_current": 12,
+    "last_update": "2025-10-26T23:00:35.854861Z"
+  },
+  "attributes": [
+    {
+      "trait_type": "ID",
+      "value": "30316"
+    },
+    {
+      "trait_type": "Race",
+      "value": "Dragonborn"
+    },
+    {
+      "trait_type": "Class",
+      "value": "Rogue"
+    },
+    {
+      "trait_type": "Rarity",
+      "value": "Rare"
+    },
+    {
+      "trait_type": "Guild",
+      "value": "Shadow Guild"
+    },
+    {
+      "trait_type": "Age",
+      "value": 42
+    }
+  ]
+}

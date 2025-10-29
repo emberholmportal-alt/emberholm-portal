@@ -1,0 +1,55 @@
+{
+  "name": "MooreMorn, City of the Business the Last Crime",
+  "description": "Beast Bard of Emberholm. Rarity: Legendary. Guild: Shadow Guild.",
+  "image": "ipfs://TO_BE_DEFINED/09543.png",
+  "fixed_profile": {
+    "token_id": "09543",
+    "race": "Beast",
+    "class": "Bard",
+    "rarity": "Legendary",
+    "age": 20,
+    "starting_guild": "Shadow Guild",
+    "str": 11,
+    "dex": 14,
+    "con": 12,
+    "int": 12,
+    "wis": 14,
+    "cha": 11
+  },
+  "dynamic_state": {
+    "current_guild": "Shadow Guild",
+    "xp_total": 0,
+    "xp_level": 1,
+    "aura_level": 0,
+    "energy_current": 100,
+    "energy_max": 100,
+    "power_current": 12,
+    "last_update": "2025-10-26T22:57:41.821902Z"
+  },
+  "attributes": [
+    {
+      "trait_type": "ID",
+      "value": "09543"
+    },
+    {
+      "trait_type": "Race",
+      "value": "Beast"
+    },
+    {
+      "trait_type": "Class",
+      "value": "Bard"
+    },
+    {
+      "trait_type": "Rarity",
+      "value": "Legendary"
+    },
+    {
+      "trait_type": "Guild",
+      "value": "Shadow Guild"
+    },
+    {
+      "trait_type": "Age",
+      "value": 20
+    }
+  ]
+}

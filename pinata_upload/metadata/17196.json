@@ -1,0 +1,55 @@
+{
+  "name": "NotAsh the Evidence One",
+  "description": "Orc Wizard of Emberholm. Rarity: Common. Guild: Circle of Mist.",
+  "image": "ipfs://TO_BE_DEFINED/17196.png",
+  "fixed_profile": {
+    "token_id": "17196",
+    "race": "Orc",
+    "class": "Wizard",
+    "rarity": "Common",
+    "age": 52,
+    "starting_guild": "Circle of Mist",
+    "str": 11,
+    "dex": 8,
+    "con": 13,
+    "int": 14,
+    "wis": 11,
+    "cha": 8
+  },
+  "dynamic_state": {
+    "current_guild": "Circle of Mist",
+    "xp_total": 0,
+    "xp_level": 1,
+    "aura_level": 0,
+    "energy_current": 100,
+    "energy_max": 100,
+    "power_current": 11,
+    "last_update": "2025-10-26T22:58:47.723266Z"
+  },
+  "attributes": [
+    {
+      "trait_type": "ID",
+      "value": "17196"
+    },
+    {
+      "trait_type": "Race",
+      "value": "Orc"
+    },
+    {
+      "trait_type": "Class",
+      "value": "Wizard"
+    },
+    {
+      "trait_type": "Rarity",
+      "value": "Common"
+    },
+    {
+      "trait_type": "Guild",
+      "value": "Circle of Mist"
+    },
+    {
+      "trait_type": "Age",
+      "value": 52
+    }
+  ]
+}

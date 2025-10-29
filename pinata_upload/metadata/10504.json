@@ -1,0 +1,55 @@
+{
+  "name": "Ginasyl, Herald of Over Help the Silent Too",
+  "description": "Tiefling Ranger of Emberholm. Rarity: Rare. Guild: Horizon Watch.",
+  "image": "ipfs://TO_BE_DEFINED/10504.png",
+  "fixed_profile": {
+    "token_id": "10504",
+    "race": "Tiefling",
+    "class": "Ranger",
+    "rarity": "Rare",
+    "age": 57,
+    "starting_guild": "Horizon Watch",
+    "str": 11,
+    "dex": 14,
+    "con": 11,
+    "int": 12,
+    "wis": 12,
+    "cha": 12
+  },
+  "dynamic_state": {
+    "current_guild": "Horizon Watch",
+    "xp_total": 0,
+    "xp_level": 1,
+    "aura_level": 0,
+    "energy_current": 100,
+    "energy_max": 100,
+    "power_current": 12,
+    "last_update": "2025-10-26T22:57:50.523560Z"
+  },
+  "attributes": [
+    {
+      "trait_type": "ID",
+      "value": "10504"
+    },
+    {
+      "trait_type": "Race",
+      "value": "Tiefling"
+    },
+    {
+      "trait_type": "Class",
+      "value": "Ranger"
+    },
+    {
+      "trait_type": "Rarity",
+      "value": "Rare"
+    },
+    {
+      "trait_type": "Guild",
+      "value": "Horizon Watch"
+    },
+    {
+      "trait_type": "Age",
+      "value": 57
+    }
+  ]
+}

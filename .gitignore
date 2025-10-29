@@ -1,0 +1,63 @@
+# -------------------------------
+# Emberholm Portal - .gitignore (optimizado)
+# -------------------------------
+
+# 🧠 Python / Flask temporales
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.db
+*.sqlite3
+instance/
+.env
+*.log
+
+# 🧱 Archivos del sistema
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# 🧩 Datos pesados o grandes volúmenes
+metadata_final/
+*.zip
+*.tar
+*.gz
+
+# 🖼️ Archivos multimedia grandes generados localmente
+*.mp4
+*.mov
+*.avi
+*.flac
+*.ogg
+
+# 🧰 Archivos locales / IDEs
+dist/
+build/
+.idea/
+.vscode/
+
+# 🔒 Configuración privada
+.env.local
+.env.production
+secrets.json
+credentials.json
+
+# 🧪 Archivos temporales
+test_*.py
+*_temp.py
+
+# -------------------------------
+# Control selectivo de metadatas
+# -------------------------------
+# Ignora todos los JSON de metadata...
+/data/metadata/*.json
+# ...excepto los primeros 200 para pruebas
+!/data/metadata/0000[0-9][0-9].json
+!/data/metadata/0001[0-9][0-9].json
+!/data/metadata/0002[0-9][0-9].json
+
+# -------------------------------
+# Fin de .gitignore
+# -------------------------------

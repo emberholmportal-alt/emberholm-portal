@@ -1,0 +1,55 @@
+{
+  "name": "RaymondThal, Call in Popular the Growth One",
+  "description": "Gith Bard of Emberholm. Rarity: Rare. Guild: Shadow Guild.",
+  "image": "ipfs://TO_BE_DEFINED/12851.png",
+  "fixed_profile": {
+    "token_id": "12851",
+    "race": "Gith",
+    "class": "Bard",
+    "rarity": "Rare",
+    "age": 45,
+    "starting_guild": "Shadow Guild",
+    "str": 11,
+    "dex": 13,
+    "con": 11,
+    "int": 14,
+    "wis": 13,
+    "cha": 14
+  },
+  "dynamic_state": {
+    "current_guild": "Shadow Guild",
+    "xp_total": 0,
+    "xp_level": 1,
+    "aura_level": 0,
+    "energy_current": 100,
+    "energy_max": 100,
+    "power_current": 12,
+    "last_update": "2025-10-26T22:58:11.209311Z"
+  },
+  "attributes": [
+    {
+      "trait_type": "ID",
+      "value": "12851"
+    },
+    {
+      "trait_type": "Race",
+      "value": "Gith"
+    },
+    {
+      "trait_type": "Class",
+      "value": "Bard"
+    },
+    {
+      "trait_type": "Rarity",
+      "value": "Rare"
+    },
+    {
+      "trait_type": "Guild",
+      "value": "Shadow Guild"
+    },
+    {
+      "trait_type": "Age",
+      "value": 45
+    }
+  ]
+}

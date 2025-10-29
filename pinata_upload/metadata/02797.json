@@ -1,0 +1,55 @@
+{
+  "name": "Andre-ion, Million of the Box",
+  "description": "Tiefling Druid of Emberholm. Rarity: Rare. Guild: Circle of Mist.",
+  "image": "ipfs://TO_BE_DEFINED/02797.png",
+  "fixed_profile": {
+    "token_id": "02797",
+    "race": "Tiefling",
+    "class": "Druid",
+    "rarity": "Rare",
+    "age": 56,
+    "starting_guild": "Circle of Mist",
+    "str": 10,
+    "dex": 12,
+    "con": 11,
+    "int": 15,
+    "wis": 15,
+    "cha": 12
+  },
+  "dynamic_state": {
+    "current_guild": "Circle of Mist",
+    "xp_total": 0,
+    "xp_level": 1,
+    "aura_level": 0,
+    "energy_current": 100,
+    "energy_max": 100,
+    "power_current": 12,
+    "last_update": "2025-10-26T22:56:41.407044Z"
+  },
+  "attributes": [
+    {
+      "trait_type": "ID",
+      "value": "02797"
+    },
+    {
+      "trait_type": "Race",
+      "value": "Tiefling"
+    },
+    {
+      "trait_type": "Class",
+      "value": "Druid"
+    },
+    {
+      "trait_type": "Rarity",
+      "value": "Rare"
+    },
+    {
+      "trait_type": "Guild",
+      "value": "Circle of Mist"
+    },
+    {
+      "trait_type": "Age",
+      "value": 56
+    }
+  ]
+}

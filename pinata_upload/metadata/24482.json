@@ -1,0 +1,55 @@
+{
+  "name": "Chandlergra, Expert of Organization from Jaredtown",
+  "description": "Gith Necromancer of Emberholm. Rarity: Rare. Guild: Void Echoes.",
+  "image": "ipfs://TO_BE_DEFINED/24482.png",
+  "fixed_profile": {
+    "token_id": "24482",
+    "race": "Gith",
+    "class": "Necromancer",
+    "rarity": "Rare",
+    "age": 67,
+    "starting_guild": "Void Echoes",
+    "str": 9,
+    "dex": 11,
+    "con": 11,
+    "int": 18,
+    "wis": 15,
+    "cha": 9
+  },
+  "dynamic_state": {
+    "current_guild": "Void Echoes",
+    "xp_total": 0,
+    "xp_level": 1,
+    "aura_level": 0,
+    "energy_current": 100,
+    "energy_max": 100,
+    "power_current": 12,
+    "last_update": "2025-10-26T22:59:46.856033Z"
+  },
+  "attributes": [
+    {
+      "trait_type": "ID",
+      "value": "24482"
+    },
+    {
+      "trait_type": "Race",
+      "value": "Gith"
+    },
+    {
+      "trait_type": "Class",
+      "value": "Necromancer"
+    },
+    {
+      "trait_type": "Rarity",
+      "value": "Rare"
+    },
+    {
+      "trait_type": "Guild",
+      "value": "Void Echoes"
+    },
+    {
+      "trait_type": "Age",
+      "value": 67
+    }
+  ]
+}

@@ -1,0 +1,55 @@
+{
+  "name": "GardnerDrax, Herald of Respond Really",
+  "description": "Human Necromancer of Emberholm. Rarity: Common. Guild: Void Echoes.",
+  "image": "ipfs://TO_BE_DEFINED/09291.png",
+  "fixed_profile": {
+    "token_id": "09291",
+    "race": "Human",
+    "class": "Necromancer",
+    "rarity": "Common",
+    "age": 63,
+    "starting_guild": "Void Echoes",
+    "str": 8,
+    "dex": 11,
+    "con": 10,
+    "int": 17,
+    "wis": 14,
+    "cha": 10
+  },
+  "dynamic_state": {
+    "current_guild": "Void Echoes",
+    "xp_total": 0,
+    "xp_level": 1,
+    "aura_level": 0,
+    "energy_current": 100,
+    "energy_max": 100,
+    "power_current": 12,
+    "last_update": "2025-10-26T22:57:39.577203Z"
+  },
+  "attributes": [
+    {
+      "trait_type": "ID",
+      "value": "09291"
+    },
+    {
+      "trait_type": "Race",
+      "value": "Human"
+    },
+    {
+      "trait_type": "Class",
+      "value": "Necromancer"
+    },
+    {
+      "trait_type": "Rarity",
+      "value": "Common"
+    },
+    {
+      "trait_type": "Guild",
+      "value": "Void Echoes"
+    },
+    {
+      "trait_type": "Age",
+      "value": 63
+    }
+  ]
+}

@@ -1,0 +1,55 @@
+{
+  "name": "Zorrachel, South of Dread Better the Two",
+  "description": "Elf Alchemist of Emberholm. Rarity: Common. Guild: Circle of Mist.",
+  "image": "ipfs://TO_BE_DEFINED/19106.png",
+  "fixed_profile": {
+    "token_id": "19106",
+    "race": "Elf",
+    "class": "Alchemist",
+    "rarity": "Common",
+    "age": 141,
+    "starting_guild": "Circle of Mist",
+    "str": 8,
+    "dex": 14,
+    "con": 10,
+    "int": 17,
+    "wis": 15,
+    "cha": 12
+  },
+  "dynamic_state": {
+    "current_guild": "Circle of Mist",
+    "xp_total": 0,
+    "xp_level": 1,
+    "aura_level": 0,
+    "energy_current": 100,
+    "energy_max": 100,
+    "power_current": 13,
+    "last_update": "2025-10-26T22:59:03.316009Z"
+  },
+  "attributes": [
+    {
+      "trait_type": "ID",
+      "value": "19106"
+    },
+    {
+      "trait_type": "Race",
+      "value": "Elf"
+    },
+    {
+      "trait_type": "Class",
+      "value": "Alchemist"
+    },
+    {
+      "trait_type": "Rarity",
+      "value": "Common"
+    },
+    {
+      "trait_type": "Guild",
+      "value": "Circle of Mist"
+    },
+    {
+      "trait_type": "Age",
+      "value": 141
+    }
+  ]
+}

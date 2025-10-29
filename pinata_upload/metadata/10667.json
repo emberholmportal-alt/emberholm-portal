@@ -1,0 +1,55 @@
+{
+  "name": "Sylfinish, Keeper of Well Tonight",
+  "description": "Demon Necromancer of Emberholm. Rarity: Rare. Guild: Void Echoes.",
+  "image": "ipfs://TO_BE_DEFINED/10667.png",
+  "fixed_profile": {
+    "token_id": "10667",
+    "race": "Demon",
+    "class": "Necromancer",
+    "rarity": "Rare",
+    "age": 57,
+    "starting_guild": "Void Echoes",
+    "str": 10,
+    "dex": 12,
+    "con": 13,
+    "int": 17,
+    "wis": 14,
+    "cha": 10
+  },
+  "dynamic_state": {
+    "current_guild": "Void Echoes",
+    "xp_total": 0,
+    "xp_level": 1,
+    "aura_level": 0,
+    "energy_current": 100,
+    "energy_max": 100,
+    "power_current": 13,
+    "last_update": "2025-10-26T22:57:51.917808Z"
+  },
+  "attributes": [
+    {
+      "trait_type": "ID",
+      "value": "10667"
+    },
+    {
+      "trait_type": "Race",
+      "value": "Demon"
+    },
+    {
+      "trait_type": "Class",
+      "value": "Necromancer"
+    },
+    {
+      "trait_type": "Rarity",
+      "value": "Rare"
+    },
+    {
+      "trait_type": "Guild",
+      "value": "Void Echoes"
+    },
+    {
+      "trait_type": "Age",
+      "value": 57
+    }
+  ]
+}
