@@ -412,64 +412,137 @@ a.social-link:hover {
 
 <body>
 
-<!-- EMBERHOLM CONSOLE // REALM AUDIO CHANNEL -->
-<div id="music-player" style="
-    position: fixed;
-    top: 50%;
-    left: 20px;
-    transform: translateY(-50%);
-    width: 190px;
-    background-color: black;
-    border: 2px solid #ffcc00;
-    color: #ffcc00;
-    font-family: 'Share Tech Mono', monospace;
-    font-size: 12px;
-    padding: 8px;
-    z-index: 1000;
-    display: flex;
-    flex-direction: column;
-    align-items: stretch;
-    box-shadow: 0 0 10px #ffcc00;
-">
-  <div style="text-align:center; margin-bottom:6px; line-height:1.3;">
-    <b>EMBERHOLM CONSOLE</b><br/>
-    <span style="font-size:10px;">// REALM AMBIENCE CHANNEL //</span>
-  </div>
+<!-- EMBERHOLM CONSOLE // REALM AMBIENCE CHANNEL -->
+<style>
+    /* consola fija vertical a la izquierda, fuera del marco principal */
+    .ember-console {
+        position: fixed;
+        top: 20px;
+        left: 20px;
+        width: 160px;
+        background: #000;
+        border: 2px solid #ffb400;
+        color: #ffb400;
+        font-family: "VT323", monospace;
+        font-size: 12px;
+        line-height: 1.4em;
+        padding: 8px;
+        box-shadow: 0 0 8px rgba(255,180,0,0.4);
+        z-index: 9999;
 
-  <div id="track-info" style="
-      border:1px solid #ffcc00;
-      padding:4px;
-      font-size:11px;
-      text-align:left;
-      margin-bottom:6px;
-      background-color:#000;
-    ">
-    Track: Circle of Mist Ritual
-  </div>
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
 
-  <div style="display:flex; justify-content:space-between; gap:4px; margin-bottom:6px;">
-    <button id="mute-btn"
-      onclick="toggleMute()"
-      style="flex:1; border:1px solid #ffcc00; background:none; color:#ffcc00; font-family:'Share Tech Mono', monospace; font-size:11px; padding:4px 0;">
-      [MUTE]
-    </button>
+    .ember-console .console-header {
+        text-align: center;
+        text-transform: uppercase;
+        font-weight: bold;
+        font-size: 12px;
+        line-height: 1.3em;
+        border-bottom: 1px solid #ffb400;
+        padding-bottom: 4px;
+    }
+    .ember-console .console-sub {
+        font-size: 10px;
+        color: #ffb400;
+        margin-top: 2px;
+    }
 
-    <button id="next-btn"
-      onclick="nextTrack()"
-      style="flex:1; border:1px solid #ffcc00; background:none; color:#ffcc00; font-family:'Share Tech Mono', monospace; font-size:11px; padding:4px 0;">
-      [NEXT]
-    </button>
-  </div>
+    .ember-console .console-trackbox {
+        border: 1px solid #ffb400;
+        background:#000;
+        padding: 6px;
+        font-size: 11px;
+        line-height:1.3em;
+        min-height: 40px;
+        word-break: break-word;
+    }
 
-  <div style="font-size:10px; margin-bottom:2px;">VOL</div>
-  <input
-    type="range"
-    id="volume-slider"
-    min="0"
-    max="1"
-    step="0.01"
-    value="0.7"
-    style="width:100%; accent-color:#ffcc00;">
+    .ember-console .console-buttons {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+
+    .ember-console .console-buttons button {
+        background:#000;
+        color:#ffb400;
+        border:2px solid #ffb400;
+        font-family:"VT323", monospace;
+        font-size:12px;
+        line-height:1.2em;
+        padding:4px 0;
+        text-transform:uppercase;
+        cursor:pointer;
+        text-align:center;
+    }
+    .ember-console .console-buttons button:hover {
+        background:#ffb400;
+        color:#000;
+    }
+
+    .ember-console .vol-label {
+        font-size:10px;
+        text-transform:uppercase;
+    }
+
+    .ember-console .vol-row {
+        display:flex;
+        flex-direction:column;
+        gap:4px;
+    }
+
+    .ember-console input[type="range"] {
+        width:100%;
+        -webkit-appearance:none;
+        background:#000;
+        border:1px solid #ffb400;
+        height:4px;
+        cursor:pointer;
+    }
+    .ember-console input[type="range"]::-webkit-slider-thumb {
+        -webkit-appearance:none;
+        appearance:none;
+        width:10px;
+        height:14px;
+        background:#ffb400;
+        border:1px solid #ffb400;
+        cursor:pointer;
+    }
+    .ember-console input[type="range"]::-moz-range-thumb {
+        width:10px;
+        height:14px;
+        background:#ffb400;
+        border:1px solid #ffb400;
+        cursor:pointer;
+    }
+</style>
+
+<div class="ember-console" id="ember-console">
+    <div class="console-header">
+        EMBERHOLM CONSOLE
+        <div class="console-sub">// REALM AMBIENCE CHANNEL //</div>
+    </div>
+
+    <div class="console-trackbox" id="console-trackbox">
+        Track: (loading)
+    </div>
+
+    <div class="console-buttons">
+        <button id="console-mute-btn">[MUTE]</button>
+        <button id="console-next-btn">[NEXT]</button>
+    </div>
+
+    <div class="vol-row">
+        <div class="vol-label">VOL</div>
+        <input type="range"
+               id="console-volume"
+               min="0"
+               max="100"
+               value="70" />
+    </div>
 </div>
 
 <div class="wrapper">
@@ -1230,13 +1303,10 @@ document.getElementById("load-profile-btn").addEventListener("click", ()=>{
 /* AUTO-INIT PROFILE */
 loadPlayerAndRender();
 
-/* --------- AMBIENT MUSIC SYSTEM ---------
-   Tu estructura en disco es:
-   C:\EmberholmServer\static\music\track01.wav ... track11.wav
-   Flask sirve /static como raíz estática.
-   Entonces el navegador accede como /music/track01.wav
+/* --------- AMBIENT MUSIC SYSTEM (EMBERHOLM CONSOLE) ---------
+   Sirve pistas desde /static/music/*.wav que Flask expone como /music/*.wav
 */
-const tracks = [
+const musicTracks = [
     {file:"/music/track01.wav", name:"Ash Monastery Vigil"},
     {file:"/music/track02.wav", name:"Circle of Mist Ritual"},
     {file:"/music/track03.wav", name:"Horizon Watch Beacon"},
@@ -1250,54 +1320,66 @@ const tracks = [
     {file:"/music/track11.wav", name:"Emberholm Lament / Low Vox"}
 ];
 
-let currentTrackIndex = 0;
-let isMuted = false;
+let musicIndex = 0;
+let musicMuted = false;
 
-const audioEl = new Audio();
-audioEl.loop = false;
-audioEl.volume = 0.8; // 80% default
+const audioPlayer = new Audio();
+audioPlayer.loop = false;
+audioPlayer.volume = 0.7; // 70% inicial
 
-const trackNameEl = document.getElementById("track-name");
-const muteBtn      = document.getElementById("mute-btn");
-const nextBtn      = document.getElementById("next-btn");
-const volumeSlider = document.getElementById("volume-slider");
+// agarramos elementos nuevos
+const trackBoxEl    = document.getElementById("console-trackbox");
+const muteBtnEl     = document.getElementById("console-mute-btn");
+const nextBtnEl     = document.getElementById("console-next-btn");
+const volumeSliderEl= document.getElementById("console-volume");
 
-function loadTrack(i){
-    currentTrackIndex = i % tracks.length;
-    const data = tracks[currentTrackIndex];
-    audioEl.src = data.file;
-    trackNameEl.textContent = "Track: " + data.name;
-    // intentar reproducir (algunos navegadores bloquean autoplay hasta que el user haga click)
-    audioEl.play().catch(()=>{ /* espera la primera interacción */ });
+// cargar una pista por índice
+function loadMusicTrack(i){
+    musicIndex = i % musicTracks.length;
+    const data = musicTracks[musicIndex];
+
+    audioPlayer.src = data.file;
+    trackBoxEl.textContent = "Track: " + data.name;
+
+    // intentar reproducir
+    audioPlayer.play().catch(()=> {
+        // algunos navegadores requieren interacción del usuario primero
+        // no pasa nada si falla acá, se reproducirá cuando toquen NEXT o MUTE
+    });
 }
 
-function nextTrack(){
-    currentTrackIndex = (currentTrackIndex + 1) % tracks.length;
-    loadTrack(currentTrackIndex);
+// pasar a la siguiente
+function nextMusicTrack(){
+    musicIndex = (musicIndex + 1) % musicTracks.length;
+    loadMusicTrack(musicIndex);
 }
 
-function toggleMute(){
-    isMuted = !isMuted;
-    audioEl.muted = isMuted;
-    muteBtn.textContent = isMuted ? "[UNMUTE]" : "[MUTE]";
+// mutear / desmutear
+function toggleMusicMute(){
+    musicMuted = !musicMuted;
+    audioPlayer.muted = musicMuted;
+    muteBtnEl.textContent = musicMuted ? "[UNMUTE]" : "[MUTE]";
 }
 
-function setVolumeFromSlider(){
-    const v = parseInt(volumeSlider.value,10)/100;
-    audioEl.volume = v;
+// volumen (0..100 slider -> 0..1 audio)
+function updateMusicVolume(){
+    const v = parseInt(volumeSliderEl.value,10)/100;
+    audioPlayer.volume = v;
 }
 
-muteBtn.addEventListener("click", toggleMute);
-nextBtn.addEventListener("click", nextTrack);
-volumeSlider.addEventListener("input", setVolumeFromSlider);
+// listeners
+muteBtnEl.addEventListener("click", toggleMusicMute);
+nextBtnEl.addEventListener("click", nextMusicTrack);
+volumeSliderEl.addEventListener("input", updateMusicVolume);
 
-/* auto-next */
-audioEl.addEventListener("ended", ()=>{
-    nextTrack();
+// cuando termina una pista sola -> pasar a la siguiente
+audioPlayer.addEventListener("ended", ()=>{
+    nextMusicTrack();
 });
 
-/* start first track */
-loadTrack(0);
+// iniciar primera pista
+loadMusicTrack(0);
+
 </script>
 </body>
 </html>
