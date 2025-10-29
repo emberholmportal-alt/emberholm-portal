@@ -1,0 +1,55 @@
+{
+  "name": "Manage-is the Silent Table",
+  "description": "Dragonborn Paladin of Emberholm. Rarity: Rare. Guild: Order of Dawn.",
+  "image": "ipfs://bafybeidoj4dc4w3yvngqsufvcmpuhcszsqnxmzx6wqsbikseekqqnpy6l4/26653.png",
+  "fixed_profile": {
+    "token_id": "26653",
+    "race": "Dragonborn",
+    "class": "Paladin",
+    "rarity": "Rare",
+    "age": 72,
+    "starting_guild": "Order of Dawn",
+    "str": 15,
+    "dex": 9,
+    "con": 15,
+    "int": 10,
+    "wis": 13,
+    "cha": 12
+  },
+  "dynamic_state": {
+    "current_guild": "Order of Dawn",
+    "xp_total": 0,
+    "xp_level": 1,
+    "aura_level": 0,
+    "energy_current": 100,
+    "energy_max": 100,
+    "power_current": 11,
+    "last_update": "2025-10-26T23:00:04.916929Z"
+  },
+  "attributes": [
+    {
+      "trait_type": "ID",
+      "value": "26653"
+    },
+    {
+      "trait_type": "Race",
+      "value": "Dragonborn"
+    },
+    {
+      "trait_type": "Class",
+      "value": "Paladin"
+    },
+    {
+      "trait_type": "Rarity",
+      "value": "Rare"
+    },
+    {
+      "trait_type": "Guild",
+      "value": "Order of Dawn"
+    },
+    {
+      "trait_type": "Age",
+      "value": 72
+    }
+  ]
+}

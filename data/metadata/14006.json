@@ -1,0 +1,55 @@
+{
+  "name": "DianaIon, Caller of Behavior of Health Flame",
+  "description": "Gith Warrior of Emberholm. Rarity: Rare. Guild: Forge Legion.",
+  "image": "ipfs://bafybeidoj4dc4w3yvngqsufvcmpuhcszsqnxmzx6wqsbikseekqqnpy6l4/14006.png",
+  "fixed_profile": {
+    "token_id": "14006",
+    "race": "Gith",
+    "class": "Warrior",
+    "rarity": "Rare",
+    "age": 59,
+    "starting_guild": "Forge Legion",
+    "str": 15,
+    "dex": 11,
+    "con": 13,
+    "int": 12,
+    "wis": 13,
+    "cha": 10
+  },
+  "dynamic_state": {
+    "current_guild": "Forge Legion",
+    "xp_total": 0,
+    "xp_level": 1,
+    "aura_level": 0,
+    "energy_current": 100,
+    "energy_max": 100,
+    "power_current": 12,
+    "last_update": "2025-10-26T22:58:21.102147Z"
+  },
+  "attributes": [
+    {
+      "trait_type": "ID",
+      "value": "14006"
+    },
+    {
+      "trait_type": "Race",
+      "value": "Gith"
+    },
+    {
+      "trait_type": "Class",
+      "value": "Warrior"
+    },
+    {
+      "trait_type": "Rarity",
+      "value": "Rare"
+    },
+    {
+      "trait_type": "Guild",
+      "value": "Forge Legion"
+    },
+    {
+      "trait_type": "Age",
+      "value": 59
+    }
+  ]
+}

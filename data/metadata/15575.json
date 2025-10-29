@@ -1,0 +1,55 @@
+{
+  "name": "Ashcareer, Herald of The Reality",
+  "description": "Demon Bard of Emberholm. Rarity: Rare. Guild: Shadow Guild.",
+  "image": "ipfs://bafybeidoj4dc4w3yvngqsufvcmpuhcszsqnxmzx6wqsbikseekqqnpy6l4/15575.png",
+  "fixed_profile": {
+    "token_id": "15575",
+    "race": "Demon",
+    "class": "Bard",
+    "rarity": "Rare",
+    "age": 82,
+    "starting_guild": "Shadow Guild",
+    "str": 12,
+    "dex": 12,
+    "con": 12,
+    "int": 13,
+    "wis": 11,
+    "cha": 13
+  },
+  "dynamic_state": {
+    "current_guild": "Shadow Guild",
+    "xp_total": 0,
+    "xp_level": 1,
+    "aura_level": 0,
+    "energy_current": 100,
+    "energy_max": 100,
+    "power_current": 12,
+    "last_update": "2025-10-26T22:58:33.981614Z"
+  },
+  "attributes": [
+    {
+      "trait_type": "ID",
+      "value": "15575"
+    },
+    {
+      "trait_type": "Race",
+      "value": "Demon"
+    },
+    {
+      "trait_type": "Class",
+      "value": "Bard"
+    },
+    {
+      "trait_type": "Rarity",
+      "value": "Rare"
+    },
+    {
+      "trait_type": "Guild",
+      "value": "Shadow Guild"
+    },
+    {
+      "trait_type": "Age",
+      "value": 82
+    }
+  ]
+}

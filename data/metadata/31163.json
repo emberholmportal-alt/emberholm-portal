@@ -1,0 +1,55 @@
+{
+  "name": "Orfund the Silent Member",
+  "description": "Beast Wizard of Emberholm. Rarity: Legendary. Guild: Circle of Mist.",
+  "image": "ipfs://bafybeidoj4dc4w3yvngqsufvcmpuhcszsqnxmzx6wqsbikseekqqnpy6l4/31163.png",
+  "fixed_profile": {
+    "token_id": "31163",
+    "race": "Beast",
+    "class": "Wizard",
+    "rarity": "Legendary",
+    "age": 13,
+    "starting_guild": "Circle of Mist",
+    "str": 11,
+    "dex": 13,
+    "con": 12,
+    "int": 16,
+    "wis": 14,
+    "cha": 9
+  },
+  "dynamic_state": {
+    "current_guild": "Circle of Mist",
+    "xp_total": 0,
+    "xp_level": 1,
+    "aura_level": 0,
+    "energy_current": 100,
+    "energy_max": 100,
+    "power_current": 13,
+    "last_update": "2025-10-26T23:00:43.002439Z"
+  },
+  "attributes": [
+    {
+      "trait_type": "ID",
+      "value": "31163"
+    },
+    {
+      "trait_type": "Race",
+      "value": "Beast"
+    },
+    {
+      "trait_type": "Class",
+      "value": "Wizard"
+    },
+    {
+      "trait_type": "Rarity",
+      "value": "Legendary"
+    },
+    {
+      "trait_type": "Guild",
+      "value": "Circle of Mist"
+    },
+    {
+      "trait_type": "Age",
+      "value": 13
+    }
+  ]
+}

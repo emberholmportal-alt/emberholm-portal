@@ -1,0 +1,55 @@
+{
+  "name": "ForIra, Bearer of Section",
+  "description": "Dragonborn Cleric of Emberholm. Rarity: Rare. Guild: Order of Dawn.",
+  "image": "ipfs://bafybeidoj4dc4w3yvngqsufvcmpuhcszsqnxmzx6wqsbikseekqqnpy6l4/03050.png",
+  "fixed_profile": {
+    "token_id": "03050",
+    "race": "Dragonborn",
+    "class": "Cleric",
+    "rarity": "Rare",
+    "age": 51,
+    "starting_guild": "Order of Dawn",
+    "str": 12,
+    "dex": 9,
+    "con": 14,
+    "int": 13,
+    "wis": 14,
+    "cha": 10
+  },
+  "dynamic_state": {
+    "current_guild": "Order of Dawn",
+    "xp_total": 0,
+    "xp_level": 1,
+    "aura_level": 0,
+    "energy_current": 100,
+    "energy_max": 100,
+    "power_current": 11,
+    "last_update": "2025-10-26T22:56:43.622323Z"
+  },
+  "attributes": [
+    {
+      "trait_type": "ID",
+      "value": "03050"
+    },
+    {
+      "trait_type": "Race",
+      "value": "Dragonborn"
+    },
+    {
+      "trait_type": "Class",
+      "value": "Cleric"
+    },
+    {
+      "trait_type": "Rarity",
+      "value": "Rare"
+    },
+    {
+      "trait_type": "Guild",
+      "value": "Order of Dawn"
+    },
+    {
+      "trait_type": "Age",
+      "value": 51
+    }
+  ]
+}

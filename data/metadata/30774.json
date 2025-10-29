@@ -1,0 +1,55 @@
+{
+  "name": "Draxconsumer, Herald of Environment National of the Broken Realize",
+  "description": "Triton Rogue of Emberholm. Rarity: Common. Guild: Shadow Guild.",
+  "image": "ipfs://bafybeidoj4dc4w3yvngqsufvcmpuhcszsqnxmzx6wqsbikseekqqnpy6l4/30774.png",
+  "fixed_profile": {
+    "token_id": "30774",
+    "race": "Triton",
+    "class": "Rogue",
+    "rarity": "Common",
+    "age": 58,
+    "starting_guild": "Shadow Guild",
+    "str": 12,
+    "dex": 15,
+    "con": 12,
+    "int": 11,
+    "wis": 12,
+    "cha": 10
+  },
+  "dynamic_state": {
+    "current_guild": "Shadow Guild",
+    "xp_total": 0,
+    "xp_level": 1,
+    "aura_level": 0,
+    "energy_current": 100,
+    "energy_max": 100,
+    "power_current": 12,
+    "last_update": "2025-10-26T23:00:39.738709Z"
+  },
+  "attributes": [
+    {
+      "trait_type": "ID",
+      "value": "30774"
+    },
+    {
+      "trait_type": "Race",
+      "value": "Triton"
+    },
+    {
+      "trait_type": "Class",
+      "value": "Rogue"
+    },
+    {
+      "trait_type": "Rarity",
+      "value": "Common"
+    },
+    {
+      "trait_type": "Guild",
+      "value": "Shadow Guild"
+    },
+    {
+      "trait_type": "Age",
+      "value": 58
+    }
+  ]
+}

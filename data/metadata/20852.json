@@ -1,0 +1,55 @@
+{
+  "name": "Away-rak the Key",
+  "description": "Elf Paladin of Emberholm. Rarity: Common. Guild: Order of Dawn.",
+  "image": "ipfs://bafybeidoj4dc4w3yvngqsufvcmpuhcszsqnxmzx6wqsbikseekqqnpy6l4/20852.png",
+  "fixed_profile": {
+    "token_id": "20852",
+    "race": "Elf",
+    "class": "Paladin",
+    "rarity": "Common",
+    "age": 114,
+    "starting_guild": "Order of Dawn",
+    "str": 11,
+    "dex": 12,
+    "con": 11,
+    "int": 13,
+    "wis": 15,
+    "cha": 13
+  },
+  "dynamic_state": {
+    "current_guild": "Order of Dawn",
+    "xp_total": 0,
+    "xp_level": 1,
+    "aura_level": 0,
+    "energy_current": 100,
+    "energy_max": 100,
+    "power_current": 12,
+    "last_update": "2025-10-26T22:59:17.453725Z"
+  },
+  "attributes": [
+    {
+      "trait_type": "ID",
+      "value": "20852"
+    },
+    {
+      "trait_type": "Race",
+      "value": "Elf"
+    },
+    {
+      "trait_type": "Class",
+      "value": "Paladin"
+    },
+    {
+      "trait_type": "Rarity",
+      "value": "Common"
+    },
+    {
+      "trait_type": "Guild",
+      "value": "Order of Dawn"
+    },
+    {
+      "trait_type": "Age",
+      "value": 114
+    }
+  ]
+}

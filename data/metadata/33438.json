@@ -1,0 +1,55 @@
+{
+  "name": "Sylmichele, Occur of Dread Medical the Last Office",
+  "description": "Orc Wizard of Emberholm. Rarity: Common. Guild: Circle of Mist.",
+  "image": "ipfs://bafybeidoj4dc4w3yvngqsufvcmpuhcszsqnxmzx6wqsbikseekqqnpy6l4/33438.png",
+  "fixed_profile": {
+    "token_id": "33438",
+    "race": "Orc",
+    "class": "Wizard",
+    "rarity": "Common",
+    "age": 56,
+    "starting_guild": "Circle of Mist",
+    "str": 11,
+    "dex": 8,
+    "con": 13,
+    "int": 14,
+    "wis": 11,
+    "cha": 8
+  },
+  "dynamic_state": {
+    "current_guild": "Circle of Mist",
+    "xp_total": 0,
+    "xp_level": 1,
+    "aura_level": 0,
+    "energy_current": 100,
+    "energy_max": 100,
+    "power_current": 11,
+    "last_update": "2025-10-26T23:01:02.198976Z"
+  },
+  "attributes": [
+    {
+      "trait_type": "ID",
+      "value": "33438"
+    },
+    {
+      "trait_type": "Race",
+      "value": "Orc"
+    },
+    {
+      "trait_type": "Class",
+      "value": "Wizard"
+    },
+    {
+      "trait_type": "Rarity",
+      "value": "Common"
+    },
+    {
+      "trait_type": "Guild",
+      "value": "Circle of Mist"
+    },
+    {
+      "trait_type": "Age",
+      "value": 56
+    }
+  ]
+}

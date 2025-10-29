@@ -1,0 +1,55 @@
+{
+  "name": "Vashhill, Gas of Dread Matter",
+  "description": "Beast Cleric of Emberholm. Rarity: Legendary. Guild: Order of Dawn.",
+  "image": "ipfs://bafybeidoj4dc4w3yvngqsufvcmpuhcszsqnxmzx6wqsbikseekqqnpy6l4/14255.png",
+  "fixed_profile": {
+    "token_id": "14255",
+    "race": "Beast",
+    "class": "Cleric",
+    "rarity": "Legendary",
+    "age": 20,
+    "starting_guild": "Order of Dawn",
+    "str": 12,
+    "dex": 11,
+    "con": 13,
+    "int": 13,
+    "wis": 14,
+    "cha": 9
+  },
+  "dynamic_state": {
+    "current_guild": "Order of Dawn",
+    "xp_total": 0,
+    "xp_level": 1,
+    "aura_level": 0,
+    "energy_current": 100,
+    "energy_max": 100,
+    "power_current": 12,
+    "last_update": "2025-10-26T22:58:23.112390Z"
+  },
+  "attributes": [
+    {
+      "trait_type": "ID",
+      "value": "14255"
+    },
+    {
+      "trait_type": "Race",
+      "value": "Beast"
+    },
+    {
+      "trait_type": "Class",
+      "value": "Cleric"
+    },
+    {
+      "trait_type": "Rarity",
+      "value": "Legendary"
+    },
+    {
+      "trait_type": "Guild",
+      "value": "Order of Dawn"
+    },
+    {
+      "trait_type": "Age",
+      "value": 20
+    }
+  ]
+}

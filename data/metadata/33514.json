@@ -1,0 +1,55 @@
+{
+  "name": "Ynbreak of Good Flame",
+  "description": "Orc Cleric of Emberholm. Rarity: Common. Guild: Order of Dawn.",
+  "image": "ipfs://bafybeidoj4dc4w3yvngqsufvcmpuhcszsqnxmzx6wqsbikseekqqnpy6l4/33514.png",
+  "fixed_profile": {
+    "token_id": "33514",
+    "race": "Orc",
+    "class": "Cleric",
+    "rarity": "Common",
+    "age": 51,
+    "starting_guild": "Order of Dawn",
+    "str": 14,
+    "dex": 8,
+    "con": 15,
+    "int": 10,
+    "wis": 13,
+    "cha": 10
+  },
+  "dynamic_state": {
+    "current_guild": "Order of Dawn",
+    "xp_total": 0,
+    "xp_level": 1,
+    "aura_level": 0,
+    "energy_current": 100,
+    "energy_max": 100,
+    "power_current": 10,
+    "last_update": "2025-10-26T23:01:02.843952Z"
+  },
+  "attributes": [
+    {
+      "trait_type": "ID",
+      "value": "33514"
+    },
+    {
+      "trait_type": "Race",
+      "value": "Orc"
+    },
+    {
+      "trait_type": "Class",
+      "value": "Cleric"
+    },
+    {
+      "trait_type": "Rarity",
+      "value": "Common"
+    },
+    {
+      "trait_type": "Guild",
+      "value": "Order of Dawn"
+    },
+    {
+      "trait_type": "Age",
+      "value": 51
+    }
+  ]
+}

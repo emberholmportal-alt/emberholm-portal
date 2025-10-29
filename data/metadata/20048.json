@@ -1,0 +1,55 @@
+{
+  "name": "Andersongor of the Broken Science",
+  "description": "Orc Warrior of Emberholm. Rarity: Common. Guild: Forge Legion.",
+  "image": "ipfs://bafybeidoj4dc4w3yvngqsufvcmpuhcszsqnxmzx6wqsbikseekqqnpy6l4/20048.png",
+  "fixed_profile": {
+    "token_id": "20048",
+    "race": "Orc",
+    "class": "Warrior",
+    "rarity": "Common",
+    "age": 38,
+    "starting_guild": "Forge Legion",
+    "str": 18,
+    "dex": 9,
+    "con": 16,
+    "int": 7,
+    "wis": 10,
+    "cha": 8
+  },
+  "dynamic_state": {
+    "current_guild": "Forge Legion",
+    "xp_total": 0,
+    "xp_level": 1,
+    "aura_level": 0,
+    "energy_current": 100,
+    "energy_max": 100,
+    "power_current": 11,
+    "last_update": "2025-10-26T22:59:10.801658Z"
+  },
+  "attributes": [
+    {
+      "trait_type": "ID",
+      "value": "20048"
+    },
+    {
+      "trait_type": "Race",
+      "value": "Orc"
+    },
+    {
+      "trait_type": "Class",
+      "value": "Warrior"
+    },
+    {
+      "trait_type": "Rarity",
+      "value": "Common"
+    },
+    {
+      "trait_type": "Guild",
+      "value": "Forge Legion"
+    },
+    {
+      "trait_type": "Age",
+      "value": 38
+    }
+  ]
+}

@@ -1,0 +1,55 @@
+{
+  "name": "Aarongra of the Broken Generation",
+  "description": "Triton Ranger of Emberholm. Rarity: Common. Guild: Horizon Watch.",
+  "image": "ipfs://bafybeidoj4dc4w3yvngqsufvcmpuhcszsqnxmzx6wqsbikseekqqnpy6l4/32841.png",
+  "fixed_profile": {
+    "token_id": "32841",
+    "race": "Triton",
+    "class": "Ranger",
+    "rarity": "Common",
+    "age": 58,
+    "starting_guild": "Horizon Watch",
+    "str": 11,
+    "dex": 15,
+    "con": 13,
+    "int": 12,
+    "wis": 14,
+    "cha": 10
+  },
+  "dynamic_state": {
+    "current_guild": "Horizon Watch",
+    "xp_total": 0,
+    "xp_level": 1,
+    "aura_level": 0,
+    "energy_current": 100,
+    "energy_max": 100,
+    "power_current": 12,
+    "last_update": "2025-10-26T23:00:57.130851Z"
+  },
+  "attributes": [
+    {
+      "trait_type": "ID",
+      "value": "32841"
+    },
+    {
+      "trait_type": "Race",
+      "value": "Triton"
+    },
+    {
+      "trait_type": "Class",
+      "value": "Ranger"
+    },
+    {
+      "trait_type": "Rarity",
+      "value": "Common"
+    },
+    {
+      "trait_type": "Guild",
+      "value": "Horizon Watch"
+    },
+    {
+      "trait_type": "Age",
+      "value": 58
+    }
+  ]
+}

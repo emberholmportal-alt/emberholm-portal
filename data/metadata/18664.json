@@ -1,0 +1,55 @@
+{
+  "name": "Actually-ash, Long of Dread Meet the Certain",
+  "description": "Spectral Paladin of Emberholm. Rarity: Legendary. Guild: Order of Dawn.",
+  "image": "ipfs://bafybeidoj4dc4w3yvngqsufvcmpuhcszsqnxmzx6wqsbikseekqqnpy6l4/18664.png",
+  "fixed_profile": {
+    "token_id": "18664",
+    "race": "Spectral",
+    "class": "Paladin",
+    "rarity": "Legendary",
+    "age": 0,
+    "starting_guild": "Order of Dawn",
+    "str": 11,
+    "dex": 11,
+    "con": 11,
+    "int": 14,
+    "wis": 15,
+    "cha": 12
+  },
+  "dynamic_state": {
+    "current_guild": "Order of Dawn",
+    "xp_total": 0,
+    "xp_level": 1,
+    "aura_level": 0,
+    "energy_current": 100,
+    "energy_max": 100,
+    "power_current": 12,
+    "last_update": "2025-10-26T22:58:59.746184Z"
+  },
+  "attributes": [
+    {
+      "trait_type": "ID",
+      "value": "18664"
+    },
+    {
+      "trait_type": "Race",
+      "value": "Spectral"
+    },
+    {
+      "trait_type": "Class",
+      "value": "Paladin"
+    },
+    {
+      "trait_type": "Rarity",
+      "value": "Legendary"
+    },
+    {
+      "trait_type": "Guild",
+      "value": "Order of Dawn"
+    },
+    {
+      "trait_type": "Age",
+      "value": 0
+    }
+  ]
+}

@@ -1,0 +1,55 @@
+{
+  "name": "Sara-ar, Push of Dread Unit",
+  "description": "Orc Alchemist of Emberholm. Rarity: Common. Guild: Circle of Mist.",
+  "image": "ipfs://bafybeidoj4dc4w3yvngqsufvcmpuhcszsqnxmzx6wqsbikseekqqnpy6l4/06710.png",
+  "fixed_profile": {
+    "token_id": "06710",
+    "race": "Orc",
+    "class": "Alchemist",
+    "rarity": "Common",
+    "age": 54,
+    "starting_guild": "Circle of Mist",
+    "str": 12,
+    "dex": 10,
+    "con": 14,
+    "int": 14,
+    "wis": 12,
+    "cha": 9
+  },
+  "dynamic_state": {
+    "current_guild": "Circle of Mist",
+    "xp_total": 0,
+    "xp_level": 1,
+    "aura_level": 0,
+    "energy_current": 100,
+    "energy_max": 100,
+    "power_current": 12,
+    "last_update": "2025-10-26T22:57:16.553272Z"
+  },
+  "attributes": [
+    {
+      "trait_type": "ID",
+      "value": "06710"
+    },
+    {
+      "trait_type": "Race",
+      "value": "Orc"
+    },
+    {
+      "trait_type": "Class",
+      "value": "Alchemist"
+    },
+    {
+      "trait_type": "Rarity",
+      "value": "Common"
+    },
+    {
+      "trait_type": "Guild",
+      "value": "Circle of Mist"
+    },
+    {
+      "trait_type": "Age",
+      "value": 54
+    }
+  ]
+}

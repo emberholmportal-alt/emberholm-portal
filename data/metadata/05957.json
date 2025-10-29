@@ -1,0 +1,55 @@
+{
+  "name": "Forceeth of Industry Flame",
+  "description": "Triton Warrior of Emberholm. Rarity: Common. Guild: Forge Legion.",
+  "image": "ipfs://bafybeidoj4dc4w3yvngqsufvcmpuhcszsqnxmzx6wqsbikseekqqnpy6l4/05957.png",
+  "fixed_profile": {
+    "token_id": "05957",
+    "race": "Triton",
+    "class": "Warrior",
+    "rarity": "Common",
+    "age": 42,
+    "starting_guild": "Forge Legion",
+    "str": 13,
+    "dex": 12,
+    "con": 14,
+    "int": 10,
+    "wis": 12,
+    "cha": 9
+  },
+  "dynamic_state": {
+    "current_guild": "Forge Legion",
+    "xp_total": 0,
+    "xp_level": 1,
+    "aura_level": 0,
+    "energy_current": 100,
+    "energy_max": 100,
+    "power_current": 11,
+    "last_update": "2025-10-26T22:57:09.645327Z"
+  },
+  "attributes": [
+    {
+      "trait_type": "ID",
+      "value": "05957"
+    },
+    {
+      "trait_type": "Race",
+      "value": "Triton"
+    },
+    {
+      "trait_type": "Class",
+      "value": "Warrior"
+    },
+    {
+      "trait_type": "Rarity",
+      "value": "Common"
+    },
+    {
+      "trait_type": "Guild",
+      "value": "Forge Legion"
+    },
+    {
+      "trait_type": "Age",
+      "value": 42
+    }
+  ]
+}

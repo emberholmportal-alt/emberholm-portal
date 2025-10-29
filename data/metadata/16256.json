@@ -1,0 +1,55 @@
+{
+  "name": "Larry-thal of the Broken Positive",
+  "description": "Dragonborn Ranger of Emberholm. Rarity: Rare. Guild: Horizon Watch.",
+  "image": "ipfs://bafybeidoj4dc4w3yvngqsufvcmpuhcszsqnxmzx6wqsbikseekqqnpy6l4/16256.png",
+  "fixed_profile": {
+    "token_id": "16256",
+    "race": "Dragonborn",
+    "class": "Ranger",
+    "rarity": "Rare",
+    "age": 42,
+    "starting_guild": "Horizon Watch",
+    "str": 13,
+    "dex": 13,
+    "con": 13,
+    "int": 10,
+    "wis": 12,
+    "cha": 10
+  },
+  "dynamic_state": {
+    "current_guild": "Horizon Watch",
+    "xp_total": 0,
+    "xp_level": 1,
+    "aura_level": 0,
+    "energy_current": 100,
+    "energy_max": 100,
+    "power_current": 12,
+    "last_update": "2025-10-26T22:58:40.278755Z"
+  },
+  "attributes": [
+    {
+      "trait_type": "ID",
+      "value": "16256"
+    },
+    {
+      "trait_type": "Race",
+      "value": "Dragonborn"
+    },
+    {
+      "trait_type": "Class",
+      "value": "Ranger"
+    },
+    {
+      "trait_type": "Rarity",
+      "value": "Rare"
+    },
+    {
+      "trait_type": "Guild",
+      "value": "Horizon Watch"
+    },
+    {
+      "trait_type": "Age",
+      "value": 42
+    }
+  ]
+}

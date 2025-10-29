@@ -1,0 +1,55 @@
+{
+  "name": "AshleySyl, Girl of Behind",
+  "description": "Human Warrior of Emberholm. Rarity: Common. Guild: Forge Legion.",
+  "image": "ipfs://bafybeidoj4dc4w3yvngqsufvcmpuhcszsqnxmzx6wqsbikseekqqnpy6l4/13634.png",
+  "fixed_profile": {
+    "token_id": "13634",
+    "race": "Human",
+    "class": "Warrior",
+    "rarity": "Common",
+    "age": 34,
+    "starting_guild": "Forge Legion",
+    "str": 14,
+    "dex": 12,
+    "con": 13,
+    "int": 10,
+    "wis": 11,
+    "cha": 13
+  },
+  "dynamic_state": {
+    "current_guild": "Forge Legion",
+    "xp_total": 0,
+    "xp_level": 1,
+    "aura_level": 0,
+    "energy_current": 100,
+    "energy_max": 100,
+    "power_current": 12,
+    "last_update": "2025-10-26T22:58:18.035508Z"
+  },
+  "attributes": [
+    {
+      "trait_type": "ID",
+      "value": "13634"
+    },
+    {
+      "trait_type": "Race",
+      "value": "Human"
+    },
+    {
+      "trait_type": "Class",
+      "value": "Warrior"
+    },
+    {
+      "trait_type": "Rarity",
+      "value": "Common"
+    },
+    {
+      "trait_type": "Guild",
+      "value": "Forge Legion"
+    },
+    {
+      "trait_type": "Age",
+      "value": 34
+    }
+  ]
+}

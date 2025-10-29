@@ -1,0 +1,55 @@
+{
+  "name": "Garcia-riel the Last Focus",
+  "description": "Gith Necromancer of Emberholm. Rarity: Rare. Guild: Void Echoes.",
+  "image": "ipfs://bafybeidoj4dc4w3yvngqsufvcmpuhcszsqnxmzx6wqsbikseekqqnpy6l4/07468.png",
+  "fixed_profile": {
+    "token_id": "07468",
+    "race": "Gith",
+    "class": "Necromancer",
+    "rarity": "Rare",
+    "age": 43,
+    "starting_guild": "Void Echoes",
+    "str": 9,
+    "dex": 11,
+    "con": 11,
+    "int": 18,
+    "wis": 15,
+    "cha": 9
+  },
+  "dynamic_state": {
+    "current_guild": "Void Echoes",
+    "xp_total": 0,
+    "xp_level": 1,
+    "aura_level": 0,
+    "energy_current": 100,
+    "energy_max": 100,
+    "power_current": 12,
+    "last_update": "2025-10-26T22:57:23.343955Z"
+  },
+  "attributes": [
+    {
+      "trait_type": "ID",
+      "value": "07468"
+    },
+    {
+      "trait_type": "Race",
+      "value": "Gith"
+    },
+    {
+      "trait_type": "Class",
+      "value": "Necromancer"
+    },
+    {
+      "trait_type": "Rarity",
+      "value": "Rare"
+    },
+    {
+      "trait_type": "Guild",
+      "value": "Void Echoes"
+    },
+    {
+      "trait_type": "Age",
+      "value": 43
+    }
+  ]
+}

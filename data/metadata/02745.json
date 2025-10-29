@@ -1,0 +1,55 @@
+{
+  "name": "Officer-en, Bearer of Indeed",
+  "description": "Dragonborn Wizard of Emberholm. Rarity: Rare. Guild: Circle of Mist.",
+  "image": "ipfs://bafybeidoj4dc4w3yvngqsufvcmpuhcszsqnxmzx6wqsbikseekqqnpy6l4/02745.png",
+  "fixed_profile": {
+    "token_id": "02745",
+    "race": "Dragonborn",
+    "class": "Wizard",
+    "rarity": "Rare",
+    "age": 80,
+    "starting_guild": "Circle of Mist",
+    "str": 9,
+    "dex": 10,
+    "con": 12,
+    "int": 16,
+    "wis": 13,
+    "cha": 11
+  },
+  "dynamic_state": {
+    "current_guild": "Circle of Mist",
+    "xp_total": 0,
+    "xp_level": 1,
+    "aura_level": 0,
+    "energy_current": 100,
+    "energy_max": 100,
+    "power_current": 11,
+    "last_update": "2025-10-26T22:56:41.000609Z"
+  },
+  "attributes": [
+    {
+      "trait_type": "ID",
+      "value": "02745"
+    },
+    {
+      "trait_type": "Race",
+      "value": "Dragonborn"
+    },
+    {
+      "trait_type": "Class",
+      "value": "Wizard"
+    },
+    {
+      "trait_type": "Rarity",
+      "value": "Rare"
+    },
+    {
+      "trait_type": "Guild",
+      "value": "Circle of Mist"
+    },
+    {
+      "trait_type": "Age",
+      "value": 80
+    }
+  ]
+}

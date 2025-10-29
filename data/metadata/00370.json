@@ -1,0 +1,55 @@
+{
+  "name": "AmberGra the Last Account",
+  "description": "Gith Paladin of Emberholm. Rarity: Rare. Guild: Order of Dawn.",
+  "image": "ipfs://bafybeidoj4dc4w3yvngqsufvcmpuhcszsqnxmzx6wqsbikseekqqnpy6l4/00370.png",
+  "fixed_profile": {
+    "token_id": "00370",
+    "race": "Gith",
+    "class": "Paladin",
+    "rarity": "Rare",
+    "age": 55,
+    "starting_guild": "Order of Dawn",
+    "str": 13,
+    "dex": 10,
+    "con": 12,
+    "int": 14,
+    "wis": 14,
+    "cha": 11
+  },
+  "dynamic_state": {
+    "current_guild": "Order of Dawn",
+    "xp_total": 0,
+    "xp_level": 1,
+    "aura_level": 0,
+    "energy_current": 100,
+    "energy_max": 100,
+    "power_current": 12,
+    "last_update": "2025-10-26T22:56:18.587807Z"
+  },
+  "attributes": [
+    {
+      "trait_type": "ID",
+      "value": "00370"
+    },
+    {
+      "trait_type": "Race",
+      "value": "Gith"
+    },
+    {
+      "trait_type": "Class",
+      "value": "Paladin"
+    },
+    {
+      "trait_type": "Rarity",
+      "value": "Rare"
+    },
+    {
+      "trait_type": "Guild",
+      "value": "Order of Dawn"
+    },
+    {
+      "trait_type": "Age",
+      "value": 55
+    }
+  ]
+}

@@ -1,0 +1,55 @@
+{
+  "name": "MonicaAr from South Jeanne",
+  "description": "Dragonborn Necromancer of Emberholm. Rarity: Rare. Guild: Void Echoes.",
+  "image": "ipfs://bafybeidoj4dc4w3yvngqsufvcmpuhcszsqnxmzx6wqsbikseekqqnpy6l4/10349.png",
+  "fixed_profile": {
+    "token_id": "10349",
+    "race": "Dragonborn",
+    "class": "Necromancer",
+    "rarity": "Rare",
+    "age": 52,
+    "starting_guild": "Void Echoes",
+    "str": 8,
+    "dex": 9,
+    "con": 12,
+    "int": 17,
+    "wis": 12,
+    "cha": 10
+  },
+  "dynamic_state": {
+    "current_guild": "Void Echoes",
+    "xp_total": 0,
+    "xp_level": 1,
+    "aura_level": 0,
+    "energy_current": 100,
+    "energy_max": 100,
+    "power_current": 11,
+    "last_update": "2025-10-26T22:57:49.127097Z"
+  },
+  "attributes": [
+    {
+      "trait_type": "ID",
+      "value": "10349"
+    },
+    {
+      "trait_type": "Race",
+      "value": "Dragonborn"
+    },
+    {
+      "trait_type": "Class",
+      "value": "Necromancer"
+    },
+    {
+      "trait_type": "Rarity",
+      "value": "Rare"
+    },
+    {
+      "trait_type": "Guild",
+      "value": "Void Echoes"
+    },
+    {
+      "trait_type": "Age",
+      "value": 52
+    }
+  ]
+}

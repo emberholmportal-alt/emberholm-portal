@@ -1,0 +1,55 @@
+{
+  "name": "Karvanessa from the Ruins of South Alyssa",
+  "description": "Demon Paladin of Emberholm. Rarity: Rare. Guild: Order of Dawn.",
+  "image": "ipfs://bafybeidoj4dc4w3yvngqsufvcmpuhcszsqnxmzx6wqsbikseekqqnpy6l4/33754.png",
+  "fixed_profile": {
+    "token_id": "33754",
+    "race": "Demon",
+    "class": "Paladin",
+    "rarity": "Rare",
+    "age": 88,
+    "starting_guild": "Order of Dawn",
+    "str": 15,
+    "dex": 10,
+    "con": 13,
+    "int": 11,
+    "wis": 13,
+    "cha": 9
+  },
+  "dynamic_state": {
+    "current_guild": "Order of Dawn",
+    "xp_total": 0,
+    "xp_level": 1,
+    "aura_level": 0,
+    "energy_current": 100,
+    "energy_max": 100,
+    "power_current": 12,
+    "last_update": "2025-10-26T23:01:04.927192Z"
+  },
+  "attributes": [
+    {
+      "trait_type": "ID",
+      "value": "33754"
+    },
+    {
+      "trait_type": "Race",
+      "value": "Demon"
+    },
+    {
+      "trait_type": "Class",
+      "value": "Paladin"
+    },
+    {
+      "trait_type": "Rarity",
+      "value": "Rare"
+    },
+    {
+      "trait_type": "Guild",
+      "value": "Order of Dawn"
+    },
+    {
+      "trait_type": "Age",
+      "value": 88
+    }
+  ]
+}

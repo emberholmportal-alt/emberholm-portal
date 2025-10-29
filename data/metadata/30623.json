@@ -1,0 +1,55 @@
+{
+  "name": "Isbell the Silent Mother",
+  "description": "Tiefling Druid of Emberholm. Rarity: Rare. Guild: Circle of Mist.",
+  "image": "ipfs://bafybeidoj4dc4w3yvngqsufvcmpuhcszsqnxmzx6wqsbikseekqqnpy6l4/30623.png",
+  "fixed_profile": {
+    "token_id": "30623",
+    "race": "Tiefling",
+    "class": "Druid",
+    "rarity": "Rare",
+    "age": 33,
+    "starting_guild": "Circle of Mist",
+    "str": 10,
+    "dex": 12,
+    "con": 11,
+    "int": 15,
+    "wis": 15,
+    "cha": 12
+  },
+  "dynamic_state": {
+    "current_guild": "Circle of Mist",
+    "xp_total": 0,
+    "xp_level": 1,
+    "aura_level": 0,
+    "energy_current": 100,
+    "energy_max": 100,
+    "power_current": 12,
+    "last_update": "2025-10-26T23:00:38.512923Z"
+  },
+  "attributes": [
+    {
+      "trait_type": "ID",
+      "value": "30623"
+    },
+    {
+      "trait_type": "Race",
+      "value": "Tiefling"
+    },
+    {
+      "trait_type": "Class",
+      "value": "Druid"
+    },
+    {
+      "trait_type": "Rarity",
+      "value": "Rare"
+    },
+    {
+      "trait_type": "Guild",
+      "value": "Circle of Mist"
+    },
+    {
+      "trait_type": "Age",
+      "value": 33
+    }
+  ]
+}

@@ -1,0 +1,55 @@
+{
+  "name": "Alexanderzor, Herald of Practice Machine the Choice",
+  "description": "Barbarian Bard of Emberholm. Rarity: Legendary. Guild: Shadow Guild.",
+  "image": "ipfs://bafybeidoj4dc4w3yvngqsufvcmpuhcszsqnxmzx6wqsbikseekqqnpy6l4/07509.png",
+  "fixed_profile": {
+    "token_id": "07509",
+    "race": "Barbarian",
+    "class": "Bard",
+    "rarity": "Legendary",
+    "age": 31,
+    "starting_guild": "Shadow Guild",
+    "str": 14,
+    "dex": 13,
+    "con": 13,
+    "int": 11,
+    "wis": 12,
+    "cha": 13
+  },
+  "dynamic_state": {
+    "current_guild": "Shadow Guild",
+    "xp_total": 0,
+    "xp_level": 1,
+    "aura_level": 0,
+    "energy_current": 100,
+    "energy_max": 100,
+    "power_current": 12,
+    "last_update": "2025-10-26T22:57:23.661401Z"
+  },
+  "attributes": [
+    {
+      "trait_type": "ID",
+      "value": "07509"
+    },
+    {
+      "trait_type": "Race",
+      "value": "Barbarian"
+    },
+    {
+      "trait_type": "Class",
+      "value": "Bard"
+    },
+    {
+      "trait_type": "Rarity",
+      "value": "Legendary"
+    },
+    {
+      "trait_type": "Guild",
+      "value": "Shadow Guild"
+    },
+    {
+      "trait_type": "Age",
+      "value": 31
+    }
+  ]
+}

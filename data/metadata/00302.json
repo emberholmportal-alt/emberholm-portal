@@ -1,0 +1,55 @@
+{
+  "name": "Joshuaira of Through Flame",
+  "description": "Human Druid of Emberholm. Rarity: Common. Guild: Circle of Mist.",
+  "image": "ipfs://bafybeidoj4dc4w3yvngqsufvcmpuhcszsqnxmzx6wqsbikseekqqnpy6l4/00302.png",
+  "fixed_profile": {
+    "token_id": "00302",
+    "race": "Human",
+    "class": "Druid",
+    "rarity": "Common",
+    "age": 62,
+    "starting_guild": "Circle of Mist",
+    "str": 10,
+    "dex": 13,
+    "con": 12,
+    "int": 14,
+    "wis": 15,
+    "cha": 12
+  },
+  "dynamic_state": {
+    "current_guild": "Circle of Mist",
+    "xp_total": 0,
+    "xp_level": 1,
+    "aura_level": 0,
+    "energy_current": 100,
+    "energy_max": 100,
+    "power_current": 12,
+    "last_update": "2025-10-26T22:56:17.887390Z"
+  },
+  "attributes": [
+    {
+      "trait_type": "ID",
+      "value": "00302"
+    },
+    {
+      "trait_type": "Race",
+      "value": "Human"
+    },
+    {
+      "trait_type": "Class",
+      "value": "Druid"
+    },
+    {
+      "trait_type": "Rarity",
+      "value": "Common"
+    },
+    {
+      "trait_type": "Guild",
+      "value": "Circle of Mist"
+    },
+    {
+      "trait_type": "Age",
+      "value": 62
+    }
+  ]
+}

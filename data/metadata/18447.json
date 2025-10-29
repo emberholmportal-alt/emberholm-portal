@@ -1,0 +1,55 @@
+{
+  "name": "Riondebra from the Ruins of Michaelborough",
+  "description": "Orc Ranger of Emberholm. Rarity: Common. Guild: Horizon Watch.",
+  "image": "ipfs://bafybeidoj4dc4w3yvngqsufvcmpuhcszsqnxmzx6wqsbikseekqqnpy6l4/18447.png",
+  "fixed_profile": {
+    "token_id": "18447",
+    "race": "Orc",
+    "class": "Ranger",
+    "rarity": "Common",
+    "age": 44,
+    "starting_guild": "Horizon Watch",
+    "str": 14,
+    "dex": 12,
+    "con": 14,
+    "int": 9,
+    "wis": 11,
+    "cha": 8
+  },
+  "dynamic_state": {
+    "current_guild": "Horizon Watch",
+    "xp_total": 0,
+    "xp_level": 1,
+    "aura_level": 0,
+    "energy_current": 100,
+    "energy_max": 100,
+    "power_current": 11,
+    "last_update": "2025-10-26T22:58:58.040833Z"
+  },
+  "attributes": [
+    {
+      "trait_type": "ID",
+      "value": "18447"
+    },
+    {
+      "trait_type": "Race",
+      "value": "Orc"
+    },
+    {
+      "trait_type": "Class",
+      "value": "Ranger"
+    },
+    {
+      "trait_type": "Rarity",
+      "value": "Common"
+    },
+    {
+      "trait_type": "Guild",
+      "value": "Horizon Watch"
+    },
+    {
+      "trait_type": "Age",
+      "value": 44
+    }
+  ]
+}

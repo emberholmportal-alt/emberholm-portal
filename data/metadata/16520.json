@@ -1,0 +1,55 @@
+{
+  "name": "Rethpull, Herald of Rock Education",
+  "description": "Human Ranger of Emberholm. Rarity: Common. Guild: Horizon Watch.",
+  "image": "ipfs://bafybeidoj4dc4w3yvngqsufvcmpuhcszsqnxmzx6wqsbikseekqqnpy6l4/16520.png",
+  "fixed_profile": {
+    "token_id": "16520",
+    "race": "Human",
+    "class": "Ranger",
+    "rarity": "Common",
+    "age": 49,
+    "starting_guild": "Horizon Watch",
+    "str": 11,
+    "dex": 15,
+    "con": 12,
+    "int": 11,
+    "wis": 13,
+    "cha": 11
+  },
+  "dynamic_state": {
+    "current_guild": "Horizon Watch",
+    "xp_total": 0,
+    "xp_level": 1,
+    "aura_level": 0,
+    "energy_current": 100,
+    "energy_max": 100,
+    "power_current": 12,
+    "last_update": "2025-10-26T22:58:42.358056Z"
+  },
+  "attributes": [
+    {
+      "trait_type": "ID",
+      "value": "16520"
+    },
+    {
+      "trait_type": "Race",
+      "value": "Human"
+    },
+    {
+      "trait_type": "Class",
+      "value": "Ranger"
+    },
+    {
+      "trait_type": "Rarity",
+      "value": "Common"
+    },
+    {
+      "trait_type": "Guild",
+      "value": "Horizon Watch"
+    },
+    {
+      "trait_type": "Age",
+      "value": 49
+    }
+  ]
+}

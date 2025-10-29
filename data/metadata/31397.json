@@ -1,0 +1,55 @@
+{
+  "name": "Tarakar the Last Compare",
+  "description": "Dragonborn Warrior of Emberholm. Rarity: Rare. Guild: Forge Legion.",
+  "image": "ipfs://bafybeidoj4dc4w3yvngqsufvcmpuhcszsqnxmzx6wqsbikseekqqnpy6l4/31397.png",
+  "fixed_profile": {
+    "token_id": "31397",
+    "race": "Dragonborn",
+    "class": "Warrior",
+    "rarity": "Rare",
+    "age": 43,
+    "starting_guild": "Forge Legion",
+    "str": 16,
+    "dex": 10,
+    "con": 15,
+    "int": 8,
+    "wis": 11,
+    "cha": 10
+  },
+  "dynamic_state": {
+    "current_guild": "Forge Legion",
+    "xp_total": 0,
+    "xp_level": 1,
+    "aura_level": 0,
+    "energy_current": 100,
+    "energy_max": 100,
+    "power_current": 11,
+    "last_update": "2025-10-26T23:00:45.059850Z"
+  },
+  "attributes": [
+    {
+      "trait_type": "ID",
+      "value": "31397"
+    },
+    {
+      "trait_type": "Race",
+      "value": "Dragonborn"
+    },
+    {
+      "trait_type": "Class",
+      "value": "Warrior"
+    },
+    {
+      "trait_type": "Rarity",
+      "value": "Rare"
+    },
+    {
+      "trait_type": "Guild",
+      "value": "Forge Legion"
+    },
+    {
+      "trait_type": "Age",
+      "value": 43
+    }
+  ]
+}

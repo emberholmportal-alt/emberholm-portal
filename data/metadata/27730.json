@@ -1,0 +1,55 @@
+{
+  "name": "Rethortiz, Turn of Dread Animal",
+  "description": "Dragonborn Rogue of Emberholm. Rarity: Rare. Guild: Shadow Guild.",
+  "image": "ipfs://bafybeidoj4dc4w3yvngqsufvcmpuhcszsqnxmzx6wqsbikseekqqnpy6l4/27730.png",
+  "fixed_profile": {
+    "token_id": "27730",
+    "race": "Dragonborn",
+    "class": "Rogue",
+    "rarity": "Rare",
+    "age": 42,
+    "starting_guild": "Shadow Guild",
+    "str": 14,
+    "dex": 13,
+    "con": 13,
+    "int": 10,
+    "wis": 10,
+    "cha": 10
+  },
+  "dynamic_state": {
+    "current_guild": "Shadow Guild",
+    "xp_total": 0,
+    "xp_level": 1,
+    "aura_level": 0,
+    "energy_current": 100,
+    "energy_max": 100,
+    "power_current": 12,
+    "last_update": "2025-10-26T23:00:13.861950Z"
+  },
+  "attributes": [
+    {
+      "trait_type": "ID",
+      "value": "27730"
+    },
+    {
+      "trait_type": "Race",
+      "value": "Dragonborn"
+    },
+    {
+      "trait_type": "Class",
+      "value": "Rogue"
+    },
+    {
+      "trait_type": "Rarity",
+      "value": "Rare"
+    },
+    {
+      "trait_type": "Guild",
+      "value": "Shadow Guild"
+    },
+    {
+      "trait_type": "Age",
+      "value": 42
+    }
+  ]
+}

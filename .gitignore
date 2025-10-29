@@ -49,15 +49,5 @@ test_*.py
 *_temp.py
 
 # -------------------------------
-# Control selectivo de metadatas
-# -------------------------------
-# Ignora todos los JSON de metadata...
-/data/metadata/*.json
-# ...excepto los primeros 200 para pruebas
-!/data/metadata/0000[0-9][0-9].json
-!/data/metadata/0001[0-9][0-9].json
-!/data/metadata/0002[0-9][0-9].json
-
-# -------------------------------
 # Fin de .gitignore
 # -------------------------------

@@ -1,0 +1,55 @@
+{
+  "name": "Ashboyd, Can of Operation the Smile One",
+  "description": "Demon Alchemist of Emberholm. Rarity: Rare. Guild: Circle of Mist.",
+  "image": "ipfs://bafybeidoj4dc4w3yvngqsufvcmpuhcszsqnxmzx6wqsbikseekqqnpy6l4/18747.png",
+  "fixed_profile": {
+    "token_id": "18747",
+    "race": "Demon",
+    "class": "Alchemist",
+    "rarity": "Rare",
+    "age": 61,
+    "starting_guild": "Circle of Mist",
+    "str": 11,
+    "dex": 11,
+    "con": 12,
+    "int": 16,
+    "wis": 13,
+    "cha": 10
+  },
+  "dynamic_state": {
+    "current_guild": "Circle of Mist",
+    "xp_total": 0,
+    "xp_level": 1,
+    "aura_level": 0,
+    "energy_current": 100,
+    "energy_max": 100,
+    "power_current": 12,
+    "last_update": "2025-10-26T22:59:00.458144Z"
+  },
+  "attributes": [
+    {
+      "trait_type": "ID",
+      "value": "18747"
+    },
+    {
+      "trait_type": "Race",
+      "value": "Demon"
+    },
+    {
+      "trait_type": "Class",
+      "value": "Alchemist"
+    },
+    {
+      "trait_type": "Rarity",
+      "value": "Rare"
+    },
+    {
+      "trait_type": "Guild",
+      "value": "Circle of Mist"
+    },
+    {
+      "trait_type": "Age",
+      "value": 61
+    }
+  ]
+}

@@ -1,0 +1,55 @@
+{
+  "name": "Movement-vor, Fill of Dread Lawyer",
+  "description": "Human Bard of Emberholm. Rarity: Common. Guild: Shadow Guild.",
+  "image": "ipfs://bafybeidoj4dc4w3yvngqsufvcmpuhcszsqnxmzx6wqsbikseekqqnpy6l4/04034.png",
+  "fixed_profile": {
+    "token_id": "04034",
+    "race": "Human",
+    "class": "Bard",
+    "rarity": "Common",
+    "age": 41,
+    "starting_guild": "Shadow Guild",
+    "str": 9,
+    "dex": 14,
+    "con": 11,
+    "int": 12,
+    "wis": 13,
+    "cha": 16
+  },
+  "dynamic_state": {
+    "current_guild": "Shadow Guild",
+    "xp_total": 0,
+    "xp_level": 1,
+    "aura_level": 0,
+    "energy_current": 100,
+    "energy_max": 100,
+    "power_current": 11,
+    "last_update": "2025-10-26T22:56:52.290089Z"
+  },
+  "attributes": [
+    {
+      "trait_type": "ID",
+      "value": "04034"
+    },
+    {
+      "trait_type": "Race",
+      "value": "Human"
+    },
+    {
+      "trait_type": "Class",
+      "value": "Bard"
+    },
+    {
+      "trait_type": "Rarity",
+      "value": "Common"
+    },
+    {
+      "trait_type": "Guild",
+      "value": "Shadow Guild"
+    },
+    {
+      "trait_type": "Age",
+      "value": 41
+    }
+  ]
+}

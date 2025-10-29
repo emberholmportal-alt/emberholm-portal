@@ -1,0 +1,55 @@
+{
+  "name": "Iracarol, Wife of the Bag the There One",
+  "description": "Orc Necromancer of Emberholm. Rarity: Common. Guild: Void Echoes.",
+  "image": "ipfs://bafybeidoj4dc4w3yvngqsufvcmpuhcszsqnxmzx6wqsbikseekqqnpy6l4/34873.png",
+  "fixed_profile": {
+    "token_id": "34873",
+    "race": "Orc",
+    "class": "Necromancer",
+    "rarity": "Common",
+    "age": 33,
+    "starting_guild": "Void Echoes",
+    "str": 13,
+    "dex": 9,
+    "con": 13,
+    "int": 14,
+    "wis": 11,
+    "cha": 8
+  },
+  "dynamic_state": {
+    "current_guild": "Void Echoes",
+    "xp_total": 0,
+    "xp_level": 1,
+    "aura_level": 0,
+    "energy_current": 100,
+    "energy_max": 100,
+    "power_current": 12,
+    "last_update": "2025-10-26T23:01:14.340564Z"
+  },
+  "attributes": [
+    {
+      "trait_type": "ID",
+      "value": "34873"
+    },
+    {
+      "trait_type": "Race",
+      "value": "Orc"
+    },
+    {
+      "trait_type": "Class",
+      "value": "Necromancer"
+    },
+    {
+      "trait_type": "Rarity",
+      "value": "Common"
+    },
+    {
+      "trait_type": "Guild",
+      "value": "Void Echoes"
+    },
+    {
+      "trait_type": "Age",
+      "value": 33
+    }
+  ]
+}

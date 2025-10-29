@@ -1,0 +1,55 @@
+{
+  "name": "JohnVor, Exist of Wind",
+  "description": "Demon Warrior of Emberholm. Rarity: Rare. Guild: Forge Legion.",
+  "image": "ipfs://bafybeidoj4dc4w3yvngqsufvcmpuhcszsqnxmzx6wqsbikseekqqnpy6l4/30812.png",
+  "fixed_profile": {
+    "token_id": "30812",
+    "race": "Demon",
+    "class": "Warrior",
+    "rarity": "Rare",
+    "age": 46,
+    "starting_guild": "Forge Legion",
+    "str": 17,
+    "dex": 11,
+    "con": 14,
+    "int": 11,
+    "wis": 12,
+    "cha": 8
+  },
+  "dynamic_state": {
+    "current_guild": "Forge Legion",
+    "xp_total": 0,
+    "xp_level": 1,
+    "aura_level": 0,
+    "energy_current": 100,
+    "energy_max": 100,
+    "power_current": 13,
+    "last_update": "2025-10-26T23:00:40.053301Z"
+  },
+  "attributes": [
+    {
+      "trait_type": "ID",
+      "value": "30812"
+    },
+    {
+      "trait_type": "Race",
+      "value": "Demon"
+    },
+    {
+      "trait_type": "Class",
+      "value": "Warrior"
+    },
+    {
+      "trait_type": "Rarity",
+      "value": "Rare"
+    },
+    {
+      "trait_type": "Guild",
+      "value": "Forge Legion"
+    },
+    {
+      "trait_type": "Age",
+      "value": 46
+    }
+  ]
+}

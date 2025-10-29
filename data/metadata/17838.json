@@ -1,0 +1,55 @@
+{
+  "name": "Republicanion of the Only",
+  "description": "Dragonborn Cleric of Emberholm. Rarity: Rare. Guild: Order of Dawn.",
+  "image": "ipfs://bafybeidoj4dc4w3yvngqsufvcmpuhcszsqnxmzx6wqsbikseekqqnpy6l4/17838.png",
+  "fixed_profile": {
+    "token_id": "17838",
+    "race": "Dragonborn",
+    "class": "Cleric",
+    "rarity": "Rare",
+    "age": 57,
+    "starting_guild": "Order of Dawn",
+    "str": 12,
+    "dex": 9,
+    "con": 14,
+    "int": 13,
+    "wis": 14,
+    "cha": 10
+  },
+  "dynamic_state": {
+    "current_guild": "Order of Dawn",
+    "xp_total": 0,
+    "xp_level": 1,
+    "aura_level": 0,
+    "energy_current": 100,
+    "energy_max": 100,
+    "power_current": 11,
+    "last_update": "2025-10-26T22:58:53.015914Z"
+  },
+  "attributes": [
+    {
+      "trait_type": "ID",
+      "value": "17838"
+    },
+    {
+      "trait_type": "Race",
+      "value": "Dragonborn"
+    },
+    {
+      "trait_type": "Class",
+      "value": "Cleric"
+    },
+    {
+      "trait_type": "Rarity",
+      "value": "Rare"
+    },
+    {
+      "trait_type": "Guild",
+      "value": "Order of Dawn"
+    },
+    {
+      "trait_type": "Age",
+      "value": 57
+    }
+  ]
+}

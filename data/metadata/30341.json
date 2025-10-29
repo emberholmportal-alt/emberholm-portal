@@ -1,0 +1,55 @@
+{
+  "name": "Lawson-reth, Caller of Interesting of the Relate",
+  "description": "Orc Ranger of Emberholm. Rarity: Common. Guild: Horizon Watch.",
+  "image": "ipfs://bafybeidoj4dc4w3yvngqsufvcmpuhcszsqnxmzx6wqsbikseekqqnpy6l4/30341.png",
+  "fixed_profile": {
+    "token_id": "30341",
+    "race": "Orc",
+    "class": "Ranger",
+    "rarity": "Common",
+    "age": 41,
+    "starting_guild": "Horizon Watch",
+    "str": 14,
+    "dex": 12,
+    "con": 14,
+    "int": 9,
+    "wis": 11,
+    "cha": 8
+  },
+  "dynamic_state": {
+    "current_guild": "Horizon Watch",
+    "xp_total": 0,
+    "xp_level": 1,
+    "aura_level": 0,
+    "energy_current": 100,
+    "energy_max": 100,
+    "power_current": 11,
+    "last_update": "2025-10-26T23:00:36.113559Z"
+  },
+  "attributes": [
+    {
+      "trait_type": "ID",
+      "value": "30341"
+    },
+    {
+      "trait_type": "Race",
+      "value": "Orc"
+    },
+    {
+      "trait_type": "Class",
+      "value": "Ranger"
+    },
+    {
+      "trait_type": "Rarity",
+      "value": "Common"
+    },
+    {
+      "trait_type": "Guild",
+      "value": "Horizon Watch"
+    },
+    {
+      "trait_type": "Age",
+      "value": 41
+    }
+  ]
+}

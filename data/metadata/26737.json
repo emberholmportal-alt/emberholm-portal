@@ -1,0 +1,55 @@
+{
+  "name": "ConnorRion from the Ruins of Ortizburgh",
+  "description": "Human Wizard of Emberholm. Rarity: Common. Guild: Circle of Mist.",
+  "image": "ipfs://bafybeidoj4dc4w3yvngqsufvcmpuhcszsqnxmzx6wqsbikseekqqnpy6l4/26737.png",
+  "fixed_profile": {
+    "token_id": "26737",
+    "race": "Human",
+    "class": "Wizard",
+    "rarity": "Common",
+    "age": 46,
+    "starting_guild": "Circle of Mist",
+    "str": 8,
+    "dex": 12,
+    "con": 10,
+    "int": 17,
+    "wis": 13,
+    "cha": 11
+  },
+  "dynamic_state": {
+    "current_guild": "Circle of Mist",
+    "xp_total": 0,
+    "xp_level": 1,
+    "aura_level": 0,
+    "energy_current": 100,
+    "energy_max": 100,
+    "power_current": 12,
+    "last_update": "2025-10-26T23:00:05.621138Z"
+  },
+  "attributes": [
+    {
+      "trait_type": "ID",
+      "value": "26737"
+    },
+    {
+      "trait_type": "Race",
+      "value": "Human"
+    },
+    {
+      "trait_type": "Class",
+      "value": "Wizard"
+    },
+    {
+      "trait_type": "Rarity",
+      "value": "Common"
+    },
+    {
+      "trait_type": "Guild",
+      "value": "Circle of Mist"
+    },
+    {
+      "trait_type": "Age",
+      "value": 46
+    }
+  ]
+}

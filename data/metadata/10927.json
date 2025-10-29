@@ -1,0 +1,55 @@
+{
+  "name": "Munozzor, To of Dread Number",
+  "description": "Spectral Warrior of Emberholm. Rarity: Legendary. Guild: Void Echoes.",
+  "image": "ipfs://bafybeidoj4dc4w3yvngqsufvcmpuhcszsqnxmzx6wqsbikseekqqnpy6l4/10927.png",
+  "fixed_profile": {
+    "token_id": "10927",
+    "race": "Spectral",
+    "class": "Warrior",
+    "rarity": "Legendary",
+    "age": 0,
+    "starting_guild": "Void Echoes",
+    "str": 12,
+    "dex": 11,
+    "con": 12,
+    "int": 13,
+    "wis": 14,
+    "cha": 10
+  },
+  "dynamic_state": {
+    "current_guild": "Void Echoes",
+    "xp_total": 0,
+    "xp_level": 1,
+    "aura_level": 0,
+    "energy_current": 100,
+    "energy_max": 100,
+    "power_current": 12,
+    "last_update": "2025-10-26T22:57:54.264578Z"
+  },
+  "attributes": [
+    {
+      "trait_type": "ID",
+      "value": "10927"
+    },
+    {
+      "trait_type": "Race",
+      "value": "Spectral"
+    },
+    {
+      "trait_type": "Class",
+      "value": "Warrior"
+    },
+    {
+      "trait_type": "Rarity",
+      "value": "Legendary"
+    },
+    {
+      "trait_type": "Guild",
+      "value": "Void Echoes"
+    },
+    {
+      "trait_type": "Age",
+      "value": 0
+    }
+  ]
+}

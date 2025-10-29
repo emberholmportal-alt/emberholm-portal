@@ -1,0 +1,55 @@
+{
+  "name": "AveryAr, Keeper of Too Such",
+  "description": "Orc Bard of Emberholm. Rarity: Common. Guild: Shadow Guild.",
+  "image": "ipfs://bafybeidoj4dc4w3yvngqsufvcmpuhcszsqnxmzx6wqsbikseekqqnpy6l4/00172.png",
+  "fixed_profile": {
+    "token_id": "00172",
+    "race": "Orc",
+    "class": "Bard",
+    "rarity": "Common",
+    "age": 26,
+    "starting_guild": "Shadow Guild",
+    "str": 13,
+    "dex": 11,
+    "con": 14,
+    "int": 10,
+    "wis": 10,
+    "cha": 12
+  },
+  "dynamic_state": {
+    "current_guild": "Shadow Guild",
+    "xp_total": 0,
+    "xp_level": 1,
+    "aura_level": 0,
+    "energy_current": 100,
+    "energy_max": 100,
+    "power_current": 11,
+    "last_update": "2025-10-26T22:56:16.529047Z"
+  },
+  "attributes": [
+    {
+      "trait_type": "ID",
+      "value": "00172"
+    },
+    {
+      "trait_type": "Race",
+      "value": "Orc"
+    },
+    {
+      "trait_type": "Class",
+      "value": "Bard"
+    },
+    {
+      "trait_type": "Rarity",
+      "value": "Common"
+    },
+    {
+      "trait_type": "Guild",
+      "value": "Shadow Guild"
+    },
+    {
+      "trait_type": "Age",
+      "value": 26
+    }
+  ]
+}

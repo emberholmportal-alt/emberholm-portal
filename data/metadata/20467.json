@@ -1,0 +1,55 @@
+{
+  "name": "Ashwide from the Ruins of North Steven",
+  "description": "Triton Cleric of Emberholm. Rarity: Common. Guild: Order of Dawn.",
+  "image": "ipfs://bafybeidoj4dc4w3yvngqsufvcmpuhcszsqnxmzx6wqsbikseekqqnpy6l4/20467.png",
+  "fixed_profile": {
+    "token_id": "20467",
+    "race": "Triton",
+    "class": "Cleric",
+    "rarity": "Common",
+    "age": 29,
+    "starting_guild": "Order of Dawn",
+    "str": 11,
+    "dex": 12,
+    "con": 13,
+    "int": 14,
+    "wis": 16,
+    "cha": 11
+  },
+  "dynamic_state": {
+    "current_guild": "Order of Dawn",
+    "xp_total": 0,
+    "xp_level": 1,
+    "aura_level": 0,
+    "energy_current": 100,
+    "energy_max": 100,
+    "power_current": 12,
+    "last_update": "2025-10-26T22:59:14.281984Z"
+  },
+  "attributes": [
+    {
+      "trait_type": "ID",
+      "value": "20467"
+    },
+    {
+      "trait_type": "Race",
+      "value": "Triton"
+    },
+    {
+      "trait_type": "Class",
+      "value": "Cleric"
+    },
+    {
+      "trait_type": "Rarity",
+      "value": "Common"
+    },
+    {
+      "trait_type": "Guild",
+      "value": "Order of Dawn"
+    },
+    {
+      "trait_type": "Age",
+      "value": 29
+    }
+  ]
+}

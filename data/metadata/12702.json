@@ -1,0 +1,55 @@
+{
+  "name": "Deannaar from Sarahborough",
+  "description": "Human Alchemist of Emberholm. Rarity: Common. Guild: Circle of Mist.",
+  "image": "ipfs://bafybeidoj4dc4w3yvngqsufvcmpuhcszsqnxmzx6wqsbikseekqqnpy6l4/12702.png",
+  "fixed_profile": {
+    "token_id": "12702",
+    "race": "Human",
+    "class": "Alchemist",
+    "rarity": "Common",
+    "age": 40,
+    "starting_guild": "Circle of Mist",
+    "str": 9,
+    "dex": 13,
+    "con": 11,
+    "int": 16,
+    "wis": 15,
+    "cha": 11
+  },
+  "dynamic_state": {
+    "current_guild": "Circle of Mist",
+    "xp_total": 0,
+    "xp_level": 1,
+    "aura_level": 0,
+    "energy_current": 100,
+    "energy_max": 100,
+    "power_current": 12,
+    "last_update": "2025-10-26T22:58:09.914336Z"
+  },
+  "attributes": [
+    {
+      "trait_type": "ID",
+      "value": "12702"
+    },
+    {
+      "trait_type": "Race",
+      "value": "Human"
+    },
+    {
+      "trait_type": "Class",
+      "value": "Alchemist"
+    },
+    {
+      "trait_type": "Rarity",
+      "value": "Common"
+    },
+    {
+      "trait_type": "Guild",
+      "value": "Circle of Mist"
+    },
+    {
+      "trait_type": "Age",
+      "value": 40
+    }
+  ]
+}

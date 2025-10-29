@@ -1,0 +1,55 @@
+{
+  "name": "Here-zeth, Keeper of Boy Drop",
+  "description": "Triton Necromancer of Emberholm. Rarity: Common. Guild: Void Echoes.",
+  "image": "ipfs://bafybeidoj4dc4w3yvngqsufvcmpuhcszsqnxmzx6wqsbikseekqqnpy6l4/00458.png",
+  "fixed_profile": {
+    "token_id": "00458",
+    "race": "Triton",
+    "class": "Necromancer",
+    "rarity": "Common",
+    "age": 49,
+    "starting_guild": "Void Echoes",
+    "str": 9,
+    "dex": 11,
+    "con": 11,
+    "int": 17,
+    "wis": 14,
+    "cha": 9
+  },
+  "dynamic_state": {
+    "current_guild": "Void Echoes",
+    "xp_total": 0,
+    "xp_level": 1,
+    "aura_level": 0,
+    "energy_current": 100,
+    "energy_max": 100,
+    "power_current": 12,
+    "last_update": "2025-10-26T22:56:19.419290Z"
+  },
+  "attributes": [
+    {
+      "trait_type": "ID",
+      "value": "00458"
+    },
+    {
+      "trait_type": "Race",
+      "value": "Triton"
+    },
+    {
+      "trait_type": "Class",
+      "value": "Necromancer"
+    },
+    {
+      "trait_type": "Rarity",
+      "value": "Common"
+    },
+    {
+      "trait_type": "Guild",
+      "value": "Void Echoes"
+    },
+    {
+      "trait_type": "Age",
+      "value": 49
+    }
+  ]
+}

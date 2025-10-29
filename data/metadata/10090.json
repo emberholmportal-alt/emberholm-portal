@@ -1,0 +1,55 @@
+{
+  "name": "AirYn, Open in Science of the We",
+  "description": "Tiefling Wizard of Emberholm. Rarity: Rare. Guild: Void Echoes.",
+  "image": "ipfs://bafybeidoj4dc4w3yvngqsufvcmpuhcszsqnxmzx6wqsbikseekqqnpy6l4/10090.png",
+  "fixed_profile": {
+    "token_id": "10090",
+    "race": "Tiefling",
+    "class": "Wizard",
+    "rarity": "Rare",
+    "age": 62,
+    "starting_guild": "Void Echoes",
+    "str": 9,
+    "dex": 13,
+    "con": 10,
+    "int": 17,
+    "wis": 14,
+    "cha": 13
+  },
+  "dynamic_state": {
+    "current_guild": "Void Echoes",
+    "xp_total": 0,
+    "xp_level": 1,
+    "aura_level": 0,
+    "energy_current": 100,
+    "energy_max": 100,
+    "power_current": 13,
+    "last_update": "2025-10-26T22:57:46.872042Z"
+  },
+  "attributes": [
+    {
+      "trait_type": "ID",
+      "value": "10090"
+    },
+    {
+      "trait_type": "Race",
+      "value": "Tiefling"
+    },
+    {
+      "trait_type": "Class",
+      "value": "Wizard"
+    },
+    {
+      "trait_type": "Rarity",
+      "value": "Rare"
+    },
+    {
+      "trait_type": "Guild",
+      "value": "Void Echoes"
+    },
+    {
+      "trait_type": "Age",
+      "value": 62
+    }
+  ]
+}

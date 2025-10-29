@@ -1,0 +1,55 @@
+{
+  "name": "Michaelvor from Gibsonmouth",
+  "description": "Human Paladin of Emberholm. Rarity: Common. Guild: Order of Dawn.",
+  "image": "ipfs://bafybeidoj4dc4w3yvngqsufvcmpuhcszsqnxmzx6wqsbikseekqqnpy6l4/21492.png",
+  "fixed_profile": {
+    "token_id": "21492",
+    "race": "Human",
+    "class": "Paladin",
+    "rarity": "Common",
+    "age": 27,
+    "starting_guild": "Order of Dawn",
+    "str": 13,
+    "dex": 10,
+    "con": 14,
+    "int": 9,
+    "wis": 14,
+    "cha": 15
+  },
+  "dynamic_state": {
+    "current_guild": "Order of Dawn",
+    "xp_total": 0,
+    "xp_level": 1,
+    "aura_level": 0,
+    "energy_current": 100,
+    "energy_max": 100,
+    "power_current": 10,
+    "last_update": "2025-10-26T22:59:22.651286Z"
+  },
+  "attributes": [
+    {
+      "trait_type": "ID",
+      "value": "21492"
+    },
+    {
+      "trait_type": "Race",
+      "value": "Human"
+    },
+    {
+      "trait_type": "Class",
+      "value": "Paladin"
+    },
+    {
+      "trait_type": "Rarity",
+      "value": "Common"
+    },
+    {
+      "trait_type": "Guild",
+      "value": "Order of Dawn"
+    },
+    {
+      "trait_type": "Age",
+      "value": 27
+    }
+  ]
+}

@@ -1,0 +1,55 @@
+{
+  "name": "Conference-morn the Silent Color",
+  "description": "Gith Bard of Emberholm. Rarity: Rare. Guild: Shadow Guild.",
+  "image": "ipfs://bafybeidoj4dc4w3yvngqsufvcmpuhcszsqnxmzx6wqsbikseekqqnpy6l4/18358.png",
+  "fixed_profile": {
+    "token_id": "18358",
+    "race": "Gith",
+    "class": "Bard",
+    "rarity": "Rare",
+    "age": 32,
+    "starting_guild": "Shadow Guild",
+    "str": 11,
+    "dex": 13,
+    "con": 11,
+    "int": 14,
+    "wis": 13,
+    "cha": 14
+  },
+  "dynamic_state": {
+    "current_guild": "Shadow Guild",
+    "xp_total": 0,
+    "xp_level": 1,
+    "aura_level": 0,
+    "energy_current": 100,
+    "energy_max": 100,
+    "power_current": 12,
+    "last_update": "2025-10-26T22:58:57.228428Z"
+  },
+  "attributes": [
+    {
+      "trait_type": "ID",
+      "value": "18358"
+    },
+    {
+      "trait_type": "Race",
+      "value": "Gith"
+    },
+    {
+      "trait_type": "Class",
+      "value": "Bard"
+    },
+    {
+      "trait_type": "Rarity",
+      "value": "Rare"
+    },
+    {
+      "trait_type": "Guild",
+      "value": "Shadow Guild"
+    },
+    {
+      "trait_type": "Age",
+      "value": 32
+    }
+  ]
+}

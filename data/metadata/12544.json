@@ -1,0 +1,55 @@
+{
+  "name": "BurtonZor, Account of Dread Item the Clearly One",
+  "description": "Orc Cleric of Emberholm. Rarity: Common. Guild: Order of Dawn.",
+  "image": "ipfs://bafybeidoj4dc4w3yvngqsufvcmpuhcszsqnxmzx6wqsbikseekqqnpy6l4/12544.png",
+  "fixed_profile": {
+    "token_id": "12544",
+    "race": "Orc",
+    "class": "Cleric",
+    "rarity": "Common",
+    "age": 30,
+    "starting_guild": "Order of Dawn",
+    "str": 14,
+    "dex": 8,
+    "con": 15,
+    "int": 10,
+    "wis": 13,
+    "cha": 10
+  },
+  "dynamic_state": {
+    "current_guild": "Order of Dawn",
+    "xp_total": 0,
+    "xp_level": 1,
+    "aura_level": 0,
+    "energy_current": 100,
+    "energy_max": 100,
+    "power_current": 10,
+    "last_update": "2025-10-26T22:58:08.438877Z"
+  },
+  "attributes": [
+    {
+      "trait_type": "ID",
+      "value": "12544"
+    },
+    {
+      "trait_type": "Race",
+      "value": "Orc"
+    },
+    {
+      "trait_type": "Class",
+      "value": "Cleric"
+    },
+    {
+      "trait_type": "Rarity",
+      "value": "Common"
+    },
+    {
+      "trait_type": "Guild",
+      "value": "Order of Dawn"
+    },
+    {
+      "trait_type": "Age",
+      "value": 30
+    }
+  ]
+}

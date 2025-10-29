@@ -1,0 +1,55 @@
+{
+  "name": "MaryGra the Last Spend",
+  "description": "Orc Paladin of Emberholm. Rarity: Common. Guild: Order of Dawn.",
+  "image": "ipfs://bafybeidoj4dc4w3yvngqsufvcmpuhcszsqnxmzx6wqsbikseekqqnpy6l4/16500.png",
+  "fixed_profile": {
+    "token_id": "16500",
+    "race": "Orc",
+    "class": "Paladin",
+    "rarity": "Common",
+    "age": 42,
+    "starting_guild": "Order of Dawn",
+    "str": 16,
+    "dex": 9,
+    "con": 15,
+    "int": 9,
+    "wis": 12,
+    "cha": 9
+  },
+  "dynamic_state": {
+    "current_guild": "Order of Dawn",
+    "xp_total": 0,
+    "xp_level": 1,
+    "aura_level": 0,
+    "energy_current": 100,
+    "energy_max": 100,
+    "power_current": 11,
+    "last_update": "2025-10-26T22:58:42.187912Z"
+  },
+  "attributes": [
+    {
+      "trait_type": "ID",
+      "value": "16500"
+    },
+    {
+      "trait_type": "Race",
+      "value": "Orc"
+    },
+    {
+      "trait_type": "Class",
+      "value": "Paladin"
+    },
+    {
+      "trait_type": "Rarity",
+      "value": "Common"
+    },
+    {
+      "trait_type": "Guild",
+      "value": "Order of Dawn"
+    },
+    {
+      "trait_type": "Age",
+      "value": 42
+    }
+  ]
+}

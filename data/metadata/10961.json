@@ -1,0 +1,55 @@
+{
+  "name": "Firegor, Throw of the Base the MintCream",
+  "description": "Human Rogue of Emberholm. Rarity: Common. Guild: Shadow Guild.",
+  "image": "ipfs://bafybeidoj4dc4w3yvngqsufvcmpuhcszsqnxmzx6wqsbikseekqqnpy6l4/10961.png",
+  "fixed_profile": {
+    "token_id": "10961",
+    "race": "Human",
+    "class": "Rogue",
+    "rarity": "Common",
+    "age": 24,
+    "starting_guild": "Shadow Guild",
+    "str": 10,
+    "dex": 16,
+    "con": 11,
+    "int": 12,
+    "wis": 11,
+    "cha": 12
+  },
+  "dynamic_state": {
+    "current_guild": "Shadow Guild",
+    "xp_total": 0,
+    "xp_level": 1,
+    "aura_level": 0,
+    "energy_current": 100,
+    "energy_max": 100,
+    "power_current": 12,
+    "last_update": "2025-10-26T22:57:54.510265Z"
+  },
+  "attributes": [
+    {
+      "trait_type": "ID",
+      "value": "10961"
+    },
+    {
+      "trait_type": "Race",
+      "value": "Human"
+    },
+    {
+      "trait_type": "Class",
+      "value": "Rogue"
+    },
+    {
+      "trait_type": "Rarity",
+      "value": "Common"
+    },
+    {
+      "trait_type": "Guild",
+      "value": "Shadow Guild"
+    },
+    {
+      "trait_type": "Age",
+      "value": 24
+    }
+  ]
+}

@@ -1,0 +1,55 @@
+{
+  "name": "AlexOth, Bearer of Total the Wait One",
+  "description": "Orc Necromancer of Emberholm. Rarity: Common. Guild: Void Echoes.",
+  "image": "ipfs://bafybeidoj4dc4w3yvngqsufvcmpuhcszsqnxmzx6wqsbikseekqqnpy6l4/18233.png",
+  "fixed_profile": {
+    "token_id": "18233",
+    "race": "Orc",
+    "class": "Necromancer",
+    "rarity": "Common",
+    "age": 54,
+    "starting_guild": "Void Echoes",
+    "str": 13,
+    "dex": 9,
+    "con": 13,
+    "int": 14,
+    "wis": 11,
+    "cha": 8
+  },
+  "dynamic_state": {
+    "current_guild": "Void Echoes",
+    "xp_total": 0,
+    "xp_level": 1,
+    "aura_level": 0,
+    "energy_current": 100,
+    "energy_max": 100,
+    "power_current": 12,
+    "last_update": "2025-10-26T22:58:56.228567Z"
+  },
+  "attributes": [
+    {
+      "trait_type": "ID",
+      "value": "18233"
+    },
+    {
+      "trait_type": "Race",
+      "value": "Orc"
+    },
+    {
+      "trait_type": "Class",
+      "value": "Necromancer"
+    },
+    {
+      "trait_type": "Rarity",
+      "value": "Common"
+    },
+    {
+      "trait_type": "Guild",
+      "value": "Void Echoes"
+    },
+    {
+      "trait_type": "Age",
+      "value": 54
+    }
+  ]
+}

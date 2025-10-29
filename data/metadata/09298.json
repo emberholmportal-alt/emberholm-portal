@@ -1,0 +1,55 @@
+{
+  "name": "Brianaael, Important of Claim the Last Free",
+  "description": "Beast Warrior of Emberholm. Rarity: Legendary. Guild: Forge Legion.",
+  "image": "ipfs://bafybeidoj4dc4w3yvngqsufvcmpuhcszsqnxmzx6wqsbikseekqqnpy6l4/09298.png",
+  "fixed_profile": {
+    "token_id": "09298",
+    "race": "Beast",
+    "class": "Warrior",
+    "rarity": "Legendary",
+    "age": 14,
+    "starting_guild": "Forge Legion",
+    "str": 15,
+    "dex": 13,
+    "con": 14,
+    "int": 9,
+    "wis": 12,
+    "cha": 8
+  },
+  "dynamic_state": {
+    "current_guild": "Forge Legion",
+    "xp_total": 0,
+    "xp_level": 1,
+    "aura_level": 0,
+    "energy_current": 100,
+    "energy_max": 100,
+    "power_current": 12,
+    "last_update": "2025-10-26T22:57:39.654557Z"
+  },
+  "attributes": [
+    {
+      "trait_type": "ID",
+      "value": "09298"
+    },
+    {
+      "trait_type": "Race",
+      "value": "Beast"
+    },
+    {
+      "trait_type": "Class",
+      "value": "Warrior"
+    },
+    {
+      "trait_type": "Rarity",
+      "value": "Legendary"
+    },
+    {
+      "trait_type": "Guild",
+      "value": "Forge Legion"
+    },
+    {
+      "trait_type": "Age",
+      "value": 14
+    }
+  ]
+}

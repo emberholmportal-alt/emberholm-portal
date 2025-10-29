@@ -1,0 +1,55 @@
+{
+  "name": "ChristopherKesh, Herald of Strong Reveal",
+  "description": "Dragonborn Bard of Emberholm. Rarity: Rare. Guild: Shadow Guild.",
+  "image": "ipfs://bafybeidoj4dc4w3yvngqsufvcmpuhcszsqnxmzx6wqsbikseekqqnpy6l4/09558.png",
+  "fixed_profile": {
+    "token_id": "09558",
+    "race": "Dragonborn",
+    "class": "Bard",
+    "rarity": "Rare",
+    "age": 40,
+    "starting_guild": "Shadow Guild",
+    "str": 12,
+    "dex": 12,
+    "con": 12,
+    "int": 12,
+    "wis": 11,
+    "cha": 13
+  },
+  "dynamic_state": {
+    "current_guild": "Shadow Guild",
+    "xp_total": 0,
+    "xp_level": 1,
+    "aura_level": 0,
+    "energy_current": 100,
+    "energy_max": 100,
+    "power_current": 12,
+    "last_update": "2025-10-26T22:57:41.939972Z"
+  },
+  "attributes": [
+    {
+      "trait_type": "ID",
+      "value": "09558"
+    },
+    {
+      "trait_type": "Race",
+      "value": "Dragonborn"
+    },
+    {
+      "trait_type": "Class",
+      "value": "Bard"
+    },
+    {
+      "trait_type": "Rarity",
+      "value": "Rare"
+    },
+    {
+      "trait_type": "Guild",
+      "value": "Shadow Guild"
+    },
+    {
+      "trait_type": "Age",
+      "value": 40
+    }
+  ]
+}

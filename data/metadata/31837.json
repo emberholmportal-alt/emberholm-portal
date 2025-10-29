@@ -1,0 +1,55 @@
+{
+  "name": "Arwhat, Herald of Firm Statement",
+  "description": "Tiefling Necromancer of Emberholm. Rarity: Rare. Guild: Void Echoes.",
+  "image": "ipfs://bafybeidoj4dc4w3yvngqsufvcmpuhcszsqnxmzx6wqsbikseekqqnpy6l4/31837.png",
+  "fixed_profile": {
+    "token_id": "31837",
+    "race": "Tiefling",
+    "class": "Necromancer",
+    "rarity": "Rare",
+    "age": 57,
+    "starting_guild": "Void Echoes",
+    "str": 8,
+    "dex": 11,
+    "con": 10,
+    "int": 18,
+    "wis": 15,
+    "cha": 12
+  },
+  "dynamic_state": {
+    "current_guild": "Void Echoes",
+    "xp_total": 0,
+    "xp_level": 1,
+    "aura_level": 0,
+    "energy_current": 100,
+    "energy_max": 100,
+    "power_current": 12,
+    "last_update": "2025-10-26T23:00:48.690882Z"
+  },
+  "attributes": [
+    {
+      "trait_type": "ID",
+      "value": "31837"
+    },
+    {
+      "trait_type": "Race",
+      "value": "Tiefling"
+    },
+    {
+      "trait_type": "Class",
+      "value": "Necromancer"
+    },
+    {
+      "trait_type": "Rarity",
+      "value": "Rare"
+    },
+    {
+      "trait_type": "Guild",
+      "value": "Void Echoes"
+    },
+    {
+      "trait_type": "Age",
+      "value": 57
+    }
+  ]
+}
