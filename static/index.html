@@ -926,7 +926,6 @@ body {
             </div>
         </div>
     </section>
-
 </div><!-- /.wrapper -->
 
 <script>
@@ -945,6 +944,10 @@ document.querySelectorAll(".cmd-link").forEach(btn=>{
         const target = btn.getAttribute("data-target");
         switchScreen(target);
 
+// 🔊 cada click asegura música
+        if (typeof ensureMusicPlaying === "function") {
+            ensureMusicPlaying();
+        }
         if(target === "stats"){
             fetchStatsAndRender();
         } else if (target === "guilds"){
@@ -1379,7 +1382,28 @@ audioPlayer.addEventListener("ended", ()=>{
 
 // iniciar primera pista
 loadMusicTrack(0);
+// --- auto-unlock music after interaction or after short delay ---
+function ensureMusicPlaying() {
+    if (audioPlayer.paused) {
+        audioPlayer.play().catch(() => {
+            // si sigue bloqueado, lo intentamos de nuevo cuando haya interacción
+        });
+    }
+}
 
+// cualquier clic o tecla desbloquea el audio
+const unlockHandler = () => {
+    ensureMusicPlaying();
+    document.removeEventListener('click', unlockHandler);
+    document.removeEventListener('keydown', unlockHandler);
+};
+document.addEventListener('click', unlockHandler);
+document.addEventListener('keydown', unlockHandler);
+
+// intento tardío (por si el usuario no toca nada)
+setTimeout(() => {
+    ensureMusicPlaying();
+}, 2000);
 </script>
 </body>
 </html>
