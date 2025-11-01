@@ -1,370 +1,380 @@
 <!DOCTYPE html>
 <html lang="en">
-
-<button class="menu-btn" onclick="window.location.href='/'">[BACK TO PORTAL]</button>
-
 <head>
   <meta charset="UTF-8" />
-  <title>Emberholm Portal : Invocation Console</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Emberholm Portal // Invocation Console</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     :root {
-      --bg: #000;
-      --line: #f5a500;
-      --text: #f5a500;
-      --font: "Consolas","Courier New",monospace;
+      --bg: #050505;
+      --line: #fcb900;
+      --text: #fcb900;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
     }
     * { box-sizing: border-box; }
     body {
       background: var(--bg);
       color: var(--text);
-      font-family: var(--font);
+      font-family: var(--mono);
       margin: 0;
-      padding: 12px;
+      padding: 0;
     }
-    .main-frame {
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #050505;
+      border-bottom: 3px solid var(--line);
+      padding: 8px 14px;
+      gap: 12px;
+    }
+    .topbar-title {
+      font-weight: 700;
+      font-size: 0.9rem;
+      letter-spacing: 0.04em;
+    }
+    .back-btn {
+      background: transparent;
+      color: var(--text);
+      border: 2px solid var(--line);
+      padding: 3px 10px;
+      cursor: pointer;
+      font-family: var(--mono);
+      font-size: 0.75rem;
+    }
+    .back-btn:hover {
+      background: rgba(252,185,0,0.15);
+    }
+    .status-strip {
+      background: #050505;
+      border-bottom: 2px solid var(--line);
+      display: flex;
+      justify-content: flex-end;
+      padding: 4px 14px;
+      font-size: 0.65rem;
+    }
+    .main-shell {
+      width: 100%;
+      max-width: 1300px;
+      margin: 10px auto 40px;
       border: 3px solid var(--line);
-      background:#000;
-      max-width: 1180px;
-      margin: 0 auto 40px;
+      background: #0a0a0a;
       padding: 10px;
     }
-    .header-row {
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
-      border-bottom:2px solid var(--line);
-      margin-bottom:8px;
-      padding-bottom:6px;
+    .top-row {
+      display: grid;
+      grid-template-columns: 1.25fr 0.8fr;
+      gap: 10px;
     }
-    .title { font-weight:700; }
-    .status {
-      font-size:11px;
-      border:1px solid var(--line);
-      padding:3px 6px;
-      background:#110a00;
+    .console-window {
+      border: 2px solid var(--line);
+      min-height: 240px;
+      background: #050505;
+      position: relative;
+      display: flex;
+      flex-direction: column;
     }
-    .top-zone {
-      display:grid;
-      grid-template-columns:1.25fr .75fr;
-      gap:10px;
-      min-height:260px;
+    .console-title {
+      padding: 4px 6px;
+      border-bottom: 2px solid var(--line);
+      font-size: 0.7rem;
+      font-weight: 700;
     }
-    .console-box {
-      border:2px solid var(--line);
-      background:#020202;
-      padding:6px 8px;
-      /* + altura para que no aparezca la barra */
-      min-height:240px;
+    .console-body {
+      padding: 6px 6px 0;
+      font-size: 0.7rem;
+      line-height: 1.3;
+      height: 180px;
+      overflow-y: auto;
+      background: radial-gradient(circle, rgba(5,5,5,1) 0%, rgba(0,0,0,1) 65%);
     }
-    .console-title { font-size:12px;margin-bottom:6px;color:#fff; }
-    .console-log {
-      /* más alto, sin barra */
-      max-height: 200px;
-      overflow-y: hidden;
-      border:1px solid rgba(245,165,0,0.15);
-      padding:4px;
-      background:radial-gradient(circle,rgba(245,165,0,0.06)0%,rgba(0,0,0,0)55%);
+    .console-footer {
+      border-top: 2px solid var(--line);
+      display: flex;
+      gap: 4px;
+      padding: 4px;
+      font-size: 0.65rem;
     }
-    .console-line {
-      margin-bottom:3px;
-      white-space:pre-wrap;
+    .tag {
+      border: 1px solid var(--line);
+      padding: 2px 6px;
+      white-space: nowrap;
     }
-    .info-row{margin-top:6px;display:flex;gap:6px;flex-wrap:wrap;}
-    .tag{border:1px solid var(--line);padding:2px 7px;font-size:11px;background:#100800;}
-    .portal-panel{
-      border:2px solid var(--line);
-      background:#020202;
-      display:flex;
-      flex-direction:column;
-      gap:5px;
-      align-items:center;
-      padding:6px;
+    .portal-panel {
+      border: 2px solid var(--line);
+      background: #050505;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      min-height: 240px;
     }
-    .portal-panel-title{
-      font-size:11px;
-      border:1px solid var(--line);
-      padding:2px 6px;
-      background:#100800;
-      text-transform:uppercase;
+    .portal-title {
+      padding: 4px 6px;
+      border-bottom: 2px solid var(--line);
+      text-align: center;
+      font-size: 0.68rem;
+      font-weight: 700;
     }
-    .portal-video-wrap{
-      width:100%;
-      border:2px solid var(--line);
-      /* un poco más grande */
-      aspect-ratio: 4 / 3;
-      overflow:hidden;
-      position:relative;
-      background:#000;
+    .portal-body {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #010101;
     }
-    video{width:100%;height:100%;object-fit:cover;background:#000;}
-    .portal-overlay{
-      position:absolute;
-      bottom:4px;left:4px;right:4px;
-      background:rgba(0,0,0,0.65);
-      font-size:10px;
-      padding:2px 4px;
+    .portal-video {
+      width: 290px;
+      height: 165px;
+      border: 2px solid var(--line);
+      background: #000;
+      object-fit: cover;
     }
-    .audio-controls{display:flex;gap:5px;width:100%;}
-    .sm-btn{
-      flex:1;
-      background:#000;
-      border:1px solid var(--line);
-      color:var(--text);
-      font-size:10px;
-      cursor:pointer;
-      padding:3px 0;
-      text-align:center;
+    .portal-footer {
+      display: flex;
+      gap: 6px;
+      padding: 4px 6px;
     }
-    .mint-bar{
-      border:2px solid var(--line);
-      margin-top:12px;
-      padding:6px;
-      display:flex;
-      align-items:center;
-      gap:8px;
-      background:#040404;
-      flex-wrap:wrap;
+    .btn-audio {
+      flex: 1;
+      background: transparent;
+      border: 2px solid var(--line);
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 0.68rem;
+      cursor: pointer;
+      height: 26px;
     }
-    input[type="number"]{
-      background:#000;
-      border:1px solid var(--line);
-      color:#fff;
-      width:60px;
-      padding:3px;
-      font-family:var(--font);
+    .btn-audio.active {
+      background: rgba(252,185,0,0.12);
     }
-    .btn-invoke{
-      background:#f5a500;
-      color:#000;
-      border:none;
-      padding:4px 12px;
-      font-weight:700;
-      cursor:pointer;
-      font-family:var(--font);
-      letter-spacing:.5px;
+    .invoke-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 0 2px;
+      font-size: 0.7rem;
     }
-    .btn-invoke:active{filter:brightness(.8);}
-    .mint-note{font-size:10px;color:#947330;}
-    .invoked-wrapper{
-      border:2px solid var(--line);
-      margin-top:16px;
-      display:none;
-      background:#020202;
+    .invoke-row input {
+      width: 70px;
+      background: #010101;
+      border: 1px solid var(--line);
+      color: var(--text);
+      padding: 3px;
+      font-family: var(--mono);
     }
-    .invoked-header{
-      text-align:center;
-      font-size:11px;
-      padding:4px;
-      border-bottom:1px solid rgba(245,165,0,0.4);
+    .invoke-btn {
+      background: transparent;
+      border: 2px solid var(--line);
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      padding: 3px 12px;
+      cursor: pointer;
     }
-    .invoked-list{padding:5px 5px 10px;}
-    .invoked-item{
-      display:flex;
-      gap:8px;
-      align-items:center;
-      border:1px solid rgba(245,165,0,0.4);
-      margin-bottom:6px;
-      padding:4px;
+    .bottom-list-wrap {
+      margin-top: 10px;
+      border-top: 2px solid var(--line);
+      padding-top: 6px;
     }
-    .invoked-thumb{
-      width:38px;
-      height:38px;
-      border:1px solid var(--line);
-      object-fit:cover;
-      background:#000;
+    .invoked-title {
+      text-align: center;
+      font-size: 0.65rem;
+      margin-bottom: 6px;
     }
-    .invoked-text{font-size:12px;}
-    .status-bar-bottom{margin-top:10px;font-size:11px;color:#a08a4d;}
-    @media(max-width:960px){
-      .top-zone{grid-template-columns:1fr;}
-      .portal-panel{max-width:360px;}
+    .invoked-list {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+    .invoked-item {
+      border: 1px solid var(--line);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 4px 6px;
+      font-size: 0.68rem;
+      background: #050505;
+    }
+    .invoked-thumb {
+      width: 34px;
+      height: 34px;
+      border: 1px solid var(--line);
+      background: #000;
+      object-fit: cover;
+    }
+    .invoked-text {
+      flex: 1;
+    }
+    .mint-status {
+      text-align: center;
+      font-size: 0.6rem;
+      padding-top: 4px;
+    }
+    @media (max-width: 992px) {
+      .top-row {
+        grid-template-columns: 1fr;
+      }
+      .portal-body {
+        justify-content: flex-start;
+      }
     }
   </style>
 </head>
 <body>
-  <div class="main-frame">
-    <div class="header-row">
-      <div class="title">EMBERHOLM PORTAL : NODE-Δ / INVOCATION CONSOLE</div>
-      <div class="status" id="mintStatus">STATUS: READY</div>
-    </div>
+  <!-- top -->
+  <div class="topbar">
+    <div class="topbar-title">EMBERHOLM PORTAL : NODE-Δ / INVOCATION CONSOLE</div>
+    <button class="back-btn" onclick="window.location.href='/'">BACK TO EMBERHOLM PORTAL</button>
+  </div>
+  <div class="status-strip" id="mintStatus">STATUS: WAITING FOR INVOCATION...</div>
 
-    <div class="top-zone">
-      <div class="console-box">
-        <div class="console-title">[++] %ΛL_7E–EMBER-LINK._</div>
-        <div class="console-log" id="consoleLog"></div>
-        <div class="info-row">
+  <!-- main shell -->
+  <div class="main-shell">
+    <div class="top-row">
+
+      <!-- LEFT TERMINAL -->
+      <div class="console-window">
+        <div class="console-title">[++]
+          ͰΛL_7E=EMBER-LINK_</div>
+        <div class="console-body" id="consoleBody">
+          [EMBERHOLM TERMINAL v1.0] Channel connected to the Core.<br />
+          Current mission: keep the Flame alive.<br />
+          a&gt; guild/auth?...<br />
+          Summon emissaries. Join a guild. Complete missions.<br />
+          a&gt; 72h cycle / 48h energy / Aura for items.<br />
+          Waiting for invocation amount...<br />
+        </div>
+        <div class="console-footer">
           <div class="tag">MODE: RANDOM INVOCATION</div>
           <div class="tag">OBJECTIVE: Keep the Flame alive</div>
-          <div class="tag">CYCLE: 72h rotation · 48h energy · Aura for items</div>
+          <div class="tag">CYCLE: 72h rotation • 48h energy • Aura for items</div>
+        </div>
+        <div class="invoke-row">
+          <label for="qty">Amount to invoke:</label>
+          <input id="qty" type="number" min="1" max="20" value="3" />
+          <button class="invoke-btn" id="invokeBtn">[INVOKE]</button>
+          <span style="font-size:0.6rem;">*Local simulation. Real mint via Base.</span>
         </div>
       </div>
 
+      <!-- RIGHT PORTAL -->
       <div class="portal-panel">
-        <div class="portal-panel-title"><span>PORTAL ON HOLD...</span></div>
-        <div class="portal-video-wrap">
-          <!-- usa ruta relativa aquí -->
-          <video id="portalVideo" src="file:///C:/EmberholmServer/static/img/portal.mp4"></video>
-          <div class="portal-overlay" id="portalOverlay">Offline portal. Awaiting summons…</div>
+        <div class="portal-title" id="portalTitle">STANDBY PORTAL // NO TRANSFER</div>
+        <div class="portal-body">
+          <video id="portalVideo" class="portal-video" src="/static/img/portal.mp4" preload="auto"></video>
         </div>
-        <div class="audio-controls">
-          <button class="sm-btn" id="audioOnBtn">AUDIO ON</button>
-          <button class="sm-btn" id="audioMuteBtn">MUTE</button>
+        <div class="portal-footer">
+          <button id="audioOnBtn" class="btn-audio">AUDIO ON ✓</button>
+          <button id="muteBtn" class="btn-audio">MUTE</button>
         </div>
+        <div style="font-size:0.6rem;padding:0 6px 4px;">Portal will activate only during invocation.</div>
       </div>
+
     </div>
 
-    <div class="mint-bar">
-      <label for="qty">Amount to invoke:</label>
-      <input type="number" id="qty" min="1" value="3">
-      <button class="btn-invoke" id="invokeBtn">[INVOKE]</button>
-      <div class="mint-note">*Local simulation. Real Mint via Base.</div>
-    </div>
-
-    <div class="invoked-wrapper" id="invokedWrapper">
-      <div class="invoked-header">Stable portal. Emissaries summoned:</div>
-      <div class="invoked-list" id="invokedList"></div>
-    </div>
-
-    <div class="status-bar-bottom">
-      EMBER-PROT-ALFA // Portal access implies full traceability. Missions require valid EXP.
+    <!-- INVOKED LIST -->
+    <div class="bottom-list-wrap">
+      <div class="invoked-title">Stable portal. Emissaries summoned:</div>
+      <div class="invoked-list" id="invokedList">
+        <!-- items will be appended here, and will stay (no clear) -->
+      </div>
+      <div class="mint-status" id="mintStatusBottom"></div>
     </div>
   </div>
 
   <script>
-    const consoleLog = document.getElementById('consoleLog');
-    const lines = [
-      { raw: "Җ#%/ EMBR–NET.𝛌 // canal_scan...", translated: "[EMBERHOLM TERMINAL v1.0] Channel connected to the Core." },
-      { raw: "⟟⟟⟟ ⚙ PROT-A-L4... ok", translated: "Current mission: to keep the flame alive." },
-      { raw: "æ> guild/auth?...", translated: "Summons emissaries. Be part of a guild. Complete missions." },
-      { raw: "æ> 72h/cycle/2d/energy/48h/…", translated: "72h rotation · 48h energy · Aura for items." },
-      { raw: "æ> waiting...", translated: "Waiting for summoning amount..." }
-    ];
-    function pushLine(raw, tr){
-      const l = document.createElement('div');
-      l.className = 'console-line';
-      l.textContent = raw;
-      consoleLog.appendChild(l);
-      setTimeout(()=>{
-        const l2 = document.createElement('div');
-        l2.className = 'console-line';
-        l2.textContent = tr;
-        consoleLog.appendChild(l2);
-      }, 1000);
-    }
-    (function initConsole(){
-      let d = 200;
-      lines.forEach(obj => {
-        setTimeout(()=>pushLine(obj.raw, obj.translated), d);
-        d+=1100;
-      });
-    })();
-
     const invokeBtn = document.getElementById('invokeBtn');
     const qtyInput = document.getElementById('qty');
     const portalVideo = document.getElementById('portalVideo');
-    const portalOverlay = document.getElementById('portalOverlay');
-    const portalTitle = document.querySelector('.portal-panel-title span');
-    const invokedWrapper = document.getElementById('invokedWrapper');
+    const portalTitle = document.getElementById('portalTitle');
+    const consoleBody = document.getElementById('consoleBody');
     const invokedList = document.getElementById('invokedList');
     const mintStatus = document.getElementById('mintStatus');
+    const mintStatusBottom = document.getElementById('mintStatusBottom');
     const audioOnBtn = document.getElementById('audioOnBtn');
-    const audioMuteBtn = document.getElementById('audioMuteBtn');
+    const muteBtn = document.getElementById('muteBtn');
 
-    // si falla la carga del video, avisamos en la consola
-    portalVideo.onerror = () => {
-      const warn = document.createElement('div');
-      warn.className = 'console-line';
-      warn.textContent = "[!] portal.mp4 no encontrado en esta ruta.";
-      consoleLog.appendChild(warn);
-    };
+    // texto que vamos escribiendo
+    function pushConsole(line) {
+      consoleBody.innerHTML += line + "<br/>";
+      consoleBody.scrollTop = consoleBody.scrollHeight;
+    }
 
-    portalVideo.muted = true;
-    portalVideo.preload = "auto";
+    // datos fake para mostrar
+    function fakeEmissary(id) {
+      const races = ["Gith", "Human", "Tiefling", "Draconid", "Elf", "Dwarf", "Triton", "Goliath"];
+      const classes = ["Hunter", "Druid", "Cleric", "Explorer", "Bard", "Rogue", "Paladin"];
+      const guilds = ["Order of Flame", "Circle of Mist", "Echo Vanguard", "Forge Legion", "Shadow Guild"];
+      const race = races[Math.floor(Math.random()*races.length)];
+      const klass = classes[Math.floor(Math.random()*classes.length)];
+      const guild = guilds[Math.floor(Math.random()*guilds.length)];
+      const aura = Math.floor(Math.random()*100);
+      return "#" + id + " " + race + " " + klass + " // Guild: " + guild + " // Aura:" + aura;
+    }
 
+    // controles de audio
     audioOnBtn.addEventListener('click', () => {
       portalVideo.muted = false;
-      audioOnBtn.textContent = "AUDIO ON ✓";
-      audioMuteBtn.textContent = "MUTE";
+      audioOnBtn.classList.add('active');
+      muteBtn.classList.remove('active');
     });
-    audioMuteBtn.addEventListener('click', () => {
+    muteBtn.addEventListener('click', () => {
       portalVideo.muted = true;
-      audioMuteBtn.textContent = "MUTED ✓";
-      audioOnBtn.textContent = "AUDIO ON";
+      muteBtn.classList.add('active');
+      audioOnBtn.classList.remove('active');
     });
 
-    function fakeEmissary(id) {
-      const races = ["Gith","Human","Tiefling","Draconid","Elf","Triton","Dwarf"];
-      const cls   = ["Hunter","Druid","Cleric","Explorer","Bard","Paladin"];
-      const guilds= ["Order of Flame","Echo Vanguard","Forge Legion","Shadow Guild","Circle of Mist"];
-      const race  = races[Math.floor(Math.random()*races.length)];
-      const cl    = cls[Math.floor(Math.random()*cls.length)];
-      const g     = guilds[Math.floor(Math.random()*guilds.length)];
-      const aura  = Math.floor(Math.random()*100)+1;
-      return `#${id} ${race} ${cl} // Guild: ${g} // Aura:${aura}`;
-    }
+    // invocar
+    invokeBtn.addEventListener('click', () => {
+      let qty = parseInt(qtyInput.value, 10);
+      if (isNaN(qty) || qty < 1) qty = 1;
+      if (qty > 20) qty = 20;
+      qtyInput.value = qty;
 
-    function onMintPaid(qty) {
-      portalVideo.muted = false;
-      audioOnBtn.textContent = "AUDIO ON ✓";
-      audioMuteBtn.textContent = "MUTE";
+      // texto
+      pushConsole("[!] invocation request: " + qty + " emissaries.");
+      pushConsole("→ opening remote portal on unknown terminal…");
 
-      portalOverlay.textContent = "Stable portal.";
-      portalTitle.textContent = "STABLE PORTAL // TRANSFER COMPLETED";
-      invokedWrapper.style.display = "block";
-for (let i = 0; i < qty; i++) {
-    const item = document.createElement('div');
-    item.className = "invoked-item";
-
-    const img = document.createElement('img');
-    img.className = "invoked-thumb";
-    img.src = "static/img/emissary-placeholder.png"; // si no existe, sale vacío
-
-    const txt = document.createElement('div');
-    txt.className = "invoked-text";
-    txt.textContent = fakeEmissary(1000 + i + Math.floor(Math.random() * 700));
-
-    item.appendChild(img);
-    item.appendChild(txt);
-    invokedList.appendChild(item);   // 👈 ahora se van SUMANDO
-}
-
-mintStatus.textContent = "STATUS: LAST INVOCATION OK";
-    }
-
-    invokeBtn.addEventListener('click', async () => {
-      const qty = parseInt(qtyInput.value, 10) || 1;
-
-      mintStatus.textContent = "STATUS: INVOCATION IN PROGRESS…";
-      portalTitle.textContent = "ACTIVATING PORTAL ON UNKNOWN TERMINAL…";
-      portalOverlay.textContent = "breaking mission breakthrough…";
-
-      // 1) intento de reproducción SILENCIADO
-      portalVideo.currentTime = 0;
-      portalVideo.muted = true;
+      // activar video
+      portalTitle.textContent = "ACTIVATING PORTAL IN UNKNOWN TERMINAL…";
       try {
-        await portalVideo.play();
-      } catch(e) {
-        console.warn("no se pudo iniciar el video en el click", e);
-      }
+        portalVideo.currentTime = 0;
+        portalVideo.play().catch(()=>{});
+      } catch(e) {}
 
-      // 2) simulamos 1 segundo de "pago"
-      setTimeout(() => {
-        portalOverlay.textContent = "synchronizing with Emberholm core…";
+      // asegurar sonido activado para esta invocación
+      portalVideo.muted = false;
+      audioOnBtn.classList.add('active');
+      muteBtn.classList.remove('active');
 
-        let shown = false;
-        const showNow = () => {
-          if (shown) return;
-          shown = true;
-          onMintPaid(qty);
-        };
+      mintStatus.textContent = "STATUS: INVOKING…";
+      mintStatusBottom.textContent = "";
 
-        portalVideo.onended = showNow;
-        // por si no dispara ended
-        setTimeout(showNow, 9000);
+      // cuando termine el video, mostramos los invocados
+      portalVideo.onended = () => {
+        portalTitle.textContent = "STABLE PORTAL // TRANSFER COMPLETED";
+        mintStatus.textContent = "STATUS: LAST INVOCATION OK";
+        mintStatusBottom.textContent = "Last batch: " + qty + " emissaries.";
 
-        portalVideo.muted = false;
-      }, 1000);
+        for (let i = 0; i < qty; i++) {
+          const item = document.createElement('div');
+          item.className = "invoked-item";
+
+          const img = document.createElement('img');
+          img.className = "invoked-thumb";
+          img.src = "/static/img/emissary-placeholder.png";
+
+          const txt = document.createElement('div');
+          txt.className = "invoked-text";
+          txt.textContent = fakeEmissary(1000 + i + Math.floor(Math.random()*700));
+
+          item.appendChild(img);
+          item.appendChild(txt);
+
+          // se agregan al final, no se borran
+          invokedList.appendChild(item);
+        }
+      };
     });
   </script>
 </body>
