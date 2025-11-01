@@ -261,7 +261,7 @@
       <div class="portal-panel">
         <div class="portal-title" id="portalTitle">STANDBY PORTAL // NO TRANSFER</div>
         <div class="portal-body">
-          <video id="portalVideo" class="portal-video" src="/static/img/portal.mp4" preload="auto"></video>
+          <video id="portalVideo" class="portal-video" src="/img/portal.mp4" preload="auto"></video>
         </div>
         <div class="portal-footer">
           <button id="audioOnBtn" class="btn-audio">AUDIO ON ✓</button>
@@ -338,6 +338,7 @@
       // activar video
       portalTitle.textContent = "ACTIVATING PORTAL IN UNKNOWN TERMINAL…";
       try {
+        portalVideo.pause();
         portalVideo.currentTime = 0;
         portalVideo.play().catch(()=>{});
       } catch(e) {}
@@ -362,7 +363,7 @@
 
           const img = document.createElement('img');
           img.className = "invoked-thumb";
-          img.src = "/static/img/emissary-placeholder.png";
+          img.src = "/img/emissary-placeholder.png";
 
           const txt = document.createElement('div');
           txt.className = "invoked-text";
