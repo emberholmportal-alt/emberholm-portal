@@ -2,7 +2,7 @@ import json
 import os
 import time
 from datetime import datetime, timedelta
-from flask import Flask, jsonify, send_from_directory, request, abort
+from flask import Flask, jsonify, send_from_directory, request, abort, render_template, render_template
 
 # ---------------------------------
 # Config
@@ -220,7 +220,7 @@ def serve_index():
 @app.route("/mint")
 def serve_mint():
     # mint.html está en la carpeta raíz del proyecto (C:\EmberholmServer)
-    return send_from_directory(".", "mint.html")
+    return render_template("mint.html")
 
 # ---------------------------------
 # API: STATS
