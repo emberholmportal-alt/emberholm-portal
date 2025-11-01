@@ -244,13 +244,7 @@
         <div class="console-title">[++]
           ͰΛL_7E=EMBER-LINK_</div>
         <div class="console-body" id="consoleBody">
-          [EMBERHOLM TERMINAL v1.0] Channel connected to the Core.<br />
-          Current mission: keep the Flame alive.<br />
-          a&gt; guild/auth?...<br />
-          Summon emissaries. Join a guild. Complete missions.<br />
-          a&gt; 72h cycle / 48h energy / Aura for items.<br />
-          Waiting for invocation amount...<br />
-        </div>
+          [EMBERHOLM TERMINAL v1.0] Channel connected to the Core.<br /></div>
         <div class="console-footer">
           <div class="tag">MODE: RANDOM INVOCATION</div>
           <div class="tag">OBJECTIVE: Keep the Flame alive</div>
@@ -407,6 +401,53 @@
         }
       };
     });
+
+// Mensajes que aparecerán línea por línea en la consola izquierda
+const introLines = [
+  "[EMBERHOLM TERMINAL v1.0] Channel connected to the Core.",
+  "Current mission: keep the Flame alive.",
+  "a> guild/auth?...",
+  "Summon emissaries. Join a guild. Complete missions.",
+  "a> 72h cycle / 48h energy / Aura for items.",
+  "Waiting for invocation amount..."
+];
+
+// Función que los escribe con efecto de tipeo
+function typeConsoleLines() {
+  const box = document.getElementById("consoleBody");
+  if (!box) return;
+
+  box.innerHTML = ""; // limpia primero
+
+  let i = 0;
+  function nextLine() {
+    if (i >= introLines.length) return;
+
+    const line = document.createElement("div");
+    box.appendChild(line);
+
+    let j = 0;
+    const text = introLines[i];
+    function typeChar() {
+      if (j < text.length) {
+        line.textContent += text[j];
+        j++;
+        setTimeout(typeChar, 20); // velocidad del tipeo
+      } else {
+        box.scrollTop = box.scrollHeight;
+        i++;
+        setTimeout(nextLine, 400); // pausa entre líneas
+      }
+    }
+    typeChar();
+  }
+
+  nextLine();
+}
+
+// Ejecutar al cargar la página
+document.addEventListener("DOMContentLoaded", typeConsoleLines);
+
   </script>
 </body>
 </html>
