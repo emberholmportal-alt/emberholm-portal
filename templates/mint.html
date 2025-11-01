@@ -124,11 +124,17 @@
       background: #010101;
     }
     .portal-video {
-      width: 360px;
-      height: 205px;
-      border: 2px solid var(--line);
-      background: #000;
-      object-fit: cover;
+  width: 360px;
+  min-height: 46px;
+  margin-top: 4px;
+  font-size: 0.58rem;
+  line-height: 1.25;
+  color: var(--text);
+  background: rgba(0,0,0,0.35);
+  border: 1px solid rgba(252,185,0,0.25);
+  padding: 3px 5px;
+  font-family: var(--mono);
+  white-space: pre-line; /* para que respete los saltos */
     }
     .portal-footer {
       display: flex;
@@ -263,6 +269,7 @@
         <div class="portal-title" id="portalTitle">STANDBY PORTAL // NO TRANSFER</div>
         <div class="portal-body">
           <video id="portalVideo" class="portal-video" src="/img/portal.mp4" preload="auto"></video>
+          <div id="portalLog" class="portal-log"></div>
         </div>
         <div class="portal-footer">
           <button id="audioOnBtn" class="btn-audio">AUDIO ON ✓</button>
@@ -294,11 +301,15 @@
     const mintStatusBottom = document.getElementById('mintStatusBottom');
     const audioOnBtn = document.getElementById('audioOnBtn');
     const muteBtn = document.getElementById('muteBtn');
+    const portalLog = document.getElementById('portalLog');
 
     // texto que vamos escribiendo
     function pushConsole(line) {
       consoleBody.innerHTML += line + "<br/>";
       consoleBody.scrollTop = consoleBody.scrollHeight;
+    function pushPortal(line) {
+      portalLog.textContent += line + "\n";
+      }
     }
 
     // datos fake para mostrar
@@ -328,29 +339,47 @@
     // invocar
     invokeBtn.addEventListener('click', () => {
       let qty = parseInt(qtyInput.value, 10);
-      if (isNaN(qty) || qty < 1) qty = 1;
-      if (qty > 20) qty = 20;
-      qtyInput.value = qty;
+  if (isNaN(qty) || qty < 1) qty = 1;
+  if (qty > 20) qty = 20;
+  qtyInput.value = qty;
 
-      // texto
-      pushConsole("[!] invocation request: " + qty + " emissaries.");
-      pushConsole("→ opening remote portal on unknown terminal…");
+  // limpiar log del portal de la invocación anterior
+  portalLog.textContent = "";
+
+  // escribir en la consola izquierda de a poco
+  setTimeout(() => {
+    pushConsole("[!] invocation request: " + qty + " emissaries.");
+  }, 150);  // primer línea
+
+  setTimeout(() => {
+    pushConsole("→ opening remote portal on unknown terminal…");
+  }, 500);  // segunda línea
 
       // activar video
       portalTitle.textContent = "ACTIVATING PORTAL IN UNKNOWN TERMINAL…";
-      try {
-        portalVideo.pause();
-        portalVideo.currentTime = 0;
-        portalVideo.play().catch(()=>{});
-      } catch(e) {}
+  try {
+    portalVideo.pause();
+    portalVideo.currentTime = 0;
+    portalVideo.play().catch(()=>{});
+  } catch(e) {}
 
-      // asegurar sonido activado para esta invocación
-      portalVideo.muted = false;
-      audioOnBtn.classList.add('active');
-      muteBtn.classList.remove('active');
+  // asegurar sonido activado para esta invocación
+  portalVideo.muted = false;
+  audioOnBtn.classList.add('active');
+  muteBtn.classList.remove('active');
 
-      mintStatus.textContent = "STATUS: INVOKING…";
-      mintStatusBottom.textContent = "";
+  // 🔹 mensajes de proceso debajo del video
+  const loadingMsgs = [
+    "[ACCESSING REMOTE NODE...]",
+    "[LOCKING COORDINATES...]",
+    "[STABILIZING ENERGY FIELD...]",
+    "[TRANSFER IN PROGRESS...]"
+  ];
+  loadingMsgs.forEach((msg, i) => {
+    setTimeout(() => {
+      pushPortal(msg);
+    }, 600 + i * 600); // cada 0.6s
+  });
 
       // cuando termine el video, mostramos los invocados
       portalVideo.onended = () => {
