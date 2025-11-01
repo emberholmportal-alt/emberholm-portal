@@ -217,6 +217,10 @@ app = Flask(
 @app.route("/")
 def serve_index():
     return send_from_directory(app.static_folder, "index.html")
+@app.route("/mint")
+def serve_mint():
+    # mint.html está en la carpeta raíz del proyecto (C:\EmberholmServer)
+    return send_from_directory(".", "mint.html")
 
 # ---------------------------------
 # API: STATS
