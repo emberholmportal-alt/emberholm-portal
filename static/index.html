@@ -111,8 +111,18 @@ hr.emberline {
     text-transform: uppercase;
 }
 .cmd-link:hover {
-    background: #ffb400;
-    color: #000;
+    color: #000000;
+    background-color: #ffcc66;
+    border-left: 2px solid #ff9900;
+}
+
+/* active state for top menu */
+.cmd-link.is-active {
+    color: #000000;
+    background-color: #ffb347;
+    border-left: 2px solid #ff8800;
+    box-shadow: 0 0 6px rgba(255, 165, 0, 0.6), inset 0 0 3px rgba(0, 0, 0, 0.3);
+    transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 .command-hint {
@@ -910,8 +920,7 @@ body {
 
             <div class="mono-block">
                 World Lore / Art Direction / System Design / Programming:<br/>
-                Ariel Flores Valdez<br/>
-                with technical assistance from ChatGpt5
+                Ariel FV (Founder)<br/>
             </div>
 
             <div class="mono-block">
@@ -978,21 +987,38 @@ function switchScreen(screenName){
         }
     });
 }
-document.querySelectorAll(".cmd-link").forEach(btn=>{
-    btn.addEventListener("click", ()=>{
-        const target = btn.getAttribute("data-target");
-        switchScreen(target);
+// --- BASIC NAV with active state ---
+const navButtons = document.querySelectorAll(".cmd-link");
 
-// 🔊 cada click asegura música
-        if (typeof ensureMusicPlaying === "function") {
-            ensureMusicPlaying();
-        }
-        if(target === "stats"){
-            fetchStatsAndRender();
-        } else if (target === "guilds"){
-            fetchGuildsAndRender();
-        } else if (target === "missions"){
-            fetchMissionsAndRender();
+function setActiveButton(btn) {
+    navButtons.forEach(b => b.classList.remove("is-active"));
+    if (btn) btn.classList.add("is-active");
+}
+
+navButtons.forEach(btn => {
+    btn.addEventListener("click", () => {
+        const target = btn.getAttribute("data-target");
+
+        // si es un botón que navega interno (tiene data-target)
+        if (target) {
+            switchScreen(target);
+            setActiveButton(btn);
+
+            // 🔊 asegura música
+            if (typeof ensureMusicPlaying === "function") {
+                ensureMusicPlaying();
+            }
+
+            if (target === "stats") {
+                fetchStatsAndRender();
+            } else if (target === "guilds") {
+                fetchGuildsAndRender();
+            } else if (target === "missions") {
+                fetchMissionsAndRender();
+            }
+        } else {
+            // si NO tiene data-target (por ej. MINT / INVOKE que hace window.location)
+            // acá no hacemos nada extra
         }
     });
 });
@@ -1443,6 +1469,13 @@ document.addEventListener('keydown', unlockHandler);
 setTimeout(() => {
     ensureMusicPlaying();
 }, 2000);
+
+window.addEventListener("DOMContentLoaded", () => {
+    const homeBtn = document.querySelector('.cmd-link[data-target="home"]');
+    if (homeBtn) {
+        homeBtn.classList.add("is-active");
+    }
+});
 </script>
 </body>
 </html>
