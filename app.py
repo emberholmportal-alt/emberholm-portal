@@ -221,6 +221,11 @@ def serve_index():
 def serve_mint():
     # mint.html está en la carpeta raíz del proyecto (C:\EmberholmServer)
     return render_template("mint.html")
+# servir whitepapers desde /static/docs
+@app.route("/docs/<path:filename>")
+def serve_docs(filename):
+    docs_dir = os.path.join(app.static_folder, "docs")
+    return send_from_directory(docs_dir, filename)
 
 # ---------------------------------
 # API: STATS
