@@ -132,12 +132,15 @@
     .portal-body {
       flex: 1;
       display: flex;
+      flex-direction: column;   /* ← apilamos video y log */
       align-items: center;
-      justify-content: center;
+      justify-content: flex-start;
       background: #010101;
+     gap: 4px;                 /* un poquito de aire */
     }
     .portal-video {
-  width: 360px;
+  width: 100%;
+  height: 380;
   min-height: 46px;
   margin-top: 4px;
   font-size: 0.58rem;
@@ -149,6 +152,22 @@
   font-family: var(--mono);
   white-space: pre-line; /* para que respete los saltos */
     }
+.portal-log {
+  width: 100%;
+  height: auto;
+  max-height: 210px;
+  background: #000;
+  min-height: 50px;
+  margin-top: 4px;
+  font-size: 0.58rem;
+  line-height: 1.25;
+  color: var(--text);
+  background: rgba(0,0,0,0.35);
+  border: 1px solid rgba(252,185,0,0.25);
+  padding: 3px 5px;
+  font-family: var(--mono);
+  white-space: pre-line; /* respeta los saltos */
+}
     .portal-footer {
       display: flex;
       gap: 6px;
