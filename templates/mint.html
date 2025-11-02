@@ -33,6 +33,19 @@
       font-size: 0.9rem;
       letter-spacing: 0.04em;
     }
+    .mint-counter {
+    font-family: var(--mono);
+    color: var(--text);
+    font-size: 0.75rem;
+    letter-spacing: 0.05em;
+    margin-bottom: 6px;
+    text-align: center;
+    border: 1px solid rgba(252,185,0,0.4);
+    padding: 4px 8px;
+    background: rgba(0, 0, 0, 0.25);
+    box-shadow: inset 0 0 6px rgba(252,185,0,0.15);
+    }
+
     .back-btn {
       background: transparent;
       color: var(--text);
@@ -229,10 +242,15 @@
 </head>
 <body>
   <!-- top -->
-  <div class="topbar">
-    <div class="topbar-title">EMBERHOLM PORTAL : NODE-Δ / INVOCATION CONSOLE</div>
+<div class="topbar">
+  <div class="topbar-title">EMBERHOLM PORTAL : NODE-Δ / INVOCATION CONSOLE</div>
+  <div style="display:flex; align-items:center; gap:10px;">
+    <div class="mint-counter" id="mintCounter" style="margin:0;">
+      TOTAL EMISSARIES INVOKED: <span id="invokedCount">0</span> / 35000
+    </div>
     <button class="back-btn" onclick="window.location.href='/'">BACK TO EMBERHOLM PORTAL</button>
   </div>
+</div>
   <div class="status-strip" id="mintStatus">STATUS: WAITING FOR INVOCATION...</div>
 
   <!-- main shell -->
@@ -296,16 +314,24 @@
     const audioOnBtn = document.getElementById('audioOnBtn');
     const muteBtn = document.getElementById('muteBtn');
     const portalLog = document.getElementById('portalLog');
+    const invokedCountDisplay = document.getElementById('invokedCount');
+    const MAX_EMISSARIES = 35000;
+
+// leer del localStorage si ya hubo invocaciones en esta máquina
+let totalInvoked = parseInt(localStorage.getItem("totalInvoked") || "0", 10);
+if (invokedCountDisplay) {
+  invokedCountDisplay.textContent = totalInvoked;
+}
 
     // texto que vamos escribiendo
-    function pushConsole(line) {
-      consoleBody.innerHTML += line + "<br/>";
-      consoleBody.scrollTop = consoleBody.scrollHeight;
-    function pushPortal(line) {
-      portalLog.textContent += line + "\n";
-      }
-    }
+function pushConsole(line) {
+  consoleBody.innerHTML += line + "<br/>";
+  consoleBody.scrollTop = consoleBody.scrollHeight;
+}
 
+function pushPortal(line) {
+  portalLog.textContent += line + "\n";
+}
     // datos fake para mostrar
     function fakeEmissary(id) {
       const races = ["Gith", "Human", "Tiefling", "Draconid", "Elf", "Dwarf", "Triton", "Goliath"];
@@ -399,6 +425,7 @@
           // se agregan al final, no se borran
           invokedList.appendChild(item);
         }
+  updateInvokedCount(qty);
       };
     });
 
