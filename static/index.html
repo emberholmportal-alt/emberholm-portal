@@ -566,6 +566,7 @@ body {
             <button class="cmd-link" data-target="announcements">[ANNOUNCEMENTS]</button>
             <button class="cmd-link" data-target="events">[EVENTS]</button>
             <button class="cmd-link" data-target="credits">[SOCIAL/CREDITS]</button>
+            <button class="cmd-link" data-target="whitepaper">[WHITEPAPER / CONTRACT]</button>
         </div>
 
         <div class="command-hint">
@@ -926,8 +927,45 @@ body {
             </div>
         </div>
     </section>
-</div><!-- /.wrapper -->
 
+     <!-- WHITEPAPER / CONTRACT -->
+<section class="screen" data-screen="whitepaper">
+    <div class="section-block">
+        <div class="section-title">EMBERHOLM PORTAL // WHITEPAPER & CONTRACT</div>
+
+        <p class="section-text">
+            Download the official project documentation or review the current smart contract deployed on Base Sepolia (test).
+        </p>
+
+        <div style="display:flex; gap:16px; flex-wrap:wrap; margin-bottom:16px;">
+            <a class="small-button" href="/static/docs/official_whitepaper_en.pdf" download>
+                [DOWNLOAD WHITEPAPER // ENGLISH]
+            </a>
+            <a class="small-button" href="/static/docs/whitepaper_oficial_es.pdf" download>
+                [DESCARGAR WHITEPAPER // ESPAÑOL]
+            </a>
+        </div>
+
+        <div class="section-subtitle" style="margin-top:10px;">Smart Contract (Base Sepolia Test)</div>
+        <div class="terminal-box">
+            <p>Contract name: <b>Emberholm Portal</b></p>
+            <p>Address: <code>0x2F55e14F0b2B2118d2026d20Ad2C39EAcBdCAc47</code></p>
+            <p>
+                View on Basescan:
+                <a href="https://sepolia.basescan.org/address/0x2F55e14F0b2B2118d2026d20Ad2C39EAcBdCAc47"
+                   target="_blank"
+                   style="color:#ffcc00; text-decoration:none;">
+                    → open explorer
+                </a>
+            </p>
+            <p style="margin-top:10px; font-size:11px; opacity:.7;">
+                Note: this is the test deployment we used while wiring the Mint console.
+                Mainnet/Base mainnet address will be announced in ANNOUNCEMENTS.
+            </p>
+        </div>
+    </div>
+</section>
+</div><!-- /.wrapper -->
 <script>
 /* --------- BASIC NAV --------- */
 function switchScreen(screenName){
