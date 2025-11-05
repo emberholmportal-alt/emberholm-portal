@@ -34,18 +34,17 @@
       letter-spacing: 0.04em;
     }
     .mint-counter {
-    font-family: var(--mono);
-    color: var(--text);
-    font-size: 0.75rem;
-    letter-spacing: 0.05em;
-    margin-bottom: 6px;
-    text-align: center;
-    border: 1px solid rgba(252,185,0,0.4);
-    padding: 4px 8px;
-    background: rgba(0, 0, 0, 0.25);
-    box-shadow: inset 0 0 6px rgba(252,185,0,0.15);
+      font-family: var(--mono);
+      color: var(--text);
+      font-size: 0.75rem;
+      letter-spacing: 0.05em;
+      margin-bottom: 6px;
+      text-align: center;
+      border: 1px solid rgba(252,185,0,0.4);
+      padding: 4px 8px;
+      background: rgba(0, 0, 0, 0.25);
+      box-shadow: inset 0 0 6px rgba(252,185,0,0.15);
     }
-
     .back-btn {
       background: transparent;
       color: var(--text);
@@ -94,14 +93,14 @@
       font-weight: 700;
     }
     .console-body {
-  padding: 10px;
-  font-size: 0.8rem;
-  line-height: 1.5;
-  height: 260px; /* 🔹 más espacio para ver mensajes */
-  overflow-y: auto;
-  background: radial-gradient(circle, rgba(5,5,5,1) 0%, rgba(0,0,0,1) 65%);
-  border: 1px solid var(--line);
-}
+      padding: 10px;
+      font-size: 0.8rem;
+      line-height: 1.5;
+      height: 260px;
+      overflow-y: auto;
+      background: radial-gradient(circle, rgba(5,5,5,1) 0%, rgba(0,0,0,1) 65%);
+      border: 1px solid var(--line);
+    }
     .console-footer {
       border-top: 2px solid var(--line);
       display: flex;
@@ -132,42 +131,42 @@
     .portal-body {
       flex: 1;
       display: flex;
-      flex-direction: column;   /* ← apilamos video y log */
+      flex-direction: column;
       align-items: center;
       justify-content: flex-start;
       background: #010101;
-     gap: 4px;                 /* un poquito de aire */
+      gap: 4px;
     }
     .portal-video {
-  width: 100%;
-  height: 380px;
-  min-height: 46px;
-  margin-top: 4px;
-  font-size: 0.58rem;
-  line-height: 1.25;
-  color: var(--text);
-  background: rgba(0,0,0,0.35);
-  border: 1px solid rgba(252,185,0,0.25);
-  padding: 3px 5px;
-  font-family: var(--mono);
-  white-space: pre-line; /* para que respete los saltos */
+      width: 100%;
+      height: 380px;
+      min-height: 46px;
+      margin-top: 4px;
+      font-size: 0.58rem;
+      line-height: 1.25;
+      color: var(--text);
+      background: rgba(0,0,0,0.35);
+      border: 1px solid rgba(252,185,0,0.25);
+      padding: 3px 5px;
+      font-family: var(--mono);
+      white-space: pre-line;
     }
-.portal-log {
-  width: 100%;
-  height: auto;
-  max-height: 210px;
-  background: #000;
-  min-height: 50px;
-  margin-top: 4px;
-  font-size: 0.58rem;
-  line-height: 1.25;
-  color: var(--text);
-  background: rgba(0,0,0,0.35);
-  border: 1px solid rgba(252,185,0,0.25);
-  padding: 3px 5px;
-  font-family: var(--mono);
-  white-space: pre-line; /* respeta los saltos */
-}
+    .portal-log {
+      width: 100%;
+      height: auto;
+      max-height: 210px;
+      background: #000;
+      min-height: 50px;
+      margin-top: 4px;
+      font-size: 0.58rem;
+      line-height: 1.25;
+      color: var(--text);
+      background: rgba(0,0,0,0.35);
+      border: 1px solid rgba(252,185,0,0.25);
+      padding: 3px 5px;
+      font-family: var(--mono);
+      white-space: pre-line;
+    }
     .portal-footer {
       display: flex;
       gap: 6px;
@@ -257,23 +256,22 @@
         justify-content: flex-start;
       }
     }
-.wallet-badge-ok   { border-color:#3fae3f !important; color:#3fae3f !important; }
-.wallet-badge-warn { border-color:#fcb900 !important; color:#fcb900 !important; }
-.wallet-badge-err  { border-color:#a66 !important;    color:#a66 !important; }
-
+    .wallet-badge-ok   { border-color:#3fae3f !important; color:#3fae3f !important; }
+    .wallet-badge-warn { border-color:#fcb900 !important; color:#fcb900 !important; }
+    .wallet-badge-err  { border-color:#a66 !important;    color:#a66 !important; }
   </style>
 </head>
 <body>
   <!-- top -->
-<div class="topbar">
-  <div class="topbar-title">EMBERHOLM PORTAL : NODE-Δ / INVOCATION CONSOLE</div>
-  <div style="display:flex; align-items:center; gap:10px;">
-    <div class="mint-counter" id="mintCounter" style="margin:0;">
-      TOTAL EMISSARIES INVOKED: <span id="invokedCount">0</span> / 35000
+  <div class="topbar">
+    <div class="topbar-title">EMBERHOLM PORTAL : NODE-Δ / INVOCATION CONSOLE</div>
+    <div style="display:flex; align-items:center; gap:10px;">
+      <div class="mint-counter" id="mintCounter" style="margin:0;">
+        TOTAL EMISSARIES INVOKED: <span id="invokedCount">0</span> / 35000
+      </div>
+      <button class="back-btn" onclick="window.location.href='/'">BACK TO EMBERHOLM PORTAL</button>
     </div>
-    <button class="back-btn" onclick="window.location.href='/'">BACK TO EMBERHOLM PORTAL</button>
   </div>
-</div>
   <div class="status-strip" id="mintStatus">STATUS: WAITING FOR INVOCATION...</div>
 
   <!-- main shell -->
@@ -282,10 +280,9 @@
 
       <!-- LEFT TERMINAL -->
       <div class="console-window">
-        <div class="console-title">[++]
-          ͰΛL_7E=EMBER-LINK_</div>
-          <div class="console-body" id="consoleBody"></div>
-          <div class="console-footer">
+        <div class="console-title">[++] ΰΌ°ΛL_7E=EMBER-LINK_</div>
+        <div class="console-body" id="consoleBody"></div>
+        <div class="console-footer">
           <div class="tag">MODE: RANDOM INVOCATION</div>
           <div class="tag">OBJECTIVE: Keep the Flame alive</div>
           <div class="tag">CYCLE: 72h rotation • 48h energy • Aura for items</div>
@@ -318,16 +315,14 @@
     <!-- INVOKED LIST -->
     <div class="bottom-list-wrap">
       <div class="invoked-title">Stable portal. Emissaries summoned:</div>
-      <div class="invoked-list" id="invokedList">
-        <!-- items will be appended here, and will stay (no clear) -->
-      </div>
+      <div class="invoked-list" id="invokedList"></div>
       <div class="mint-status" id="mintStatusBottom"></div>
     </div>
   </div>
 
-<script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
  
- <script>
+  <script>
     const invokeBtn = document.getElementById('invokeBtn');
     const qtyInput = document.getElementById('qty');
     const portalVideo = document.getElementById('portalVideo');
@@ -342,172 +337,162 @@
     const invokedCountDisplay = document.getElementById('invokedCount');
     const MAX_EMISSARIES = 35000;
 
-// ================== CHAIN CONFIG (Base Sepolia) ==================
-const CONTRACT_ADDRESS = "0x1bA6c620b82B3704Db3EF287E3eCE06660D993Ed";
-const CONTRACT_ABI = [
-  { "inputs":[{"internalType":"uint256","name":"quantity","type":"uint256"}],
-    "name":"mint","outputs":[],"stateMutability":"payable","type":"function" },
-  { "inputs":[],"name":"mintPrice","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],
-    "stateMutability":"view","type":"function" },
-  { "inputs":[],"name":"totalMinted","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],
-    "stateMutability":"view","type":"function" },
-  { "inputs":[],"name":"MAX_SUPPLY","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],
-    "stateMutability":"view","type":"function" },
-  { "inputs":[],"name":"mintOpen","outputs":[{"internalType":"bool","name":"","type":"bool"}],
-    "stateMutability":"view","type":"function" }
-];
-const BASE_SEPOLIA_CHAIN_ID = 84532; // 0x14A34
+    // ================== CHAIN CONFIG (Base Sepolia) ==================
+    const CONTRACT_ADDRESS = "0x1bA6c620b82B3704Db3EF287E3eCE06660D993Ed";
+    const CONTRACT_ABI = [
+      { "inputs":[{"internalType":"uint256","name":"quantity","type":"uint256"}],
+        "name":"mint","outputs":[],"stateMutability":"payable","type":"function" },
+      { "inputs":[],"name":"mintPrice","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],
+        "stateMutability":"view","type":"function" },
+      { "inputs":[],"name":"totalMinted","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],
+        "stateMutability":"view","type":"function" },
+      { "inputs":[],"name":"MAX_SUPPLY","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],
+        "stateMutability":"view","type":"function" },
+      { "inputs":[],"name":"mintOpen","outputs":[{"internalType":"bool","name":"","type":"bool"}],
+        "stateMutability":"view","type":"function" }
+    ];
+    const BASE_SEPOLIA_CHAIN_ID = 84532;
 
-// Provider/Signer/Contract
-let provider = null;
-let signer = null;
-let contract = null;
-let lastMintedOnChain = 0;
+    let provider = null;
+    let signer = null;
+    let contract = null;
+    let lastMintedOnChain = 0;
 
-function pushConsole(line) { // reutilizamos tu consola
-  consoleBody.innerHTML += line + "<br/>";
-  consoleBody.scrollTop = consoleBody.scrollHeight;
-}
-
-function pushPortal(line) {  // reutilizamos el log del portal
-  portalLog.textContent += line + "\n";
-}
-
-// ===== Global error hook: muestra errores JS en la consola izquierda =====
-window.addEventListener('error', (ev) => {
-  try {
-    pushConsole("[ERROR] " + (ev.error && ev.error.message ? ev.error.message : ev.message));
-  } catch {}
-});
-window.addEventListener('unhandledrejection', (ev) => {
-  try {
-    const msg = ev.reason && ev.reason.message ? ev.reason.message : String(ev.reason);
-    pushConsole("[ERROR] " + msg);
-  } catch {}
-});
-
-
-function setWalletBadge(status, details = "") {
-  const el = document.getElementById('walletBadge');
-  if (!el) return;
-  el.classList.remove('wallet-badge-ok', 'wallet-badge-warn', 'wallet-badge-err');
-
-  if (status === 'ok') {
-    el.textContent = details || 'WALLET: CONNECTED (BASE SEPOLIA) ✅';
-    el.classList.add('wallet-badge-ok');
-  } else if (status === 'warn') {
-    el.textContent = details || 'WALLET: WRONG NETWORK';
-    el.classList.add('wallet-badge-warn');
-  } else {
-    el.textContent = details || 'WALLET: DISCONNECTED';
-    el.classList.add('wallet-badge-err');
-  }
-}
-
-async function ensureContract() {
-  try {
-    if (!window.ethereum) {
-      pushConsole("[ERROR] Wallet not found.");
-      setWalletBadge('err', 'WALLET: DISCONNECTED');
-      throw new Error("wallet_not_found");
+    function pushConsole(line) {
+      consoleBody.innerHTML += line + "<br/>";
+      consoleBody.scrollTop = consoleBody.scrollHeight;
     }
 
-    let web3 = new ethers.providers.Web3Provider(window.ethereum);
+    function pushPortal(line) {
+      portalLog.textContent += line + "\n";
+    }
 
-// Forzar conexión de cuentas cada vez
-const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
-if (!accounts || accounts.length === 0) {
-  pushConsole("[ERROR] No authorized wallet found.");
-  setWalletBadge('err', 'WALLET: DISCONNECTED');
-  throw new Error("no_accounts");
-}
-
-    // Verificar red
-    let net = await web3.getNetwork();
-    if (net.chainId !== BASE_SEPOLIA_CHAIN_ID) {
-      pushConsole("[WARN] Wrong network. Switching to Base Sepolia (84532)...");
+    window.addEventListener('error', (ev) => {
       try {
-        await window.ethereum.request({
-          method: "wallet_switchEthereumChain",
-          params: [{ chainId: "0x14A34" }],
-        });
-      } catch (switchErr) {
-        if (switchErr.code === 4902) {
-          await window.ethereum.request({
-            method: "wallet_addEthereumChain",
-            params: [{
-              chainId: "0x14A34",
-              chainName: "Base Sepolia",
-              nativeCurrency: { name: "ETH", symbol: "ETH", decimals: 18 },
-              rpcUrls: ["https://sepolia.base.org"],
-              blockExplorerUrls: ["https://sepolia.basescan.org"],
-            }],
-          });
-        } else {
-          pushConsole("[ERROR] Could not switch network: " + switchErr.message);
-          setWalletBadge('warn', 'WALLET: WRONG NETWORK');
-          throw switchErr;
-        }
+        pushConsole("[ERROR] " + (ev.error && ev.error.message ? ev.error.message : ev.message));
+      } catch {}
+    });
+    
+    window.addEventListener('unhandledrejection', (ev) => {
+      try {
+        const msg = ev.reason && ev.reason.message ? ev.reason.message : String(ev.reason);
+        pushConsole("[ERROR] " + msg);
+      } catch {}
+    });
+
+    function setWalletBadge(status, details = "") {
+      const el = document.getElementById('walletBadge');
+      if (!el) return;
+      el.classList.remove('wallet-badge-ok', 'wallet-badge-warn', 'wallet-badge-err');
+
+      if (status === 'ok') {
+        el.textContent = details || 'WALLET: CONNECTED (BASE SEPOLIA) ✅';
+        el.classList.add('wallet-badge-ok');
+      } else if (status === 'warn') {
+        el.textContent = details || 'WALLET: WRONG NETWORK';
+        el.classList.add('wallet-badge-warn');
+      } else {
+        el.textContent = details || 'WALLET: DISCONNECTED';
+        el.classList.add('wallet-badge-err');
       }
-
-// Re-instanciar provider tras el cambio
-web3 = new ethers.providers.Web3Provider(window.ethereum);
-await window.ethereum.request({ method: "eth_requestAccounts" });
-net = await web3.getNetwork();
-
-    if (net.chainId !== BASE_SEPOLIA_CHAIN_ID) {
-      pushConsole("[ERROR] Wrong network after switch.");
-      setWalletBadge('warn', 'WALLET: WRONG NETWORK');
-      throw new Error("wrong_network");
     }
 
-    provider = web3;
-    signer = web3.getSigner();
-    contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
+    async function ensureContract() {
+      try {
+        if (!window.ethereum) {
+          pushConsole("[ERROR] Wallet not found.");
+          setWalletBadge('err', 'WALLET: DISCONNECTED');
+          throw new Error("wallet_not_found");
+        }
 
-    const addr = await signer.getAddress();
-    pushConsole(`[CONNECTED] Wallet ${addr} on Base Sepolia ✅`);
-    setWalletBadge('ok', 'WALLET: CONNECTED (BASE SEPOLIA) ✅');
+        let web3 = new ethers.providers.Web3Provider(window.ethereum);
+        const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
+        
+        if (!accounts || accounts.length === 0) {
+          pushConsole("[ERROR] No authorized wallet found.");
+          setWalletBadge('err', 'WALLET: DISCONNECTED');
+          throw new Error("no_accounts");
+        }
 
-    return contract;
-  } catch (err) {
-    pushConsole("[ERROR] ensureContract(): " + (err.message || err));
-    setWalletBadge('err', 'WALLET: ERROR');
-    throw err;
-  }
-}
+        let net = await web3.getNetwork();
+        if (net.chainId !== BASE_SEPOLIA_CHAIN_ID) {
+          pushConsole("[WARN] Wrong network. Switching to Base Sepolia (84532)...");
+          try {
+            await window.ethereum.request({
+              method: "wallet_switchEthereumChain",
+              params: [{ chainId: "0x14A34" }],
+            });
+          } catch (switchErr) {
+            if (switchErr.code === 4902) {
+              await window.ethereum.request({
+                method: "wallet_addEthereumChain",
+                params: [{
+                  chainId: "0x14A34",
+                  chainName: "Base Sepolia",
+                  nativeCurrency: { name: "ETH", symbol: "ETH", decimals: 18 },
+                  rpcUrls: ["https://sepolia.base.org"],
+                  blockExplorerUrls: ["https://sepolia.basescan.org"],
+                }],
+              });
+            } else {
+              pushConsole("[ERROR] Could not switch network: " + switchErr.message);
+              setWalletBadge('warn', 'WALLET: WRONG NETWORK');
+              throw switchErr;
+            }
+          }
 
+          web3 = new ethers.providers.Web3Provider(window.ethereum);
+          await window.ethereum.request({ method: "eth_requestAccounts" });
+          net = await web3.getNetwork();
+        }
 
+        if (net.chainId !== BASE_SEPOLIA_CHAIN_ID) {
+          pushConsole("[ERROR] Wrong network after switch.");
+          setWalletBadge('warn', 'WALLET: WRONG NETWORK');
+          throw new Error("wrong_network");
+        }
 
+        provider = web3;
+        signer = web3.getSigner();
+        contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
 
-async function refreshTotalMinted() {
-  try {
-    // 🔹 provider de solo lectura (no requiere wallet)
-    const ro = new ethers.providers.JsonRpcProvider("https://sepolia.base.org");
-    const roContract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, ro);
-    const minted = await roContract.totalMinted();
-    lastMintedOnChain = minted.toNumber();
-    if (invokedCountDisplay) invokedCountDisplay.textContent = lastMintedOnChain;
-  } catch (e) {
-    console.warn("totalMinted read error:", e.message);
-  }
+        const addr = await signer.getAddress();
+        pushConsole(`[CONNECTED] Wallet ${addr} on Base Sepolia ✅`);
+        setWalletBadge('ok', 'WALLET: CONNECTED (BASE SEPOLIA) ✅');
 
-}
+        return contract;
+      } catch (err) {
+        pushConsole("[ERROR] ensureContract(): " + (err.message || err));
+        setWalletBadge('err', 'WALLET: ERROR');
+        throw err;
+      }
+    }
 
-// leer del localStorage si ya hubo invocaciones en esta máquina
-let totalInvoked = parseInt(localStorage.getItem("totalInvoked") || "0", 10);
-if (invokedCountDisplay) {
-  invokedCountDisplay.textContent = totalInvoked;
-}
+    async function refreshTotalMinted() {
+      try {
+        const ro = new ethers.providers.JsonRpcProvider("https://sepolia.base.org");
+        const roContract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, ro);
+        const minted = await roContract.totalMinted();
+        lastMintedOnChain = minted.toNumber();
+        if (invokedCountDisplay) invokedCountDisplay.textContent = lastMintedOnChain;
+      } catch (e) {
+        console.warn("totalMinted read error:", e.message);
+      }
+    }
 
+    let totalInvoked = parseInt(localStorage.getItem("totalInvoked") || "0", 10);
+    if (invokedCountDisplay) {
+      invokedCountDisplay.textContent = totalInvoked;
+    }
 
-// 🔹 AGREGAR ESTO:
-function updateInvokedCount(qty) {
-  totalInvoked += qty;
-  localStorage.setItem("totalInvoked", String(totalInvoked));
-}
+    function updateInvokedCount(qty) {
+      totalInvoked += qty;
+      localStorage.setItem("totalInvoked", String(totalInvoked));
+      if (invokedCountDisplay) {
+        invokedCountDisplay.textContent = totalInvoked;
+      }
+    }
 
-    // datos fake para mostrar
     function fakeEmissary(id) {
       const races = ["Gith", "Human", "Tiefling", "Draconid", "Elf", "Dwarf", "Triton", "Goliath"];
       const classes = ["Hunter", "Druid", "Cleric", "Explorer", "Bard", "Rogue", "Paladin"];
@@ -519,241 +504,213 @@ function updateInvokedCount(qty) {
       return "#" + id + " " + race + " " + klass + " // Guild: " + guild + " // Aura:" + aura;
     }
 
-    // controles de audio
     audioOnBtn.addEventListener('click', () => {
       portalVideo.muted = false;
       audioOnBtn.classList.add('active');
       muteBtn.classList.remove('active');
     });
+    
     muteBtn.addEventListener('click', () => {
       portalVideo.muted = true;
       muteBtn.classList.add('active');
       audioOnBtn.classList.remove('active');
     });
 
-    // invocar (on-chain)
-invokeBtn.addEventListener('click', async () => {
-  let qty = parseInt(qtyInput.value, 10);
-  if (isNaN(qty) || qty < 1) qty = 1;
-  if (qty > 20) qty = 20;
-  qtyInput.value = qty;
+    invokeBtn.addEventListener('click', async () => {
+      let qty = parseInt(qtyInput.value, 10);
+      if (isNaN(qty) || qty < 1) qty = 1;
+      if (qty > 20) qty = 20;
+      qtyInput.value = qty;
 
- // 🔹 deshabilitar mientras se arma/manda la TX
-  invokeBtn.disabled = true;
-  mintStatus.textContent = "STATUS: PREPARING TX...";
+      invokeBtn.disabled = true;
+      mintStatus.textContent = "STATUS: PREPARING TX...";
+      portalLog.textContent = "";
 
-  // limpiar log del portal de la invocación anterior
-  portalLog.textContent = "";
+      setTimeout(() => { pushConsole("[!] invocation request: " + qty + " emissaries."); }, 150);
+      setTimeout(() => { pushConsole("→ opening remote portal on unknown terminal…"); }, 500);
 
-  // texto “terminal” a la izquierda
-  setTimeout(() => { pushConsole("[!] invocation request: " + qty + " emissaries."); }, 150);
-  setTimeout(() => { pushConsole("→ opening remote portal on unknown terminal…"); }, 500);
+      if (!window.ethereum) {
+        mintStatus.textContent = "[ERROR] Wallet not found (install MetaMask or Coinbase Wallet)."
+        alert("No se detectó una wallet en el navegador. Instalá MetaMask/Coinbase Wallet e intentá nuevamente.");
+        invokeBtn.disabled = false;
+        setWalletBadge('err', 'WALLET: DISCONNECTED');
+        return;
+      }
 
-// 🔎 acá pegás el bloque de diagnóstico (wallet visible)
-if (!window.ethereum) {
-  mintStatus.textContent = "[ERROR] Wallet not found (install MetaMask or Coinbase Wallet)."
-  alert("No se detectó una wallet en el navegador. Instalá MetaMask/Coinbase Wallet e intentá nuevamente.");
-  invokeBtn.disabled = false;
-  setWalletBadge('err', 'WALLET: DISCONNECTED');
-  return;
-}
+      pushConsole("[DEBUG] Intentando conectar wallet...");
+      try {
+        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+        if (!accounts || accounts.length === 0) {
+          pushConsole("[ERROR] No se autorizó ninguna cuenta.");
+          mintStatus.textContent = "[ERROR] No wallet authorized.";
+          invokeBtn.disabled = false;
+          return;
+        }
+        pushConsole("[OK] Wallet autorizada: " + accounts[0]);
+      } catch (err) {
+        pushConsole("[ERROR] Wallet connection failed: " + (err && err.message ? err.message : err));
+        mintStatus.textContent = "[ERROR] Wallet connection rejected.";
+        invokeBtn.disabled = false;
+        return;
+      }
 
+      setWalletBadge('warn', 'WALLET: CONNECTING…');
+      mintStatus.textContent = "STATUS: CONNECTING WALLET…";
 
-// 🔐 solicita conexión de MetaMask
-pushConsole("[DEBUG] Intentando conectar wallet...");
-try {
-  const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-  if (!accounts || accounts.length === 0) {
-    pushConsole("[ERROR] No se autorizó ninguna cuenta.");
-    mintStatus.textContent = "[ERROR] No wallet authorized.";
-    invokeBtn.disabled = false;
-    return;
-  }
-  pushConsole("[OK] Wallet autorizada: " + accounts[0]);
-} catch (err) {
-  pushConsole("[ERROR] Wallet connection failed: " + (err && err.message ? err.message : err));
-  mintStatus.textContent = "[ERROR] Wallet connection rejected.";
-  invokeBtn.disabled = false;
-  return;
-}
+      try {
+        const c = await ensureContract();
 
+        if (!c) {
+          pushConsole("[ERROR] ensureContract() no devolvió contrato. Abortando.");
+          mintStatus.textContent = "[ERROR] Contract not initialized.";
+          invokeBtn.disabled = false;
+          return;
+        }
 
-setWalletBadge('warn', 'WALLET: CONNECTING…');
-mintStatus.textContent = "STATUS: CONNECTING WALLET…";
+        const net = await provider.getNetwork();
+        const addr = await signer.getAddress();
+        const bal = await provider.getBalance(addr);
+        pushConsole(`[NET] chainId=${net.chainId} (esperado 84532)`);
+        pushConsole(`[WALLET] ${addr}`);
+        pushConsole(`[BAL] ${ethers.utils.formatEther(bal)} ETH on Base Sepolia`);
 
+        const isOpen = await c.mintOpen();
+        pushConsole(`[CONTRACT] mintOpen=${isOpen}`);
 
-try {
-  const c = await ensureContract();
+        const priceWei = await c.mintPrice();
+        pushConsole(`[CONTRACT] mintPrice=${ethers.utils.formatEther(priceWei)} ETH`);
+        const totalCost = priceWei.mul(qty);
+        pushConsole(`[TX] Minting ${qty}…`);
+        pushConsole(`[TX] Cost: ${ethers.utils.formatEther(totalCost)} ETH`);
 
-if (!c) {
-  pushConsole("[ERROR] ensureContract() no devolvió contrato. Abortando.");
-  mintStatus.textContent = "[ERROR] Contract not initialized.";
-  invokeBtn.disabled = false;
-  return;
-}
+        const tx = await c.mint(qty, { value: totalCost });
+        mintStatus.textContent = "STATUS: TX SENT " + tx.hash;
 
-  // 🔎 diagnóstico de red y cuenta
-  const net = await provider.getNetwork();
-  const addr = await signer.getAddress();
-  const bal = await provider.getBalance(addr);
-  pushConsole(`[NET] chainId=${net.chainId} (esperado 84532)`);
-  pushConsole(`[WALLET] ${addr}`);
-  pushConsole(`[BAL] ${ethers.utils.formatEther(bal)} ETH on Base Sepolia`);
+        const receipt = await tx.wait();
+        mintStatus.textContent = "STATUS: CONFIRMED in block " + receipt.blockNumber;
 
-  // 🔍 chequear on-chain
-  const isOpen = await c.mintOpen();
-  pushConsole(`[CONTRACT] mintOpen=${isOpen}`);
-// if (!isOpen) {
-//   pushConsole("[ERROR] Mint is closed on-chain.");
-//   mintStatus.textContent = "STATUS: MINT CLOSED";
-//   throw new Error("mint_closed");
-// }
+        portalTitle.textContent = "ACTIVATING PORTAL IN UNKNOWN TERMINAL…";
+        try {
+          portalVideo.pause();
+          portalVideo.currentTime = 0;
+          portalVideo.muted = false;
+          portalVideo.play().catch(()=>{});
+        } catch(e){}
 
-  const priceWei = await c.mintPrice();
-  pushConsole(`[CONTRACT] mintPrice=${ethers.utils.formatEther(priceWei)} ETH`);
-  const totalCost = priceWei.mul(qty);
-  pushConsole(`[TX] Minting ${qty}…`);
-  pushConsole(`[TX] Cost: ${ethers.utils.formatEther(totalCost)} ETH`);
+        audioOnBtn.classList.add('active');
+        muteBtn.classList.remove('active');
 
-    // mandar transacción
-    const tx = await c.mint(qty, { value: totalCost });
-    mintStatus.textContent = "STATUS: TX SENT " + tx.hash;
+        const loadingMsgs = [
+          "[ACCESSING REMOTE NODE...]",
+          "[LOCKING COORDINATES...]",
+          "[STABILIZING ENERGY FIELD...]",
+          "[TRANSFER IN PROGRESS...]"
+        ];
+        loadingMsgs.forEach((msg, i) => {
+          setTimeout(() => { pushPortal(msg); }, 600 + i * 600);
+        });
 
-    const receipt = await tx.wait();
-    mintStatus.textContent = "STATUS: CONFIRMED in block " + receipt.blockNumber;
+        portalVideo.onended = async () => {
+          portalTitle.textContent = "STABLE PORTAL // TRANSFER COMPLETED";
+          mintStatus.textContent = "STATUS: LAST INVOCATION OK";
+          mintStatusBottom.textContent = "Last batch: " + qty + " emissaries.";
 
-    // activar video + audio
-    portalTitle.textContent = "ACTIVATING PORTAL IN UNKNOWN TERMINAL…";
-    try {
-      portalVideo.pause();
-      portalVideo.currentTime = 0;
-      portalVideo.muted = false;
-      portalVideo.play().catch(()=>{});
-    } catch(e){}
+          await refreshTotalMinted();
+          const startId = lastMintedOnChain - qty + 1;
 
-    audioOnBtn.classList.add('active');
-    muteBtn.classList.remove('active');
+          for (let i = 0; i < qty; i++) {
+            const item = document.createElement('div');
+            item.className = "invoked-item";
 
-    // mensajes de proceso debajo del video
-    const loadingMsgs = [
-      "[ACCESSING REMOTE NODE...]",
-      "[LOCKING COORDINATES...]",
-      "[STABILIZING ENERGY FIELD...]",
-      "[TRANSFER IN PROGRESS...]"
-    ];
-    loadingMsgs.forEach((msg, i) => {
-      setTimeout(() => { pushPortal(msg); }, 600 + i * 600);
+            const img = document.createElement('img');
+            img.className = "invoked-thumb";
+            img.src = "/img/emissary-placeholder.png";
+
+            const txt = document.createElement('div');
+            txt.className = "invoked-text";
+            txt.textContent = "#" + String(startId + i).padStart(5, "0") + " // " + fakeEmissary(startId + i).split(" // ")[0];
+
+            item.appendChild(img);
+            item.appendChild(txt);
+            invokedList.appendChild(item);
+          }
+
+          updateInvokedCount(qty);
+        };
+
+      } catch (err) {
+        console.error(err);
+        mintStatus.textContent = "[ERROR] " + (err && err.message ? err.message : "Mint failed");
+        pushConsole("[ERROR] " + (err && err.message ? err.message : "Mint failed"));
+      } finally {
+        invokeBtn.disabled = false;
+      }
     });
 
-    // cuando termine el video → mostramos invocados y refrescamos contador on-chain
-    portalVideo.onended = async () => {
-      portalTitle.textContent = "STABLE PORTAL // TRANSFER COMPLETED";
-      mintStatus.textContent = "STATUS: LAST INVOCATION OK";
-      mintStatusBottom.textContent = "Last batch: " + qty + " emissaries.";
+    const introLines = [
+      "[EMBERHOLM TERMINAL v1.0] Channel connected to the Core.",
+      "Current mission: keep the Flame alive.",
+      "a> guild/auth?...",
+      "Summon emissaries. Join a guild. Complete missions.",
+      "a> 72h cycle / 48h energy / Aura for items.",
+      "Waiting for invocation amount..."
+    ];
 
-      // refrescar total on-chain y deducir IDs recién minteados
-      await refreshTotalMinted();
-      const startId = lastMintedOnChain - qty + 1;
+    function typeConsoleLines() {
+      const box = document.getElementById("consoleBody");
+      if (!box) return;
 
-      for (let i = 0; i < qty; i++) {
-        const item = document.createElement('div');
-        item.className = "invoked-item";
+      box.innerHTML = "";
 
-        const img = document.createElement('img');
-        img.className = "invoked-thumb";
-        img.src = "/img/emissary-placeholder.png";
+      let i = 0;
+      function nextLine() {
+        if (i >= introLines.length) return;
 
-        const txt = document.createElement('div');
-        txt.className = "invoked-text";
-        // mostramos un nombre random pero con ID on-chain calculado
-        txt.textContent = "#" + String(startId + i).padStart(5, "0") + " // " + fakeEmissary(startId + i).split(" // ")[0];
+        const line = document.createElement("div");
+        box.appendChild(line);
 
-        item.appendChild(img);
-        item.appendChild(txt);
-        invokedList.appendChild(item);
+        let j = 0;
+        const text = introLines[i];
+        function typeChar() {
+          if (j < text.length) {
+            line.textContent += text[j];
+            j++;
+            setTimeout(typeChar, 20);
+          } else {
+            box.scrollTop = box.scrollHeight;
+            i++;
+            setTimeout(nextLine, 400);
+          }
+        }
+        typeChar();
       }
 
-      // opcional: mantené también tu contador local si lo querés
-      updateInvokedCount(qty);
-    };
-
-  } catch (err) {
-    console.error(err);
-    mintStatus.textContent = "[ERROR] " + (err && err.message ? err.message : "Mint failed");
-    pushConsole("[ERROR] " + (err && err.message ? err.message : "Mint failed"));
-} finally {
-  invokeBtn.disabled = false;
-}
-});
-
-// Mensajes que aparecerán línea por línea en la consola izquierda
-const introLines = [
-  "[EMBERHOLM TERMINAL v1.0] Channel connected to the Core.",
-  "Current mission: keep the Flame alive.",
-  "a> guild/auth?...",
-  "Summon emissaries. Join a guild. Complete missions.",
-  "a> 72h cycle / 48h energy / Aura for items.",
-  "Waiting for invocation amount..."
-];
-
-// Función que los escribe con efecto de tipeo
-function typeConsoleLines() {
-  const box = document.getElementById("consoleBody");
-  if (!box) return;
-
-  box.innerHTML = ""; // limpia primero
-
-  let i = 0;
-  function nextLine() {
-    if (i >= introLines.length) return;
-
-    const line = document.createElement("div");
-    box.appendChild(line);
-
-    let j = 0;
-    const text = introLines[i];
-    function typeChar() {
-      if (j < text.length) {
-        line.textContent += text[j];
-        j++;
-        setTimeout(typeChar, 20); // velocidad del tipeo
-      } else {
-        box.scrollTop = box.scrollHeight;
-        i++;
-        setTimeout(nextLine, 400); // pausa entre líneas
-      }
+      nextLine();
     }
-    typeChar();
-  }
 
-  nextLine();
-}
+    document.addEventListener("DOMContentLoaded", async () => {
+      typeConsoleLines();
+      refreshTotalMinted();
 
-document.addEventListener("DOMContentLoaded", async () => {
-  typeConsoleLines();
-  refreshTotalMinted();
-
-  // Estado inicial del badge sin pedir permisos
-  if (window.ethereum) {
-    try {
-      const web3 = new ethers.providers.Web3Provider(window.ethereum);
-      const accounts = await web3.listAccounts(); // silencioso
-      const net = await web3.getNetwork();
-      if (accounts.length > 0 && net.chainId === BASE_SEPOLIA_CHAIN_ID) {
-        setWalletBadge('ok', 'WALLET: CONNECTED (BASE SEPOLIA) ✅');
-      } else if (accounts.length > 0 && net.chainId !== BASE_SEPOLIA_CHAIN_ID) {
-        setWalletBadge('warn', 'WALLET: WRONG NETWORK');
+      if (window.ethereum) {
+        try {
+          const web3 = new ethers.providers.Web3Provider(window.ethereum);
+          const accounts = await web3.listAccounts();
+          const net = await web3.getNetwork();
+          if (accounts.length > 0 && net.chainId === BASE_SEPOLIA_CHAIN_ID) {
+            setWalletBadge('ok', 'WALLET: CONNECTED (BASE SEPOLIA) ✅');
+          } else if (accounts.length > 0 && net.chainId !== BASE_SEPOLIA_CHAIN_ID) {
+            setWalletBadge('warn', 'WALLET: WRONG NETWORK');
+          } else {
+            setWalletBadge('err', 'WALLET: DISCONNECTED');
+          }
+        } catch {
+          setWalletBadge('err', 'WALLET: DISCONNECTED');
+        }
       } else {
         setWalletBadge('err', 'WALLET: DISCONNECTED');
       }
-    } catch {
-      setWalletBadge('err', 'WALLET: DISCONNECTED');
-    }
-  } else {
-    setWalletBadge('err', 'WALLET: DISCONNECTED');
-  }
-});
-
+    });
 
   </script>
 </body>
