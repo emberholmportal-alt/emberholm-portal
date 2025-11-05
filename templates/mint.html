@@ -530,7 +530,7 @@ invokeBtn.addEventListener('click', async () => {
 
 // 🔎 acá pegás el bloque de diagnóstico (wallet visible)
 if (!window.ethereum) {
-  mintStatus.textContent = "[ERROR] Wallet not found (install MetaMask or Coinbase Wallet).";
+  mintStatus.textContent = "[ERROR] Wallet not found (install MetaMask or Coinbase Wallet)."
   alert("No se detectó una wallet en el navegador. Instalá MetaMask/Coinbase Wallet e intentá nuevamente.");
   invokeBtn.disabled = false;
   setWalletBadge('err', 'WALLET: DISCONNECTED');
