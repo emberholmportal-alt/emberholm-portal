@@ -392,30 +392,6 @@ function setWalletBadge(status, details = "") {
 }
 
 
-// ======= VIDEO DIAGNÓSTICO & FALLBACK =======
-portalVideo.addEventListener('error', () => {
-  const code = portalVideo.error && portalVideo.error.code;
-  pushPortal("[VIDEO ERROR] code=" + code + " src=" + portalVideo.currentSrc);
-});
-portalVideo.addEventListener('loadeddata', () => {
-  pushPortal("[VIDEO] loadeddata OK: " + portalVideo.currentSrc);
-});
-portalVideo.addEventListener('play', () => {
-  pushPortal("[VIDEO] playing: " + portalVideo.currentSrc);
-});
-
-// Fallback automático /static -> /img si la primera ruta no responde
-(async () => {
-  try {
-    const res = await fetch("/static/img/portal.mp4", { method: "HEAD" });
-    if (!res.ok) throw new Error("HTTP " + res.status);
-  } catch {
-    pushPortal("[VIDEO] /static/img/portal.mp4 no disponible, probando /img/portal.mp4 ...");
-    portalVideo.src = "/img/portal.mp4";
-  }
-})();
-
-
 async function ensureContract() {
   if (contract) return contract;
   if (!window.ethereum) {
@@ -558,23 +534,6 @@ if (!window.ethereum) {
   setWalletBadge('err', 'WALLET: DISCONNECTED');
   return;
 }
-
-// ▶️ encender video al iniciar (feedback inmediato)
-portalTitle.textContent = "ACTIVATING PORTAL IN UNKNOWN TERMINAL…";
-try {
-  portalVideo.pause();
-  portalVideo.currentTime = 0;
-  portalVideo.muted = false; // autoplay seguro; luego podés habilitar sonido con "AUDIO ON"
-  portalVideo.play().catch((err)=>{
-    pushPortal("[VIDEO] play() blocked: " + (err && err.message ? err.message : err));
-  });
-} catch(e){
-  pushPortal("[VIDEO] play() error: " + (e && e.message ? e.message : e));
-}
-audioOnBtn.classList.add('active');
-muteBtn.classList.remove('active');
-
-
 
 
 // 🔐 dispara prompt de conexión explícito (se ignora si ya estás conectado)
