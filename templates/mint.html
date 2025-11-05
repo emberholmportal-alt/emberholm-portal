@@ -374,6 +374,20 @@ function pushPortal(line) {  // reutilizamos el log del portal
   portalLog.textContent += line + "\n";
 }
 
+// ===== Global error hook: muestra errores JS en la consola izquierda =====
+window.addEventListener('error', (ev) => {
+  try {
+    pushConsole("[ERROR] " + (ev.error && ev.error.message ? ev.error.message : ev.message));
+  } catch {}
+});
+window.addEventListener('unhandledrejection', (ev) => {
+  try {
+    const msg = ev.reason && ev.reason.message ? ev.reason.message : String(ev.reason);
+    pushConsole("[ERROR] " + msg);
+  } catch {}
+});
+
+
 function setWalletBadge(status, details = "") {
   const el = document.getElementById('walletBadge');
   if (!el) return;
@@ -556,11 +570,11 @@ try {
   // 🔍 chequear on-chain
   const isOpen = await c.mintOpen();
   pushConsole(`[CONTRACT] mintOpen=${isOpen}`);
-  if (!isOpen) {
-    pushConsole("[ERROR] Mint is closed on-chain.");
-    mintStatus.textContent = "STATUS: MINT CLOSED";
-    throw new Error("mint_closed");
-  }
+// if (!isOpen) {
+//   pushConsole("[ERROR] Mint is closed on-chain.");
+//   mintStatus.textContent = "STATUS: MINT CLOSED";
+//   throw new Error("mint_closed");
+// }
 
   const priceWei = await c.mintPrice();
   pushConsole(`[CONTRACT] mintPrice=${ethers.utils.formatEther(priceWei)} ETH`);
