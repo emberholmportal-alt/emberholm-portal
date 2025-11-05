@@ -399,7 +399,7 @@ async function ensureContract() {
     throw new Error("wallet_missing");
   }
 
-  const web3 = new ethers.providers.Web3Provider(window.ethereum);
+  let web3 = new ethers.providers.Web3Provider(window.ethereum);
 
   // 1️⃣ Forzar conexión (abre MetaMask si no está conectada)
   await web3.send("eth_requestAccounts", []);
@@ -408,6 +408,7 @@ async function ensureContract() {
   let net = await web3.getNetwork();
   if (net.chainId !== BASE_SEPOLIA_CHAIN_ID) {
     pushConsole("[WARN] Wrong network. Switching to Base Sepolia (84532)...");
+
     try {
       await window.ethereum.request({
         method: "wallet_switchEthereumChain",
@@ -434,19 +435,20 @@ async function ensureContract() {
       }
     }
 
-    // Volvemos a crear provider después del cambio
-    net = await web3.getNetwork();
-    if (net.chainId !== BASE_SEPOLIA_CHAIN_ID) {
-      pushConsole("[ERROR] Not on Base Sepolia after switch.");
-      setWalletBadge('warn', 'WALLET: WRONG NETWORK');
-      throw new Error("wrong_network");
-    }
-  }
+// 🔄 Re-instanciar provider y re-leer red/cuentas tras el switch
+web3 = new ethers.providers.Web3Provider(window.ethereum);
+await web3.send("eth_requestAccounts", []); // asegura la sesión tras el cambio
+net = await web3.getNetwork();
 
-  provider = web3;
-  signer = web3.getSigner();
-  contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
+if (net.chainId !== BASE_SEPOLIA_CHAIN_ID) {
+  pushConsole("[ERROR] Not on Base Sepolia after switch.");
+  setWalletBadge('warn', 'WALLET: WRONG NETWORK');
+  throw new Error("wrong_network");
+} // 👈 CERRAMOS el if grande ACÁ
 
+provider = web3;
+signer = web3.getSigner();
+contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
 // ✅ Confirmación visual en consola del portal
 pushConsole("✅ Wallet connected on Base Sepolia");
 setWalletBadge('ok', 'WALLET: CONNECTED (BASE SEPOLIA) ✅');
