@@ -284,7 +284,8 @@
       <div class="console-window">
         <div class="console-title">[++]
           ͰΛL_7E=EMBER-LINK_</div>
-        <div class="console-body" id="consoleBody"></div>
+        <div class="console-body" id="consoleBody">
+          [EMBERHOLM TERMINAL v1.0] Channel connected to the Core.<br /></div>
         <div class="console-footer">
           <div class="tag">MODE: RANDOM INVOCATION</div>
           <div class="tag">OBJECTIVE: Keep the Flame alive</div>
@@ -303,7 +304,7 @@
       <div class="portal-panel">
         <div class="portal-title" id="portalTitle">STANDBY PORTAL // NO TRANSFER</div>
         <div class="portal-body">
-          <video id="portalVideo" class="portal-video" src="/static/img/portal.mp4" preload="auto" playsinline></video>
+          <video id="portalVideo" class="portal-video" src="/img/portal.mp4" preload="auto"></video>
           <div id="portalLog" class="portal-log"></div>
         </div>
         <div class="portal-footer">
@@ -406,69 +407,6 @@ function setWalletBadge(status, details = "") {
 
 
 async function ensureContract() {
-  if (contract) return contract;
-
-  if (!window.ethereum) {
-    pushConsole("[ERROR] Wallet not found. Install MetaMask or Coinbase Wallet.");
-    throw new Error("wallet_missing");
-  }
-
-  // Provider de la wallet
-  let web3 = new ethers.providers.Web3Provider(window.ethereum);
-
-  // 1) Solicitar conexión (abre MetaMask si hace falta)
-  await web3.send("eth_requestAccounts", []);
-
-  // 2) Verificar red y cambiar/agregar Base Sepolia si es necesario
-  let net = await web3.getNetwork();
-  if (net.chainId !== BASE_SEPOLIA_CHAIN_ID) {
-    pushConsole("[WARN] Wrong network. Switching to Base Sepolia (84532)...");
-    try {
-      await window.ethereum.request({
-        method: "wallet_switchEthereumChain",
-        params: [{ chainId: "0x14A34" }], // 84532
-      });
-    } catch (switchErr) {
-      // 4902: la red no está agregada en la wallet
-      if (switchErr && switchErr.code === 4902) {
-        await window.ethereum.request({
-          method: "wallet_addEthereumChain",
-          params: [{
-            chainId: "0x14A34",
-            chainName: "Base Sepolia",
-            nativeCurrency: { name: "ETH", symbol: "ETH", decimals: 18 },
-            rpcUrls: ["https://sepolia.base.org"],
-            blockExplorerUrls: ["https://sepolia.basescan.org"]
-          }]
-        });
-      } else {
-        pushConsole("[ERROR] Could not switch network: " + (switchErr.message || switchErr));
-        setWalletBadge('warn', 'WALLET: WRONG NETWORK');
-        throw switchErr;
-      }
-    }
-
-    // Reinstanciar provider y confirmar red tras el switch
-    web3 = new ethers.providers.Web3Provider(window.ethereum);
-    await web3.send("eth_requestAccounts", []);
-    net = await web3.getNetwork();
-    if (net.chainId !== BASE_SEPOLIA_CHAIN_ID) {
-      pushConsole("[ERROR] Not on Base Sepolia after switch.");
-      setWalletBadge('warn', 'WALLET: WRONG NETWORK');
-      throw new Error("wrong_network");
-    }
-  }
-
-  provider = web3;
-  signer = web3.getSigner();
-  contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
-
-  pushConsole("✅ Wallet connected on Base Sepolia");
-  setWalletBadge('ok', 'WALLET: CONNECTED (BASE SEPOLIA) ✅');
-
-  return contract;
-}
-
 
   let web3 = new ethers.providers.Web3Provider(window.ethereum);
 
@@ -652,7 +590,6 @@ try {
       portalVideo.pause();
       portalVideo.currentTime = 0;
       portalVideo.muted = false;
-      portalVideo.load();
       portalVideo.play().catch(()=>{});
     } catch(e){}
 
@@ -686,7 +623,7 @@ try {
 
         const img = document.createElement('img');
         img.className = "invoked-thumb";
-        img.src = "/static/img/emissary-placeholder.png";
+        img.src = "/img/emissary-placeholder.png";
 
         const txt = document.createElement('div');
         txt.className = "invoked-text";
