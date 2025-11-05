@@ -257,6 +257,10 @@
         justify-content: flex-start;
       }
     }
+.wallet-badge-ok   { border-color:#3fae3f !important; color:#3fae3f !important; }
+.wallet-badge-warn { border-color:#fcb900 !important; color:#fcb900 !important; }
+.wallet-badge-err  { border-color:#a66 !important;    color:#a66 !important; }
+
   </style>
 </head>
 <body>
@@ -291,6 +295,7 @@
           <label for="qty">Amount to invoke:</label>
           <input id="qty" type="number" min="1" max="20" value="3" />
           <button class="invoke-btn" id="invokeBtn">[INVOKE]</button>
+          <span id="walletBadge" class="tag" style="border-color:#a66; color:#a66;">WALLET: DISCONNECTED</span>
           <span style="font-size:0.6rem;">*Requires wallet on Base Sepolia (testnet).</span>
         </div>
       </div>
@@ -299,7 +304,7 @@
       <div class="portal-panel">
         <div class="portal-title" id="portalTitle">STANDBY PORTAL // NO TRANSFER</div>
         <div class="portal-body">
-          <video id="portalVideo" class="portal-video" src="/static/img/portal.mp4" preload="auto" controls playsinline></video>
+          <video id="portalVideo" class="portal-video" src="/img/portal.mp4" preload="auto"></video>
           <div id="portalLog" class="portal-log"></div>
         </div>
         <div class="portal-footer">
@@ -369,6 +374,24 @@ function pushPortal(line) {  // reutilizamos el log del portal
   portalLog.textContent += line + "\n";
 }
 
+function setWalletBadge(status, details = "") {
+  const el = document.getElementById('walletBadge');
+  if (!el) return;
+  el.classList.remove('wallet-badge-ok', 'wallet-badge-warn', 'wallet-badge-err');
+
+  if (status === 'ok') {
+    el.textContent = details || 'WALLET: CONNECTED (BASE SEPOLIA) ✅';
+    el.classList.add('wallet-badge-ok');
+  } else if (status === 'warn') {
+    el.textContent = details || 'WALLET: WRONG NETWORK';
+    el.classList.add('wallet-badge-warn');
+  } else {
+    el.textContent = details || 'WALLET: DISCONNECTED';
+    el.classList.add('wallet-badge-err');
+  }
+}
+
+
 // ======= VIDEO DIAGNÓSTICO & FALLBACK =======
 portalVideo.addEventListener('error', () => {
   const code = portalVideo.error && portalVideo.error.code;
@@ -396,21 +419,67 @@ portalVideo.addEventListener('play', () => {
 async function ensureContract() {
   if (contract) return contract;
   if (!window.ethereum) {
-    pushConsole("[ERROR] Wallet not found. Install MetaMask/Coinbase.");
+    pushConsole("[ERROR] Wallet not found. Install MetaMask or Coinbase Wallet.");
     throw new Error("wallet_missing");
   }
+
   const web3 = new ethers.providers.Web3Provider(window.ethereum);
+
+  // 1️⃣ Forzar conexión (abre MetaMask si no está conectada)
   await web3.send("eth_requestAccounts", []);
-  const net = await web3.getNetwork();
+
+  // 2️⃣ Verificar red y cambiar a Base Sepolia si es necesario
+  let net = await web3.getNetwork();
   if (net.chainId !== BASE_SEPOLIA_CHAIN_ID) {
-    pushConsole("[WARN] Wrong network. Switch to Base Sepolia (chainId 84532).");
-    throw new Error("wrong_network");
+    pushConsole("[WARN] Wrong network. Switching to Base Sepolia (84532)...");
+    try {
+      await window.ethereum.request({
+        method: "wallet_switchEthereumChain",
+        params: [{ chainId: "0x14A34" }], // 84532 en hex
+      });
+    } catch (switchErr) {
+      if (switchErr && switchErr.code === 4902) {
+        // Si la red no existe, la agregamos
+        await window.ethereum.request({
+          method: "wallet_addEthereumChain",
+          params: [{
+            chainId: "0x14A34",
+            chainName: "Base Sepolia",
+            nativeCurrency: { name: "ETH", symbol: "ETH", decimals: 18 },
+            rpcUrls: ["https://sepolia.base.org"],
+            blockExplorerUrls: ["https://sepolia.basescan.org"],
+          }],
+        });
+      } else {
+        pushConsole("[ERROR] Could not switch network: " +
+                    (switchErr.message || switchErr));
+        setWalletBadge('warn', 'WALLET: WRONG NETWORK');
+        throw switchErr;
+      }
+    }
+
+    // Volvemos a crear provider después del cambio
+    net = await web3.getNetwork();
+    if (net.chainId !== BASE_SEPOLIA_CHAIN_ID) {
+      pushConsole("[ERROR] Not on Base Sepolia after switch.");
+      setWalletBadge('warn', 'WALLET: WRONG NETWORK');
+      throw new Error("wrong_network");
+    }
   }
+
   provider = web3;
   signer = web3.getSigner();
   contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
-  return contract;
+
+// ✅ Confirmación visual en consola del portal
+pushConsole("✅ Wallet connected on Base Sepolia");
+setWalletBadge('ok', 'WALLET: CONNECTED (BASE SEPOLIA) ✅');
+
+return contract;
+
+
 }
+
 
 async function refreshTotalMinted() {
   try {
@@ -486,6 +555,7 @@ if (!window.ethereum) {
   mintStatus.textContent = "[ERROR] Wallet not found (install MetaMask or Coinbase Wallet).";
   alert("No se detectó una wallet en el navegador. Instalá MetaMask/Coinbase Wallet e intentá nuevamente.");
   invokeBtn.disabled = false;
+  setWalletBadge('err', 'WALLET: DISCONNECTED');
   return;
 }
 
@@ -494,7 +564,7 @@ portalTitle.textContent = "ACTIVATING PORTAL IN UNKNOWN TERMINAL…";
 try {
   portalVideo.pause();
   portalVideo.currentTime = 0;
-  portalVideo.muted = true; // autoplay seguro; luego podés habilitar sonido con "AUDIO ON"
+  portalVideo.muted = false; // autoplay seguro; luego podés habilitar sonido con "AUDIO ON"
   portalVideo.play().catch((err)=>{
     pushPortal("[VIDEO] play() blocked: " + (err && err.message ? err.message : err));
   });
@@ -651,11 +721,31 @@ function typeConsoleLines() {
   nextLine();
 }
 
-// Ejecutar al cargar la página
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
   typeConsoleLines();
   refreshTotalMinted();
+
+  // Estado inicial del badge sin pedir permisos
+  if (window.ethereum) {
+    try {
+      const web3 = new ethers.providers.Web3Provider(window.ethereum);
+      const accounts = await web3.listAccounts(); // silencioso
+      const net = await web3.getNetwork();
+      if (accounts.length > 0 && net.chainId === BASE_SEPOLIA_CHAIN_ID) {
+        setWalletBadge('ok', 'WALLET: CONNECTED (BASE SEPOLIA) ✅');
+      } else if (accounts.length > 0 && net.chainId !== BASE_SEPOLIA_CHAIN_ID) {
+        setWalletBadge('warn', 'WALLET: WRONG NETWORK');
+      } else {
+        setWalletBadge('err', 'WALLET: DISCONNECTED');
+      }
+    } catch {
+      setWalletBadge('err', 'WALLET: DISCONNECTED');
+    }
+  } else {
+    setWalletBadge('err', 'WALLET: DISCONNECTED');
+  }
 });
+
 
   </script>
 </body>
