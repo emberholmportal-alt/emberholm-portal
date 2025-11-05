@@ -140,7 +140,7 @@
     }
     .portal-video {
   width: 100%;
-  height: 380;
+  height: 380px;
   min-height: 46px;
   margin-top: 4px;
   font-size: 0.58rem;
@@ -291,7 +291,7 @@
           <label for="qty">Amount to invoke:</label>
           <input id="qty" type="number" min="1" max="20" value="3" />
           <button class="invoke-btn" id="invokeBtn">[INVOKE]</button>
-          <span style="font-size:0.6rem;">*Local simulation. Real mint via Base.</span>
+          <span style="font-size:0.6rem;">*Requires wallet on Base Sepolia (testnet).</span>
         </div>
       </div>
 
@@ -321,7 +321,9 @@
     </div>
   </div>
 
-  <script>
+<script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.min.js"></script>
+ 
+ <script>
     const invokeBtn = document.getElementById('invokeBtn');
     const qtyInput = document.getElementById('qty');
     const portalVideo = document.getElementById('portalVideo');
@@ -336,21 +338,83 @@
     const invokedCountDisplay = document.getElementById('invokedCount');
     const MAX_EMISSARIES = 35000;
 
+// ================== CHAIN CONFIG (Base Sepolia) ==================
+const CONTRACT_ADDRESS = "0x1bA6c620b82B3704Db3EF287E3eCE06660D993Ed";
+const CONTRACT_ABI = [
+  { "inputs":[{"internalType":"uint256","name":"quantity","type":"uint256"}],
+    "name":"mint","outputs":[],"stateMutability":"payable","type":"function" },
+  { "inputs":[],"name":"mintPrice","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],
+    "stateMutability":"view","type":"function" },
+  { "inputs":[],"name":"totalMinted","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],
+    "stateMutability":"view","type":"function" },
+  { "inputs":[],"name":"MAX_SUPPLY","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],
+    "stateMutability":"view","type":"function" },
+  { "inputs":[],"name":"mintOpen","outputs":[{"internalType":"bool","name":"","type":"bool"}],
+    "stateMutability":"view","type":"function" }
+];
+const BASE_SEPOLIA_CHAIN_ID = 84532; // 0x14A34
+
+// Provider/Signer/Contract
+let provider = null;
+let signer = null;
+let contract = null;
+let lastMintedOnChain = 0;
+
+function pushConsole(line) { // reutilizamos tu consola
+  consoleBody.innerHTML += line + "<br/>";
+  consoleBody.scrollTop = consoleBody.scrollHeight;
+}
+
+function pushPortal(line) {  // reutilizamos el log del portal
+  portalLog.textContent += line + "\n";
+}
+
+async function ensureContract() {
+  if (contract) return contract;
+  if (!window.ethereum) {
+    pushConsole("[ERROR] Wallet not found. Install MetaMask/Coinbase.");
+    throw new Error("wallet_missing");
+  }
+  const web3 = new ethers.providers.Web3Provider(window.ethereum);
+  await web3.send("eth_requestAccounts", []);
+  const net = await web3.getNetwork();
+  if (net.chainId !== BASE_SEPOLIA_CHAIN_ID) {
+    pushConsole("[WARN] Wrong network. Switch to Base Sepolia (chainId 84532).");
+    throw new Error("wrong_network");
+  }
+  provider = web3;
+  signer = web3.getSigner();
+  contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
+  return contract;
+}
+
+async function refreshTotalMinted() {
+  try {
+    // 🔹 provider de solo lectura (no requiere wallet)
+    const ro = new ethers.providers.JsonRpcProvider("https://sepolia.base.org");
+    const roContract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, ro);
+    const minted = await roContract.totalMinted();
+    lastMintedOnChain = minted.toNumber();
+    if (invokedCountDisplay) invokedCountDisplay.textContent = lastMintedOnChain;
+  } catch (e) {
+    console.warn("totalMinted read error:", e.message);
+  }
+
+}
+
 // leer del localStorage si ya hubo invocaciones en esta máquina
 let totalInvoked = parseInt(localStorage.getItem("totalInvoked") || "0", 10);
 if (invokedCountDisplay) {
   invokedCountDisplay.textContent = totalInvoked;
 }
 
-    // texto que vamos escribiendo
-function pushConsole(line) {
-  consoleBody.innerHTML += line + "<br/>";
-  consoleBody.scrollTop = consoleBody.scrollHeight;
+
+// 🔹 AGREGAR ESTO:
+function updateInvokedCount(qty) {
+  totalInvoked += qty;
+  localStorage.setItem("totalInvoked", String(totalInvoked));
 }
 
-function pushPortal(line) {
-  portalLog.textContent += line + "\n";
-}
     // datos fake para mostrar
     function fakeEmissary(id) {
       const races = ["Gith", "Human", "Tiefling", "Draconid", "Elf", "Dwarf", "Triton", "Goliath"];
@@ -375,78 +439,110 @@ function pushPortal(line) {
       audioOnBtn.classList.remove('active');
     });
 
-    // invocar
-    invokeBtn.addEventListener('click', () => {
-      let qty = parseInt(qtyInput.value, 10);
+    // invocar (on-chain)
+invokeBtn.addEventListener('click', async () => {
+  let qty = parseInt(qtyInput.value, 10);
   if (isNaN(qty) || qty < 1) qty = 1;
   if (qty > 20) qty = 20;
   qtyInput.value = qty;
 
+ // 🔹 deshabilitar mientras se arma/manda la TX
+  invokeBtn.disabled = true;
+  mintStatus.textContent = "STATUS: PREPARING TX...";
+
   // limpiar log del portal de la invocación anterior
   portalLog.textContent = "";
 
-  // escribir en la consola izquierda de a poco
-  setTimeout(() => {
-    pushConsole("[!] invocation request: " + qty + " emissaries.");
-  }, 150);  // primer línea
+  // texto “terminal” a la izquierda
+  setTimeout(() => { pushConsole("[!] invocation request: " + qty + " emissaries."); }, 150);
+  setTimeout(() => { pushConsole("→ opening remote portal on unknown terminal…"); }, 500);
 
-  setTimeout(() => {
-    pushConsole("→ opening remote portal on unknown terminal…");
-  }, 500);  // segunda línea
-
-      // activar video
-      portalTitle.textContent = "ACTIVATING PORTAL IN UNKNOWN TERMINAL…";
   try {
-    portalVideo.pause();
-    portalVideo.currentTime = 0;
-    portalVideo.play().catch(()=>{});
-  } catch(e) {}
+    const c = await ensureContract();
 
-  // asegurar sonido activado para esta invocación
-  portalVideo.muted = false;
-  audioOnBtn.classList.add('active');
-  muteBtn.classList.remove('active');
+    // chequear on-chain
+    const isOpen = await c.mintOpen();
+    if (!isOpen) {
+      pushConsole("[ERROR] Mint is closed on-chain.");
+      return;
+    }
 
-  // 🔹 mensajes de proceso debajo del video
-  const loadingMsgs = [
-    "[ACCESSING REMOTE NODE...]",
-    "[LOCKING COORDINATES...]",
-    "[STABILIZING ENERGY FIELD...]",
-    "[TRANSFER IN PROGRESS...]"
-  ];
-  loadingMsgs.forEach((msg, i) => {
-    setTimeout(() => {
-      pushPortal(msg);
-    }, 600 + i * 600); // cada 0.6s
-  });
+    const priceWei = await c.mintPrice();
+    const totalCost = priceWei.mul(qty);
 
-      // cuando termine el video, mostramos los invocados
-      portalVideo.onended = () => {
-        portalTitle.textContent = "STABLE PORTAL // TRANSFER COMPLETED";
-        mintStatus.textContent = "STATUS: LAST INVOCATION OK";
-        mintStatusBottom.textContent = "Last batch: " + qty + " emissaries.";
+    pushConsole(`[TX] Minting ${qty}…`);
+    pushConsole(`[TX] Cost: ${ethers.utils.formatEther(totalCost)} ETH`);
 
-        for (let i = 0; i < qty; i++) {
-          const item = document.createElement('div');
-          item.className = "invoked-item";
+    // mandar transacción
+    const tx = await c.mint(qty, { value: totalCost });
+    mintStatus.textContent = "STATUS: TX SENT " + tx.hash;
 
-          const img = document.createElement('img');
-          img.className = "invoked-thumb";
-          img.src = "/img/emissary-placeholder.png";
+    const receipt = await tx.wait();
+    mintStatus.textContent = "STATUS: CONFIRMED in block " + receipt.blockNumber;
 
-          const txt = document.createElement('div');
-          txt.className = "invoked-text";
-          txt.textContent = fakeEmissary(1000 + i + Math.floor(Math.random()*700));
+    // activar video + audio
+    portalTitle.textContent = "ACTIVATING PORTAL IN UNKNOWN TERMINAL…";
+    try {
+      portalVideo.pause();
+      portalVideo.currentTime = 0;
+      portalVideo.muted = false;
+      portalVideo.play().catch(()=>{});
+    } catch(e){}
 
-          item.appendChild(img);
-          item.appendChild(txt);
+    audioOnBtn.classList.add('active');
+    muteBtn.classList.remove('active');
 
-          // se agregan al final, no se borran
-          invokedList.appendChild(item);
-        }
-  updateInvokedCount(qty);
-      };
+    // mensajes de proceso debajo del video
+    const loadingMsgs = [
+      "[ACCESSING REMOTE NODE...]",
+      "[LOCKING COORDINATES...]",
+      "[STABILIZING ENERGY FIELD...]",
+      "[TRANSFER IN PROGRESS...]"
+    ];
+    loadingMsgs.forEach((msg, i) => {
+      setTimeout(() => { pushPortal(msg); }, 600 + i * 600);
     });
+
+    // cuando termine el video → mostramos invocados y refrescamos contador on-chain
+    portalVideo.onended = async () => {
+      portalTitle.textContent = "STABLE PORTAL // TRANSFER COMPLETED";
+      mintStatus.textContent = "STATUS: LAST INVOCATION OK";
+      mintStatusBottom.textContent = "Last batch: " + qty + " emissaries.";
+
+      // refrescar total on-chain y deducir IDs recién minteados
+      await refreshTotalMinted();
+      const startId = lastMintedOnChain - qty + 1;
+
+      for (let i = 0; i < qty; i++) {
+        const item = document.createElement('div');
+        item.className = "invoked-item";
+
+        const img = document.createElement('img');
+        img.className = "invoked-thumb";
+        img.src = "/img/emissary-placeholder.png";
+
+        const txt = document.createElement('div');
+        txt.className = "invoked-text";
+        // mostramos un nombre random pero con ID on-chain calculado
+        txt.textContent = "#" + String(startId + i).padStart(5, "0") + " // " + fakeEmissary(startId + i).split(" // ")[0];
+
+        item.appendChild(img);
+        item.appendChild(txt);
+        invokedList.appendChild(item);
+      }
+
+      // opcional: mantené también tu contador local si lo querés
+      updateInvokedCount(qty);
+    };
+
+  } catch (err) {
+    console.error(err);
+    mintStatus.textContent = "[ERROR] " + (err && err.message ? err.message : "Mint failed");
+    pushConsole("[ERROR] " + (err && err.message ? err.message : "Mint failed"));
+} finally {
+  invokeBtn.disabled = false;
+}
+});
 
 // Mensajes que aparecerán línea por línea en la consola izquierda
 const introLines = [
@@ -492,7 +588,10 @@ function typeConsoleLines() {
 }
 
 // Ejecutar al cargar la página
-document.addEventListener("DOMContentLoaded", typeConsoleLines);
+document.addEventListener("DOMContentLoaded", () => {
+  typeConsoleLines();
+  refreshTotalMinted();
+});
 
   </script>
 </body>
