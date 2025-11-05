@@ -299,7 +299,7 @@
       <div class="portal-panel">
         <div class="portal-title" id="portalTitle">STANDBY PORTAL // NO TRANSFER</div>
         <div class="portal-body">
-          <video id="portalVideo" class="portal-video" src="/img/portal.mp4" preload="auto"></video>
+          <video id="portalVideo" class="portal-video" src="/static/img/portal.mp4" preload="auto"></video>
           <div id="portalLog" class="portal-log"></div>
         </div>
         <div class="portal-footer">
@@ -456,6 +456,18 @@ invokeBtn.addEventListener('click', async () => {
   // texto “terminal” a la izquierda
   setTimeout(() => { pushConsole("[!] invocation request: " + qty + " emissaries."); }, 150);
   setTimeout(() => { pushConsole("→ opening remote portal on unknown terminal…"); }, 500);
+
+// 🔎 acá pegás el bloque de diagnóstico (wallet visible)
+if (!window.ethereum) {
+  mintStatus.textContent = "[ERROR] Wallet not found (install MetaMask or Coinbase Wallet).";
+  alert("No se detectó una wallet en el navegador. Instalá MetaMask/Coinbase Wallet e intentá nuevamente.");
+  invokeBtn.disabled = false;
+  return;
+}
+
+// 🔐 dispara prompt de conexión explícito (se ignora si ya estás conectado)
+try { await window.ethereum.request({ method: 'eth_requestAccounts' }); } catch (e) {}
+
 
   try {
     const c = await ensureContract();
