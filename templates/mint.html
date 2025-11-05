@@ -405,64 +405,79 @@ function setWalletBadge(status, details = "") {
   }
 }
 
-
 async function ensureContract() {
-  if (!window.ethereum) {
-    setWalletBadge('err', 'WALLET: DISCONNECTED');
-    throw new Error("wallet_not_found");
-  }
-
-  // Siempre instanciamos provider y pedimos cuentas
-  let web3 = new ethers.providers.Web3Provider(window.ethereum);
-  await web3.send("eth_requestAccounts", []);
-
-  // Chequeamos red actual
-  let net = await web3.getNetwork();
-  if (net.chainId !== BASE_SEPOLIA_CHAIN_ID) {
-    pushConsole("[WARN] Wrong network. Switching to Base Sepolia (84532)...");
-    try {
-      await window.ethereum.request({
-        method: "wallet_switchEthereumChain",
-        params: [{ chainId: "0x14A34" }],
-      });
-    } catch (switchErr) {
-      if (switchErr && switchErr.code === 4902) {
-        await window.ethereum.request({
-          method: "wallet_addEthereumChain",
-          params: [{
-            chainId: "0x14A34",
-            chainName: "Base Sepolia",
-            nativeCurrency: { name: "ETH", symbol: "ETH", decimals: 18 },
-            rpcUrls: ["https://sepolia.base.org"],
-            blockExplorerUrls: ["https://sepolia.basescan.org"],
-          }],
-        });
-      } else {
-        setWalletBadge('warn', 'WALLET: WRONG NETWORK');
-        throw switchErr;
-      }
+  try {
+    if (!window.ethereum) {
+      pushConsole("[ERROR] Wallet not found.");
+      setWalletBadge('err', 'WALLET: DISCONNECTED');
+      throw new Error("wallet_not_found");
     }
 
-    // Re-instanciamos después del switch
-    web3 = new ethers.providers.Web3Provider(window.ethereum);
-    await web3.send("eth_requestAccounts", []);
-    net = await web3.getNetwork();
+    let web3 = new ethers.providers.Web3Provider(window.ethereum);
+
+// Forzar conexión de cuentas cada vez
+const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
+if (!accounts || accounts.length === 0) {
+  pushConsole("[ERROR] No authorized wallet found.");
+  setWalletBadge('err', 'WALLET: DISCONNECTED');
+  throw new Error("no_accounts");
+}
+
+    // Verificar red
+    let net = await web3.getNetwork();
     if (net.chainId !== BASE_SEPOLIA_CHAIN_ID) {
+      pushConsole("[WARN] Wrong network. Switching to Base Sepolia (84532)...");
+      try {
+        await window.ethereum.request({
+          method: "wallet_switchEthereumChain",
+          params: [{ chainId: "0x14A34" }],
+        });
+      } catch (switchErr) {
+        if (switchErr.code === 4902) {
+          await window.ethereum.request({
+            method: "wallet_addEthereumChain",
+            params: [{
+              chainId: "0x14A34",
+              chainName: "Base Sepolia",
+              nativeCurrency: { name: "ETH", symbol: "ETH", decimals: 18 },
+              rpcUrls: ["https://sepolia.base.org"],
+              blockExplorerUrls: ["https://sepolia.basescan.org"],
+            }],
+          });
+        } else {
+          pushConsole("[ERROR] Could not switch network: " + switchErr.message);
+          setWalletBadge('warn', 'WALLET: WRONG NETWORK');
+          throw switchErr;
+        }
+      }
+
+// Re-instanciar provider tras el cambio
+web3 = new ethers.providers.Web3Provider(window.ethereum);
+await window.ethereum.request({ method: "eth_requestAccounts" });
+net = await web3.getNetwork();
+
+    if (net.chainId !== BASE_SEPOLIA_CHAIN_ID) {
+      pushConsole("[ERROR] Wrong network after switch.");
       setWalletBadge('warn', 'WALLET: WRONG NETWORK');
       throw new Error("wrong_network");
     }
+
+    provider = web3;
+    signer = web3.getSigner();
+    contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
+
+    const addr = await signer.getAddress();
+    pushConsole(`[CONNECTED] Wallet ${addr} on Base Sepolia ✅`);
+    setWalletBadge('ok', 'WALLET: CONNECTED (BASE SEPOLIA) ✅');
+
+    return contract;
+  } catch (err) {
+    pushConsole("[ERROR] ensureContract(): " + (err.message || err));
+    setWalletBadge('err', 'WALLET: ERROR');
+    throw err;
   }
-
-  // 🔹 SIEMPRE llegamos acá con la red correcta → inicializamos todo
-  provider = web3;
-  signer = web3.getSigner();
-  contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
-
-  pushConsole("✅ Wallet connected on Base Sepolia");
-  setWalletBadge('ok', 'WALLET: CONNECTED (BASE SEPOLIA) ✅');
-
-  return contract;
 }
+
 
 
 
@@ -545,8 +560,24 @@ if (!window.ethereum) {
 }
 
 
-// 🔐 dispara prompt de conexión explícito (se ignora si ya estás conectado)
-try { await window.ethereum.request({ method: 'eth_requestAccounts' }); } catch (e) {}
+// 🔐 solicita conexión de MetaMask
+pushConsole("[DEBUG] Intentando conectar wallet...");
+try {
+  const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+  if (!accounts || accounts.length === 0) {
+    pushConsole("[ERROR] No se autorizó ninguna cuenta.");
+    mintStatus.textContent = "[ERROR] No wallet authorized.";
+    invokeBtn.disabled = false;
+    return;
+  }
+  pushConsole("[OK] Wallet autorizada: " + accounts[0]);
+} catch (err) {
+  pushConsole("[ERROR] Wallet connection failed: " + (err && err.message ? err.message : err));
+  mintStatus.textContent = "[ERROR] Wallet connection rejected.";
+  invokeBtn.disabled = false;
+  return;
+}
+
 
 setWalletBadge('warn', 'WALLET: CONNECTING…');
 mintStatus.textContent = "STATUS: CONNECTING WALLET…";
@@ -554,6 +585,13 @@ mintStatus.textContent = "STATUS: CONNECTING WALLET…";
 
 try {
   const c = await ensureContract();
+
+if (!c) {
+  pushConsole("[ERROR] ensureContract() no devolvió contrato. Abortando.");
+  mintStatus.textContent = "[ERROR] Contract not initialized.";
+  invokeBtn.disabled = false;
+  return;
+}
 
   // 🔎 diagnóstico de red y cuenta
   const net = await provider.getNetwork();
