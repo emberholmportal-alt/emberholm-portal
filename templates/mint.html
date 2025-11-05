@@ -349,6 +349,9 @@
       { "inputs":[],"name":"MAX_SUPPLY","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],
         "stateMutability":"view","type":"function" },
       { "inputs":[],"name":"mintOpen","outputs":[{"internalType":"bool","name":"","type":"bool"}],
+        "stateMutability":"view","type":"function" },
+      { "inputs":[{"internalType":"uint256","name":"tokenId","type":"uint256"}],
+        "name":"tokenURI","outputs":[{"internalType":"string","name":"","type":"string"}],
         "stateMutability":"view","type":"function" }
     ];
     const BASE_SEPOLIA_CHAIN_ID = 84532;
@@ -470,13 +473,31 @@
 
     async function refreshTotalMinted() {
       try {
+        pushConsole("[DEBUG] Reading totalMinted from contract...");
         const ro = new ethers.providers.JsonRpcProvider("https://sepolia.base.org");
         const roContract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, ro);
         const minted = await roContract.totalMinted();
         lastMintedOnChain = minted.toNumber();
+        pushConsole(`[DEBUG] Total minted on-chain: ${lastMintedOnChain}`);
         if (invokedCountDisplay) invokedCountDisplay.textContent = lastMintedOnChain;
       } catch (e) {
-        console.warn("totalMinted read error:", e.message);
+        pushConsole("[ERROR] Failed to read totalMinted: " + e.message);
+        console.error("totalMinted read error:", e);
+        // Si falla, intentar con totalSupply() como alternativa
+        try {
+          pushConsole("[DEBUG] Trying totalSupply() instead...");
+          const ro = new ethers.providers.JsonRpcProvider("https://sepolia.base.org");
+          const supplyABI = [
+            { "inputs":[],"name":"totalSupply","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function" }
+          ];
+          const roContract = new ethers.Contract(CONTRACT_ADDRESS, supplyABI, ro);
+          const supply = await roContract.totalSupply();
+          lastMintedOnChain = supply.toNumber();
+          pushConsole(`[DEBUG] Total supply: ${lastMintedOnChain}`);
+          if (invokedCountDisplay) invokedCountDisplay.textContent = lastMintedOnChain;
+        } catch (e2) {
+          pushConsole("[ERROR] totalSupply also failed: " + e2.message);
+        }
       }
     }
 
@@ -490,6 +511,47 @@
       localStorage.setItem("totalInvoked", String(totalInvoked));
       if (invokedCountDisplay) {
         invokedCountDisplay.textContent = totalInvoked;
+      }
+    }
+
+    // Función para obtener metadatos reales del NFT
+    async function getRealNFTMetadata(tokenId) {
+      try {
+        pushConsole(`[DEBUG] Fetching tokenURI for #${tokenId}...`);
+        const ro = new ethers.providers.JsonRpcProvider("https://sepolia.base.org");
+        const roContract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, ro);
+        
+        let uri = await roContract.tokenURI(tokenId);
+        pushConsole(`[DEBUG] TokenURI: ${uri}`);
+        
+        // Convertir IPFS a gateway HTTP si es necesario
+        if (uri.startsWith('ipfs://')) {
+          uri = uri.replace('ipfs://', 'https://ipfs.io/ipfs/');
+        }
+        
+        // Fetchear metadata JSON
+        const response = await fetch(uri);
+        const metadata = await response.json();
+        
+        // Convertir imagen IPFS si es necesario
+        let imageUrl = metadata.image || '/img/emissary-placeholder.png';
+        if (imageUrl.startsWith('ipfs://')) {
+          imageUrl = imageUrl.replace('ipfs://', 'https://ipfs.io/ipfs/');
+        }
+        
+        return {
+          name: metadata.name || `Emissary #${tokenId}`,
+          image: imageUrl,
+          attributes: metadata.attributes || []
+        };
+      } catch (e) {
+        pushConsole(`[WARN] Could not fetch metadata for #${tokenId}: ${e.message}`);
+        // Fallback a datos fake si falla
+        return {
+          name: `Emissary #${tokenId}`,
+          image: '/img/emissary-placeholder.png',
+          attributes: []
+        };
       }
     }
 
@@ -588,14 +650,93 @@
 
         const receipt = await tx.wait();
         mintStatus.textContent = "STATUS: CONFIRMED in block " + receipt.blockNumber;
+        pushConsole("[SUCCESS] Transaction confirmed! Block: " + receipt.blockNumber);
 
+        // Función para mostrar los NFTs minteados
+        async function showMintedNFTs() {
+          portalTitle.textContent = "STABLE PORTAL // TRANSFER COMPLETED";
+          mintStatus.textContent = "STATUS: LAST INVOCATION OK";
+          mintStatusBottom.textContent = "Last batch: " + qty + " emissaries.";
+
+          pushConsole("[INFO] Refreshing total minted count...");
+          await refreshTotalMinted();
+          
+          const startId = lastMintedOnChain - qty + 1;
+          pushConsole(`[INFO] Displaying NFTs from ID ${startId} to ${lastMintedOnChain}`);
+
+          // Crear elementos para cada NFT (primero con placeholder)
+          const nftElements = [];
+          for (let i = 0; i < qty; i++) {
+            const nftId = startId + i;
+            
+            const item = document.createElement('div');
+            item.className = "invoked-item";
+
+            const img = document.createElement('img');
+            img.className = "invoked-thumb";
+            img.src = "/img/emissary-placeholder.png";
+            img.onerror = function() { this.style.background = '#fcb900'; };
+
+            const txt = document.createElement('div');
+            txt.className = "invoked-text";
+            txt.textContent = `#${String(nftId).padStart(5, "0")} // Loading metadata...`;
+
+            item.appendChild(img);
+            item.appendChild(txt);
+            invokedList.appendChild(item);
+            
+            nftElements.push({ item, img, txt, id: nftId });
+          }
+
+          // Fetchear metadatos reales para cada NFT
+          pushConsole("[INFO] Fetching real metadata from contract...");
+          for (const nft of nftElements) {
+            try {
+              const metadata = await getRealNFTMetadata(nft.id);
+              
+              // Actualizar imagen
+              nft.img.src = metadata.image;
+              
+              // Actualizar texto con info real
+              let displayText = metadata.name;
+              
+              // Agregar atributos si existen
+              if (metadata.attributes && metadata.attributes.length > 0) {
+                const race = metadata.attributes.find(a => a.trait_type === "Race" || a.trait_type === "race");
+                const classAttr = metadata.attributes.find(a => a.trait_type === "Class" || a.trait_type === "class");
+                
+                if (race) displayText += ` // ${race.value}`;
+                if (classAttr) displayText += ` ${classAttr.value}`;
+              }
+              
+              nft.txt.textContent = displayText;
+              pushConsole(`[OK] Loaded #${nft.id}: ${metadata.name}`);
+            } catch (e) {
+              nft.txt.textContent = `#${String(nft.id).padStart(5, "0")} // Emissary (metadata unavailable)`;
+              pushConsole(`[WARN] Failed to load #${nft.id}`);
+            }
+          }
+
+          updateInvokedCount(qty);
+          pushConsole("[SUCCESS] All emissaries displayed!");
+        }
+
+        // Intentar reproducir video
         portalTitle.textContent = "ACTIVATING PORTAL IN UNKNOWN TERMINAL…";
+        let videoPlayed = false;
+        
         try {
           portalVideo.pause();
           portalVideo.currentTime = 0;
           portalVideo.muted = false;
-          portalVideo.play().catch(()=>{});
-        } catch(e){}
+          await portalVideo.play();
+          videoPlayed = true;
+          pushConsole("[INFO] Portal video playing...");
+        } catch(e) {
+          pushConsole("[WARN] Video autoplay blocked or not found: " + e.message);
+          // Si el video falla, mostrar NFTs inmediatamente después de 2 segundos
+          setTimeout(showMintedNFTs, 2000);
+        }
 
         audioOnBtn.classList.add('active');
         muteBtn.classList.remove('active');
@@ -610,33 +751,18 @@
           setTimeout(() => { pushPortal(msg); }, 600 + i * 600);
         });
 
-        portalVideo.onended = async () => {
-          portalTitle.textContent = "STABLE PORTAL // TRANSFER COMPLETED";
-          mintStatus.textContent = "STATUS: LAST INVOCATION OK";
-          mintStatusBottom.textContent = "Last batch: " + qty + " emissaries.";
-
-          await refreshTotalMinted();
-          const startId = lastMintedOnChain - qty + 1;
-
-          for (let i = 0; i < qty; i++) {
-            const item = document.createElement('div');
-            item.className = "invoked-item";
-
-            const img = document.createElement('img');
-            img.className = "invoked-thumb";
-            img.src = "/img/emissary-placeholder.png";
-
-            const txt = document.createElement('div');
-            txt.className = "invoked-text";
-            txt.textContent = "#" + String(startId + i).padStart(5, "0") + " // " + fakeEmissary(startId + i).split(" // ")[0];
-
-            item.appendChild(img);
-            item.appendChild(txt);
-            invokedList.appendChild(item);
-          }
-
-          updateInvokedCount(qty);
-        };
+        // Si el video se reproduce, mostrar NFTs cuando termine
+        if (videoPlayed) {
+          portalVideo.onended = showMintedNFTs;
+          
+          // Fallback: si el video tarda más de 15 segundos, mostrar NFTs de todos modos
+          setTimeout(() => {
+            if (portalTitle.textContent.includes("ACTIVATING")) {
+              pushConsole("[WARN] Video timeout - showing results anyway");
+              showMintedNFTs();
+            }
+          }, 15000);
+        }
 
       } catch (err) {
         console.error(err);
