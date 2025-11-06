@@ -3,7 +3,11 @@ import os
 import time
 from datetime import datetime, timedelta
 from flask import Flask, jsonify, send_from_directory, request, abort, render_template, render_template
-from web3 import Web3
+
+# ⚠️ Web3 temporarily disabled due to Render deployment issues
+# Will use local cache (wallet_nfts.json) for NFT data
+WEB3_AVAILABLE = False
+Web3 = None
 
 # ---------------------------------
 # Config
@@ -23,49 +27,15 @@ METADATA_DIR = os.path.join(DATA_DIR, "metadata")
 IPFS_GATEWAY = "https://ipfs.io/ipfs/"
 
 # ---------------------------------
-# Blockchain Config (Base Sepolia)
+# Blockchain Config (TEMPORARILY DISABLED)
 # ---------------------------------
+# Note: Blockchain integration temporarily disabled for deployment
+# Using local cache (wallet_nfts.json) for NFT data
+# Will re-enable once deployment is stable
 
-# Base Sepolia RPC endpoint
-BASE_SEPOLIA_RPC = "https://sepolia.base.org"
-
-# Contract address (Base Sepolia)
-NFT_CONTRACT_ADDRESS = "0x2F55e14F0b2B2118d2026d20Ad2C39EAcBdCAc47"
-
-# ERC721 ABI mínimo - solo las funciones que necesitamos
-ERC721_ABI = [
-    {
-        "inputs": [{"name": "owner", "type": "address"}],
-        "name": "balanceOf",
-        "outputs": [{"name": "", "type": "uint256"}],
-        "stateMutability": "view",
-        "type": "function"
-    },
-    {
-        "inputs": [{"name": "owner", "type": "address"}, {"name": "index", "type": "uint256"}],
-        "name": "tokenOfOwnerByIndex",
-        "outputs": [{"name": "", "type": "uint256"}],
-        "stateMutability": "view",
-        "type": "function"
-    },
-    {
-        "inputs": [{"name": "tokenId", "type": "uint256"}],
-        "name": "ownerOf",
-        "outputs": [{"name": "", "type": "address"}],
-        "stateMutability": "view",
-        "type": "function"
-    }
-]
-
-# Inicializar Web3
-try:
-    w3 = Web3(Web3.HTTPProvider(BASE_SEPOLIA_RPC))
-    nft_contract = w3.eth.contract(address=Web3.to_checksum_address(NFT_CONTRACT_ADDRESS), abi=ERC721_ABI)
-    print(f"✅ Connected to Base Sepolia. Chain ID: {w3.eth.chain_id}")
-except Exception as e:
-    print(f"⚠️ Warning: Could not connect to blockchain: {e}")
-    w3 = None
-    nft_contract = None
+w3 = None
+nft_contract = None
+print("⚠️ Using local cache for NFT data (wallet_nfts.json)")
 
 # Ganancia pasiva cada 24h por héroe
 PASSIVE_XP_PER_DAY   = 5
@@ -501,7 +471,10 @@ def get_wallet_token_ids(wallet):
 
     try:
         # Convertir wallet a checksum address
-        checksum_wallet = Web3.to_checksum_address(wallet)
+        if Web3 is not None:
+            checksum_wallet = Web3.to_checksum_address(wallet)
+        else:
+            checksum_wallet = wallet
 
         # Obtener balance de NFTs de esta wallet
         balance = nft_contract.functions.balanceOf(checksum_wallet).call()
