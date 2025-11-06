@@ -1,0 +1,4 @@
+{
+    "0xAriel...F13c": ["00001", "00002", "00003", "00004", "00005", "00006", "00007", "00008", "00009", "00010", "00077"],
+    "_comment": "Este archivo mapea billeteras a los token_ids de NFTs que poseen. En produccion, esto se obtendria de la blockchain."
+}

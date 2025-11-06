@@ -13,9 +13,13 @@ DATA_DIR     = os.path.join(BASE_DIR, "data")
 PLAYERS_PATH = os.path.join(DATA_DIR, "players.json")
 STATS_PATH   = os.path.join(DATA_DIR, "stats.json")
 GUILDS_PATH  = os.path.join(DATA_DIR, "guilds.json")
+WALLET_NFTS_PATH = os.path.join(DATA_DIR, "wallet_nfts.json")
 
 # Carpeta donde guardaste los metadatas base (00001.json, 00002.json, etc.)
 METADATA_DIR = os.path.join(DATA_DIR, "metadata")
+
+# IPFS Gateway para convertir URLs de IPFS a URLs HTTP
+IPFS_GATEWAY = "https://ipfs.io/ipfs/"
 
 # Ganancia pasiva cada 24h por héroe
 PASSIVE_XP_PER_DAY   = 5
@@ -410,70 +414,197 @@ def api_missions():
     return jsonify(MISSIONS)
 
 # ---------------------------------
+# Helpers para NFTs y metadata
+# ---------------------------------
+
+def ipfs_to_http(ipfs_url):
+    """
+    Convierte una URL IPFS a HTTP usando un gateway público.
+    Ejemplo: ipfs://bafybeiabc123/00001.png -> https://ipfs.io/ipfs/bafybeiabc123/00001.png
+    """
+    if not ipfs_url:
+        return ""
+    if ipfs_url.startswith("ipfs://"):
+        # Extraer el hash CID y el path
+        ipfs_path = ipfs_url.replace("ipfs://", "")
+        return IPFS_GATEWAY + ipfs_path
+    return ipfs_url
+
+def get_wallet_token_ids(wallet):
+    """
+    Obtiene los token_ids que posee una billetera.
+    En producción, esto consultaría la blockchain.
+    Por ahora lee del archivo wallet_nfts.json.
+    """
+    wallet_nfts = load_json(WALLET_NFTS_PATH, {})
+
+    # Normalizar la wallet address (case-insensitive)
+    wallet_lower = wallet.lower()
+
+    # Buscar coincidencia case-insensitive
+    for w, tokens in wallet_nfts.items():
+        if w.lower() == wallet_lower:
+            return tokens
+
+    # Si no se encuentra, devolver lista vacía
+    return []
+
+def create_hero_from_metadata(token_id):
+    """
+    Crea un objeto hero desde el archivo de metadata del token_id.
+    """
+    # Cargar metadata base
+    filename = f"{str(token_id).zfill(5)}.json"
+    path = os.path.join(METADATA_DIR, filename)
+
+    if not os.path.exists(path):
+        # Si no existe metadata, crear un hero básico
+        return {
+            "token_id": str(token_id).zfill(5),
+            "name": f"Emissary #{str(token_id).zfill(5)}",
+            "race_class": "Unknown",
+            "guild": "Unassigned",
+            "image_url": "/img/emissary-placeholder.png",
+            "dynamic_state": {
+                "xp_total": 0,
+                "aura_level": 0,
+                "energy_current": 100,
+                "energy_max": 100,
+                "state": "READY",
+                "current_guild": "Unassigned",
+                "last_update": now_utc_str(),
+                "last_energy_refresh": now_utc_str(),
+                "mission_history": {},
+                "power_current": 10,
+                "xp_level": 1,
+                "last_mission": "None"
+            }
+        }
+
+    with open(path, "r", encoding="utf-8") as f:
+        metadata = json.load(f)
+
+    # Extraer datos del fixed_profile
+    fixed = metadata.get("fixed_profile", {})
+    race = fixed.get("race", "Unknown")
+    char_class = fixed.get("class", "Unknown")
+    guild = fixed.get("starting_guild", "Unassigned")
+
+    # Crear race_class combinado
+    race_class = f"{race} {char_class}"
+
+    # Convertir IPFS URL a HTTP
+    image_url = ipfs_to_http(metadata.get("image", ""))
+    if not image_url:
+        image_url = "/img/emissary-placeholder.png"
+
+    # Calcular power_current desde stats (aproximación)
+    str_val = fixed.get("str", 10)
+    dex_val = fixed.get("dex", 10)
+    con_val = fixed.get("con", 10)
+    power_current = int((str_val + dex_val + con_val) / 3)
+
+    # Crear hero
+    hero = {
+        "token_id": str(token_id).zfill(5),
+        "name": metadata.get("name", f"Emissary #{str(token_id).zfill(5)}"),
+        "race_class": race_class,
+        "guild": guild,
+        "image_url": image_url,
+        "dynamic_state": {
+            "xp_total": 0,
+            "aura_level": 0,
+            "energy_current": 100,
+            "energy_max": 100,
+            "state": "READY",
+            "current_guild": guild,
+            "last_update": now_utc_str(),
+            "last_energy_refresh": now_utc_str(),
+            "mission_history": {},
+            "power_current": power_current,
+            "xp_level": 1,
+            "last_mission": "None"
+        }
+    }
+
+    return hero
+
+# ---------------------------------
 # Helper: asegurar jugador
 # ---------------------------------
 
 def ensure_player(wallet):
     """
     Devuelve el objeto del jugador para esa wallet.
-    Si no existe, lo crea con 2 héroes demo.
+    Si no existe, lo crea cargando los NFTs desde metadata.
+    Si existe, sincroniza los NFTs con wallet_nfts.json (agrega nuevos, mantiene existentes).
     """
     players = load_json(PLAYERS_PATH, {})
 
+    # Obtener los token_ids que debería tener esta billetera
+    expected_token_ids = get_wallet_token_ids(wallet)
+
     if wallet not in players:
+        # Jugador nuevo: crear desde cero
+        heroes = []
+        if expected_token_ids:
+            for token_id in expected_token_ids:
+                hero = create_hero_from_metadata(token_id)
+                heroes.append(hero)
+
+        # Calcular totales
+        total_xp = sum(h["dynamic_state"]["xp_total"] for h in heroes)
+        total_aura = sum(h["dynamic_state"]["aura_level"] for h in heroes)
+        total_energy = sum(h["dynamic_state"]["energy_current"] for h in heroes)
+
         players[wallet] = {
             "wallet": wallet,
-            "heroes": [
-                {
-                    "token_id": "00001",
-                    "name": "Entaal, Bearer of Acordry of the Broken Choose",
-                    "race_class": "Gith Druid",
-                    "guild": "Circle of Mist",
-                    "image_url": "/img/00001.png",
-                    "dynamic_state": {
-                        "xp_total": 120,
-                        "aura_level": 14,
-                        "energy_current": 80,
-                        "energy_max": 100,
-                        "state": "READY",
-                        "current_guild": "Circle of Mist",
-                        "last_update": now_utc_str(),
-                        "last_energy_refresh": now_utc_str(),
-                        "mission_history": {},
-                        "power_current": 12,
-                        "xp_level": 1,
-                        "last_mission": "The Lost Forge"
-                    }
-                },
-                {
-                    "token_id": "00002",
-                    "name": "Brax-Ironjaw",
-                    "race_class": "Orc Warrior",
-                    "guild": "Forge Legion",
-                    "image_url": "/img/00002.png",
-                    "dynamic_state": {
-                        "xp_total": 210,
-                        "aura_level": 7,
-                        "energy_current": 45,
-                        "energy_max": 100,
-                        "state": "READY",
-                        "current_guild": "Forge Legion",
-                        "last_update": now_utc_str(),
-                        "last_energy_refresh": now_utc_str(),
-                        "mission_history": {},
-                        "power_current": 18,
-                        "xp_level": 2,
-                        "last_mission": "Veil Breach Containment"
-                    }
-                }
-            ],
+            "heroes": heroes,
             "totals": {
-                "heroes_count": 2,
-                "xp_total_all": 330,
-                "aura_total_all": 21,
-                "energy_total_available": 125
+                "heroes_count": len(heroes),
+                "xp_total_all": total_xp,
+                "aura_total_all": total_aura,
+                "energy_total_available": total_energy
             }
         }
+        save_json(PLAYERS_PATH, players)
+    else:
+        # Jugador existente: sincronizar NFTs
+        player = players[wallet]
+        existing_heroes = player.get("heroes", [])
+
+        # Crear mapa de heroes existentes por token_id
+        existing_heroes_map = {h["token_id"]: h for h in existing_heroes}
+
+        # Crear lista nueva de heroes
+        new_heroes = []
+        for token_id in expected_token_ids:
+            token_id_padded = str(token_id).zfill(5)
+
+            if token_id_padded in existing_heroes_map:
+                # Ya existe: mantener con su progreso
+                new_heroes.append(existing_heroes_map[token_id_padded])
+            else:
+                # Nuevo NFT: crear desde metadata
+                hero = create_hero_from_metadata(token_id)
+                new_heroes.append(hero)
+
+        # Actualizar la lista de heroes
+        player["heroes"] = new_heroes
+
+        # Recalcular totales
+        total_xp = sum(h["dynamic_state"]["xp_total"] for h in new_heroes)
+        total_aura = sum(h["dynamic_state"]["aura_level"] for h in new_heroes)
+        total_energy = sum(h["dynamic_state"]["energy_current"] for h in new_heroes)
+
+        player["totals"] = {
+            "heroes_count": len(new_heroes),
+            "xp_total_all": total_xp,
+            "aura_total_all": total_aura,
+            "energy_total_available": total_energy
+        }
+
+        players[wallet] = player
         save_json(PLAYERS_PATH, players)
 
     return players[wallet], players
