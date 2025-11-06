@@ -3,6 +3,7 @@ import os
 import time
 from datetime import datetime, timedelta
 from flask import Flask, jsonify, send_from_directory, request, abort, render_template, render_template
+from web3 import Web3
 
 # ---------------------------------
 # Config
@@ -20,6 +21,51 @@ METADATA_DIR = os.path.join(DATA_DIR, "metadata")
 
 # IPFS Gateway para convertir URLs de IPFS a URLs HTTP
 IPFS_GATEWAY = "https://ipfs.io/ipfs/"
+
+# ---------------------------------
+# Blockchain Config (Base Sepolia)
+# ---------------------------------
+
+# Base Sepolia RPC endpoint
+BASE_SEPOLIA_RPC = "https://sepolia.base.org"
+
+# Contract address (Base Sepolia)
+NFT_CONTRACT_ADDRESS = "0x2F55e14F0b2B2118d2026d20Ad2C39EAcBdCAc47"
+
+# ERC721 ABI mínimo - solo las funciones que necesitamos
+ERC721_ABI = [
+    {
+        "inputs": [{"name": "owner", "type": "address"}],
+        "name": "balanceOf",
+        "outputs": [{"name": "", "type": "uint256"}],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [{"name": "owner", "type": "address"}, {"name": "index", "type": "uint256"}],
+        "name": "tokenOfOwnerByIndex",
+        "outputs": [{"name": "", "type": "uint256"}],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [{"name": "tokenId", "type": "uint256"}],
+        "name": "ownerOf",
+        "outputs": [{"name": "", "type": "address"}],
+        "stateMutability": "view",
+        "type": "function"
+    }
+]
+
+# Inicializar Web3
+try:
+    w3 = Web3(Web3.HTTPProvider(BASE_SEPOLIA_RPC))
+    nft_contract = w3.eth.contract(address=Web3.to_checksum_address(NFT_CONTRACT_ADDRESS), abi=ERC721_ABI)
+    print(f"✅ Connected to Base Sepolia. Chain ID: {w3.eth.chain_id}")
+except Exception as e:
+    print(f"⚠️ Warning: Could not connect to blockchain: {e}")
+    w3 = None
+    nft_contract = None
 
 # Ganancia pasiva cada 24h por héroe
 PASSIVE_XP_PER_DAY   = 5
@@ -432,22 +478,72 @@ def ipfs_to_http(ipfs_url):
 
 def get_wallet_token_ids(wallet):
     """
-    Obtiene los token_ids que posee una billetera.
-    En producción, esto consultaría la blockchain.
-    Por ahora lee del archivo wallet_nfts.json.
+    🔥 Obtiene los token_ids REALES que posee una billetera consultando la blockchain.
+
+    Consulta el contrato NFT en Base Sepolia para obtener los NFTs que realmente
+    posee la wallet conectada.
+
+    Returns:
+        list: Lista de token_ids (como strings con formato "00001") que posee la wallet
+
+    Si hay error consultando blockchain, devuelve lista vacía.
     """
-    wallet_nfts = load_json(WALLET_NFTS_PATH, {})
 
-    # Normalizar la wallet address (case-insensitive)
-    wallet_lower = wallet.lower()
+    # Si no hay conexión a blockchain, intentar desde cache local
+    if w3 is None or nft_contract is None:
+        print(f"⚠️ No blockchain connection. Checking local cache for wallet: {wallet}")
+        wallet_nfts = load_json(WALLET_NFTS_PATH, {})
+        wallet_lower = wallet.lower()
+        for w, tokens in wallet_nfts.items():
+            if w.lower() == wallet_lower:
+                return tokens
+        return []
 
-    # Buscar coincidencia case-insensitive
-    for w, tokens in wallet_nfts.items():
-        if w.lower() == wallet_lower:
-            return tokens
+    try:
+        # Convertir wallet a checksum address
+        checksum_wallet = Web3.to_checksum_address(wallet)
 
-    # Si no se encuentra, devolver lista vacía
-    return []
+        # Obtener balance de NFTs de esta wallet
+        balance = nft_contract.functions.balanceOf(checksum_wallet).call()
+
+        print(f"🔍 Wallet {wallet[:6]}...{wallet[-4:]} has {balance} NFTs")
+
+        if balance == 0:
+            return []
+
+        # Obtener todos los token IDs que posee esta wallet
+        token_ids = []
+        for i in range(balance):
+            try:
+                token_id = nft_contract.functions.tokenOfOwnerByIndex(checksum_wallet, i).call()
+                # Formatear token_id como string con 5 dígitos (ej: "00001")
+                token_id_str = str(token_id).zfill(5)
+                token_ids.append(token_id_str)
+                print(f"  ✅ Token #{token_id_str}")
+            except Exception as e:
+                print(f"  ⚠️ Error getting token at index {i}: {e}")
+                continue
+
+        # Cache los resultados en wallet_nfts.json para referencia
+        if token_ids:
+            wallet_nfts = load_json(WALLET_NFTS_PATH, {})
+            wallet_nfts[wallet] = token_ids
+            save_json(WALLET_NFTS_PATH, wallet_nfts)
+
+        return token_ids
+
+    except Exception as e:
+        print(f"❌ Error querying blockchain for wallet {wallet}: {e}")
+
+        # Fallback: intentar desde cache local
+        wallet_nfts = load_json(WALLET_NFTS_PATH, {})
+        wallet_lower = wallet.lower()
+        for w, tokens in wallet_nfts.items():
+            if w.lower() == wallet_lower:
+                print(f"  📦 Using cached data: {len(tokens)} NFTs")
+                return tokens
+
+        return []
 
 def create_hero_from_metadata(token_id):
     """
@@ -493,7 +589,7 @@ def create_hero_from_metadata(token_id):
     # Crear race_class combinado
     race_class = f"{race} {char_class}"
 
-    # Convertir IPFS URL a HTTP
+    # Convertir IPFS URL a HTTP usando gateway público
     image_url = ipfs_to_http(metadata.get("image", ""))
     if not image_url:
         image_url = "/img/emissary-placeholder.png"
