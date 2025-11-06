@@ -168,31 +168,50 @@ def calculate_guild_ranking():
     """
     Calcula el ranking de guilds REAL desde players.json.
     Devuelve lista ordenada por XP total descendente.
+    INCLUYE TODOS LOS GREMIOS, incluso los que tienen 0 miembros.
     """
     players_all = load_json(PLAYERS_PATH, {})
     stats_obj = load_json(STATS_PATH, {})
+
+    # Lista de todos los gremios conocidos
+    all_guilds = [
+        "Forge Legion",
+        "Circle of Mist",
+        "Shadow Guild",
+        "Horizon Watch",
+        "Dawnkeepers",
+        "Echoes of the Veil"
+    ]
+
+    # Inicializar stats para TODOS los gremios
     guild_stats = {}
-    
+    for g in all_guilds:
+        guild_stats[g] = {
+            "xp_total": 0,
+            "aura_total": 0,
+            "members": 0
+        }
+
     # Recorrer todos los héroes de todos los jugadores
     for wallet, pdata in players_all.items():
         for hero in pdata.get("heroes", []):
             guild = hero.get("guild") or hero.get("dynamic_state", {}).get("current_guild", "Unknown")
             ds = hero.get("dynamic_state", {})
-            
+
             if guild not in guild_stats:
                 guild_stats[guild] = {
                     "xp_total": 0,
                     "aura_total": 0,
                     "members": 0
                 }
-            
+
             guild_stats[guild]["xp_total"] += ds.get("xp_total", 0)
             guild_stats[guild]["aura_total"] += ds.get("aura_level", 0)
             guild_stats[guild]["members"] += 1
-    
+
     # Agregar success rate desde stats.json
     guild_ranking_stats = stats_obj.get("guild_ranking", {})
-    
+
     result = []
     for guild_name, data in guild_stats.items():
         rank_data = guild_ranking_stats.get(guild_name, {})
@@ -200,7 +219,7 @@ def calculate_guild_ranking():
         failures = rank_data.get("failures", 0)
         total_missions = successes + failures
         success_rate = round((successes / total_missions * 100), 1) if total_missions > 0 else 0
-        
+
         result.append({
             "name": guild_name,
             "xp_total": data["xp_total"],
@@ -208,10 +227,35 @@ def calculate_guild_ranking():
             "members": data["members"],
             "success_rate": f"{success_rate}%"
         })
-    
+
     # 🔥 ORDENAR por XP total descendente
     result.sort(key=lambda x: x["xp_total"], reverse=True)
     return result
+
+def calculate_player_leaderboard():
+    """
+    Calcula el leaderboard de jugadores desde players.json.
+    Devuelve lista ordenada por XP total descendente.
+    """
+    players_all = load_json(PLAYERS_PATH, {})
+    leaderboard = []
+
+    for wallet, pdata in players_all.items():
+        totals = pdata.get("totals", {})
+        heroes_count = totals.get("heroes_count", 0)
+        xp_total = totals.get("xp_total_all", 0)
+        aura_total = totals.get("aura_total_all", 0)
+
+        leaderboard.append({
+            "wallet": wallet,
+            "heroes_count": heroes_count,
+            "xp_total_all": xp_total,
+            "aura_total_all": aura_total
+        })
+
+    # Ordenar por XP total descendente
+    leaderboard.sort(key=lambda x: x["xp_total_all"], reverse=True)
+    return leaderboard
 
 def calculate_guilds_data():
     """
@@ -328,11 +372,12 @@ def serve_docs(filename):
 @app.route("/api/stats")
 def api_stats():
     stats_obj = load_json(STATS_PATH, {})
-    
-    # 🔥 Usar la función que calcula ranking real
+
+    # 🔥 Calcular ranking real de guilds
     guild_rank_list = calculate_guild_ranking()
 
-    leaderboard = stats_obj.get("player_leaderboard", [])
+    # 🔥 Calcular leaderboard real de jugadores
+    leaderboard = calculate_player_leaderboard()
 
     resp = {
         "total_characters":     stats_obj.get("total_characters", 35000),

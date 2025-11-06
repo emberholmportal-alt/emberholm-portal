@@ -1014,12 +1014,24 @@ navButtons.forEach(btn => {
                 ensureMusicPlaying();
             }
 
+            // 🔥 Auto-load data when switching sections
             if (target === "stats") {
                 fetchStatsAndRender();
             } else if (target === "guilds") {
                 fetchGuildsAndRender();
             } else if (target === "missions") {
                 fetchMissionsAndRender();
+            } else if (target === "profile") {
+                // 🔥 Auto-prompt MetaMask connection if not connected
+                if (!connectedWallet) {
+                    setTimeout(() => {
+                        if (confirm("To view your profile, you need to connect your MetaMask wallet. Connect now?")) {
+                            connectWallet();
+                        }
+                    }, 300);
+                } else {
+                    loadPlayerAndRender();
+                }
             }
         } else {
             // si NO tiene data-target (por ej. MINT / INVOKE que hace window.location)
@@ -1128,7 +1140,13 @@ async function fetchGuildsAndRender(){
                     <div style="font-weight:bold;text-transform:uppercase;margin-bottom:4px;">
                         ${g.name} – ${g.flavor}
                     </div>
-                    <div>Members: ${g.members} | Avg XP: ${g.avg_xp} | Avg Aura: ${g.avg_aura}</div>
+                    <div>
+                        Members: ${g.members || 0} |
+                        Total XP: ${g.total_xp || 0} |
+                        Total Aura: ${g.total_aura || 0}<br/>
+                        Avg XP: ${g.avg_xp || 0} |
+                        Avg Aura: ${g.avg_aura || 0}
+                    </div>
                 </div>
             </div>
             `;
@@ -1521,6 +1539,12 @@ window.addEventListener("DOMContentLoaded", () => {
     if (homeBtn) {
         homeBtn.classList.add("is-active");
     }
+
+    // 🔥 Pre-load STATS and GUILDS data on page load
+    // This ensures data is ready when users navigate to those sections
+    fetchStatsAndRender();
+    fetchGuildsAndRender();
+    fetchMissionsAndRender();
 });
 </script>
 </body>

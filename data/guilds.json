@@ -3,17 +3,21 @@
         "name": "Forge Legion",
         "flavor": "strength, steel, sworn oaths",
         "members": 1,
-        "avg_xp": 180,
-        "avg_aura": 16,
-        "badge": "img/forge_legion.JPG"
+        "avg_xp": 465.0,
+        "avg_aura": 23.0,
+        "badge": "img/forge_legion.JPG",
+        "total_xp": 465,
+        "total_aura": 23
     },
     {
         "name": "Circle of Mist",
         "flavor": "alchemy, mana, forbidden knowledge",
         "members": 1,
-        "avg_xp": 120,
-        "avg_aura": 11,
-        "badge": "img/circle_of_mist.JPG"
+        "avg_xp": 135.0,
+        "avg_aura": 13.0,
+        "badge": "img/circle_of_mist.JPG",
+        "total_xp": 135,
+        "total_aura": 13
     },
     {
         "name": "Shadow Guild",
@@ -21,7 +25,9 @@
         "members": 0,
         "avg_xp": 0,
         "avg_aura": 0,
-        "badge": "img/shadow_guild.JPG"
+        "badge": "img/shadow_guild.JPG",
+        "total_xp": 0,
+        "total_aura": 0
     },
     {
         "name": "Horizon Watch",
@@ -29,7 +35,9 @@
         "members": 0,
         "avg_xp": 0,
         "avg_aura": 0,
-        "badge": "img/horizon_watch.JPG"
+        "badge": "img/horizon_watch.JPG",
+        "total_xp": 0,
+        "total_aura": 0
     },
     {
         "name": "Dawnkeepers",
@@ -37,7 +45,9 @@
         "members": 0,
         "avg_xp": 0,
         "avg_aura": 0,
-        "badge": "img/dawnkeepers.JPG"
+        "badge": "img/dawnkeepers.JPG",
+        "total_xp": 0,
+        "total_aura": 0
     },
     {
         "name": "Echoes of the Veil",
@@ -45,6 +55,8 @@
         "members": 0,
         "avg_xp": 0,
         "avg_aura": 0,
-        "badge": "img/echoes_of_the_veil.JPG"
+        "badge": "img/echoes_of_the_veil.JPG",
+        "total_xp": 0,
+        "total_aura": 0
     }
 ]
