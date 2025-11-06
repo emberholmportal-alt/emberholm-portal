@@ -306,7 +306,6 @@ app = Flask(
     static_url_path=""  # sirve /img/... /music/... directo
 )
 
-
 # ---------------------------------
 # Rutas estáticas base
 # ---------------------------------
