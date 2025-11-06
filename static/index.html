@@ -695,10 +695,8 @@ body {
                 <div class="profile-col-left">
                     <div>
                         <label>WALLET (BASE): </label>
-                        <input id="wallet-input" type="text"
-                            style="background:#000;color:#ffb400;border:1px solid #ffb400;font-family:'VT323',monospace;padding:4px;min-width:220px;"
-                            value="0xAriel...F13c">
-                        <button class="terminal-btn small-btn" id="load-profile-btn">[LOAD PROFILE]</button>
+                        <span id="wallet-display" style="color:#ffb400;font-size:14px;">Not connected</span>
+                        <button class="terminal-btn small-btn" id="connect-wallet-btn">[CONNECT METAMASK]</button>
                     </div>
 
                     <div id="wallet-summary" style="margin-top:10px;"></div>
@@ -976,7 +974,14 @@ body {
     </div>
 </section>
 </div><!-- /.wrapper -->
+
+<!-- 🔥 ETHERS.JS -->
+<script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+
 <script>
+/* --------- GLOBAL STATE --------- */
+let connectedWallet = null;
+
 /* --------- BASIC NAV --------- */
 function switchScreen(screenName){
     document.querySelectorAll(".screen").forEach(s=>{
@@ -1032,6 +1037,37 @@ async function fetchJSON(url, opts={}){
     return await res.json();
 }
 
+/* --------- 🔥 METAMASK CONNECTION --------- */
+async function connectWallet() {
+    if (!window.ethereum) {
+        alert("MetaMask not detected! Please install MetaMask or Coinbase Wallet.");
+        return null;
+    }
+
+    try {
+        const provider = new ethers.providers.Web3Provider(window.ethereum);
+        await provider.send("eth_requestAccounts", []);
+        const signer = provider.getSigner();
+        const address = await signer.getAddress();
+        
+        connectedWallet = address;
+        document.getElementById("wallet-display").textContent = address.slice(0, 6) + "..." + address.slice(-4);
+        document.getElementById("connect-wallet-btn").textContent = "[CONNECTED ✓]";
+        document.getElementById("connect-wallet-btn").disabled = true;
+        
+        // Load profile immediately after connecting
+        await loadPlayerAndRender();
+        
+        return address;
+    } catch (error) {
+        console.error("Wallet connection error:", error);
+        alert("Failed to connect wallet: " + error.message);
+        return null;
+    }
+}
+
+document.getElementById("connect-wallet-btn").addEventListener("click", connectWallet);
+
 /* --------- STATS PANEL --------- */
 async function fetchStatsAndRender(){
     try {
@@ -1043,17 +1079,20 @@ async function fetchStatsAndRender(){
         document.getElementById("stat-total-xp").textContent         = stats.total_exp_collected ?? 0;
         document.getElementById("stat-total-aura").textContent       = stats.total_aura_collected ?? 0;
 
+        // Guild Ranking - mostrar TODOS los gremios ordenados por XP
         const gr = stats.guild_ranking || [];
         let htmlGR = "";
-        gr.forEach(g=>{
-            htmlGR += `
-            <div class="mono-block">
-                <b>${g.name}</b><br/>
-                XP Total: ${g.xp_total} | Aura Total: ${g.aura_total} | Success Rate: ${g.success_rate}
-            </div>`;
-        });
-        if(!htmlGR){
+        
+        if (gr.length === 0) {
             htmlGR = `<div class="mono-small-note">No guild performance data yet.</div>`;
+        } else {
+            gr.forEach(g=>{
+                htmlGR += `
+                <div class="mono-block">
+                    <b>${g.name}</b><br/>
+                    Members: ${g.members || 0} | XP Total: ${g.xp_total || 0} | Aura Total: ${g.aura_total || 0} | Success Rate: ${g.success_rate || "0%"}
+                </div>`;
+            });
         }
         document.getElementById("guild-ranking-list").innerHTML = htmlGR;
 
@@ -1127,7 +1166,16 @@ async function fetchMissionsAndRender(){
 
 /* --------- PROFILE PANEL --------- */
 async function loadPlayerAndRender(){
-    const wallet = (document.getElementById("wallet-input").value || "").trim() || "0xAriel...F13c";
+    if (!connectedWallet) {
+        document.getElementById("wallet-summary").innerHTML = 
+            `<div class="mono-small-note">Please connect your MetaMask wallet first.</div>`;
+        document.getElementById("prime-emissary-img").textContent = "NO DATA";
+        document.getElementById("prime-emissary-desc").innerHTML = "No wallet connected.";
+        document.getElementById("roster-table-wrap").innerHTML = "";
+        return;
+    }
+
+    const wallet = connectedWallet;
 
     try {
         const player = await fetchJSON(`/api/player/${encodeURIComponent(wallet)}`);
@@ -1249,14 +1297,17 @@ async function loadPlayerAndRender(){
                 );
                 if(!missionId) return;
 
-                const inputWallet = document.getElementById("wallet-input").value.trim() || "0xAriel...F13c";
+                if (!connectedWallet) {
+                    alert("Please connect your wallet first!");
+                    return;
+                }
 
                 try {
                     const res = await fetch("/api/mission/execute", {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
                         body: JSON.stringify({
-                            wallet: inputWallet,
+                            wallet: connectedWallet,
                             hero_id: heroId,
                             mission_id: missionId
                         })
@@ -1316,14 +1367,17 @@ async function loadPlayerAndRender(){
                     return;
                 }
 
-                const inputWallet = document.getElementById("wallet-input").value.trim() || "0xAriel...F13c";
+                if (!connectedWallet) {
+                    alert("Please connect your wallet first!");
+                    return;
+                }
 
                 try {
                     const res = await fetch("/api/player/spend_xp_for_energy", {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
                         body: JSON.stringify({
-                            wallet: inputWallet,
+                            wallet: connectedWallet,
                             hero_id: heroId,
                             energy_request: energyRequest
                         })
@@ -1362,14 +1416,6 @@ async function loadPlayerAndRender(){
             `<div class="mono-small-note">No roster data.</div>`;
     }
 }
-
-/* LOAD PROFILE BUTTON */
-document.getElementById("load-profile-btn").addEventListener("click", ()=>{
-    loadPlayerAndRender();
-});
-
-/* AUTO-INIT PROFILE */
-loadPlayerAndRender();
 
 /* --------- AMBIENT MUSIC SYSTEM (EMBERHOLM CONSOLE) ---------
    Sirve pistas desde /static/music/*.wav que Flask expone como /music/*.wav
