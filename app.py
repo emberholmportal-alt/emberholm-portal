@@ -2,7 +2,7 @@ import json
 import os
 import time
 from datetime import datetime, timedelta
-from flask import Flask, jsonify, send_from_directory, request, abort, render_template
+from flask import Flask, jsonify, send_from_directory, request, abort, render_template, render_template
 
 # ---------------------------------
 # Config
@@ -161,7 +161,7 @@ def apply_passive_and_regen(player_obj, stats_obj):
     return player_obj, stats_obj
 
 # ---------------------------------
-# 🔥 NUEVAS FUNCIONES: Cálculo real de Guild Stats
+# Ranking y stats de gremios
 # ---------------------------------
 
 def calculate_guild_ranking():
@@ -213,17 +213,16 @@ def calculate_guild_ranking():
     result.sort(key=lambda x: x["xp_total"], reverse=True)
     return result
 
-
 def calculate_guilds_data():
     """
-    Calcula datos REALES de cada guild para /api/guilds.
-    Combina info base (badge, flavor) con stats calculados.
+    Actualiza guilds.json con datos reales de members, avg_xp, avg_aura
+    calculados desde players.json
     """
     players_all = load_json(PLAYERS_PATH, {})
-    guilds_base = load_json(GUILDS_PATH, [])  # Para obtener badge, flavor, etc.
-    guild_stats = {}
+    guilds_data = load_json(GUILDS_PATH, [])
     
-    # Recorrer todos los héroes
+    # Calcular stats reales por gremio
+    guild_stats = {}
     for wallet, pdata in players_all.items():
         for hero in pdata.get("heroes", []):
             guild = hero.get("guild") or hero.get("dynamic_state", {}).get("current_guild", "Unknown")
@@ -231,49 +230,46 @@ def calculate_guilds_data():
             
             if guild not in guild_stats:
                 guild_stats[guild] = {
-                    "xp_total": 0,
-                    "aura_total": 0,
+                    "total_xp": 0,
+                    "total_aura": 0,
                     "members": 0
                 }
             
-            guild_stats[guild]["xp_total"] += ds.get("xp_total", 0)
-            guild_stats[guild]["aura_total"] += ds.get("aura_level", 0)
+            guild_stats[guild]["total_xp"] += ds.get("xp_total", 0)
+            guild_stats[guild]["total_aura"] += ds.get("aura_level", 0)
             guild_stats[guild]["members"] += 1
     
-    # Combinar con datos base (badge, flavor)
-    result = []
-    for guild_base in guilds_base:
-        guild_name = guild_base.get("name", "Unknown")
-        stats = guild_stats.get(guild_name, {"xp_total": 0, "aura_total": 0, "members": 0})
-        
-        avg_xp = round(stats["xp_total"] / stats["members"], 2) if stats["members"] > 0 else 0
-        avg_aura = round(stats["aura_total"] / stats["members"], 2) if stats["members"] > 0 else 0
-        
-        result.append({
-            "name": guild_name,
-            "badge": guild_base.get("badge", "/img/guild-default.png"),
-            "flavor": guild_base.get("flavor", ""),
-            "members": stats["members"],
-            "total_xp": stats["xp_total"],
-            "total_aura": stats["aura_total"],
-            "avg_xp": avg_xp,
-            "avg_aura": avg_aura
-        })
+    # Actualizar guilds.json con datos reales
+    for g in guilds_data:
+        guild_name = g.get("name", "")
+        if guild_name in guild_stats:
+            stats = guild_stats[guild_name]
+            g["members"] = stats["members"]
+            g["total_xp"] = stats["total_xp"]
+            g["total_aura"] = stats["total_aura"]
+            g["avg_xp"] = round(stats["total_xp"] / stats["members"], 2) if stats["members"] > 0 else 0
+            g["avg_aura"] = round(stats["total_aura"] / stats["members"], 2) if stats["members"] > 0 else 0
+        else:
+            # Si no hay datos, poner en 0
+            g["members"] = 0
+            g["total_xp"] = 0
+            g["total_aura"] = 0
+            g["avg_xp"] = 0
+            g["avg_aura"] = 0
     
-    return result
-
-# ---------------------------------
-# Ranking y stats de gremios (función antigua - actualizada para incrementar successes)
-# ---------------------------------
+    save_json(GUILDS_PATH, guilds_data)
+    return guilds_data
 
 def update_guild_stats(guild_name, xp_gain, aura_gain, stats_obj, success=True):
     """
     - Suma XP/Aura ganadas por ese gremio a stats["guild_ranking"].
-    - Incrementa successes o failures según el resultado de la misión.
+    - Refleja actividad en guilds.json (members, avg_xp, avg_aura).
+    - Actualiza success/failure count.
     """
     if not guild_name:
         return stats_obj
 
+    # 1) stats["guild_ranking"]
     guild_ranking = stats_obj.get("guild_ranking", {})
     if guild_name not in guild_ranking:
         guild_ranking[guild_name] = {
@@ -286,13 +282,15 @@ def update_guild_stats(guild_name, xp_gain, aura_gain, stats_obj, success=True):
     guild_ranking[guild_name]["xp"]   += xp_gain
     guild_ranking[guild_name]["aura"] += aura_gain
     
-    # Incrementar successes o failures
     if success:
-        guild_ranking[guild_name]["successes"] += 1
+        guild_ranking[guild_name]["successes"] = guild_ranking[guild_name].get("successes", 0) + 1
     else:
-        guild_ranking[guild_name]["failures"] += 1
+        guild_ranking[guild_name]["failures"] = guild_ranking[guild_name].get("failures", 0) + 1
     
     stats_obj["guild_ranking"] = guild_ranking
+
+    # 2) Recalcular guilds.json con datos reales
+    calculate_guilds_data()
 
     return stats_obj
 
@@ -313,25 +311,25 @@ app = Flask(
 @app.route("/")
 def serve_index():
     return send_from_directory(app.static_folder, "index.html")
-
 @app.route("/mint")
 def serve_mint():
+    # mint.html está en la carpeta raíz del proyecto (C:\EmberholmServer)
     return render_template("mint.html")
-
+# servir whitepapers desde /static/docs
 @app.route("/docs/<path:filename>")
 def serve_docs(filename):
     docs_dir = os.path.join(app.static_folder, "docs")
     return send_from_directory(docs_dir, filename)
 
 # ---------------------------------
-# 🔥 API: STATS (CORREGIDO)
+# API: STATS
 # ---------------------------------
 
 @app.route("/api/stats")
 def api_stats():
     stats_obj = load_json(STATS_PATH, {})
     
-    # 🔥 Usar función que calcula datos reales y ordena por XP
+    # 🔥 Usar la función que calcula ranking real
     guild_rank_list = calculate_guild_ranking()
 
     leaderboard = stats_obj.get("player_leaderboard", [])
@@ -349,12 +347,12 @@ def api_stats():
     return jsonify(resp)
 
 # ---------------------------------
-# 🔥 API: GUILDS (CORREGIDO)
+# API: GUILDS
 # ---------------------------------
 
 @app.route("/api/guilds")
 def api_guilds():
-    # 🔥 Usar función que calcula datos reales
+    # 🔥 Recalcular datos reales antes de devolver
     guilds_data = calculate_guilds_data()
     return jsonify(guilds_data)
 
@@ -619,8 +617,8 @@ def api_mission_execute():
     stats_obj["total_exp_collected"]  = stats_obj.get("total_exp_collected", 0) + xp_gain
     stats_obj["total_aura_collected"] = stats_obj.get("total_aura_collected", 0) + aura_gain
 
-    # ranking gremio (con success=True)
-    stats_obj = update_guild_stats(hero_guild_name, xp_gain, aura_gain, stats_obj, success=True)
+    # ranking gremio
+    stats_obj = update_guild_stats(hero_guild_name, xp_gain, aura_gain, stats_obj)
 
     # recalcular totales, con pasivo otra vez
     player_obj, stats_obj = apply_passive_and_regen(player_obj, stats_obj)
@@ -704,6 +702,7 @@ def load_base_metadata_for_token(token_id):
         val   = trait.get("value")
 
         if ttype == "id" and meta["token_id"] == str(token_id).zfill(5):
+            # ya tenemos token_id, no lo pisamos
             pass
         elif ttype == "race" and meta["race"] == "Unknown":
             meta["race"] = val
