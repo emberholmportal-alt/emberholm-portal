@@ -435,6 +435,8 @@ def get_wallet_token_ids(wallet):
     Obtiene los token_ids que posee una billetera.
     En producción, esto consultaría la blockchain.
     Por ahora lee del archivo wallet_nfts.json.
+
+    Si la wallet no está en el archivo, asigna NFTs de demo automáticamente.
     """
     wallet_nfts = load_json(WALLET_NFTS_PATH, {})
 
@@ -446,8 +448,17 @@ def get_wallet_token_ids(wallet):
         if w.lower() == wallet_lower:
             return tokens
 
-    # Si no se encuentra, devolver lista vacía
-    return []
+    # 🔥 Si no se encuentra, asignar NFTs de DEMO para testing
+    # En producción, esto consultaría la blockchain real
+    # Por ahora asignamos los primeros 10 NFTs como demo
+    demo_tokens = ["00001", "00002", "00003", "00004", "00005",
+                   "00006", "00007", "00008", "00009", "00010"]
+
+    # Guardar esta asignación para futuras consultas
+    wallet_nfts[wallet] = demo_tokens
+    save_json(WALLET_NFTS_PATH, wallet_nfts)
+
+    return demo_tokens
 
 def create_hero_from_metadata(token_id):
     """
@@ -493,10 +504,14 @@ def create_hero_from_metadata(token_id):
     # Crear race_class combinado
     race_class = f"{race} {char_class}"
 
-    # Convertir IPFS URL a HTTP
-    image_url = ipfs_to_http(metadata.get("image", ""))
-    if not image_url:
-        image_url = "/img/emissary-placeholder.png"
+    # 🔥 Usar imagen local si existe, sino placeholder
+    # En producción, esto usaría las URLs de IPFS reales
+    # Por ahora usamos el placeholder para todos
+    image_url = "/img/emissary-placeholder.png"
+
+    # Intentar usar imagen local si existe (formato: /img/00001.png)
+    # Si tienes imágenes locales en static/img/, descomenta esta línea:
+    # image_url = f"/img/{str(token_id).zfill(5)}.png"
 
     # Calcular power_current desde stats (aproximación)
     str_val = fixed.get("str", 10)
