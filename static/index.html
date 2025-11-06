@@ -1049,7 +1049,7 @@ async function fetchJSON(url, opts={}){
     return await res.json();
 }
 
-/* --------- 🔥 METAMASK CONNECTION --------- */
+/* --------- 🔥 METAMASK CONNECTION + BLOCKCHAIN QUERY --------- */
 async function connectWallet() {
     if (!window.ethereum) {
         alert("MetaMask not detected! Please install MetaMask or Coinbase Wallet.");
@@ -1061,15 +1061,55 @@ async function connectWallet() {
         await provider.send("eth_requestAccounts", []);
         const signer = provider.getSigner();
         const address = await signer.getAddress();
-        
+
         connectedWallet = address;
         document.getElementById("wallet-display").textContent = address.slice(0, 6) + "..." + address.slice(-4);
-        document.getElementById("connect-wallet-btn").textContent = "[CONNECTED ✓]";
+        document.getElementById("connect-wallet-btn").textContent = "[QUERYING BLOCKCHAIN...]";
         document.getElementById("connect-wallet-btn").disabled = true;
-        
+
+        // 🔥 Query NFT contract on Base Sepolia to get user's NFTs
+        try {
+            const contractAddress = "0x2F55e14F0b2B2118d2026d20Ad2C39EAcBdCAc47";
+            const abi = [
+                "function balanceOf(address owner) view returns (uint256)",
+                "function tokenOfOwnerByIndex(address owner, uint256 index) view returns (uint256)"
+            ];
+
+            const contract = new ethers.Contract(contractAddress, abi, provider);
+
+            console.log("🔍 Querying NFT balance for wallet:", address);
+            const balance = await contract.balanceOf(address);
+            console.log(`✅ Wallet has ${balance.toString()} NFTs`);
+
+            const tokenIds = [];
+            for (let i = 0; i < balance.toNumber(); i++) {
+                const tokenId = await contract.tokenOfOwnerByIndex(address, i);
+                const tokenIdStr = tokenId.toString().padStart(5, '0');
+                tokenIds.push(tokenIdStr);
+                console.log(`  ✅ Token #${tokenIdStr}`);
+            }
+
+            // Send token_ids to backend
+            if (tokenIds.length > 0) {
+                console.log("📤 Sending NFT data to backend...");
+                await fetch(`/api/player/${encodeURIComponent(address)}`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ token_ids: tokenIds })
+                });
+                console.log("✅ NFT data registered on backend");
+            }
+
+            document.getElementById("connect-wallet-btn").textContent = "[CONNECTED ✓]";
+        } catch (blockchainError) {
+            console.error("⚠️ Blockchain query error:", blockchainError);
+            document.getElementById("connect-wallet-btn").textContent = "[CONNECTED - Using Cache]";
+            // Continue anyway - backend will use cache if available
+        }
+
         // Load profile immediately after connecting
         await loadPlayerAndRender();
-        
+
         return address;
     } catch (error) {
         console.error("Wallet connection error:", error);

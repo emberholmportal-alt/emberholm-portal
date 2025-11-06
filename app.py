@@ -682,8 +682,23 @@ def ensure_player(wallet):
 # API: PLAYER PROFILE
 # ---------------------------------
 
-@app.route("/api/player/<wallet>")
+@app.route("/api/player/<wallet>", methods=["GET", "POST"])
 def api_player(wallet):
+    # Si es POST, recibir token_ids desde frontend (consultados de blockchain)
+    if request.method == "POST":
+        try:
+            data = request.get_json(force=True)
+            token_ids = data.get("token_ids", [])
+
+            if token_ids:
+                # Guardar los NFTs que posee esta wallet en cache
+                wallet_nfts = load_json(WALLET_NFTS_PATH, {})
+                wallet_nfts[wallet] = token_ids
+                save_json(WALLET_NFTS_PATH, wallet_nfts)
+                print(f"✅ Wallet {wallet[:6]}...{wallet[-4:]} registered with {len(token_ids)} NFTs from blockchain")
+        except Exception as e:
+            print(f"⚠️ Error processing POST data: {e}")
+
     stats_obj = load_json(STATS_PATH, {
         "total_characters": 35000,
         "active_guilds": 6,
