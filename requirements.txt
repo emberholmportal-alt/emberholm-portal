@@ -1,4 +1,2 @@
-setuptools==75.6.0
 Flask==3.0.3
 gunicorn==21.2.0
-web3==7.6.0

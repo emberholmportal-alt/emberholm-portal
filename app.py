@@ -3,7 +3,15 @@ import os
 import time
 from datetime import datetime, timedelta
 from flask import Flask, jsonify, send_from_directory, request, abort, render_template, render_template
-from web3 import Web3
+
+# Try to import web3 - if it fails, we'll use local cache only
+try:
+    from web3 import Web3
+    WEB3_AVAILABLE = True
+except ImportError as e:
+    print(f"⚠️ Warning: web3 not available ({e}). Will use local cache only.")
+    Web3 = None
+    WEB3_AVAILABLE = False
 
 # ---------------------------------
 # Config
@@ -57,15 +65,21 @@ ERC721_ABI = [
     }
 ]
 
-# Inicializar Web3
-try:
-    w3 = Web3(Web3.HTTPProvider(BASE_SEPOLIA_RPC))
-    nft_contract = w3.eth.contract(address=Web3.to_checksum_address(NFT_CONTRACT_ADDRESS), abi=ERC721_ABI)
-    print(f"✅ Connected to Base Sepolia. Chain ID: {w3.eth.chain_id}")
-except Exception as e:
-    print(f"⚠️ Warning: Could not connect to blockchain: {e}")
-    w3 = None
-    nft_contract = None
+# Inicializar Web3 (solo si está disponible)
+w3 = None
+nft_contract = None
+
+if WEB3_AVAILABLE and Web3 is not None:
+    try:
+        w3 = Web3(Web3.HTTPProvider(BASE_SEPOLIA_RPC))
+        nft_contract = w3.eth.contract(address=Web3.to_checksum_address(NFT_CONTRACT_ADDRESS), abi=ERC721_ABI)
+        print(f"✅ Connected to Base Sepolia. Chain ID: {w3.eth.chain_id}")
+    except Exception as e:
+        print(f"⚠️ Warning: Could not connect to blockchain: {e}")
+        w3 = None
+        nft_contract = None
+else:
+    print("⚠️ Web3 not available. Using local cache for NFT data.")
 
 # Ganancia pasiva cada 24h por héroe
 PASSIVE_XP_PER_DAY   = 5
@@ -501,7 +515,10 @@ def get_wallet_token_ids(wallet):
 
     try:
         # Convertir wallet a checksum address
-        checksum_wallet = Web3.to_checksum_address(wallet)
+        if Web3 is not None:
+            checksum_wallet = Web3.to_checksum_address(wallet)
+        else:
+            checksum_wallet = wallet
 
         # Obtener balance de NFTs de esta wallet
         balance = nft_contract.functions.balanceOf(checksum_wallet).call()
