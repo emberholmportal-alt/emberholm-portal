@@ -8,21 +8,23 @@ import "@openzeppelin/contracts/utils/Strings.sol";
 
 /**
  * @title EmberholmPortal
- * @dev Complete NFT contract for Emberholm Portal game
- * @notice Streamlined design: On-chain ownership/staking/achievements, off-chain guild/name in metadata
+ * @dev Ultra-lightweight NFT contract for Emberholm Portal game
+ * @notice MINIMAL on-chain design: Only ownership, staking, and equipment. Everything else in backend/metadata.
  *
  * Features:
  * - TIER 1: Basic queries (totalMinted, tokensOfOwner, getTokenInfo)
  * - TIER 2: Batch operations, staking system, primary token selection
- * - TIER 3: Achievements system, guild leadership (prepared), equipment slots (prepared for items)
+ * - TIER 3: Equipment slots (prepared for future Items contract)
  *
- * Design Philosophy:
- * - Guild membership & names: Tracked in metadata (backend manages)
- * - Staking: On-chain (prevents transfers during missions)
- * - Achievements: On-chain (permanent badges)
+ * Design Philosophy (Backend-First):
+ * - Guild membership: Backend + Metadata (FREE, flexible)
+ * - Names: Backend + Metadata (FREE, fixed)
+ * - Achievements: Backend + Metadata (FREE, appears in OpenSea)
+ * - Guild leadership: Backend database (FREE, no gas)
+ * - Staking: On-chain (CRITICAL - prevents transfers during missions)
  * - Equipment: On-chain (future Items contract integration)
  *
- * Version: 2.0 (Optimized)
+ * Version: 2.0 (Ultra-Optimized - Backend First)
  * Network: Base Sepolia (testnet) → Base (mainnet ready)
  */
 
@@ -66,8 +68,7 @@ contract EmberholmPortal is ERC721, ERC2981, Ownable {
         uint256 tokenId;
         address owner;
         bool isStaked;
-        uint256 achievements;
-        // Note: guild and name are in metadata, not on-chain
+        // Note: guild, name, and achievements are in metadata (backend manages)
     }
 
     struct WalletStats {
@@ -78,21 +79,12 @@ contract EmberholmPortal is ERC721, ERC2981, Ownable {
 
     // ========== STORAGE MAPPINGS ==========
 
-    // Guild leadership (guilds: Circle of Mist, Order of Dawn, Horizon Watch, Shadow Guild, Forge Legion, Void Echoes)
-    // Note: Guild membership is tracked in metadata, not on-chain
-    // Leadership is on-chain for future governance/permissions
-    mapping(uint8 => address) public guildLeader;
-    mapping(uint8 => mapping(address => bool)) public guildOfficers;
-
-    // Staking system
+    // Staking system (CRITICAL on-chain - prevents transfers during missions)
     mapping(uint256 => bool) public stakedTokens;
     mapping(uint256 => uint256) public stakeTimestamp;
 
-    // Primary token selection
+    // Primary token selection (user preference for TOP EMISSARY)
     mapping(address => uint256) public primaryToken;
-
-    // Achievements system (bitmap for gas efficiency)
-    mapping(uint256 => uint256) public tokenAchievements;
 
     // Custom metadata
     mapping(uint256 => string) public tokenImageOverride;
@@ -107,9 +99,6 @@ contract EmberholmPortal is ERC721, ERC2981, Ownable {
     event TokenStaked(uint256 indexed tokenId, address indexed owner, uint256 timestamp);
     event TokenUnstaked(uint256 indexed tokenId, address indexed owner, uint256 timestamp);
     event PrimaryTokenSet(address indexed owner, uint256 indexed tokenId);
-    event AchievementGranted(uint256 indexed tokenId, uint8 indexed achievementId);
-    event GuildLeaderSet(uint8 indexed guildId, address indexed leader);
-    event GuildOfficerSet(uint8 indexed guildId, address indexed officer, bool isOfficer);
     event TokenImageUpdated(uint256 indexed tokenId, string imageURI);
     event TokenAttributeSet(uint256 indexed tokenId, string key, string value);
     event ItemEquipped(uint256 indexed tokenId, string slot, uint256 itemId);
@@ -210,8 +199,8 @@ contract EmberholmPortal is ERC721, ERC2981, Ownable {
     }
 
     /**
-     * @dev Get complete info for a token
-     * Note: Guild and name are in metadata, not returned here
+     * @dev Get on-chain info for a token
+     * Note: Guild, name, and achievements are in metadata (backend manages)
      */
     function getTokenInfo(uint256 tokenId) public view returns (TokenInfo memory) {
         require(_ownerOf(tokenId) != address(0), "Token doesn't exist");
@@ -221,8 +210,7 @@ contract EmberholmPortal is ERC721, ERC2981, Ownable {
         return TokenInfo({
             tokenId: tokenId,
             owner: owner,
-            isStaked: stakedTokens[tokenId],
-            achievements: tokenAchievements[tokenId]
+            isStaked: stakedTokens[tokenId]
         });
     }
 
@@ -341,89 +329,8 @@ contract EmberholmPortal is ERC721, ERC2981, Ownable {
         return getTokenInfo(tokenId);
     }
 
-    // ========== TIER 3: ACHIEVEMENTS SYSTEM ==========
-
-    /**
-     * @dev Grant achievement to token (only authorized)
-     */
-    function grantAchievement(uint256 tokenId, uint8 achievementId) external {
-        require(
-            msg.sender == missionManager || msg.sender == owner(),
-            "Not authorized"
-        );
-        require(achievementId < 256, "Invalid achievement ID");
-        require(_ownerOf(tokenId) != address(0), "Token doesn't exist");
-
-        // Use bitmap for gas efficiency
-        tokenAchievements[tokenId] |= (1 << achievementId);
-
-        emit AchievementGranted(tokenId, achievementId);
-    }
-
-    /**
-     * @dev Check if token has specific achievement
-     */
-    function hasAchievement(uint256 tokenId, uint8 achievementId) external view returns (bool) {
-        return (tokenAchievements[tokenId] & (1 << achievementId)) != 0;
-    }
-
-    /**
-     * @dev Get all achievements for a token
-     */
-    function getAchievements(uint256 tokenId) external view returns (uint8[] memory) {
-        uint256 bitmap = tokenAchievements[tokenId];
-        uint8 count = 0;
-
-        // Count achievements
-        for (uint8 i = 0; i < 256; i++) {
-            if ((bitmap & (1 << i)) != 0) count++;
-        }
-
-        // Fill array
-        uint8[] memory achievements = new uint8[](count);
-        uint8 index = 0;
-
-        for (uint8 i = 0; i < 256; i++) {
-            if ((bitmap & (1 << i)) != 0) {
-                achievements[index] = i;
-                index++;
-            }
-        }
-
-        return achievements;
-    }
-
-    // ========== TIER 3: GUILD LEADERSHIP ==========
-
-    /**
-     * @dev Set guild leader (owner only, initially all guilds have no leader)
-     */
-    function setGuildLeader(uint8 guildId, address leader) external onlyOwner {
-        require(guildId < 6, "Invalid guild");
-        guildLeader[guildId] = leader;
-        emit GuildLeaderSet(guildId, leader);
-    }
-
-    /**
-     * @dev Guild leader can assign officers
-     */
-    function setGuildOfficer(uint8 guildId, address officer, bool isOfficer) external {
-        require(msg.sender == guildLeader[guildId], "Not guild leader");
-        guildOfficers[guildId][officer] = isOfficer;
-        emit GuildOfficerSet(guildId, officer, isOfficer);
-    }
-
-    /**
-     * @dev Check if address is leader or officer
-     */
-    function isGuildLeaderOrOfficer(uint8 guildId, address account) external view returns (bool) {
-        return account == guildLeader[guildId] || guildOfficers[guildId][account];
-    }
-
-    // Note: getGuildMemberCount() and getGuildMembers() removed
-    // Guild membership is tracked in metadata, backend should query that
-
     // ========== TIER 3: CUSTOM METADATA ==========
+    // Note: Achievements and guild leadership moved to backend (FREE, appears in OpenSea metadata)
 
     /**
      * @dev Set custom image for token
