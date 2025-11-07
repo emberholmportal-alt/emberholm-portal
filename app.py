@@ -400,7 +400,7 @@ def api_stats():
     leaderboard = calculate_player_leaderboard()
 
     resp = {
-        "total_characters":     stats_obj.get("total_characters", 35000),
+        "total_characters":     stats_obj.get("total_characters", 0),  # 🔥 Real value from blockchain contract
         "active_guilds":        stats_obj.get("active_guilds", 6),
         "missions_completed":   stats_obj.get("missions_completed", 0),
         "missions_failed":      stats_obj.get("missions_failed", 0),
@@ -684,11 +684,12 @@ def ensure_player(wallet):
 
 @app.route("/api/player/<wallet>", methods=["GET", "POST"])
 def api_player(wallet):
-    # Si es POST, recibir token_ids desde frontend (consultados de blockchain)
+    # Si es POST, recibir token_ids y total_supply desde frontend (consultados de blockchain)
     if request.method == "POST":
         try:
             data = request.get_json(force=True)
             token_ids = data.get("token_ids", [])
+            total_supply = data.get("total_supply", None)
 
             if token_ids:
                 # Guardar los NFTs que posee esta wallet en cache
@@ -696,11 +697,18 @@ def api_player(wallet):
                 wallet_nfts[wallet] = token_ids
                 save_json(WALLET_NFTS_PATH, wallet_nfts)
                 print(f"✅ Wallet {wallet[:6]}...{wallet[-4:]} registered with {len(token_ids)} NFTs from blockchain")
+
+            # 🔥 Guardar total_supply real del contrato para STATS
+            if total_supply is not None:
+                stats_obj = load_json(STATS_PATH, {})
+                stats_obj["total_characters"] = total_supply
+                save_json(STATS_PATH, stats_obj)
+                print(f"✅ Contract total supply updated: {total_supply} characters")
         except Exception as e:
             print(f"⚠️ Error processing POST data: {e}")
 
     stats_obj = load_json(STATS_PATH, {
-        "total_characters": 35000,
+        "total_characters": 0,  # 🔥 Will be updated from blockchain contract
         "active_guilds": 6,
         "missions_completed": 0,
         "missions_failed": 0,
@@ -737,7 +745,7 @@ def api_spend_xp():
         abort(400, "invalid input")
 
     stats_obj = load_json(STATS_PATH, {
-        "total_characters": 35000,
+        "total_characters": 0,  # 🔥 Will be updated from blockchain contract
         "active_guilds": 6,
         "missions_completed": 0,
         "missions_failed": 0,
@@ -807,7 +815,7 @@ def api_mission_execute():
         abort(400, "invalid input")
 
     stats_obj = load_json(STATS_PATH, {
-        "total_characters": 35000,
+        "total_characters": 0,  # 🔥 Will be updated from blockchain contract
         "active_guilds": 6,
         "missions_completed": 0,
         "missions_failed": 0,
