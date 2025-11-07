@@ -19,6 +19,7 @@ PLAYERS_PATH = os.path.join(DATA_DIR, "players.json")
 STATS_PATH   = os.path.join(DATA_DIR, "stats.json")
 GUILDS_PATH  = os.path.join(DATA_DIR, "guilds.json")
 WALLET_NFTS_PATH = os.path.join(DATA_DIR, "wallet_nfts.json")
+ACHIEVEMENTS_PATH = os.path.join(DATA_DIR, "achievements.json")
 
 # Carpeta donde guardaste los metadatas base (00001.json, 00002.json, etc.)
 METADATA_DIR = os.path.join(DATA_DIR, "metadata")
@@ -80,6 +81,113 @@ MISSIONS = [
         "favored": "Echoes of the Veil / Necromancer"
     }
 ]
+
+# ---------------------------------
+# Achievements System
+# ---------------------------------
+
+AVAILABLE_ACHIEVEMENTS = {
+    "first_mission": {
+        "name": "First Mission",
+        "description": "Complete your first mission",
+        "icon": "🎯"
+    },
+    "10_missions": {
+        "name": "Veteran Explorer",
+        "description": "Complete 10 missions",
+        "icon": "⚔️"
+    },
+    "50_missions": {
+        "name": "Seasoned Warrior",
+        "description": "Complete 50 missions",
+        "icon": "🏆"
+    },
+    "100_missions": {
+        "name": "Legendary Hero",
+        "description": "Complete 100 missions",
+        "icon": "👑"
+    },
+    "reach_level_10": {
+        "name": "Level 10 Achieved",
+        "description": "Reach level 10",
+        "icon": "⭐"
+    },
+    "reach_level_50": {
+        "name": "Level 50 Achieved",
+        "description": "Reach level 50",
+        "icon": "💫"
+    },
+    "guild_master": {
+        "name": "Guild Master",
+        "description": "Become a guild leader",
+        "icon": "🏅"
+    },
+    "dragon_slayer": {
+        "name": "Dragon Slayer",
+        "description": "Defeat a legendary dragon",
+        "icon": "🐉"
+    },
+    "void_walker": {
+        "name": "Void Walker",
+        "description": "Complete all Void Echoes missions",
+        "icon": "🌌"
+    },
+    "forge_master": {
+        "name": "Forge Master",
+        "description": "Complete all Forge Legion missions",
+        "icon": "⚒️"
+    }
+}
+
+def get_token_achievements(token_id):
+    """Get all achievements for a token"""
+    achievements_db = load_json(ACHIEVEMENTS_PATH, {})
+    token_id_str = str(token_id).zfill(5)
+    return achievements_db.get(token_id_str, [])
+
+def grant_achievement(token_id, achievement_id):
+    """Grant an achievement to a token"""
+    if achievement_id not in AVAILABLE_ACHIEVEMENTS:
+        return False, "Invalid achievement ID"
+
+    achievements_db = load_json(ACHIEVEMENTS_PATH, {})
+    token_id_str = str(token_id).zfill(5)
+
+    if token_id_str not in achievements_db:
+        achievements_db[token_id_str] = []
+
+    if achievement_id not in achievements_db[token_id_str]:
+        achievements_db[token_id_str].append(achievement_id)
+        save_json(ACHIEVEMENTS_PATH, achievements_db)
+        return True, "Achievement granted"
+
+    return False, "Achievement already exists"
+
+def check_and_grant_mission_achievements(token_id, total_missions):
+    """Auto-grant achievements based on mission count"""
+    achievements = []
+
+    if total_missions == 1:
+        success, msg = grant_achievement(token_id, "first_mission")
+        if success:
+            achievements.append("first_mission")
+
+    if total_missions == 10:
+        success, msg = grant_achievement(token_id, "10_missions")
+        if success:
+            achievements.append("10_missions")
+
+    if total_missions == 50:
+        success, msg = grant_achievement(token_id, "50_missions")
+        if success:
+            achievements.append("50_missions")
+
+    if total_missions == 100:
+        success, msg = grant_achievement(token_id, "100_missions")
+        if success:
+            achievements.append("100_missions")
+
+    return achievements
 
 # ---------------------------------
 # Helpers de lectura/escritura JSON
@@ -1024,6 +1132,65 @@ def find_dynamic_state_for_token(token_id):
     }
 
 # ---------------------------------
+# API: ACHIEVEMENTS
+# ---------------------------------
+
+@app.route("/api/achievements")
+def api_achievements_list():
+    """List all available achievements"""
+    return jsonify({
+        "success": True,
+        "achievements": AVAILABLE_ACHIEVEMENTS
+    })
+
+@app.route("/api/achievements/<token_id>")
+def api_token_achievements(token_id):
+    """Get achievements for a specific token"""
+    achievements = get_token_achievements(token_id)
+
+    # Format achievements with details
+    detailed_achievements = []
+    for ach_id in achievements:
+        if ach_id in AVAILABLE_ACHIEVEMENTS:
+            ach = AVAILABLE_ACHIEVEMENTS[ach_id]
+            detailed_achievements.append({
+                "id": ach_id,
+                "name": ach["name"],
+                "description": ach["description"],
+                "icon": ach["icon"]
+            })
+
+    return jsonify({
+        "success": True,
+        "token_id": token_id,
+        "achievements": detailed_achievements,
+        "total": len(achievements)
+    })
+
+@app.route("/api/achievements/grant", methods=["POST"])
+def api_grant_achievement():
+    """
+    Grant an achievement to a token
+    POST body: { "token_id": "00042", "achievement_id": "first_mission" }
+    """
+    data = request.get_json()
+
+    if not data or "token_id" not in data or "achievement_id" not in data:
+        return jsonify({"success": False, "error": "Missing token_id or achievement_id"}), 400
+
+    token_id = data["token_id"]
+    achievement_id = data["achievement_id"]
+
+    success, message = grant_achievement(token_id, achievement_id)
+
+    return jsonify({
+        "success": success,
+        "message": message,
+        "token_id": token_id,
+        "achievement_id": achievement_id
+    })
+
+# ---------------------------------
 # API: NFT METADATA dinámica tipo DX Terminal / OpenSea
 # ---------------------------------
 
@@ -1043,14 +1210,19 @@ def api_metadata(token_id):
     dyn = find_dynamic_state_for_token(token_id)
 
     current_guild = dyn.get("current_guild", base_meta.get("starting_guild", "Unknown"))
+    starting_guild = base_meta.get("starting_guild", "Unknown")
     energy_str = f"{dyn.get('energy_current',0)} / {dyn.get('energy_max',0)}"
+
+    # Get achievements for this token
+    achievements = get_token_achievements(token_id)
 
     traits = [
         {"trait_type": "Token ID",      "value": base_meta.get("token_id")},
         {"trait_type": "Race",          "value": base_meta.get("race")},
         {"trait_type": "Class",         "value": base_meta.get("class")},
         {"trait_type": "Rarity",        "value": base_meta.get("rarity")},
-        {"trait_type": "Guild",         "value": current_guild},
+        {"trait_type": "Starting Guild", "value": starting_guild},
+        {"trait_type": "Current Guild",  "value": current_guild},
         {"trait_type": "Age",           "value": base_meta.get("age")},
         {"trait_type": "STR",           "value": base_meta.get("str")},
         {"trait_type": "DEX",           "value": base_meta.get("dex")},
@@ -1066,6 +1238,23 @@ def api_metadata(token_id):
         {"trait_type": "Last Mission",  "value": dyn.get("last_mission", "None")},
         {"trait_type": "Last Update",   "value": dyn.get("last_update", now_utc_str())}
     ]
+
+    # Add achievements to attributes
+    for ach_id in achievements:
+        if ach_id in AVAILABLE_ACHIEVEMENTS:
+            ach = AVAILABLE_ACHIEVEMENTS[ach_id]
+            traits.append({
+                "trait_type": f"Achievement: {ach['name']}",
+                "value": "✅"
+            })
+
+    # Add total achievements count
+    if len(achievements) > 0:
+        traits.append({
+            "display_type": "number",
+            "trait_type": "Total Achievements",
+            "value": len(achievements)
+        })
 
     response = {
         "name":        base_meta.get("name", f"Emissary #{str(token_id).zfill(5)}"),
