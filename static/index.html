@@ -1186,8 +1186,9 @@ async function connectWallet() {
             const contractAddress = "0x2F55e14F0b2B2118d2026d20Ad2C39EAcBdCAc47";
             const abi = [
                 "function balanceOf(address owner) view returns (uint256)",
-                "function tokenOfOwnerByIndex(address owner, uint256 index) view returns (uint256)",
-                "function totalSupply() view returns (uint256)"
+                "function ownerOf(uint256 tokenId) view returns (address)",
+                "function totalSupply() view returns (uint256)",
+                "event Transfer(address indexed from, address indexed to, uint256 indexed tokenId)"
             ];
 
             console.log(`📜 Contract address: ${contractAddress}`);
@@ -1199,12 +1200,45 @@ async function connectWallet() {
             const balance = await contract.balanceOf(address);
             console.log(`✅ Wallet has ${balance.toString()} NFTs on Base Sepolia`);
 
+            // 🔥 NEW APPROACH: Query Transfer events to find tokens received by this wallet
+            // This works for non-Enumerable ERC721 contracts
+            console.log(`🔍 Querying Transfer events to find NFT token IDs...`);
+
             const tokenIds = [];
-            for (let i = 0; i < balance.toNumber(); i++) {
-                const tokenId = await contract.tokenOfOwnerByIndex(address, i);
-                const tokenIdStr = tokenId.toString().padStart(5, '0');
-                tokenIds.push(tokenIdStr);
-                console.log(`  ✅ Token #${tokenIdStr}`);
+
+            if (balance.toNumber() > 0) {
+                // Get all Transfer events where this address received tokens
+                const transferFilter = contract.filters.Transfer(null, address);
+                console.log(`📡 Fetching Transfer events for wallet...`);
+
+                const events = await contract.queryFilter(transferFilter, 0, 'latest');
+                console.log(`✅ Found ${events.length} Transfer events`);
+
+                // Extract unique token IDs and verify current ownership
+                const candidateTokenIds = new Set();
+                for (const event of events) {
+                    candidateTokenIds.add(event.args.tokenId.toString());
+                }
+
+                console.log(`🔍 Verifying ownership of ${candidateTokenIds.size} candidate tokens...`);
+
+                // Verify which tokens are still owned by this address
+                for (const tokenIdNum of candidateTokenIds) {
+                    try {
+                        const owner = await contract.ownerOf(tokenIdNum);
+                        if (owner.toLowerCase() === address.toLowerCase()) {
+                            const tokenIdStr = tokenIdNum.padStart(5, '0');
+                            tokenIds.push(tokenIdStr);
+                            console.log(`  ✅ Token #${tokenIdStr} - Owner confirmed`);
+                        } else {
+                            console.log(`  ⏭️ Token #${tokenIdNum} - No longer owned (current owner: ${owner.slice(0, 6)}...)`);
+                        }
+                    } catch (ownerError) {
+                        console.warn(`  ⚠️ Token #${tokenIdNum} - Could not verify owner:`, ownerError.message);
+                    }
+                }
+
+                console.log(`✅ Final count: ${tokenIds.length} NFTs owned by this wallet`);
             }
 
             // 🔥 Query total supply for STATS
