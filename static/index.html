@@ -1187,7 +1187,8 @@ async function connectWallet() {
             const abi = [
                 "function balanceOf(address owner) view returns (uint256)",
                 "function ownerOf(uint256 tokenId) view returns (address)",
-                "function totalSupply() view returns (uint256)",
+                "function totalMinted() view returns (uint256)",
+                "function MAX_SUPPLY() view returns (uint256)",
                 "event Transfer(address indexed from, address indexed to, uint256 indexed tokenId)"
             ];
 
@@ -1200,51 +1201,122 @@ async function connectWallet() {
             const balance = await contract.balanceOf(address);
             console.log(`✅ Wallet has ${balance.toString()} NFTs on Base Sepolia`);
 
-            // 🔥 NEW APPROACH: Query Transfer events to find tokens received by this wallet
-            // This works for non-Enumerable ERC721 contracts
-            console.log(`🔍 Querying Transfer events to find NFT token IDs...`);
-
             const tokenIds = [];
 
             if (balance.toNumber() > 0) {
-                // Get all Transfer events where this address received tokens
-                const transferFilter = contract.filters.Transfer(null, address);
-                console.log(`📡 Fetching Transfer events for wallet...`);
+                // 🔥 HYBRID STRATEGY: Choose best approach based on totalMinted
+                console.log(`🔍 Querying totalMinted from contract...`);
+                const totalMinted = await contract.totalMinted();
+                console.log(`✅ Contract has minted ${totalMinted.toString()} NFTs so far`);
 
-                const events = await contract.queryFilter(transferFilter, 0, 'latest');
-                console.log(`✅ Found ${events.length} Transfer events`);
+                // STRATEGY 1: If collection is small, directly iterate all token IDs (FAST & RELIABLE)
+                if (totalMinted.toNumber() <= 1000) {
+                    console.log(`📊 Small collection detected (${totalMinted} tokens). Using direct iteration...`);
+                    console.log(`🔍 Checking ownership of token IDs 1 to ${totalMinted}...`);
 
-                // Extract unique token IDs and verify current ownership
-                const candidateTokenIds = new Set();
-                for (const event of events) {
-                    candidateTokenIds.add(event.args.tokenId.toString());
-                }
+                    let foundCount = 0;
+                    const targetBalance = balance.toNumber();
 
-                console.log(`🔍 Verifying ownership of ${candidateTokenIds.size} candidate tokens...`);
-
-                // Verify which tokens are still owned by this address
-                for (const tokenIdNum of candidateTokenIds) {
-                    try {
-                        const owner = await contract.ownerOf(tokenIdNum);
-                        if (owner.toLowerCase() === address.toLowerCase()) {
-                            const tokenIdStr = tokenIdNum.padStart(5, '0');
-                            tokenIds.push(tokenIdStr);
-                            console.log(`  ✅ Token #${tokenIdStr} - Owner confirmed`);
-                        } else {
-                            console.log(`  ⏭️ Token #${tokenIdNum} - No longer owned (current owner: ${owner.slice(0, 6)}...)`);
+                    for (let tokenId = 1; tokenId <= totalMinted.toNumber() && foundCount < targetBalance; tokenId++) {
+                        try {
+                            const owner = await contract.ownerOf(tokenId);
+                            if (owner.toLowerCase() === address.toLowerCase()) {
+                                const tokenIdStr = tokenId.toString().padStart(5, '0');
+                                tokenIds.push(tokenIdStr);
+                                foundCount++;
+                                console.log(`  ✅ Token #${tokenIdStr} - Owned by you! (${foundCount}/${targetBalance})`);
+                            }
+                        } catch (ownerError) {
+                            // Token might not exist or burned, skip silently
                         }
-                    } catch (ownerError) {
-                        console.warn(`  ⚠️ Token #${tokenIdNum} - Could not verify owner:`, ownerError.message);
+
+                        // Progress indicator every 100 tokens
+                        if (tokenId % 100 === 0) {
+                            console.log(`  ⏳ Progress: Checked ${tokenId}/${totalMinted} tokens...`);
+                        }
+                    }
+
+                    console.log(`✅ Direct iteration complete: Found ${tokenIds.length} NFTs`);
+
+                } else {
+                    // STRATEGY 2: Large collection - use Transfer events with LIMITED range
+                    console.log(`📊 Large collection detected (${totalMinted} tokens). Using Transfer events with limited range...`);
+
+                    try {
+                        const currentBlock = await provider.getBlockNumber();
+                        const fromBlock = Math.max(0, currentBlock - 100000); // Last ~100k blocks (~2.3 days)
+
+                        console.log(`📡 Querying Transfer events from block ${fromBlock} to ${currentBlock}...`);
+                        const transferFilter = contract.filters.Transfer(null, address);
+                        const events = await contract.queryFilter(transferFilter, fromBlock, currentBlock);
+
+                        console.log(`✅ Found ${events.length} Transfer events in recent history`);
+
+                        // Extract unique token IDs
+                        const candidateTokenIds = new Set();
+                        for (const event of events) {
+                            candidateTokenIds.add(event.args.tokenId.toString());
+                        }
+
+                        console.log(`🔍 Verifying ownership of ${candidateTokenIds.size} candidate tokens...`);
+
+                        // Verify current ownership
+                        for (const tokenIdNum of candidateTokenIds) {
+                            try {
+                                const owner = await contract.ownerOf(tokenIdNum);
+                                if (owner.toLowerCase() === address.toLowerCase()) {
+                                    const tokenIdStr = tokenIdNum.padStart(5, '0');
+                                    tokenIds.push(tokenIdStr);
+                                    console.log(`  ✅ Token #${tokenIdStr} - Owner confirmed`);
+                                }
+                            } catch (ownerError) {
+                                console.warn(`  ⚠️ Token #${tokenIdNum} - Could not verify:`, ownerError.message);
+                            }
+                        }
+
+                        console.log(`✅ Event query complete: Found ${tokenIds.length} NFTs`);
+
+                    } catch (eventError) {
+                        console.error(`❌ Transfer events query failed:`, eventError.message);
+                        console.log(`⚠️ Falling back to sampling strategy...`);
+
+                        // STRATEGY 3: FALLBACK - Sample random token IDs
+                        alert(`⚠️ No se pudieron consultar eventos.\n\nUsaremos un método alternativo que puede tardar más.`);
+
+                        const sampleSize = Math.min(5000, totalMinted.toNumber()); // Sample up to 5000 tokens
+                        console.log(`🎲 Sampling ${sampleSize} random token IDs from ${totalMinted} total...`);
+
+                        const sampledIds = new Set();
+                        while (sampledIds.size < sampleSize) {
+                            const randomId = Math.floor(Math.random() * totalMinted.toNumber()) + 1;
+                            sampledIds.add(randomId);
+                        }
+
+                        let foundCount = 0;
+                        const targetBalance = balance.toNumber();
+
+                        for (const tokenId of sampledIds) {
+                            if (foundCount >= targetBalance) break;
+
+                            try {
+                                const owner = await contract.ownerOf(tokenId);
+                                if (owner.toLowerCase() === address.toLowerCase()) {
+                                    const tokenIdStr = tokenId.toString().padStart(5, '0');
+                                    tokenIds.push(tokenIdStr);
+                                    foundCount++;
+                                    console.log(`  ✅ Token #${tokenIdStr} - Found! (${foundCount}/${targetBalance})`);
+                                }
+                            } catch { /* skip */ }
+                        }
+
+                        console.log(`✅ Sampling complete: Found ${tokenIds.length} of ${targetBalance} NFTs`);
                     }
                 }
-
-                console.log(`✅ Final count: ${tokenIds.length} NFTs owned by this wallet`);
             }
 
-            // 🔥 Query total supply for STATS
-            console.log("🔍 Querying contract total supply...");
-            const totalSupply = await contract.totalSupply();
-            console.log(`✅ Contract total supply: ${totalSupply.toString()} NFTs`);
+            // 🔥 Get total supply for STATS (use totalMinted)
+            const totalMinted = await contract.totalMinted();
+            console.log(`📊 Total minted for STATS: ${totalMinted.toString()}`);
 
             // Send token_ids and total_supply to backend
             console.log("📤 Sending NFT data to backend...");
@@ -1253,7 +1325,7 @@ async function connectWallet() {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     token_ids: tokenIds,
-                    total_supply: totalSupply.toNumber()
+                    total_supply: totalMinted.toNumber()
                 })
             });
 
@@ -1263,7 +1335,10 @@ async function connectWallet() {
                 console.log("✅ NFT data and contract stats registered on backend");
             }
 
-            if (tokenIds.length === 0) {
+            if (tokenIds.length === 0 && balance.toNumber() > 0) {
+                console.warn("⚠️ Balance shows NFTs but none were found. May need to check older blocks.");
+                alert(`⚠️ Tu wallet tiene ${balance.toString()} NFT(s) pero no pudimos encontrarlos.\n\nEsto puede pasar si los NFTs son antiguos. Contacta a soporte.`);
+            } else if (tokenIds.length === 0) {
                 console.log("ℹ️ No NFTs found for this wallet on Base Sepolia");
                 alert("ℹ️ Esta wallet no tiene NFTs en Base Sepolia.\n\nSi esperabas ver NFTs, verifica que estén minteados en la red correcta.");
             }
