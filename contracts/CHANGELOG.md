@@ -1,8 +1,10 @@
 # EmberholmPortal V2 - Complete Feature List
 
-## 🚀 Version 2.0 - Complete Rewrite
+## 🚀 Version 2.0 - Optimized Design
 
-This is a **NEW** contract with all features implemented. The old contract (`0x2F55...c47`) will be replaced.
+This is a **NEW** contract with streamlined architecture. The old contract (`0x2F55...c47`) will be replaced.
+
+**Design Philosophy:** Smart hybrid approach - on-chain for critical game mechanics (staking, achievements), off-chain for flexible game state (guild, names in metadata).
 
 ---
 
@@ -17,9 +19,12 @@ This is a **NEW** contract with all features implemented. The old contract (`0x2
 - ❌ Frontend had to scan blockchain events
 
 ### New Contract (V2) ✅
-- ✅ Complete TIER 1+2+3 features
+- ✅ Optimized TIER 1+2+3 features
 - ✅ All query functions work perfectly
 - ✅ No blockchain scanning needed
+- ✅ Smart on-chain/off-chain balance
+- ✅ Guild & names in metadata (flexible)
+- ✅ Staking & achievements on-chain (secure)
 - ✅ Prepared for future items
 - ✅ Production-ready
 
@@ -48,28 +53,31 @@ function tokensOfOwner(address owner) public view returns (uint256[] memory)
 ```solidity
 function getTokenInfo(uint256 tokenId) public view returns (TokenInfo memory)
 ```
-**What it does:** Returns complete info for one token
+**What it does:** Returns on-chain info for one token
 **Returns:**
 ```javascript
 {
     tokenId: 42,
     owner: "0x...",
-    guild: 2,
-    guildName: "Emberclaw",
-    characterName: "Aria",
     isStaked: false,
     achievements: 123 // bitmap
+    // Note: guild and name are in metadata
 }
 ```
-**Why important:** All token data in one call
+**Why important:** Quick access to on-chain state (staking, achievements)
+**Note:** Guild and name are in metadata - frontend should fetch from tokenURI
 
-#### setTokenGuild() / setTokenName()
-```solidity
-function setTokenGuild(uint256 tokenId, uint8 guildId) external
-function setTokenName(uint256 tokenId, string name) external
-```
-**What it does:** User can assign guild and name to their NFT
-**Why important:** Character customization, guild membership
+#### Guild & Name Management
+**REMOVED from contract** - Handled in metadata by backend
+
+**Why removed:**
+- Guild (starting_guild, current_guild) already in metadata
+- Name is FIXED in metadata
+- Backend handles guild changes via metadata regeneration
+- More flexible: no gas costs to change guild
+- Backend can validate and enforce game rules
+
+**Guilds:** Circle of Mist, Order of Dawn, Horizon Watch, Shadow Guild, Forge Legion, Void Echoes
 
 ---
 
@@ -91,20 +99,20 @@ function getWalletProfile(address owner) external view returns (
     WalletStats stats
 )
 ```
-**What it does:** Get EVERYTHING about a wallet in ONE call
+**What it does:** Get on-chain wallet data in ONE call
 **Returns:**
 ```javascript
 {
     tokenIds: [1, 42, 150],
-    tokens: [{...}, {...}, {...}],
+    tokens: [{tokenId, owner, isStaked, achievements}, ...],
     stats: {
         totalTokens: 3,
-        stakedCount: 1,
-        guildsRepresented: 2
+        stakedCount: 1
+        // guildsRepresented removed - calculated from metadata by frontend
     }
 }
 ```
-**Why important:** PROFILE page loads instantly, no multiple calls
+**Why important:** Efficient on-chain data fetching, combine with metadata for complete profile
 
 #### Staking System
 ```solidity
@@ -167,12 +175,15 @@ function isGuildLeaderOrOfficer(uint8 guildId, address) external view returns (b
 **Activate later:** When you have active community
 
 #### Guild Stats
-```solidity
-function getGuildMemberCount(uint8 guildId) external view returns (uint256)
-function getGuildMembers(uint8 guildId) external view returns (uint256[], address[])
-```
-**What it does:** Get all members of a guild
-**Why important:** Guild rankings, leaderboards, social features
+**REMOVED from contract** - Backend calculates from metadata
+
+**Why removed:**
+- Guild membership in metadata, not on-chain
+- Backend can query all NFT metadata and filter by current_guild
+- More accurate: reflects backend's source of truth
+- No gas-heavy loops through all tokens
+
+**Backend should:** Query metadata for all NFTs, group by current_guild for rankings
 
 #### Custom Metadata
 ```solidity
@@ -311,24 +322,40 @@ When ready:
 
 **This contract is:**
 - ✅ Production-ready
-- ✅ Fully tested architecture
-- ✅ Gas-optimized
-- ✅ Future-proof (items, achievements, etc)
-- ✅ No breaking changes needed
+- ✅ Optimized architecture (smart on-chain/off-chain split)
+- ✅ Gas-efficient (no guild/name storage on-chain)
+- ✅ Future-proof (items, achievements, guild leadership prepared)
+- ✅ Flexible (guild changes via backend, no gas costs)
+
+**On-Chain (Contract):**
+- ✅ Ownership (ERC721)
+- ✅ Staking system (prevents transfers during missions)
+- ✅ Achievements (permanent on-chain badges)
+- ✅ Primary token selection
+- ✅ Equipment slots (future)
+- ✅ Guild leadership (prepared for governance)
+
+**Off-Chain (Metadata + Backend):**
+- ✅ Guild membership (starting_guild, current_guild)
+- ✅ Character names (fixed)
+- ✅ Game stats (XP, Aura, etc)
+- ✅ Mission history
+- ✅ Dynamic attributes
 
 **You can:**
 - Deploy to Base Sepolia NOW (testnet)
 - Test everything
 - Deploy to Base Mainnet when ready (same code)
 - Never need to redeploy
+- Change guilds without gas costs (backend updates metadata)
 
 **NFT holders get:**
-- Full character customization
-- Guild membership
-- Staking/missions
-- Achievements
+- Full character progression (via backend)
+- Guild membership (flexible, no gas)
+- Staking/missions (on-chain security)
+- Permanent achievements (on-chain)
 - Equipment (when items added)
-- Dynamic progression
+- Best of both worlds
 
 ---
 

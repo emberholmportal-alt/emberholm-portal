@@ -9,14 +9,20 @@ import "@openzeppelin/contracts/utils/Strings.sol";
 /**
  * @title EmberholmPortal
  * @dev Complete NFT contract for Emberholm Portal game
- * @notice Includes: Guilds, Staking, Achievements, Leadership, Equipment (prepared for items)
+ * @notice Streamlined design: On-chain ownership/staking/achievements, off-chain guild/name in metadata
  *
  * Features:
  * - TIER 1: Basic queries (totalMinted, tokensOfOwner, getTokenInfo)
- * - TIER 2: Batch operations, staking, primary token
- * - TIER 3: Achievements, guild leadership, custom metadata, equipment slots
+ * - TIER 2: Batch operations, staking system, primary token selection
+ * - TIER 3: Achievements system, guild leadership (prepared), equipment slots (prepared for items)
  *
- * Version: 2.0 (Complete)
+ * Design Philosophy:
+ * - Guild membership & names: Tracked in metadata (backend manages)
+ * - Staking: On-chain (prevents transfers during missions)
+ * - Achievements: On-chain (permanent badges)
+ * - Equipment: On-chain (future Items contract integration)
+ *
+ * Version: 2.0 (Optimized)
  * Network: Base Sepolia (testnet) → Base (mainnet ready)
  */
 
@@ -59,33 +65,22 @@ contract EmberholmPortal is ERC721, ERC2981, Ownable {
     struct TokenInfo {
         uint256 tokenId;
         address owner;
-        uint8 guild;
-        string guildName;
-        string characterName;
         bool isStaked;
         uint256 achievements;
+        // Note: guild and name are in metadata, not on-chain
     }
 
     struct WalletStats {
         uint256 totalTokens;
         uint256 stakedCount;
-        uint8 guildsRepresented;
+        // Note: guildsRepresented removed - calculated from metadata by backend
     }
 
     // ========== STORAGE MAPPINGS ==========
 
-    // Guild system
-    string[6] public guildNames = [
-        "Shadowforge",
-        "Ironveil",
-        "Emberclaw",
-        "Frostspire",
-        "Stormwatch",
-        "Voidcaller"
-    ];
-
-    mapping(uint256 => uint8) public tokenGuild;
-    mapping(uint256 => string) public tokenName;
+    // Guild leadership (guilds: Circle of Mist, Order of Dawn, Horizon Watch, Shadow Guild, Forge Legion, Void Echoes)
+    // Note: Guild membership is tracked in metadata, not on-chain
+    // Leadership is on-chain for future governance/permissions
     mapping(uint8 => address) public guildLeader;
     mapping(uint8 => mapping(address => bool)) public guildOfficers;
 
@@ -109,8 +104,6 @@ contract EmberholmPortal is ERC721, ERC2981, Ownable {
 
     // ========== EVENTS ==========
 
-    event GuildChanged(uint256 indexed tokenId, uint8 indexed guildId);
-    event NameSet(uint256 indexed tokenId, string name);
     event TokenStaked(uint256 indexed tokenId, address indexed owner, uint256 timestamp);
     event TokenUnstaked(uint256 indexed tokenId, address indexed owner, uint256 timestamp);
     event PrimaryTokenSet(address indexed owner, uint256 indexed tokenId);
@@ -218,44 +211,19 @@ contract EmberholmPortal is ERC721, ERC2981, Ownable {
 
     /**
      * @dev Get complete info for a token
+     * Note: Guild and name are in metadata, not returned here
      */
     function getTokenInfo(uint256 tokenId) public view returns (TokenInfo memory) {
         require(_ownerOf(tokenId) != address(0), "Token doesn't exist");
 
         address owner = ownerOf(tokenId);
-        uint8 guild = tokenGuild[tokenId];
 
         return TokenInfo({
             tokenId: tokenId,
             owner: owner,
-            guild: guild,
-            guildName: guildNames[guild],
-            characterName: tokenName[tokenId],
             isStaked: stakedTokens[tokenId],
             achievements: tokenAchievements[tokenId]
         });
-    }
-
-    /**
-     * @dev Set token guild
-     */
-    function setTokenGuild(uint256 tokenId, uint8 guildId) external {
-        require(guildId < 6, "Invalid guild");
-        require(ownerOf(tokenId) == msg.sender, "Not owner");
-
-        tokenGuild[tokenId] = guildId;
-        emit GuildChanged(tokenId, guildId);
-    }
-
-    /**
-     * @dev Set character name
-     */
-    function setTokenName(uint256 tokenId, string calldata name) external {
-        require(ownerOf(tokenId) == msg.sender, "Not owner");
-        require(bytes(name).length > 0 && bytes(name).length <= 32, "Invalid name length");
-
-        tokenName[tokenId] = name;
-        emit NameSet(tokenId, name);
     }
 
     // ========== TIER 2: BATCH OPERATIONS ==========
@@ -292,21 +260,13 @@ contract EmberholmPortal is ERC721, ERC2981, Ownable {
         }
 
         uint256 stakedCount = 0;
-        uint8 guildsRepresented = 0;
-        bool[6] memory guildsSeen;
-
         for (uint256 i = 0; i < tokens.length; i++) {
             if (tokens[i].isStaked) stakedCount++;
-            if (!guildsSeen[tokens[i].guild]) {
-                guildsSeen[tokens[i].guild] = true;
-                guildsRepresented++;
-            }
         }
 
         stats = WalletStats({
             totalTokens: tokenIds.length,
-            stakedCount: stakedCount,
-            guildsRepresented: guildsRepresented
+            stakedCount: stakedCount
         });
     }
 
@@ -460,55 +420,8 @@ contract EmberholmPortal is ERC721, ERC2981, Ownable {
         return account == guildLeader[guildId] || guildOfficers[guildId][account];
     }
 
-    /**
-     * @dev Get number of members in a guild
-     */
-    function getGuildMemberCount(uint8 guildId) external view returns (uint256) {
-        require(guildId < 6, "Invalid guild");
-        uint256 count = 0;
-        uint256 supply = totalMinted();
-
-        for (uint256 i = 1; i <= supply; i++) {
-            if (_ownerOf(i) != address(0) && tokenGuild[i] == guildId) {
-                count++;
-            }
-        }
-
-        return count;
-    }
-
-    /**
-     * @dev Get all members of a guild
-     */
-    function getGuildMembers(uint8 guildId) external view returns (
-        uint256[] memory tokenIds,
-        address[] memory owners
-    ) {
-        require(guildId < 6, "Invalid guild");
-        uint256 supply = totalMinted();
-        uint256 count = 0;
-
-        // Count members
-        for (uint256 i = 1; i <= supply; i++) {
-            if (_ownerOf(i) != address(0) && tokenGuild[i] == guildId) {
-                count++;
-            }
-        }
-
-        // Fill arrays
-        tokenIds = new uint256[](count);
-        owners = new address[](count);
-        uint256 index = 0;
-
-        for (uint256 i = 1; i <= supply; i++) {
-            address tokenOwner = _ownerOf(i);
-            if (tokenOwner != address(0) && tokenGuild[i] == guildId) {
-                tokenIds[index] = i;
-                owners[index] = tokenOwner;
-                index++;
-            }
-        }
-    }
+    // Note: getGuildMemberCount() and getGuildMembers() removed
+    // Guild membership is tracked in metadata, backend should query that
 
     // ========== TIER 3: CUSTOM METADATA ==========
 
