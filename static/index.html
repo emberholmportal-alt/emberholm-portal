@@ -696,7 +696,7 @@ body {
                     <div>
                         <label>WALLET (BASE): </label>
                         <span id="wallet-display" style="color:#ffb400;font-size:14px;">Not connected</span>
-                        <button class="terminal-btn small-btn" id="connect-wallet-btn">[CONNECT METAMASK]</button>
+                        <button class="terminal-btn small-btn" id="connect-wallet-btn">[CONNECT WALLET]</button>
                     </div>
 
                     <div id="wallet-summary" style="margin-top:10px;"></div>
@@ -1022,14 +1022,8 @@ navButtons.forEach(btn => {
             } else if (target === "missions") {
                 fetchMissionsAndRender();
             } else if (target === "profile") {
-                // 🔥 Auto-prompt MetaMask connection if not connected
-                if (!connectedWallet) {
-                    setTimeout(() => {
-                        if (confirm("To view your profile, you need to connect your MetaMask wallet. Connect now?")) {
-                            connectWallet();
-                        }
-                    }, 300);
-                } else {
+                // Only load profile if already connected
+                if (connectedWallet) {
                     loadPlayerAndRender();
                 }
             }
@@ -1084,7 +1078,7 @@ async function connectWallet() {
                     method: 'wallet_switchEthereumChain',
                     params: [{ chainId: '0x14a34' }], // 84532 in hex
                 });
-                console.log("✅ Switched to Base Sepolia");
+                console.log("✅ Switch request sent");
             } catch (switchError) {
                 // If Base Sepolia is not added, add it
                 if (switchError.code === 4902) {
@@ -1104,7 +1098,7 @@ async function connectWallet() {
                                 blockExplorerUrls: ['https://sepolia.basescan.org']
                             }]
                         });
-                        console.log("✅ Base Sepolia network added");
+                        console.log("✅ Base Sepolia network added and switched");
                     } catch (addError) {
                         console.error("❌ Failed to add Base Sepolia:", addError);
                         alert("Please add Base Sepolia network manually to MetaMask:\n\n" +
@@ -1113,24 +1107,42 @@ async function connectWallet() {
                               "Chain ID: 84532\n" +
                               "Symbol: ETH\n" +
                               "Explorer: https://sepolia.basescan.org");
-                        document.getElementById("connect-wallet-btn").textContent = "[CONNECT METAMASK]";
+                        document.getElementById("connect-wallet-btn").textContent = "[CONNECT WALLET]";
                         document.getElementById("connect-wallet-btn").disabled = false;
                         return null;
                     }
+                } else if (switchError.code === 4001) {
+                    // User rejected the request
+                    console.log("❌ User rejected network switch");
+                    alert("You need to switch to Base Sepolia network to view your NFTs.");
+                    document.getElementById("connect-wallet-btn").textContent = "[CONNECT WALLET]";
+                    document.getElementById("connect-wallet-btn").disabled = false;
+                    return null;
                 } else {
                     console.error("❌ Failed to switch network:", switchError);
                     alert("Please switch to Base Sepolia network in MetaMask manually.");
-                    document.getElementById("connect-wallet-btn").textContent = "[CONNECT METAMASK]";
+                    document.getElementById("connect-wallet-btn").textContent = "[CONNECT WALLET]";
                     document.getElementById("connect-wallet-btn").disabled = false;
                     return null;
                 }
             }
 
-            // Refresh provider after network change
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            const newProvider = new ethers.providers.Web3Provider(window.ethereum);
-            const newNetwork = await newProvider.getNetwork();
-            console.log(`✅ Now on network: ${newNetwork.name} (Chain ID: ${newNetwork.chainId})`);
+            // Wait longer for network change to complete
+            console.log("⏳ Waiting for network switch to complete...");
+            await new Promise(resolve => setTimeout(resolve, 2000));
+
+            // Verify we're now on Base Sepolia
+            const freshProvider = new ethers.providers.Web3Provider(window.ethereum);
+            const verifyNetwork = await freshProvider.getNetwork();
+            console.log(`✅ Now on network: ${verifyNetwork.name} (Chain ID: ${verifyNetwork.chainId})`);
+
+            if (verifyNetwork.chainId !== BASE_SEPOLIA_CHAIN_ID) {
+                console.error("❌ Still not on Base Sepolia after switch attempt");
+                alert("Network switch incomplete. Please manually switch to Base Sepolia in MetaMask and try again.");
+                document.getElementById("connect-wallet-btn").textContent = "[CONNECT WALLET]";
+                document.getElementById("connect-wallet-btn").disabled = false;
+                return null;
+            }
         }
 
         document.getElementById("connect-wallet-btn").textContent = "[QUERYING BLOCKCHAIN...]";
@@ -1186,7 +1198,7 @@ async function connectWallet() {
     } catch (error) {
         console.error("Wallet connection error:", error);
         alert("Failed to connect wallet: " + error.message);
-        document.getElementById("connect-wallet-btn").textContent = "[CONNECT METAMASK]";
+        document.getElementById("connect-wallet-btn").textContent = "[CONNECT WALLET]";
         document.getElementById("connect-wallet-btn").disabled = false;
         return null;
     }
