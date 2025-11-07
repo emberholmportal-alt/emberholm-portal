@@ -1064,8 +1064,76 @@ async function connectWallet() {
 
         connectedWallet = address;
         document.getElementById("wallet-display").textContent = address.slice(0, 6) + "..." + address.slice(-4);
-        document.getElementById("connect-wallet-btn").textContent = "[QUERYING BLOCKCHAIN...]";
+        document.getElementById("connect-wallet-btn").textContent = "[CHECKING NETWORK...]";
         document.getElementById("connect-wallet-btn").disabled = true;
+
+        // 🔥 VERIFY NETWORK - Must be Base Sepolia
+        const network = await provider.getNetwork();
+        const currentChainId = network.chainId;
+        const BASE_SEPOLIA_CHAIN_ID = 84532; // Base Sepolia testnet
+
+        console.log(`🌐 Current network: ${network.name} (Chain ID: ${currentChainId})`);
+
+        if (currentChainId !== BASE_SEPOLIA_CHAIN_ID) {
+            console.log("⚠️ Wrong network detected. Switching to Base Sepolia...");
+            document.getElementById("connect-wallet-btn").textContent = "[SWITCHING TO BASE SEPOLIA...]";
+
+            try {
+                // Try to switch to Base Sepolia
+                await window.ethereum.request({
+                    method: 'wallet_switchEthereumChain',
+                    params: [{ chainId: '0x14a34' }], // 84532 in hex
+                });
+                console.log("✅ Switched to Base Sepolia");
+            } catch (switchError) {
+                // If Base Sepolia is not added, add it
+                if (switchError.code === 4902) {
+                    console.log("⚠️ Base Sepolia not found. Adding network...");
+                    try {
+                        await window.ethereum.request({
+                            method: 'wallet_addEthereumChain',
+                            params: [{
+                                chainId: '0x14a34',
+                                chainName: 'Base Sepolia',
+                                nativeCurrency: {
+                                    name: 'Ethereum',
+                                    symbol: 'ETH',
+                                    decimals: 18
+                                },
+                                rpcUrls: ['https://sepolia.base.org'],
+                                blockExplorerUrls: ['https://sepolia.basescan.org']
+                            }]
+                        });
+                        console.log("✅ Base Sepolia network added");
+                    } catch (addError) {
+                        console.error("❌ Failed to add Base Sepolia:", addError);
+                        alert("Please add Base Sepolia network manually to MetaMask:\n\n" +
+                              "Network Name: Base Sepolia\n" +
+                              "RPC URL: https://sepolia.base.org\n" +
+                              "Chain ID: 84532\n" +
+                              "Symbol: ETH\n" +
+                              "Explorer: https://sepolia.basescan.org");
+                        document.getElementById("connect-wallet-btn").textContent = "[CONNECT METAMASK]";
+                        document.getElementById("connect-wallet-btn").disabled = false;
+                        return null;
+                    }
+                } else {
+                    console.error("❌ Failed to switch network:", switchError);
+                    alert("Please switch to Base Sepolia network in MetaMask manually.");
+                    document.getElementById("connect-wallet-btn").textContent = "[CONNECT METAMASK]";
+                    document.getElementById("connect-wallet-btn").disabled = false;
+                    return null;
+                }
+            }
+
+            // Refresh provider after network change
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            const newProvider = new ethers.providers.Web3Provider(window.ethereum);
+            const newNetwork = await newProvider.getNetwork();
+            console.log(`✅ Now on network: ${newNetwork.name} (Chain ID: ${newNetwork.chainId})`);
+        }
+
+        document.getElementById("connect-wallet-btn").textContent = "[QUERYING BLOCKCHAIN...]";
 
         // 🔥 Query NFT contract on Base Sepolia to get user's NFTs
         try {
@@ -1075,11 +1143,13 @@ async function connectWallet() {
                 "function tokenOfOwnerByIndex(address owner, uint256 index) view returns (uint256)"
             ];
 
-            const contract = new ethers.Contract(contractAddress, abi, provider);
+            // Use fresh provider to ensure we're on correct network
+            const freshProvider = new ethers.providers.Web3Provider(window.ethereum);
+            const contract = new ethers.Contract(contractAddress, abi, freshProvider);
 
             console.log("🔍 Querying NFT balance for wallet:", address);
             const balance = await contract.balanceOf(address);
-            console.log(`✅ Wallet has ${balance.toString()} NFTs`);
+            console.log(`✅ Wallet has ${balance.toString()} NFTs on Base Sepolia`);
 
             const tokenIds = [];
             for (let i = 0; i < balance.toNumber(); i++) {
@@ -1098,6 +1168,8 @@ async function connectWallet() {
                     body: JSON.stringify({ token_ids: tokenIds })
                 });
                 console.log("✅ NFT data registered on backend");
+            } else {
+                console.log("ℹ️ No NFTs found for this wallet");
             }
 
             document.getElementById("connect-wallet-btn").textContent = "[CONNECTED ✓]";
@@ -1114,6 +1186,8 @@ async function connectWallet() {
     } catch (error) {
         console.error("Wallet connection error:", error);
         alert("Failed to connect wallet: " + error.message);
+        document.getElementById("connect-wallet-btn").textContent = "[CONNECT METAMASK]";
+        document.getElementById("connect-wallet-btn").disabled = false;
         return null;
     }
 }
