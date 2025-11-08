@@ -1,8 +1,9 @@
 import json
 import os
 import time
+import random
 from datetime import datetime, timedelta
-from flask import Flask, jsonify, send_from_directory, request, abort, render_template, render_template
+from flask import Flask, jsonify, send_from_directory, request, abort, render_template
 
 # ⚠️ Web3 temporarily disabled due to Render deployment issues
 # Will use local cache (wallet_nfts.json) for NFT data
@@ -20,6 +21,8 @@ STATS_PATH   = os.path.join(DATA_DIR, "stats.json")
 GUILDS_PATH  = os.path.join(DATA_DIR, "guilds.json")
 WALLET_NFTS_PATH = os.path.join(DATA_DIR, "wallet_nfts.json")
 ACHIEVEMENTS_PATH = os.path.join(DATA_DIR, "achievements.json")
+MISSIONS_CONFIG_PATH = os.path.join(DATA_DIR, "missions_config.json")
+ACTIVE_MISSIONS_PATH = os.path.join(DATA_DIR, "active_missions.json")
 
 # Carpeta donde guardaste los metadatas base (00001.json, 00002.json, etc.)
 METADATA_DIR = os.path.join(DATA_DIR, "metadata")
@@ -51,36 +54,20 @@ XP_COST_PER_ENERGY = 5
 # En cuántas horas se resetea el cooldown de misión
 ROTATION_HOURS = 72
 
-# Misiones disponibles en la rotación actual
-MISSIONS = [
-    {
-        "id": "001",
-        "name": "The Lost Forge",
-        "difficulty": "EASY",
-        "energy_cost": 10,
-        "reward_xp": 25,
-        "reward_aura": 2,
-        "favored": "Forge Legion / Orc Warrior"
-    },
-    {
-        "id": "002",
-        "name": "Circle Interference Node",
-        "difficulty": "MEDIUM",
-        "energy_cost": 18,
-        "reward_xp": 60,
-        "reward_aura": 5,
-        "favored": "Circle of Mist / Human Wizard"
-    },
-    {
-        "id": "003",
-        "name": "Veil Breach Containment",
-        "difficulty": "HARD",
-        "energy_cost": 25,
-        "reward_xp": 120,
-        "reward_aura": 11,
-        "favored": "Echoes of the Veil / Necromancer"
-    }
-]
+# Load missions configuration from JSON
+def load_missions_config():
+    """Load missions configuration from missions_config.json"""
+    return load_json(MISSIONS_CONFIG_PATH, {
+        "missions": [],
+        "death_costs": {},
+        "bonuses": {}
+    })
+
+# Missions configuration (loaded at startup)
+MISSIONS_CONFIG = {}
+MISSIONS = []
+DEATH_COSTS = {}
+BONUSES = {}
 
 # ---------------------------------
 # Achievements System
@@ -188,6 +175,174 @@ def check_and_grant_mission_achievements(token_id, total_missions):
             achievements.append("100_missions")
 
     return achievements
+
+# ---------------------------------
+# Mission System - Probability & Outcome Calculation
+# ---------------------------------
+
+def calculate_mission_success_rate(hero, mission):
+    """
+    Calculate total success rate for a mission based on hero attributes.
+    Returns: success_rate (0-98)
+    """
+    base_rate = mission["success_rate"]
+    bonus = 0
+
+    # Extract hero data
+    hero_guild = hero.get("dynamic_state", {}).get("current_guild", hero.get("guild", "Unknown"))
+    hero_level = calculate_level_from_xp(hero.get("dynamic_state", {}).get("xp_total", 0))
+    hero_aura = hero.get("dynamic_state", {}).get("aura_level", 0)
+
+    # Extract race and class from metadata
+    race_class = hero.get("race_class", "")
+    hero_race = race_class.split()[0] if race_class else "Unknown"
+    hero_class = race_class.split()[1] if len(race_class.split()) > 1 else "Unknown"
+
+    # Guild bonus
+    if hero_guild == mission.get("favored_guild"):
+        bonus += BONUSES.get("guild_match", 12)
+
+    # Class bonus
+    if hero_class == mission.get("favored_class"):
+        bonus += BONUSES.get("class_match", 8)
+
+    # Race bonus
+    if hero_race == mission.get("favored_race"):
+        bonus += BONUSES.get("race_match", 5)
+
+    # Level bonus (1% per 10 levels)
+    level_bonus = (hero_level // 10) * BONUSES.get("level_per_10", 1)
+    bonus += level_bonus
+
+    # Aura bonus (1% per 100 Aura)
+    aura_bonus = (hero_aura // 100) * BONUSES.get("aura_per_100", 1)
+    bonus += aura_bonus
+
+    # Cap at 98% (never 100%)
+    total_success_rate = min(98, base_rate + bonus)
+
+    return total_success_rate, bonus
+
+def calculate_level_from_xp(xp):
+    """Simple level calculation: 1 level per 100 XP"""
+    return max(1, xp // 100)
+
+def calculate_death_protection(hero_level, hero_aura):
+    """
+    Calculate death protection percentage.
+    Level 50+ and Aura 500+ provides significant protection.
+    Returns: protection percentage (0-50)
+    """
+    protection = 0
+
+    # Level protection (max 30%)
+    if hero_level >= 50:
+        protection += 30
+    elif hero_level >= 30:
+        protection += 15
+    elif hero_level >= 10:
+        protection += 5
+
+    # Aura protection (max 20%)
+    if hero_aura >= 500:
+        protection += 20
+    elif hero_aura >= 250:
+        protection += 10
+    elif hero_aura >= 100:
+        protection += 5
+
+    return min(50, protection)
+
+def roll_mission_outcome(hero, mission):
+    """
+    Roll for mission outcome.
+    Returns: ("SUCCESS", details) | ("FAILURE", details) | ("DEATH", details)
+    """
+    # Calculate success rate
+    success_rate, bonus = calculate_mission_success_rate(hero, mission)
+
+    # Roll for success
+    roll = random.randint(1, 100)
+
+    if roll <= success_rate:
+        # Mission succeeded
+        reward_multiplier = 1.0
+
+        # Check perfect alignment (all 3 match: guild, class, race)
+        hero_guild = hero.get("dynamic_state", {}).get("current_guild", hero.get("guild", "Unknown"))
+        race_class = hero.get("race_class", "")
+        hero_race = race_class.split()[0] if race_class else "Unknown"
+        hero_class = race_class.split()[1] if len(race_class.split()) > 1 else "Unknown"
+
+        perfect_alignment = (
+            hero_guild == mission.get("favored_guild") and
+            hero_class == mission.get("favored_class") and
+            hero_race == mission.get("favored_race")
+        )
+
+        if perfect_alignment:
+            reward_multiplier = BONUSES.get("perfect_alignment_multiplier", 1.5)
+
+        xp_reward = int(mission["reward_xp"] * reward_multiplier)
+        aura_reward = int(mission["reward_aura"] * reward_multiplier)
+
+        return ("SUCCESS", {
+            "xp_gain": xp_reward,
+            "aura_gain": aura_reward,
+            "perfect_alignment": perfect_alignment,
+            "success_rate": success_rate,
+            "roll": roll
+        })
+    else:
+        # Mission failed - check for death
+        death_chance = mission.get("death_chance", 0)
+
+        if death_chance > 0:
+            # Calculate death protection
+            hero_level = calculate_level_from_xp(hero.get("dynamic_state", {}).get("xp_total", 0))
+            hero_aura = hero.get("dynamic_state", {}).get("aura_level", 0)
+            protection = calculate_death_protection(hero_level, hero_aura)
+
+            # Reduce death chance by protection
+            effective_death_chance = death_chance * (1 - protection / 100)
+
+            # Roll for death
+            death_roll = random.uniform(0, 100)
+
+            if death_roll <= effective_death_chance:
+                # Hero died
+                return ("DEATH", {
+                    "death_roll": death_roll,
+                    "death_chance": effective_death_chance,
+                    "protection": protection,
+                    "success_rate": success_rate,
+                    "roll": roll
+                })
+
+        # Failed but survived
+        xp_loss = mission.get("xp_loss_on_fail", 0)
+
+        return ("FAILURE", {
+            "xp_loss": xp_loss,
+            "success_rate": success_rate,
+            "roll": roll
+        })
+
+def get_death_cost(death_count):
+    """
+    Get reinvocation cost based on death count.
+    Returns: (xp_cost, aura_cost)
+    """
+    if death_count == 0:
+        cost = DEATH_COSTS.get("first_death", {"xp_cost": 500, "aura_cost": 100})
+    elif death_count == 1:
+        cost = DEATH_COSTS.get("second_death", {"xp_cost": 1500, "aura_cost": 300})
+    elif death_count == 2:
+        cost = DEATH_COSTS.get("third_death", {"xp_cost": 5000, "aura_cost": 1000})
+    else:
+        cost = DEATH_COSTS.get("fourth_plus", {"xp_cost": 10000, "aura_cost": 2500})
+
+    return cost["xp_cost"], cost["aura_cost"]
 
 # ---------------------------------
 # Helpers de lectura/escritura JSON
@@ -475,6 +630,12 @@ app = Flask(
     static_folder="static",
     static_url_path=""  # sirve /img/... /music/... directo
 )
+
+# Initialize missions configuration
+MISSIONS_CONFIG = load_missions_config()
+MISSIONS = MISSIONS_CONFIG.get("missions", [])
+DEATH_COSTS = MISSIONS_CONFIG.get("death_costs", {})
+BONUSES = MISSIONS_CONFIG.get("bonuses", {})
 
 # ---------------------------------
 # Rutas estáticas base
@@ -909,21 +1070,25 @@ def api_spend_xp():
     })
 
 # ---------------------------------
-# API: EXECUTE MISSION (SEND)
+# API: NEW MISSION SYSTEM
 # ---------------------------------
 
-@app.route("/api/mission/execute", methods=["POST"])
-def api_mission_execute():
+@app.route("/api/mission/start", methods=["POST"])
+def api_mission_start():
+    """
+    Start a mission (with staking integration).
+    POST: { "wallet": "0x...", "hero_id": "00001", "mission_id": "001" }
+    """
     data = request.get_json(force=True)
-    wallet     = data.get("wallet")
-    hero_id    = data.get("hero_id")
+    wallet = data.get("wallet")
+    hero_id = data.get("hero_id")
     mission_id = data.get("mission_id")
 
     if not wallet or not hero_id or not mission_id:
-        abort(400, "invalid input")
+        abort(400, "Missing wallet, hero_id, or mission_id")
 
     stats_obj = load_json(STATS_PATH, {
-        "total_characters": 0,  # 🔥 Will be updated from blockchain contract
+        "total_characters": 0,
         "active_guilds": 6,
         "missions_completed": 0,
         "missions_failed": 0,
@@ -934,85 +1099,446 @@ def api_mission_execute():
     })
     player_obj, players_all = ensure_player(wallet)
 
-    # refrescar antes de operar
+    # Apply passive gains
     player_obj, stats_obj = apply_passive_and_regen(player_obj, stats_obj)
 
-    # ubicar misión
+    # Find mission
     mission = None
     for m in MISSIONS:
         if m["id"] == mission_id:
             mission = m
             break
     if mission is None:
-        abort(400, "mission not found")
+        abort(400, "Mission not found")
 
-    # ubicar héroe
+    # Find hero
     hero = None
     for h in player_obj.get("heroes", []):
         if h.get("token_id") == hero_id:
             hero = h
             break
     if hero is None:
-        abort(404, "hero not found")
+        abort(404, "Hero not found")
 
     ds = hero["dynamic_state"]
-    xp_total        = ds.get("xp_total", 0)
-    aura_level      = ds.get("aura_level", 0)
-    energy_current  = ds.get("energy_current", 0)
-    energy_max      = ds.get("energy_max", 100)
-    mission_hist    = ds.get("mission_history", {})
-    hero_guild_name = hero.get("guild") or ds.get("current_guild", "Unknown Guild")
 
-    # check energía
+    # Check if hero is fallen
+    if ds.get("state") == "FALLEN":
+        abort(400, "Hero is fallen. Perform reinvocation ritual first.")
+
+    # Check if hero is already on a mission
+    if ds.get("state") == "ON_MISSION":
+        abort(400, "Hero is already on a mission")
+
+    # Check energy
     cost_energy = mission["energy_cost"]
+    energy_current = ds.get("energy_current", 0)
     if energy_current < cost_energy:
-        abort(400, "not enough energy")
+        abort(400, f"Not enough energy. Required: {cost_energy}, Available: {energy_current}")
 
-    # check cooldown (72h)
+    # Check mission cooldown (72h)
+    mission_hist = ds.get("mission_history", {})
     last_run_ts = mission_hist.get(mission_id)
     if last_run_ts and hours_since(last_run_ts) < ROTATION_HOURS:
-        abort(400, "mission on cooldown")
+        hours_left = ROTATION_HOURS - hours_since(last_run_ts)
+        abort(400, f"Mission on cooldown. {hours_left:.1f} hours remaining")
 
-    # resolver misión (por ahora siempre éxito)
-    xp_gain   = mission["reward_xp"]
-    aura_gain = mission["reward_aura"]
+    # Deduct energy
+    ds["energy_current"] = max(0, energy_current - cost_energy)
 
-    xp_total       += xp_gain
-    aura_level     += aura_gain
-    energy_current -= cost_energy
+    # Set hero state to ON_MISSION
+    ds["state"] = "ON_MISSION"
+    ds["mission_start_time"] = now_utc_str()
+    ds["current_mission_id"] = mission_id
+    ds["last_update"] = now_utc_str()
 
-    ds["xp_total"]        = xp_total
-    ds["aura_level"]      = aura_level
-    ds["energy_current"]  = max(0, energy_current)
-    ds["last_update"]     = now_utc_str()
-    ds["last_mission"]    = mission["name"]
-    mission_hist[mission_id] = now_utc_str()
-    ds["mission_history"]    = mission_hist
+    # Track active mission
+    active_missions = load_json(ACTIVE_MISSIONS_PATH, {})
+    mission_key = f"{wallet}_{hero_id}"
+    active_missions[mission_key] = {
+        "wallet": wallet,
+        "hero_id": hero_id,
+        "mission_id": mission_id,
+        "start_time": ds["mission_start_time"],
+        "duration_hours": mission["duration_hours"]
+    }
+    save_json(ACTIVE_MISSIONS_PATH, active_missions)
 
-    stats_obj["missions_completed"]   = stats_obj.get("missions_completed", 0) + 1
-    stats_obj["total_exp_collected"]  = stats_obj.get("total_exp_collected", 0) + xp_gain
-    stats_obj["total_aura_collected"] = stats_obj.get("total_aura_collected", 0) + aura_gain
+    # Save changes
+    players_all[wallet] = player_obj
+    save_json(PLAYERS_PATH, players_all)
+    save_json(STATS_PATH, stats_obj)
 
-    # ranking gremio
-    stats_obj = update_guild_stats(hero_guild_name, xp_gain, aura_gain, stats_obj)
+    # Calculate success rate for display
+    success_rate, bonus = calculate_mission_success_rate(hero, mission)
 
-    # recalcular totales, con pasivo otra vez
+    return jsonify({
+        "success": True,
+        "hero_id": hero_id,
+        "mission_id": mission_id,
+        "mission_name": mission["name"],
+        "energy_spent": cost_energy,
+        "hero_energy_now": ds["energy_current"],
+        "duration_hours": mission["duration_hours"],
+        "completion_time": datetime.fromisoformat(ds["mission_start_time"].replace("Z", "")) + timedelta(hours=mission["duration_hours"]),
+        "estimated_success_rate": success_rate,
+        "difficulty": mission["difficulty"],
+        "message": f"{hero.get('name', 'Emissary')} has embarked on {mission['name']}! Duration: {mission['duration_hours']}h"
+    })
+
+@app.route("/api/mission/complete", methods=["POST"])
+def api_mission_complete():
+    """
+    Complete a mission (with probability-based outcome).
+    POST: { "wallet": "0x...", "hero_id": "00001" }
+    """
+    data = request.get_json(force=True)
+    wallet = data.get("wallet")
+    hero_id = data.get("hero_id")
+
+    if not wallet or not hero_id:
+        abort(400, "Missing wallet or hero_id")
+
+    stats_obj = load_json(STATS_PATH, {
+        "total_characters": 0,
+        "active_guilds": 6,
+        "missions_completed": 0,
+        "missions_failed": 0,
+        "total_exp_collected": 0,
+        "total_aura_collected": 0,
+        "guild_ranking": {},
+        "player_leaderboard": []
+    })
+    player_obj, players_all = ensure_player(wallet)
+
+    # Apply passive gains
     player_obj, stats_obj = apply_passive_and_regen(player_obj, stats_obj)
 
+    # Find hero
+    hero = None
+    for h in player_obj.get("heroes", []):
+        if h.get("token_id") == hero_id:
+            hero = h
+            break
+    if hero is None:
+        abort(404, "Hero not found")
+
+    ds = hero["dynamic_state"]
+
+    # Check if hero is on a mission
+    if ds.get("state") != "ON_MISSION":
+        abort(400, "Hero is not on a mission")
+
+    mission_id = ds.get("current_mission_id")
+    if not mission_id:
+        abort(400, "No active mission found")
+
+    # Find mission
+    mission = None
+    for m in MISSIONS:
+        if m["id"] == mission_id:
+            mission = m
+            break
+    if mission is None:
+        abort(400, "Mission configuration not found")
+
+    # Check if mission duration has elapsed
+    start_time_str = ds.get("mission_start_time")
+    if not start_time_str:
+        abort(400, "Mission start time not found")
+
+    hours_elapsed = hours_since(start_time_str)
+    if hours_elapsed < mission["duration_hours"]:
+        hours_left = mission["duration_hours"] - hours_elapsed
+        abort(400, f"Mission not yet complete. {hours_left:.1f} hours remaining")
+
+    # Roll for outcome
+    outcome, details = roll_mission_outcome(hero, mission)
+
+    hero_guild_name = hero.get("guild") or ds.get("current_guild", "Unknown Guild")
+    total_missions_completed = ds.get("total_missions_completed", 0)
+
+    # Process outcome
+    if outcome == "SUCCESS":
+        # Mission succeeded
+        xp_gain = details["xp_gain"]
+        aura_gain = details["aura_gain"]
+
+        ds["xp_total"] = ds.get("xp_total", 0) + xp_gain
+        ds["aura_level"] = ds.get("aura_level", 0) + aura_gain
+        ds["state"] = "READY"
+        ds["last_mission"] = mission["name"]
+        ds["current_mission_id"] = None
+        ds["mission_start_time"] = None
+
+        # Update mission history
+        mission_hist = ds.get("mission_history", {})
+        mission_hist[mission_id] = now_utc_str()
+        ds["mission_history"] = mission_hist
+
+        # Update mission count
+        total_missions_completed += 1
+        ds["total_missions_completed"] = total_missions_completed
+
+        # Update stats
+        stats_obj["missions_completed"] = stats_obj.get("missions_completed", 0) + 1
+        stats_obj["total_exp_collected"] = stats_obj.get("total_exp_collected", 0) + xp_gain
+        stats_obj["total_aura_collected"] = stats_obj.get("total_aura_collected", 0) + aura_gain
+
+        # Update guild stats
+        stats_obj = update_guild_stats(hero_guild_name, xp_gain, aura_gain, stats_obj, success=True)
+
+        # Check and grant achievements
+        achievements_granted = check_and_grant_mission_achievements(hero_id, total_missions_completed)
+
+        # Remove from active missions
+        active_missions = load_json(ACTIVE_MISSIONS_PATH, {})
+        mission_key = f"{wallet}_{hero_id}"
+        if mission_key in active_missions:
+            del active_missions[mission_key]
+            save_json(ACTIVE_MISSIONS_PATH, active_missions)
+
+        # Save
+        ds["last_update"] = now_utc_str()
+        player_obj, stats_obj = apply_passive_and_regen(player_obj, stats_obj)
+        players_all[wallet] = player_obj
+        save_json(PLAYERS_PATH, players_all)
+        save_json(STATS_PATH, stats_obj)
+
+        return jsonify({
+            "success": True,
+            "outcome": "SUCCESS",
+            "hero_id": hero_id,
+            "mission_name": mission["name"],
+            "xp_gained": xp_gain,
+            "aura_gained": aura_gain,
+            "perfect_alignment": details.get("perfect_alignment", False),
+            "hero_xp_now": ds["xp_total"],
+            "hero_aura_now": ds["aura_level"],
+            "achievements_granted": achievements_granted,
+            "message": f"🎉 SUCCESS! {hero.get('name', 'Emissary')} completed {mission['name']}!"
+        })
+
+    elif outcome == "FAILURE":
+        # Mission failed but hero survived
+        xp_loss = details["xp_loss"]
+
+        current_xp = ds.get("xp_total", 0)
+        ds["xp_total"] = max(0, current_xp - xp_loss)
+        ds["state"] = "READY"
+        ds["last_mission"] = f"{mission['name']} (Failed)"
+        ds["current_mission_id"] = None
+        ds["mission_start_time"] = None
+
+        # Update stats
+        stats_obj["missions_failed"] = stats_obj.get("missions_failed", 0) + 1
+
+        # Update guild stats
+        stats_obj = update_guild_stats(hero_guild_name, -xp_loss, 0, stats_obj, success=False)
+
+        # Remove from active missions
+        active_missions = load_json(ACTIVE_MISSIONS_PATH, {})
+        mission_key = f"{wallet}_{hero_id}"
+        if mission_key in active_missions:
+            del active_missions[mission_key]
+            save_json(ACTIVE_MISSIONS_PATH, active_missions)
+
+        # Save
+        ds["last_update"] = now_utc_str()
+        player_obj, stats_obj = apply_passive_and_regen(player_obj, stats_obj)
+        players_all[wallet] = player_obj
+        save_json(PLAYERS_PATH, players_all)
+        save_json(STATS_PATH, stats_obj)
+
+        return jsonify({
+            "success": True,
+            "outcome": "FAILURE",
+            "hero_id": hero_id,
+            "mission_name": mission["name"],
+            "xp_lost": xp_loss,
+            "hero_xp_now": ds["xp_total"],
+            "message": f"⚠️ FAILED: {hero.get('name', 'Emissary')} failed {mission['name']} and lost {xp_loss} XP."
+        })
+
+    elif outcome == "DEATH":
+        # Hero died
+        ds["state"] = "FALLEN"
+        ds["fallen_time"] = now_utc_str()
+        ds["current_mission_id"] = None
+        ds["mission_start_time"] = None
+        ds["last_mission"] = f"{mission['name']} (Fallen)"
+
+        # Increment death count
+        death_count = ds.get("death_count", 0)
+        ds["death_count"] = death_count + 1
+
+        # Calculate reinvocation cost
+        xp_cost, aura_cost = get_death_cost(death_count)
+
+        # Update stats
+        stats_obj["missions_failed"] = stats_obj.get("missions_failed", 0) + 1
+        stats_obj["total_deaths"] = stats_obj.get("total_deaths", 0) + 1
+
+        # Remove from active missions
+        active_missions = load_json(ACTIVE_MISSIONS_PATH, {})
+        mission_key = f"{wallet}_{hero_id}"
+        if mission_key in active_missions:
+            del active_missions[mission_key]
+            save_json(ACTIVE_MISSIONS_PATH, active_missions)
+
+        # Save
+        ds["last_update"] = now_utc_str()
+        player_obj, stats_obj = apply_passive_and_regen(player_obj, stats_obj)
+        players_all[wallet] = player_obj
+        save_json(PLAYERS_PATH, players_all)
+        save_json(STATS_PATH, stats_obj)
+
+        return jsonify({
+            "success": True,
+            "outcome": "DEATH",
+            "hero_id": hero_id,
+            "mission_name": mission["name"],
+            "death_count": ds["death_count"],
+            "reinvocation_cost": {
+                "xp": xp_cost,
+                "aura": aura_cost
+            },
+            "message": f"💀 FALLEN: {hero.get('name', 'Emissary')} has fallen in {mission['name']}. Reinvocation ritual required."
+        })
+
+    else:
+        abort(500, "Unknown mission outcome")
+
+@app.route("/api/ritual/reinvoke", methods=["POST"])
+def api_ritual_reinvoke():
+    """
+    Perform reinvocation ritual for a fallen hero.
+    POST: {
+        "wallet": "0x...",
+        "fallen_hero_id": "00001",
+        "sacrifices": [
+            {"hero_id": "00002", "xp_donate": 300, "aura_donate": 50},
+            {"hero_id": "00003", "xp_donate": 200, "aura_donate": 50}
+        ]
+    }
+    """
+    data = request.get_json(force=True)
+    wallet = data.get("wallet")
+    fallen_hero_id = data.get("fallen_hero_id")
+    sacrifices = data.get("sacrifices", [])
+
+    if not wallet or not fallen_hero_id or not sacrifices:
+        abort(400, "Missing wallet, fallen_hero_id, or sacrifices")
+
+    stats_obj = load_json(STATS_PATH, {
+        "total_characters": 0,
+        "active_guilds": 6,
+        "missions_completed": 0,
+        "missions_failed": 0,
+        "total_exp_collected": 0,
+        "total_aura_collected": 0,
+        "guild_ranking": {},
+        "player_leaderboard": []
+    })
+    player_obj, players_all = ensure_player(wallet)
+
+    # Apply passive gains
+    player_obj, stats_obj = apply_passive_and_regen(player_obj, stats_obj)
+
+    # Find fallen hero
+    fallen_hero = None
+    for h in player_obj.get("heroes", []):
+        if h.get("token_id") == fallen_hero_id:
+            fallen_hero = h
+            break
+    if fallen_hero is None:
+        abort(404, "Fallen hero not found")
+
+    ds = fallen_hero["dynamic_state"]
+
+    # Check if hero is fallen
+    if ds.get("state") != "FALLEN":
+        abort(400, "Hero is not fallen")
+
+    # Get death count and calculate cost
+    death_count = ds.get("death_count", 0)
+    if death_count == 0:
+        death_count = 1  # At least first death
+    xp_cost, aura_cost = get_death_cost(death_count - 1)
+
+    # Calculate total sacrifice
+    total_xp_donated = 0
+    total_aura_donated = 0
+
+    for sacrifice in sacrifices:
+        sacrifice_hero_id = sacrifice.get("hero_id")
+        xp_donate = sacrifice.get("xp_donate", 0)
+        aura_donate = sacrifice.get("aura_donate", 0)
+
+        # Find sacrifice hero
+        sacrifice_hero = None
+        for h in player_obj.get("heroes", []):
+            if h.get("token_id") == sacrifice_hero_id:
+                sacrifice_hero = h
+                break
+
+        if sacrifice_hero is None:
+            abort(404, f"Sacrifice hero {sacrifice_hero_id} not found")
+
+        # Check if sacrifice hero is from same wallet
+        if sacrifice_hero.get("token_id") == fallen_hero_id:
+            abort(400, "Cannot sacrifice the fallen hero itself")
+
+        # Check if sacrifice hero has enough resources
+        sac_ds = sacrifice_hero["dynamic_state"]
+        sac_xp = sac_ds.get("xp_total", 0)
+        sac_aura = sac_ds.get("aura_level", 0)
+
+        if sac_xp < xp_donate:
+            abort(400, f"Sacrifice hero {sacrifice_hero_id} doesn't have enough XP")
+        if sac_aura < aura_donate:
+            abort(400, f"Sacrifice hero {sacrifice_hero_id} doesn't have enough Aura")
+
+        # Deduct from sacrifice hero
+        sac_ds["xp_total"] = max(0, sac_xp - xp_donate)
+        sac_ds["aura_level"] = max(0, sac_aura - aura_donate)
+        sac_ds["last_update"] = now_utc_str()
+
+        total_xp_donated += xp_donate
+        total_aura_donated += aura_donate
+
+    # Check if total donation is sufficient
+    if total_xp_donated < xp_cost:
+        abort(400, f"Insufficient XP. Required: {xp_cost}, Donated: {total_xp_donated}")
+    if total_aura_donated < aura_cost:
+        abort(400, f"Insufficient Aura. Required: {aura_cost}, Donated: {total_aura_donated}")
+
+    # Revive fallen hero
+    ds["state"] = "READY"
+    ds["xp_total"] = 100  # Revive with 100 XP
+    ds["aura_level"] = 20  # Revive with 20 Aura
+    ds["energy_current"] = ds.get("energy_max", 100) // 2  # Revive with 50% energy
+    ds["last_update"] = now_utc_str()
+    ds["fallen_time"] = None
+
+    # Update stats
+    stats_obj["total_reinvocations"] = stats_obj.get("total_reinvocations", 0) + 1
+
+    # Save
+    player_obj, stats_obj = apply_passive_and_regen(player_obj, stats_obj)
     players_all[wallet] = player_obj
     save_json(PLAYERS_PATH, players_all)
     save_json(STATS_PATH, stats_obj)
 
     return jsonify({
-        "hero_id": hero_id,
-        "mission_id": mission_id,
-        "mission_name": mission["name"],
-        "energy_spent": cost_energy,
-        "xp_gained": xp_gain,
-        "aura_gained": aura_gain,
-        "hero_energy_now": ds["energy_current"],
+        "success": True,
+        "hero_id": fallen_hero_id,
+        "xp_donated": total_xp_donated,
+        "aura_donated": total_aura_donated,
         "hero_xp_now": ds["xp_total"],
-        "hero_aura_now": ds["aura_level"]
+        "hero_aura_now": ds["aura_level"],
+        "hero_energy_now": ds["energy_current"],
+        "message": f"✨ REINVOKED: {fallen_hero.get('name', 'Emissary')} has been brought back from the fallen state!"
     })
 
 # ---------------------------------

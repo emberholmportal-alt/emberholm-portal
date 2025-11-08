@@ -141,8 +141,8 @@ hero["death_count"] += 1
 
 ### Mecánica del Ritual
 
-1. **Usuario selecciona emisarios vivos** para sacrificar de
-2. **Dona XP y Aura** de esos emisarios
+1. **Usuario selecciona sus PROPIOS emisarios vivos** para sacrificar
+2. **Dona XP y Aura** de esos emisarios (de tu misma wallet)
 3. **Total debe alcanzar** el costo requerido
 4. **Fallen Hero revive** con:
    - 100 XP
@@ -150,22 +150,26 @@ hero["death_count"] += 1
    - 50% energy
    - Achievement "Reborn from Ash"
 
+**Importante:** Solo puedes usar tus propios NFTs. No necesitas ayuda de otros jugadores.
+
 ### Ejemplo de Ritual
 
 ```
-Fallen Hero: Kaelthar (#00042)
+Fallen Hero: Kaelthar (#00042) - TU NFT
 Death Count: 1
 Required: 500 XP, 100 Aura
 
-Sacrifice from:
-- Drax (#00001): 300 XP, 50 Aura
-- Sera (#00005): 200 XP, 50 Aura
+Sacrifice from TUS OTROS NFTs:
+- Drax (#00001): 300 XP, 50 Aura (también tuyo)
+- Sera (#00005): 200 XP, 50 Aura (también tuyo)
 Total: 500 XP, 100 Aura ✅
 
 Result:
 ✅ Kaelthar revives (100 XP, 20 Aura)
 ❌ Drax loses 300 XP, 50 Aura
 ❌ Sera loses 200 XP, 50 Aura
+
+Todos siguen siendo tuyos, solo redistribuyes XP/Aura entre ellos.
 ```
 
 ---
