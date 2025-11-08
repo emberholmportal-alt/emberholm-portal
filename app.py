@@ -696,7 +696,8 @@ def api_guilds():
 
 @app.route("/api/missions")
 def api_missions():
-    return jsonify(MISSIONS)
+    """Return all available missions"""
+    return jsonify({"missions": MISSIONS})
 
 # ---------------------------------
 # Helpers para NFTs y metadata
