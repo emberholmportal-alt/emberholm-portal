@@ -531,6 +531,50 @@ a.social-link:hover {
     padding: 40px 20px;
     opacity: 0.7;
 }
+
+/* INFO/CONFIRM MODAL STYLES */
+.modal-message {
+    font-size: 16px;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    margin-bottom: 20px;
+}
+
+.modal-buttons {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    margin-top: 20px;
+}
+
+.modal-btn {
+    background: #000;
+    border: 2px solid #ffb400;
+    color: #ffb400;
+    padding: 8px 24px;
+    font-family: 'VT323', monospace;
+    font-size: 18px;
+    cursor: pointer;
+    transition: all 0.2s;
+    min-width: 100px;
+}
+
+.modal-btn:hover {
+    background: #ffb400;
+    color: #000;
+    box-shadow: 0 0 10px rgba(255, 180, 0, 0.6);
+}
+
+.modal-btn.danger {
+    border-color: #ff4444;
+    color: #ff4444;
+}
+
+.modal-btn.danger:hover {
+    background: #ff4444;
+    color: #000;
+    box-shadow: 0 0 10px rgba(255, 68, 68, 0.6);
+}
 </style>
 </head>
 
@@ -1776,72 +1820,74 @@ async function loadPlayerAndRender(){
                 const heroId = btn.getAttribute("data-hero");
 
                 if (!connectedWallet) {
-                    alert("Please connect your wallet first!");
+                    showInfoModal("WALLET REQUIRED", "Please connect your wallet first!");
                     return;
                 }
 
-                if(!confirm("Attempt to COMPLETE mission for Emissary #" + heroId + "?\n\nNote: Mission must have reached its duration time.")){
-                    return;
-                }
+                showConfirmModal(
+                    "COMPLETE MISSION",
+                    "Attempt to COMPLETE mission for Emissary #" + heroId + "?\n\nNote: Mission must have reached its duration time.",
+                    async () => {
+                        try {
+                            const res = await fetch("/api/mission/complete", {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({
+                                    wallet: connectedWallet,
+                                    hero_id: heroId
+                                })
+                            });
 
-                try {
-                    const res = await fetch("/api/mission/complete", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({
-                            wallet: connectedWallet,
-                            hero_id: heroId
-                        })
-                    });
+                            if(!res.ok){
+                                const errText = await res.text();
+                                showInfoModal("MISSION COMPLETE FAILED", errText);
+                                return;
+                            }
 
-                    if(!res.ok){
-                        const errText = await res.text();
-                        alert("MISSION COMPLETE FAILED:\n\n" + errText);
-                        return;
-                    }
+                            const result = await res.json();
 
-                    const result = await res.json();
+                            // Display result based on outcome
+                            if (result.outcome === "SUCCESS") {
+                                let msg = "🎉 MISSION SUCCESS!\n\n" +
+                                    result.mission_name + "\n\n" +
+                                    "XP Gained: " + result.xp_gained + "\n" +
+                                    "Aura Gained: " + result.aura_gained + "\n\n" +
+                                    "Current XP: " + result.hero_xp_now + "\n" +
+                                    "Current Aura: " + result.hero_aura_now;
 
-                    // Display result based on outcome
-                    if (result.outcome === "SUCCESS") {
-                        let msg = "🎉 MISSION SUCCESS!\n\n" +
-                            result.mission_name + "\n\n" +
-                            "XP Gained: " + result.xp_gained + "\n" +
-                            "Aura Gained: " + result.aura_gained + "\n\n" +
-                            "Current XP: " + result.hero_xp_now + "\n" +
-                            "Current Aura: " + result.hero_aura_now;
+                                if (result.perfect_alignment) {
+                                    msg += "\n\n⚡ PERFECT ALIGNMENT! Rewards multiplied by 1.5x!";
+                                }
 
-                        if (result.perfect_alignment) {
-                            msg += "\n\n⚡ PERFECT ALIGNMENT! Rewards multiplied by 1.5x!";
+                                if (result.achievements_granted && result.achievements_granted.length > 0) {
+                                    msg += "\n\n🏆 ACHIEVEMENTS UNLOCKED:\n" + result.achievements_granted.join(", ");
+                                }
+
+                                showInfoModal("MISSION SUCCESS", msg);
+                            } else if (result.outcome === "FAILURE") {
+                                showInfoModal("MISSION FAILED",
+                                    "⚠️ " + result.mission_name + "\n\n" +
+                                    "XP Lost: " + result.xp_lost + "\n\n" +
+                                    "Current XP: " + result.hero_xp_now + "\n\n" +
+                                    "Better luck next time!");
+                            } else if (result.outcome === "DEATH") {
+                                showInfoModal("EMISSARY FALLEN",
+                                    "💀 Your emissary has fallen in " + result.mission_name + "!\n\n" +
+                                    "Death Count: " + result.death_count + "\n\n" +
+                                    "Reinvocation Cost:\n" +
+                                    "XP: " + result.reinvocation_cost.xp + "\n" +
+                                    "Aura: " + result.reinvocation_cost.aura + "\n\n" +
+                                    "Use [REINVOKE] button to bring them back.");
+                            }
+
+                            loadPlayerAndRender();
+                            fetchStatsAndRender();
+                        } catch(e){
+                            console.error(e);
+                            showInfoModal("CONNECTION ERROR", "MISSION COMPLETE ERROR: Connection issue.");
                         }
-
-                        if (result.achievements_granted && result.achievements_granted.length > 0) {
-                            msg += "\n\n🏆 ACHIEVEMENTS UNLOCKED:\n" + result.achievements_granted.join(", ");
-                        }
-
-                        alert(msg);
-                    } else if (result.outcome === "FAILURE") {
-                        alert("⚠️ MISSION FAILED\n\n" +
-                            result.mission_name + "\n\n" +
-                            "XP Lost: " + result.xp_lost + "\n\n" +
-                            "Current XP: " + result.hero_xp_now + "\n\n" +
-                            "Better luck next time!");
-                    } else if (result.outcome === "DEATH") {
-                        alert("💀 EMISSARY FALLEN\n\n" +
-                            "Your emissary has fallen in " + result.mission_name + "!\n\n" +
-                            "Death Count: " + result.death_count + "\n\n" +
-                            "Reinvocation Cost:\n" +
-                            "XP: " + result.reinvocation_cost.xp + "\n" +
-                            "Aura: " + result.reinvocation_cost.aura + "\n\n" +
-                            "Use [REINVOKE] button to bring them back.");
                     }
-
-                    loadPlayerAndRender();
-                    fetchStatsAndRender();
-                } catch(e){
-                    console.error(e);
-                    alert("MISSION COMPLETE ERROR: Connection issue.");
-                }
+                );
             });
         });
 
@@ -1938,55 +1984,57 @@ async function loadMissionsData() {
 // Start a mission
 async function startMission(heroId, missionId, missionName) {
     if (!connectedWallet) {
-        alert("Please connect your wallet first!");
+        showInfoModal("WALLET REQUIRED", "Please connect your wallet first!");
         return;
     }
 
-    if (!confirm(`Send ${heroId} on ${missionName}?\n\nEnergy will be consumed and hero will enter ON_MISSION state.`)) {
-        return;
-    }
+    showConfirmModal(
+        "START MISSION",
+        `Send ${heroId} on ${missionName}?\n\nEnergy will be consumed and hero will enter ON_MISSION state.`,
+        async () => {
+            try {
+                const res = await fetch("/api/mission/start", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        wallet: connectedWallet,
+                        hero_id: heroId,
+                        mission_id: missionId
+                    })
+                });
 
-    try {
-        const res = await fetch("/api/mission/start", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                wallet: connectedWallet,
-                hero_id: heroId,
-                mission_id: missionId
-            })
-        });
+                if (!res.ok) {
+                    const errText = await res.text();
+                    showInfoModal("MISSION START FAILED", errText);
+                    return;
+                }
 
-        if (!res.ok) {
-            const errText = await res.text();
-            alert("MISSION START FAILED:\n\n" + errText);
-            return;
+                const result = await res.json();
+
+                showInfoModal("MISSION STARTED",
+                    "🔥 " + result.mission_name + "\n" +
+                    "Difficulty: " + result.difficulty + "\n" +
+                    "Duration: " + result.duration_hours + "h\n\n" +
+                    "Energy Spent: " + result.energy_spent + "\n" +
+                    "Hero Energy Now: " + result.hero_energy_now + "\n\n" +
+                    "Estimated Success Rate: " + result.estimated_success_rate + "%\n\n" +
+                    "Use [COMPLETE] button when mission duration has elapsed."
+                );
+
+                loadPlayerAndRender();
+                fetchStatsAndRender();
+            } catch(e) {
+                console.error(e);
+                showInfoModal("CONNECTION ERROR", "MISSION START ERROR: Connection issue.");
+            }
         }
-
-        const result = await res.json();
-
-        alert("🔥 MISSION STARTED!\n\n" +
-            result.mission_name + "\n" +
-            "Difficulty: " + result.difficulty + "\n" +
-            "Duration: " + result.duration_hours + "h\n\n" +
-            "Energy Spent: " + result.energy_spent + "\n" +
-            "Hero Energy Now: " + result.hero_energy_now + "\n\n" +
-            "Estimated Success Rate: " + result.estimated_success_rate + "%\n\n" +
-            "Use [COMPLETE] button when mission duration has elapsed."
-        );
-
-        loadPlayerAndRender();
-        fetchStatsAndRender();
-    } catch(e) {
-        console.error(e);
-        alert("MISSION START ERROR: Connection issue.");
-    }
+    );
 }
 
 // Open reinvocation modal
 async function openReinvokeModal(fallenHeroId) {
     if (!connectedWallet) {
-        alert("Please connect your wallet first!");
+        showInfoModal("WALLET REQUIRED", "Please connect your wallet first!");
         return;
     }
 
@@ -1995,13 +2043,13 @@ async function openReinvokeModal(fallenHeroId) {
 
         const fallenHero = (player.heroes || []).find(h => h.token_id === fallenHeroId);
         if (!fallenHero) {
-            alert("Fallen hero not found!");
+            showInfoModal("ERROR", "Fallen hero not found!");
             return;
         }
 
         const ds = fallenHero.dynamic_state || {};
         if (ds.state !== "FALLEN") {
-            alert("This hero is not fallen!");
+            showInfoModal("ERROR", "This hero is not fallen!");
             return;
         }
 
@@ -2028,7 +2076,7 @@ async function openReinvokeModal(fallenHeroId) {
         );
 
         if (availableHeroes.length === 0) {
-            alert("No heroes available for sacrifice! You need at least one other hero with XP/Aura.");
+            showInfoModal("NO HEROES", "No heroes available for sacrifice! You need at least one other hero with XP/Aura.");
             return;
         }
 
@@ -2049,82 +2097,87 @@ async function openReinvokeModal(fallenHeroId) {
         sacrificeMsg += `\nThis is a simple implementation. You'll need to manually calculate donations.\n\n`;
         sacrificeMsg += `Proceed with automatic sacrifice?`;
 
-        if (!confirm(sacrificeMsg)) {
-            return;
-        }
+        showConfirmModal("REINVOCATION RITUAL", sacrificeMsg, async () => {
+            // Simple automatic sacrifice algorithm
+            const sacrifices = [];
+            let totalXpDonated = 0;
+            let totalAuraDonated = 0;
 
-        // Simple automatic sacrifice algorithm
-        const sacrifices = [];
-        let totalXpDonated = 0;
-        let totalAuraDonated = 0;
+            for (const hero of availableHeroes) {
+                if (totalXpDonated >= xpCost && totalAuraDonated >= auraCost) {
+                    break;
+                }
 
-        for (const hero of availableHeroes) {
-            if (totalXpDonated >= xpCost && totalAuraDonated >= auraCost) {
-                break;
+                const hds = hero.dynamic_state || {};
+                const availableXp = hds.xp_total || 0;
+                const availableAura = hds.aura_level || 0;
+
+                const xpNeeded = xpCost - totalXpDonated;
+                const auraNeeded = auraCost - totalAuraDonated;
+
+                const xpDonate = Math.min(availableXp, xpNeeded);
+                const auraDonate = Math.min(availableAura, auraNeeded);
+
+                if (xpDonate > 0 || auraDonate > 0) {
+                    sacrifices.push({
+                        hero_id: hero.token_id,
+                        xp_donate: xpDonate,
+                        aura_donate: auraDonate
+                    });
+
+                    totalXpDonated += xpDonate;
+                    totalAuraDonated += auraDonate;
+                }
             }
 
-            const hds = hero.dynamic_state || {};
-            const availableXp = hds.xp_total || 0;
-            const availableAura = hds.aura_level || 0;
+            if (totalXpDonated < xpCost || totalAuraDonated < auraCost) {
+                showInfoModal("INSUFFICIENT RESOURCES",
+                    `Not enough resources!\n\nYou have:\nXP: ${totalXpDonated}/${xpCost}\nAura: ${totalAuraDonated}/${auraCost}`);
+                return;
+            }
 
-            const xpNeeded = xpCost - totalXpDonated;
-            const auraNeeded = auraCost - totalAuraDonated;
-
-            const xpDonate = Math.min(availableXp, xpNeeded);
-            const auraDonate = Math.min(availableAura, auraNeeded);
-
-            if (xpDonate > 0 || auraDonate > 0) {
-                sacrifices.push({
-                    hero_id: hero.token_id,
-                    xp_donate: xpDonate,
-                    aura_donate: auraDonate
+            try {
+                // Call reinvoke API
+                const res = await fetch("/api/ritual/reinvoke", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        wallet: connectedWallet,
+                        fallen_hero_id: fallenHeroId,
+                        sacrifices: sacrifices
+                    })
                 });
 
-                totalXpDonated += xpDonate;
-                totalAuraDonated += auraDonate;
+                if (!res.ok) {
+                    const errText = await res.text();
+                    showInfoModal("REINVOCATION FAILED", errText);
+                    return;
+                }
+
+                const result = await res.json();
+
+                showInfoModal("REINVOCATION SUCCESSFUL",
+                    "✨ " + (fallenHero.name || fallenHeroId) + " has been brought back!\n\n" +
+                    `XP Donated: ${result.xp_donated}\n` +
+                    `Aura Donated: ${result.aura_donated}\n\n` +
+                    `Hero revived with:\n` +
+                    `XP: ${result.hero_xp_now}\n` +
+                    `Aura: ${result.hero_aura_now}\n` +
+                    `Energy: ${result.hero_energy_now}\n\n` +
+                    `Hero is now READY for missions.`
+                );
+
+                loadPlayerAndRender();
+                fetchStatsAndRender();
+            } catch(err) {
+                console.error(err);
+                showInfoModal("CONNECTION ERROR", "REINVOCATION ERROR: Connection issue.");
             }
-        }
-
-        if (totalXpDonated < xpCost || totalAuraDonated < auraCost) {
-            alert(`Not enough resources!\n\nYou have:\nXP: ${totalXpDonated}/${xpCost}\nAura: ${totalAuraDonated}/${auraCost}`);
-            return;
-        }
-
-        // Call reinvoke API
-        const res = await fetch("/api/ritual/reinvoke", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                wallet: connectedWallet,
-                fallen_hero_id: fallenHeroId,
-                sacrifices: sacrifices
-            })
         });
 
-        if (!res.ok) {
-            const errText = await res.text();
-            alert("REINVOCATION FAILED:\n\n" + errText);
-            return;
-        }
-
-        const result = await res.json();
-
-        alert("✨ REINVOCATION SUCCESSFUL!\n\n" +
-            `${fallenHero.name || fallenHeroId} has been brought back!\n\n` +
-            `XP Donated: ${result.xp_donated}\n` +
-            `Aura Donated: ${result.aura_donated}\n\n` +
-            `Hero revived with:\n` +
-            `XP: ${result.hero_xp_now}\n` +
-            `Aura: ${result.hero_aura_now}\n` +
-            `Energy: ${result.hero_energy_now}\n\n` +
-            `Hero is now READY for missions.`
-        );
-
-        loadPlayerAndRender();
-        fetchStatsAndRender();
     } catch(e) {
         console.error(e);
-        alert("REINVOCATION ERROR: Connection issue.");
+        showInfoModal("CONNECTION ERROR", "REINVOCATION ERROR: Connection issue.");
     }
 }
 
@@ -2280,16 +2333,49 @@ function hideModal(modalId) {
     }
 }
 
+// Show Info Modal (replaces alert())
+function showInfoModal(title, message) {
+    document.getElementById('info-modal-title').textContent = title;
+    document.getElementById('info-modal-message').textContent = message;
+    showModal('info-modal');
+}
+
+// Show Confirm Modal (replaces confirm())
+let confirmCallback = null;
+
+function showConfirmModal(title, message, onConfirm) {
+    document.getElementById('confirm-modal-title').textContent = title;
+    document.getElementById('confirm-modal-message').textContent = message;
+
+    confirmCallback = onConfirm;
+
+    const yesBtn = document.getElementById('confirm-yes-btn');
+    yesBtn.onclick = function() {
+        hideModal('confirm-modal');
+        if (confirmCallback) {
+            confirmCallback();
+            confirmCallback = null;
+        }
+    };
+
+    showModal('confirm-modal');
+}
+
+function closeConfirmModal() {
+    hideModal('confirm-modal');
+    confirmCallback = null;
+}
+
 // Open Mission Selection Modal (from PROFILE)
 async function openMissionListModal(heroId) {
     if (!connectedWallet) {
-        alert("Please connect your wallet first!");
+        showInfoModal("WALLET REQUIRED", "Please connect your wallet first!");
         return;
     }
 
     const missions = await loadMissionsData();
     if (!missions || missions.length === 0) {
-        alert("⚠️ No missions available at the moment.");
+        showInfoModal("NO MISSIONS", "⚠️ No missions available at the moment.");
         return;
     }
 
@@ -2332,14 +2418,14 @@ async function selectMission(missionId, heroId, missionName) {
 // Open Hero Selection Modal (from MISSIONS)
 async function openMissionSendModal(missionId) {
     if (!connectedWallet) {
-        alert("Please connect your wallet first!");
+        showInfoModal("WALLET REQUIRED", "Please connect your wallet first!");
         return;
     }
 
     const missions = await loadMissionsData();
     const mission = missions.find(m => m.id === missionId);
     if (!mission) {
-        alert("⚠️ Mission not found");
+        showInfoModal("ERROR", "⚠️ Mission not found");
         return;
     }
 
@@ -2351,7 +2437,7 @@ async function openMissionSendModal(missionId) {
         });
 
         if (readyHeroes.length === 0) {
-            alert("⚠️ No emissaries available!\n\nAll your emissaries are either on mission or fallen.");
+            showInfoModal("NO EMISSARIES", "⚠️ No emissaries available!\n\nAll your emissaries are either on mission or fallen.");
             return;
         }
 
@@ -2393,7 +2479,7 @@ async function openMissionSendModal(missionId) {
 
     } catch (e) {
         console.error(e);
-        alert("❌ Error loading emissaries: " + e.message);
+        showInfoModal("ERROR", "❌ Error loading emissaries: " + e.message);
     }
 }
 
@@ -2426,6 +2512,39 @@ async function selectHero(heroId, missionId, missionName) {
         </div>
         <div class="terminal-modal-body" id="hero-select-body">
             <!-- Hero list will be inserted here -->
+        </div>
+    </div>
+</div>
+
+<!-- INFO MODAL -->
+<div id="info-modal" class="modal-overlay">
+    <div class="terminal-modal" style="max-width: 500px;">
+        <div class="terminal-modal-header">
+            <span id="info-modal-title">INFORMATION</span>
+            <button class="terminal-modal-close" onclick="hideModal('info-modal')">×</button>
+        </div>
+        <div class="terminal-modal-body">
+            <div class="modal-message" id="info-modal-message"></div>
+            <div class="modal-buttons">
+                <button class="modal-btn" onclick="hideModal('info-modal')">OK</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- CONFIRM MODAL -->
+<div id="confirm-modal" class="modal-overlay">
+    <div class="terminal-modal" style="max-width: 500px;">
+        <div class="terminal-modal-header">
+            <span id="confirm-modal-title">CONFIRM ACTION</span>
+            <button class="terminal-modal-close" onclick="closeConfirmModal()">×</button>
+        </div>
+        <div class="terminal-modal-body">
+            <div class="modal-message" id="confirm-modal-message"></div>
+            <div class="modal-buttons">
+                <button class="modal-btn" id="confirm-yes-btn">YES</button>
+                <button class="modal-btn danger" onclick="closeConfirmModal()">NO</button>
+            </div>
         </div>
     </div>
 </div>

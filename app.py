@@ -718,25 +718,28 @@ def ipfs_to_http(ipfs_url):
 
 def get_wallet_token_ids(wallet):
     """
-    🔥 Obtiene los token_ids REALES que posee una billetera consultando la blockchain.
+    🔥 Obtiene los token_ids que posee una billetera.
 
-    Consulta el contrato NFT en Base Sepolia para obtener los NFTs que realmente
-    posee la wallet conectada.
+    PRIORIDAD:
+    1. Lee desde wallet_nfts.json (cache poblado por frontend)
+    2. Si no hay cache, intenta blockchain (solo si hay conexión)
 
     Returns:
         list: Lista de token_ids (como strings con formato "00001") que posee la wallet
-
-    Si hay error consultando blockchain, devuelve lista vacía.
     """
 
-    # Si no hay conexión a blockchain, intentar desde cache local
+    # 🔥 PRIORIDAD 1: Leer desde cache (poblado por frontend cuando conecta wallet)
+    wallet_nfts = load_json(WALLET_NFTS_PATH, {})
+    wallet_lower = wallet.lower()
+
+    for w, tokens in wallet_nfts.items():
+        if w.lower() == wallet_lower:
+            print(f"✅ Using cached NFTs for wallet {wallet[:6]}...{wallet[-4:]}: {len(tokens)} NFTs")
+            return tokens
+
+    # 🔥 PRIORIDAD 2: Si no hay cache, intentar blockchain (solo si hay conexión)
     if w3 is None or nft_contract is None:
-        print(f"⚠️ No blockchain connection. Checking local cache for wallet: {wallet}")
-        wallet_nfts = load_json(WALLET_NFTS_PATH, {})
-        wallet_lower = wallet.lower()
-        for w, tokens in wallet_nfts.items():
-            if w.lower() == wallet_lower:
-                return tokens
+        print(f"⚠️ No blockchain connection and no cache for wallet: {wallet}")
         return []
 
     try:
@@ -746,46 +749,25 @@ def get_wallet_token_ids(wallet):
         else:
             checksum_wallet = wallet
 
-        # Obtener balance de NFTs de esta wallet
-        balance = nft_contract.functions.balanceOf(checksum_wallet).call()
+        # 🔥 Usar tokensOfOwner() - una sola llamada eficiente
+        print(f"🔍 Querying blockchain for wallet {wallet[:6]}...{wallet[-4:]}")
+        token_ids_raw = nft_contract.functions.tokensOfOwner(checksum_wallet).call()
 
-        print(f"🔍 Wallet {wallet[:6]}...{wallet[-4:]} has {balance} NFTs")
+        # Formatear token_ids como strings con 5 dígitos
+        token_ids = [str(tid).zfill(5) for tid in token_ids_raw]
+        print(f"✅ Blockchain returned {len(token_ids)} NFTs")
 
-        if balance == 0:
-            return []
-
-        # Obtener todos los token IDs que posee esta wallet
-        token_ids = []
-        for i in range(balance):
-            try:
-                token_id = nft_contract.functions.tokenOfOwnerByIndex(checksum_wallet, i).call()
-                # Formatear token_id como string con 5 dígitos (ej: "00001")
-                token_id_str = str(token_id).zfill(5)
-                token_ids.append(token_id_str)
-                print(f"  ✅ Token #{token_id_str}")
-            except Exception as e:
-                print(f"  ⚠️ Error getting token at index {i}: {e}")
-                continue
-
-        # Cache los resultados en wallet_nfts.json para referencia
+        # Cache los resultados para próxima vez
         if token_ids:
-            wallet_nfts = load_json(WALLET_NFTS_PATH, {})
             wallet_nfts[wallet] = token_ids
             save_json(WALLET_NFTS_PATH, wallet_nfts)
+            print(f"✅ Cached NFTs for wallet {wallet[:6]}...{wallet[-4:]}")
 
         return token_ids
 
     except Exception as e:
         print(f"❌ Error querying blockchain for wallet {wallet}: {e}")
-
-        # Fallback: intentar desde cache local
-        wallet_nfts = load_json(WALLET_NFTS_PATH, {})
-        wallet_lower = wallet.lower()
-        for w, tokens in wallet_nfts.items():
-            if w.lower() == wallet_lower:
-                print(f"  📦 Using cached data: {len(tokens)} NFTs")
-                return tokens
-
+        print(f"⚠️ No cache available - returning empty list")
         return []
 
 def create_hero_from_metadata(token_id):
