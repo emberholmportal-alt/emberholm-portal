@@ -1182,10 +1182,19 @@ navButtons.forEach(btn => {
             } else if (target === "guilds") {
                 fetchGuildsAndRender();
             } else if (target === "missions") {
+                // 🔥 MISSIONS requiere wallet conectado
+                if (!connectedWallet) {
+                    alert("⚠️ WALLET REQUIRED\n\nYou must connect your wallet to access MISSIONS.\n\nClick [CONNECT WALLET] to continue.");
+                    switchScreen("profile"); // Redirigir a PROFILE para conectar
+                    return;
+                }
                 fetchMissionsAndRender();
             } else if (target === "profile") {
-                // Only load profile if already connected
-                if (connectedWallet) {
+                // 🔥 PROFILE requiere wallet conectado - si no está conectado, pedir conexión
+                if (!connectedWallet) {
+                    alert("⚠️ WALLET REQUIRED\n\nYou must connect your wallet to access your PROFILE.\n\nPlease click [CONNECT WALLET] button.");
+                    // No cargamos datos, solo mostramos el botón de conectar
+                } else {
                     loadPlayerAndRender();
                 }
             }
@@ -1415,8 +1424,10 @@ async function connectWallet() {
             const totalMinted = await contract.totalMinted();
             console.log(`📊 Total minted for STATS: ${totalMinted.toString()}`);
 
-            // Send token_ids and total_supply to backend
+            // 🔥 CONEXIÓN AL SERVIDOR - Mostrar claramente en UI
             console.log("📤 Sending NFT data to backend...");
+            document.getElementById("connect-wallet-btn").textContent = "[CONNECTING TO SERVER...]";
+
             const response = await fetch(`/api/player/${encodeURIComponent(address)}`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -1428,8 +1439,19 @@ async function connectWallet() {
 
             if (!response.ok) {
                 console.error(`⚠️ Backend responded with status ${response.status}`);
+                alert(`⚠️ ERROR: Server connection failed!\n\nStatus: ${response.status}\n\nPlease try again.`);
+                document.getElementById("connect-wallet-btn").textContent = "[ERROR - RETRY]";
+                document.getElementById("connect-wallet-btn").disabled = false;
+                return null;
             } else {
+                const result = await response.json();
                 console.log("✅ NFT data and contract stats registered on backend");
+                console.log(`📊 Server synced ${result.synced_to_database || 0} NFTs to database`);
+
+                // 🔥 Mostrar confirmación de sincronización al usuario
+                if (result.synced_to_database > 0) {
+                    console.log(`✨ SUCCESS: ${result.synced_to_database} NFTs synchronized to server database!`);
+                }
             }
 
             if (tokenIds.length === 0 && balance.toNumber() > 0) {
