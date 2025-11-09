@@ -1794,10 +1794,27 @@ async function loadPlayerAndRender(){
                             [CLAIM REWARDS]
                         </button>`;
                 } else {
+                    // 🔥 Calculate progress percentage
+                    let progressHtml = "";
+                    if (missionDuration > 0) {
+                        const startTime = new Date(missionStartTime.replace("Z", "") + "Z");
+                        const now = new Date();
+                        const elapsed = (now - startTime) / 1000 / 3600; // hours
+                        const percentComplete = Math.min(100, Math.floor((elapsed / missionDuration) * 100));
+                        const remaining = missionDuration - elapsed;
+
+                        progressHtml = `
+                            <div style="font-size:0.7rem; color:#ffaa00; margin-top:4px; line-height:1.2;">
+                                <div>⏳ ${percentComplete}% complete</div>
+                                <div style="font-size:0.6rem; color:#888;">${remaining.toFixed(1)}h remaining</div>
+                            </div>`;
+                    }
+
                     actionButtons = `
                         <button class="terminal-btn small-btn" disabled style="opacity:0.5; cursor:not-allowed;">
                             [IN PROGRESS]
-                        </button>`;
+                        </button>
+                        ${progressHtml}`;
                 }
             } else if (state === "FALLEN") {
                 actionButtons = `
