@@ -1099,6 +1099,24 @@ def api_player(wallet):
                 print(f"✅ Wallet {wallet[:6]}...{wallet[-4:]} registered with {len(token_ids)} NFTs: {token_ids}")
                 print(f"📂 Updated wallet_nfts keys: {list(wallet_nfts.keys())}")
 
+                # 🔥 AUTO-SINCRONIZACIÓN: Sincronizar cada NFT a la base de datos centralizada
+                print(f"🔄 AUTO-SYNC: Syncing {len(token_ids)} NFTs to database...")
+                synced_count = 0
+                for token_id in token_ids:
+                    try:
+                        # Sincronizar NFT a DB (si existe preserva estado, si es nuevo lo crea)
+                        nft = sync_nft_to_database(token_id, owner_wallet=wallet)
+                        synced_count += 1
+                        ds = nft.get("dynamic_state", {})
+                        print(f"  ✅ {token_id} → DB (xp: {ds.get('xp_total', 0)}, state: {ds.get('state', 'READY')})")
+                    except Exception as e:
+                        print(f"  ⚠️ Error syncing {token_id}: {e}")
+
+                # 🔥 AUTO-RECALCULAR STATS: Actualizar guilds.json con datos reales
+                print(f"📊 AUTO-RECALC: Updating global stats...")
+                calculate_guilds_data()
+                print(f"✅ Auto-sync complete: {synced_count}/{len(token_ids)} NFTs synced to database")
+
             # 🔥 Guardar total_supply real del contrato para STATS
             if total_supply is not None:
                 stats_obj = load_json(STATS_PATH, {})
@@ -1108,7 +1126,7 @@ def api_player(wallet):
 
             print(f"{'='*60}\n")
             # ✅ RETORNAR inmediatamente - NO llamar ensure_player() aquí
-            return jsonify({"success": True, "token_ids_cached": len(token_ids)})
+            return jsonify({"success": True, "token_ids_cached": len(token_ids), "synced_to_database": synced_count if token_ids else 0})
 
         except Exception as e:
             print(f"❌ Error processing POST data: {e}")
