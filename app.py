@@ -786,16 +786,22 @@ def calculate_player_leaderboard():
 
 def count_active_missions():
     """
-    Cuenta cuántos NFTs están actualmente en misión (estado ON_MISSION).
-    Lee desde la base de datos centralizada.
-    """
-    db = load_nfts_database()
-    count = 0
+    Cuenta cuántos NFTs están actualmente en misión.
 
-    for token_id, nft in db.items():
-        ds = nft.get("dynamic_state", {})
-        if ds.get("state") == "ON_MISSION":
-            count += 1
+    🔥 Lee desde active_missions.json (tracking específico de misiones activas)
+    Fallback: cuenta desde nfts_database.json si active_missions está vacío
+    """
+    # Primero intentar desde active_missions.json (más rápido y específico)
+    active_missions = load_json(ACTIVE_MISSIONS_PATH, {})
+    count = len(active_missions)
+
+    # Si active_missions está vacío, contar desde DB como fallback
+    if count == 0:
+        db = load_nfts_database()
+        for token_id, nft in db.items():
+            ds = nft.get("dynamic_state", {})
+            if ds.get("state") == "ON_MISSION":
+                count += 1
 
     return count
 
