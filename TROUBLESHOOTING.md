@@ -1,5 +1,9 @@
 # Troubleshooting - Emberholm Portal
 
+> 📘 **Para entender cómo se guardan y actualizan las stats de cada NFT**, lee: [DATA_PERSISTENCE.md](DATA_PERSISTENCE.md)
+
+---
+
 ## Problema: NFTs minteados no aparecen en mi PROFILE
 
 ### ¿Por qué sucede esto?
