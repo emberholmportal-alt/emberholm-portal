@@ -1512,23 +1512,8 @@ async function fetchStatsAndRender(){
         document.getElementById("stat-total-xp").textContent         = stats.total_exp_collected ?? 0;
         document.getElementById("stat-total-aura").textContent       = stats.total_aura_collected ?? 0;
 
-        // Guild Ranking - convertir objeto a array y ordenar por XP
-        const grObj = stats.guild_ranking || {};
-        const grArray = Object.keys(grObj).map(guildName => {
-            const gData = grObj[guildName];
-            const totalMissions = (gData.successes || 0) + (gData.failures || 0);
-            const successRate = totalMissions > 0
-                ? Math.round((gData.successes || 0) / totalMissions * 100)
-                : 0;
-            return {
-                name: guildName,
-                xp: gData.xp || 0,
-                aura: gData.aura || 0,
-                successes: gData.successes || 0,
-                failures: gData.failures || 0,
-                successRate: successRate
-            };
-        }).sort((a, b) => b.xp - a.xp); // Ordenar por XP descendente
+        // 🔥 Guild Ranking - el backend devuelve un ARRAY, no un objeto
+        const grArray = stats.guild_ranking || [];
 
         let htmlGR = "";
         if (grArray.length === 0) {
@@ -1538,8 +1523,8 @@ async function fetchStatsAndRender(){
                 htmlGR += `
                 <div class="mono-block">
                     <b>#${idx + 1} ${g.name}</b><br/>
-                    XP Total: ${g.xp} | Aura Total: ${g.aura}<br/>
-                    Successes: ${g.successes} | Failures: ${g.failures} | Success Rate: ${g.successRate}%
+                    XP Total: ${g.xp_total} | Aura Total: ${g.aura_total} | Members: ${g.members}<br/>
+                    Success Rate: ${g.success_rate}
                 </div>`;
             });
         }
