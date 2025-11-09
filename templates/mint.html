@@ -479,7 +479,7 @@
         const minted = await roContract.totalMinted();
         lastMintedOnChain = minted.toNumber();
         pushConsole(`[DEBUG] Total minted on-chain: ${lastMintedOnChain}`);
-        if (invokedCountDisplay) invokedCountDisplay.textContent = lastMintedOnChain;
+        updateInvokedCountFromContract(lastMintedOnChain);
       } catch (e) {
         pushConsole("[ERROR] Failed to read totalMinted: " + e.message);
         console.error("totalMinted read error:", e);
@@ -494,24 +494,21 @@
           const supply = await roContract.totalSupply();
           lastMintedOnChain = supply.toNumber();
           pushConsole(`[DEBUG] Total supply: ${lastMintedOnChain}`);
-          if (invokedCountDisplay) invokedCountDisplay.textContent = lastMintedOnChain;
+          updateInvokedCountFromContract(lastMintedOnChain);
         } catch (e2) {
           pushConsole("[ERROR] totalSupply also failed: " + e2.message);
         }
       }
     }
 
-    let totalInvoked = parseInt(localStorage.getItem("totalInvoked") || "0", 10);
-    if (invokedCountDisplay) {
-      invokedCountDisplay.textContent = totalInvoked;
-    }
+    // 🔥 NO usar localStorage para el contador global - solo mostrar valor real del contrato
+    let lastMintedForSession = 0;
 
-    function updateInvokedCount(qty) {
-      totalInvoked += qty;
-      localStorage.setItem("totalInvoked", String(totalInvoked));
+    function updateInvokedCountFromContract(totalOnChain) {
       if (invokedCountDisplay) {
-        invokedCountDisplay.textContent = totalInvoked;
+        invokedCountDisplay.textContent = totalOnChain;
       }
+      lastMintedForSession = totalOnChain;
     }
 
     // Función para obtener metadatos reales del NFT
@@ -717,7 +714,7 @@
             }
           }
 
-          updateInvokedCount(qty);
+          // El contador se actualiza automáticamente con refreshTotalMinted()
           pushConsole("[SUCCESS] All emissaries displayed!");
         }
 
