@@ -800,6 +800,7 @@ body {
                 <div class="stats-col">
                     <div>[ACTIVE GUILDS]: <span id="stat-active-guilds">6</span></div>
                     <div>[MISSIONS FAILED]: <span id="stat-missions-failed">0</span></div>
+                    <div>[MISSIONS IN PROGRESS]: <span id="stat-missions-in-progress">0</span></div>
                     <div>[SEASONAL WINDOW]: ROTATING // 45 DAYS</div>
                     <div>[MISSION ROTATION]: EVERY 72h</div>
                 </div>
@@ -1507,6 +1508,7 @@ async function fetchStatsAndRender(){
         document.getElementById("stat-active-guilds").textContent    = stats.active_guilds ?? 6;
         document.getElementById("stat-missions-done").textContent    = stats.missions_completed ?? 0;
         document.getElementById("stat-missions-failed").textContent  = stats.missions_failed ?? 0;
+        document.getElementById("stat-missions-in-progress").textContent = stats.missions_in_progress ?? 0;
         document.getElementById("stat-total-xp").textContent         = stats.total_exp_collected ?? 0;
         document.getElementById("stat-total-aura").textContent       = stats.total_aura_collected ?? 0;
 
@@ -1641,7 +1643,10 @@ async function fetchMissionsAndRender(){
                         </div>
                     </div>
                     <div style="margin-left:20px;">
-                        <button class="cmd-link" onclick="openMissionSendModal('${m.id}')">[SEND]</button>
+                        ${connectedWallet
+                            ? `<button class="cmd-link" onclick="openMissionSendModal('${m.id}')">[SEND]</button>`
+                            : `<button class="cmd-link" style="opacity:0.5;" onclick="alert('Please connect your wallet using the [CONNECT WALLET] button at the top of the page.')">[WALLET REQUIRED]</button>`
+                        }
                     </div>
                 </div>
             </div>`;

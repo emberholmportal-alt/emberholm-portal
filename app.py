@@ -540,6 +540,21 @@ def calculate_player_leaderboard():
     leaderboard.sort(key=lambda x: x["xp_total_all"], reverse=True)
     return leaderboard
 
+def count_active_missions():
+    """
+    Cuenta cuántos heroes están actualmente en misión (estado ON_MISSION)
+    """
+    players_all = load_json(PLAYERS_PATH, {})
+    count = 0
+
+    for wallet, pdata in players_all.items():
+        for hero in pdata.get("heroes", []):
+            ds = hero.get("dynamic_state", {})
+            if ds.get("state") == "ON_MISSION":
+                count += 1
+
+    return count
+
 def calculate_guilds_data():
     """
     Actualiza guilds.json con datos reales de members, avg_xp, avg_aura
@@ -668,11 +683,15 @@ def api_stats():
     # 🔥 Calcular leaderboard real de jugadores
     leaderboard = calculate_player_leaderboard()
 
+    # 🔥 Contar misiones activas en tiempo real
+    missions_in_progress = count_active_missions()
+
     resp = {
         "total_characters":     stats_obj.get("total_characters", 0),  # 🔥 Real value from blockchain contract
         "active_guilds":        stats_obj.get("active_guilds", 6),
         "missions_completed":   stats_obj.get("missions_completed", 0),
         "missions_failed":      stats_obj.get("missions_failed", 0),
+        "missions_in_progress": missions_in_progress,  # 🔥 Real-time count
         "total_exp_collected":  stats_obj.get("total_exp_collected", 0),
         "total_aura_collected": stats_obj.get("total_aura_collected", 0),
         "guild_ranking":        guild_rank_list,

@@ -2,22 +2,22 @@
     {
         "name": "Forge Legion",
         "flavor": "strength, steel, sworn oaths",
-        "members": 1,
-        "avg_xp": 465.0,
-        "avg_aura": 23.0,
+        "members": 0,
+        "avg_xp": 0,
+        "avg_aura": 0,
         "badge": "img/forge_legion.JPG",
-        "total_xp": 465,
-        "total_aura": 23
+        "total_xp": 0,
+        "total_aura": 0
     },
     {
         "name": "Circle of Mist",
         "flavor": "alchemy, mana, forbidden knowledge",
-        "members": 1,
-        "avg_xp": 135.0,
-        "avg_aura": 13.0,
+        "members": 0,
+        "avg_xp": 0,
+        "avg_aura": 0,
         "badge": "img/circle_of_mist.JPG",
-        "total_xp": 135,
-        "total_aura": 13
+        "total_xp": 0,
+        "total_aura": 0
     },
     {
         "name": "Shadow Guild",
