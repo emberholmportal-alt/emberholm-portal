@@ -417,6 +417,120 @@ a.social-link:hover {
     background:#ffb400;
     color:#000;
 }
+
+/* CUSTOM MODAL OVERLAY */
+.modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.85);
+    z-index: 9999;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-overlay.active {
+    display: flex;
+}
+
+/* TERMINAL-STYLE MODAL */
+.terminal-modal {
+    background: #000;
+    border: 3px solid #ffb400;
+    box-shadow: 0 0 20px rgba(255, 180, 0, 0.6);
+    max-width: 700px;
+    width: 90%;
+    max-height: 80vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.terminal-modal-header {
+    background: #ffb400;
+    color: #000;
+    padding: 8px 15px;
+    font-weight: bold;
+    font-size: 18px;
+    border-bottom: 2px solid #ffb400;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.terminal-modal-close {
+    background: transparent;
+    border: none;
+    color: #000;
+    font-size: 24px;
+    cursor: pointer;
+    padding: 0;
+    line-height: 1;
+}
+
+.terminal-modal-close:hover {
+    color: #f00;
+}
+
+.terminal-modal-body {
+    padding: 15px;
+    overflow-y: auto;
+    flex: 1;
+}
+
+.modal-list-item {
+    border: 1px solid #ffb400;
+    padding: 10px;
+    margin-bottom: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.modal-list-item:hover {
+    background: #ffb400;
+    color: #000;
+    box-shadow: 0 0 10px rgba(255, 180, 0, 0.6);
+}
+
+.modal-list-item.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    border-color: #666;
+}
+
+.modal-list-item.disabled:hover {
+    background: transparent;
+    color: #ffb400;
+    box-shadow: none;
+}
+
+.modal-hero-img {
+    width: 50px;
+    height: 50px;
+    border: 1px solid #ffb400;
+    object-fit: cover;
+    margin-right: 10px;
+}
+
+.modal-item-header {
+    font-size: 18px;
+    font-weight: bold;
+    margin-bottom: 4px;
+}
+
+.modal-item-details {
+    font-size: 14px;
+    opacity: 0.9;
+}
+
+.modal-no-items {
+    text-align: center;
+    padding: 40px 20px;
+    opacity: 0.7;
+}
 </style>
 </head>
 
@@ -1603,7 +1717,22 @@ async function loadPlayerAndRender(){
 
             tbodyRows += `
             <tr>
-                <td>${h.name || h.token_id}</td>
+                <td>
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <img src="${h.image_url || '/img/emissary-placeholder.png'}"
+                             alt="${h.name}"
+                             style="width:40px; height:40px; border:1px solid var(--line); object-fit:cover;"
+                             onerror="this.src='/img/emissary-placeholder.png'"/>
+                        <div>
+                            <div>${h.name || h.token_id}</div>
+                            <button class="terminal-btn" style="font-size:0.6rem; padding:2px 6px; margin-top:2px;"
+                                    onclick="downloadNFTImage('${h.image_url}', '${h.token_id}')"
+                                    title="Download NFT Image">
+                                [↓ IMG]
+                            </button>
+                        </div>
+                    </div>
+                </td>
                 <td>${h.race_class || ""}</td>
                 <td>${ds.xp_total || 0}</td>
                 <td>${ds.aura_level || 0}</td>
@@ -1804,111 +1933,6 @@ async function loadMissionsData() {
         cachedMissionsData = response.missions || response;
     }
     return cachedMissionsData;
-}
-
-// Open modal to select emissary for a specific mission
-async function openMissionSendModal(missionId) {
-    if (!connectedWallet) {
-        alert("Please connect your wallet first!");
-        return;
-    }
-
-    try {
-        const missions = await loadMissionsData();
-        const mission = missions.find(m => m.id === missionId);
-        if (!mission) {
-            alert("Mission not found!");
-            return;
-        }
-
-        const player = await fetchJSON(`/api/player/${encodeURIComponent(connectedWallet)}`);
-        const readyHeroes = (player.heroes || []).filter(h => {
-            const state = h.dynamic_state?.state || "READY";
-            return state === "READY";
-        });
-
-        if (readyHeroes.length === 0) {
-            alert("No emissaries available (READY state). All are either on missions or fallen.");
-            return;
-        }
-
-        let heroList = "SELECT EMISSARY TO SEND:\n\n";
-        readyHeroes.forEach((h, idx) => {
-            const ds = h.dynamic_state || {};
-            heroList += `${idx + 1}. ${h.name || h.token_id}\n`;
-            heroList += `   ${h.race_class || ""}\n`;
-            heroList += `   XP: ${ds.xp_total || 0} | Aura: ${ds.aura_level || 0}\n`;
-            heroList += `   Energy: ${ds.energy_current || 0}/${ds.energy_max || 100}\n`;
-            heroList += `   Guild: ${h.guild || ds.current_guild || ""}\n\n`;
-        });
-
-        heroList += `\nMission: ${mission.name} (${mission.difficulty})\n`;
-        heroList += `Energy Cost: ${mission.energy_cost}\n`;
-        heroList += `Duration: ${mission.duration_hours}h\n\n`;
-        heroList += "Enter number (1-" + readyHeroes.length + "):";
-
-        const choice = window.prompt(heroList, "1");
-        if (!choice) return;
-
-        const idx = parseInt(choice, 10) - 1;
-        if (isNaN(idx) || idx < 0 || idx >= readyHeroes.length) {
-            alert("Invalid selection!");
-            return;
-        }
-
-        const selectedHero = readyHeroes[idx];
-        await startMission(selectedHero.token_id, missionId, mission.name);
-    } catch(e) {
-        console.error(e);
-        alert("Error loading mission data.");
-    }
-}
-
-// Open modal to select mission for a specific emissary
-async function openMissionListModal(heroId) {
-    if (!connectedWallet) {
-        alert("Please connect your wallet first!");
-        return;
-    }
-
-    try {
-        const missions = await loadMissionsData();
-        const player = await fetchJSON(`/api/player/${encodeURIComponent(connectedWallet)}`);
-
-        const hero = (player.heroes || []).find(h => h.token_id === heroId);
-        if (!hero) {
-            alert("Hero not found!");
-            return;
-        }
-
-        let missionList = `SELECT MISSION FOR ${hero.name || hero.token_id}:\n\n`;
-        missions.forEach((m, idx) => {
-            missionList += `${idx + 1}. [${m.id}] ${m.name}\n`;
-            missionList += `   ${m.difficulty} | ${m.duration_hours}h | Energy: ${m.energy_cost}\n`;
-            missionList += `   XP: ${m.reward_xp} | Aura: ${m.reward_aura}\n`;
-            if (m.death_chance > 0) {
-                missionList += `   ⚠️ Death Risk: ${m.death_chance}%\n`;
-            }
-            missionList += `\n`;
-        });
-
-        missionList += "Enter number (1-" + missions.length + "):";
-
-        const choice = window.prompt(missionList, "1");
-        if (!choice) return;
-
-        const idx = parseInt(choice, 10) - 1;
-        if (isNaN(idx) || idx < 0 || idx >= missions.length) {
-            alert("Invalid selection!");
-            return;
-        }
-
-        const selectedMission = missions[idx];
-        await startMission(heroId, selectedMission.id, selectedMission.name);
-    } catch(e) {
-        console.error(e);
-        alert("Error loading mission data.");
-    }
 }
 
 // Start a mission
@@ -2215,6 +2239,196 @@ window.addEventListener("DOMContentLoaded", () => {
     fetchGuildsAndRender();
     fetchMissionsAndRender();
 });
+
+/* ========== CUSTOM MODAL FUNCTIONS ========== */
+
+// Download NFT Image
+function downloadNFTImage(imageUrl, tokenId) {
+    if (!imageUrl || imageUrl.includes('placeholder')) {
+        alert("⚠️ No image available for this NFT");
+        return;
+    }
+
+    // Convert IPFS URLs to HTTP gateway
+    let downloadUrl = imageUrl;
+    if (imageUrl.startsWith('ipfs://')) {
+        downloadUrl = imageUrl.replace('ipfs://', 'https://ipfs.io/ipfs/');
+    }
+
+    // Create temporary link and trigger download
+    const link = document.createElement('a');
+    link.href = downloadUrl;
+    link.download = `emissary-${tokenId}.png`;
+    link.target = '_blank';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
+// Show/Hide Modal
+function showModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.classList.add('active');
+    }
+}
+
+function hideModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.classList.remove('active');
+    }
+}
+
+// Open Mission Selection Modal (from PROFILE)
+async function openMissionListModal(heroId) {
+    if (!connectedWallet) {
+        alert("Please connect your wallet first!");
+        return;
+    }
+
+    const missions = await loadMissionsData();
+    if (!missions || missions.length === 0) {
+        alert("⚠️ No missions available at the moment.");
+        return;
+    }
+
+    // Build modal content
+    let modalHTML = '';
+    missions.forEach((mission, idx) => {
+        const diffColor = mission.difficulty === 'Easy' ? '#44ff44' :
+                         mission.difficulty === 'Medium' ? '#ffaa00' : '#ff4444';
+
+        const deathRisk = mission.death_chance > 0 ?
+            `<span style="color:#ff4444;">⚠️ Death Risk: ${mission.death_chance}%</span>` :
+            `<span style="color:#44ff44;">✓ No Death Risk</span>`;
+
+        modalHTML += `
+            <div class="modal-list-item" onclick="selectMission('${mission.id}', '${heroId}', '${mission.name}')">
+                <div class="modal-item-header">
+                    ${mission.name}
+                </div>
+                <div class="modal-item-details">
+                    <div>Difficulty: <span style="color:${diffColor};">${mission.difficulty}</span> |
+                         Duration: ${mission.duration_hours}h |
+                         Energy: ${mission.energy_cost}</div>
+                    <div>Rewards: ${mission.xp_reward} XP, ${mission.aura_reward} Aura</div>
+                    <div>${deathRisk}</div>
+                </div>
+            </div>
+        `;
+    });
+
+    document.getElementById('mission-select-body').innerHTML = modalHTML;
+    showModal('mission-select-modal');
+}
+
+// Select Mission and Start
+async function selectMission(missionId, heroId, missionName) {
+    hideModal('mission-select-modal');
+    await startMission(heroId, missionId, missionName);
+}
+
+// Open Hero Selection Modal (from MISSIONS)
+async function openMissionSendModal(missionId) {
+    if (!connectedWallet) {
+        alert("Please connect your wallet first!");
+        return;
+    }
+
+    const missions = await loadMissionsData();
+    const mission = missions.find(m => m.id === missionId);
+    if (!mission) {
+        alert("⚠️ Mission not found");
+        return;
+    }
+
+    try {
+        const player = await fetchJSON(`/api/player/${encodeURIComponent(connectedWallet)}`);
+        const readyHeroes = (player.heroes || []).filter(h => {
+            const ds = h.dynamic_state || {};
+            return ds.state === "READY";
+        });
+
+        if (readyHeroes.length === 0) {
+            alert("⚠️ No emissaries available!\n\nAll your emissaries are either on mission or fallen.");
+            return;
+        }
+
+        // Build modal content with hero images
+        let modalHTML = '';
+        readyHeroes.forEach((hero) => {
+            const ds = hero.dynamic_state || {};
+            const energyCost = mission.energy_cost || 0;
+            const hasEnoughEnergy = ds.energy_current >= energyCost;
+            const disabledClass = hasEnoughEnergy ? '' : 'disabled';
+            const clickHandler = hasEnoughEnergy ?
+                `onclick="selectHero('${hero.token_id}', '${missionId}', '${mission.name}')"` :
+                '';
+
+            modalHTML += `
+                <div class="modal-list-item ${disabledClass}" ${clickHandler}>
+                    <div style="display:flex; align-items:center;">
+                        <img src="${hero.image_url || '/img/emissary-placeholder.png'}"
+                             class="modal-hero-img"
+                             onerror="this.src='/img/emissary-placeholder.png'"/>
+                        <div style="flex:1;">
+                            <div class="modal-item-header">${hero.name || hero.token_id}</div>
+                            <div class="modal-item-details">
+                                ${hero.race_class} | Guild: ${hero.guild}<br/>
+                                XP: ${ds.xp_total || 0} | Aura: ${ds.aura_level || 0} |
+                                Energy: ${ds.energy_current || 0}/${ds.energy_max || 100}
+                                ${hasEnoughEnergy ? '' : ' <span style="color:#ff4444;">❌ Not enough energy!</span>'}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+
+        document.getElementById('hero-select-title').textContent =
+            `SELECT EMISSARY FOR: ${mission.name}`;
+        document.getElementById('hero-select-body').innerHTML = modalHTML;
+        showModal('hero-select-modal');
+
+    } catch (e) {
+        console.error(e);
+        alert("❌ Error loading emissaries: " + e.message);
+    }
+}
+
+// Select Hero and Start Mission
+async function selectHero(heroId, missionId, missionName) {
+    hideModal('hero-select-modal');
+    await startMission(heroId, missionId, missionName);
+}
+
 </script>
+
+<!-- CUSTOM MODALS -->
+<div id="mission-select-modal" class="modal-overlay" onclick="if(event.target===this) hideModal('mission-select-modal')">
+    <div class="terminal-modal">
+        <div class="terminal-modal-header">
+            SELECT MISSION
+            <button class="terminal-modal-close" onclick="hideModal('mission-select-modal')">×</button>
+        </div>
+        <div class="terminal-modal-body" id="mission-select-body">
+            <!-- Mission list will be inserted here -->
+        </div>
+    </div>
+</div>
+
+<div id="hero-select-modal" class="modal-overlay" onclick="if(event.target===this) hideModal('hero-select-modal')">
+    <div class="terminal-modal">
+        <div class="terminal-modal-header">
+            <span id="hero-select-title">SELECT EMISSARY</span>
+            <button class="terminal-modal-close" onclick="hideModal('hero-select-modal')">×</button>
+        </div>
+        <div class="terminal-modal-body" id="hero-select-body">
+            <!-- Hero list will be inserted here -->
+        </div>
+    </div>
+</div>
+
 </body>
 </html>
