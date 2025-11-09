@@ -48,6 +48,18 @@ credentials.json
 test_*.py
 *_temp.py
 
+# 🔥 Datos dinámicos del juego (NO incluir en git)
+# Estos archivos cambian con cada misión/jugador
+data/nfts_database.json
+data/active_missions.json
+data/players.json
+data/wallet_nfts.json
+data/stats.json
+data/guilds.json
+data/achievements.json
+
+# ⚙️ NOTA: missions_config.json SÍ debe estar en git (es configuración estática)
+
 # -------------------------------
 # Fin de .gitignore
 # -------------------------------
