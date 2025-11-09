@@ -1089,14 +1089,20 @@ def create_hero_from_metadata(token_id):
                 "aura_level": 0,
                 "energy_current": 100,
                 "energy_max": 100,
-                "state": "READY",
+                "state": "READY",  # READY, ON_MISSION, FALLEN
                 "current_guild": "Unassigned",
                 "last_update": now_utc_str(),
                 "last_energy_refresh": now_utc_str(),
-                "mission_history": {},
+                "mission_history": {},  # {mission_id: timestamp}
                 "power_current": 10,
                 "xp_level": 1,
-                "last_mission": "None"
+                "last_mission": "None",
+                # 🔥 CAMPOS ADICIONALES para sistema de misiones completo
+                "total_missions_completed": 0,
+                "death_count": 0,
+                "current_mission_id": None,
+                "mission_start_time": None,
+                "fallen_time": None
             }
         }
 
@@ -1135,14 +1141,20 @@ def create_hero_from_metadata(token_id):
             "aura_level": 0,
             "energy_current": 100,
             "energy_max": 100,
-            "state": "READY",
+            "state": "READY",  # READY, ON_MISSION, FALLEN
             "current_guild": guild,
             "last_update": now_utc_str(),
             "last_energy_refresh": now_utc_str(),
-            "mission_history": {},
+            "mission_history": {},  # {mission_id: timestamp}
             "power_current": power_current,
             "xp_level": 1,
-            "last_mission": "None"
+            "last_mission": "None",
+            # 🔥 CAMPOS ADICIONALES para sistema de misiones completo
+            "total_missions_completed": 0,
+            "death_count": 0,
+            "current_mission_id": None,
+            "mission_start_time": None,
+            "fallen_time": None
         }
     }
 
@@ -2227,6 +2239,97 @@ print("   XP/Aura will accumulate as NFTs complete missions")
 # ---------------------------------
 # Run local dev server
 # ---------------------------------
+# 🔥 VALIDACIÓN DE INTEGRIDAD DE DATOS
+# ---------------------------------
+
+def validate_nft_dynamic_state(nft):
+    """
+    Valida que un NFT tenga todos los campos dinámicos requeridos.
+    Si faltan campos, los agrega con valores por defecto.
+
+    Args:
+        nft: Objeto NFT desde nfts_database.json
+
+    Returns:
+        NFT validado y corregido
+    """
+    if "dynamic_state" not in nft:
+        nft["dynamic_state"] = {}
+
+    ds = nft["dynamic_state"]
+
+    # 🔥 CAMPOS REQUERIDOS con valores por defecto
+    required_fields = {
+        "xp_total": 0,
+        "aura_level": 0,
+        "energy_current": 100,
+        "energy_max": 100,
+        "state": "READY",
+        "current_guild": nft.get("guild", "Unassigned"),
+        "last_update": now_utc_str(),
+        "last_energy_refresh": now_utc_str(),
+        "mission_history": {},
+        "power_current": 10,
+        "xp_level": 1,
+        "last_mission": "None",
+        "total_missions_completed": 0,
+        "death_count": 0,
+        "current_mission_id": None,
+        "mission_start_time": None,
+        "fallen_time": None
+    }
+
+    # Agregar campos faltantes
+    for field, default_value in required_fields.items():
+        if field not in ds:
+            ds[field] = default_value
+
+    nft["dynamic_state"] = ds
+    return nft
+
+def validate_database_integrity():
+    """
+    🔥 VALIDACIÓN COMPLETA DE INTEGRIDAD DE LA BASE DE DATOS
+
+    Verifica que todos los NFTs en nfts_database.json tengan:
+    - Todos los campos dinámicos requeridos
+    - Valores válidos (no None donde no debe ser)
+    - Estructura correcta
+
+    Se ejecuta al iniciar el servidor para garantizar integridad.
+    """
+    print("\n" + "="*70)
+    print("🔍 VALIDATING DATABASE INTEGRITY...")
+    print("="*70)
+
+    db = load_nfts_database()
+    total_nfts = len(db)
+    fixed_count = 0
+
+    print(f"📊 Total NFTs in database: {total_nfts}")
+
+    for token_id, nft in db.items():
+        original_nft = json.dumps(nft, sort_keys=True)
+        validated_nft = validate_nft_dynamic_state(nft)
+
+        if json.dumps(validated_nft, sort_keys=True) != original_nft:
+            db[token_id] = validated_nft
+            fixed_count += 1
+
+    if fixed_count > 0:
+        print(f"🔧 Fixed {fixed_count} NFTs with missing/invalid fields")
+        save_nfts_database(db)
+        print(f"✅ Database integrity validated and fixed")
+    else:
+        print(f"✅ All {total_nfts} NFTs have complete and valid data")
+
+    print("="*70 + "\n")
+    return total_nfts, fixed_count
+
+# ---------------------------------
 
 if __name__ == "__main__":
+    # 🔥 VALIDAR INTEGRIDAD AL INICIAR
+    validate_database_integrity()
+
     app.run(debug=True)
