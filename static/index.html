@@ -1887,33 +1887,11 @@ async function loadPlayerAndRender(){
                             }
 
                             const result = await res.json();
-                            const tokenId = parseInt(heroId);
-
-                            // Unstake NFT on-chain (only if not DEATH outcome)
-                            if (result.outcome !== "DEATH") {
-                                try {
-                                    showInfoModal("UNSTAKING NFT", "🔓 Unlocking your NFT...\n\nApprove the transaction in MetaMask.");
-
-                                    const signer = provider.getSigner();
-                                    const contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, signer);
-
-                                    const unstakeTx = await contract.unstakeToken(tokenId);
-                                    await unstakeTx.wait();
-                                } catch(unstakeError) {
-                                    console.error("Unstake error:", unstakeError);
-                                    showInfoModal("UNSTAKE FAILED",
-                                        "⚠️ Mission completed but unstake failed.\n\n" +
-                                        "You can unstake manually later or try again.\n\n" +
-                                        "Error: " + (unstakeError.message || "Unknown error"));
-                                    // Continue anyway to show results
-                                }
-                            }
 
                             // Display result based on outcome
                             if (result.outcome === "SUCCESS") {
                                 let msg = "🎉 MISSION SUCCESS!\n\n" +
                                     result.mission_name + "\n\n" +
-                                    "✅ NFT UNLOCKED\n\n" +
                                     "XP Gained: " + result.xp_gained + "\n" +
                                     "Aura Gained: " + result.aura_gained + "\n\n" +
                                     "Current XP: " + result.hero_xp_now + "\n" +
@@ -1931,14 +1909,12 @@ async function loadPlayerAndRender(){
                             } else if (result.outcome === "FAILURE") {
                                 showInfoModal("MISSION FAILED",
                                     "⚠️ " + result.mission_name + "\n\n" +
-                                    "✅ NFT UNLOCKED\n\n" +
                                     "XP Lost: " + result.xp_lost + "\n\n" +
                                     "Current XP: " + result.hero_xp_now + "\n\n" +
                                     "Better luck next time!");
                             } else if (result.outcome === "DEATH") {
                                 showInfoModal("EMISSARY FALLEN",
                                     "💀 Your emissary has fallen in " + result.mission_name + "!\n\n" +
-                                    "⚠️ NFT remains STAKED until reinvocation\n\n" +
                                     "Death Count: " + result.death_count + "\n\n" +
                                     "Reinvocation Cost:\n" +
                                     "XP: " + result.reinvocation_cost.xp + "\n" +
@@ -2054,32 +2030,12 @@ async function startMission(heroId, missionId, missionName) {
         return;
     }
 
-    const tokenId = parseInt(heroId);
-
     showConfirmModal(
         "START MISSION",
-        `Send Emissary #${heroId} on ${missionName}?\n\nYour NFT will be STAKED (locked) on-chain during the mission to prevent transfers.\n\nYou'll need to approve 1 transaction.`,
+        `Send Emissary #${heroId} on ${missionName}?\n\nYour emissary will be locked during the mission.\n\nEnergy will be consumed and the emissary will enter ON_MISSION state.`,
         async () => {
             try {
-                // STEP 1: Stake NFT on-chain
-                showInfoModal("STAKING NFT", "🔒 Locking your NFT on-chain...\n\nApprove the transaction in MetaMask to stake your NFT and prevent transfers during the mission.");
-
-                const signer = provider.getSigner();
-                const contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, signer);
-
-                try {
-                    const stakeTx = await contract.stakeToken(tokenId);
-                    showInfoModal("TRANSACTION PENDING", "⏳ Waiting for blockchain confirmation...\n\nDo not close this window.");
-                    await stakeTx.wait();
-                } catch(stakeError) {
-                    if (stakeError.code === 4001 || stakeError.code === "ACTION_REJECTED") {
-                        showInfoModal("CANCELLED", "Transaction cancelled by user.");
-                        return;
-                    }
-                    throw stakeError;
-                }
-
-                // STEP 2: Start mission in backend
+                // Start mission in backend (no blockchain staking)
                 const res = await fetch("/api/mission/start", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
@@ -2092,7 +2048,7 @@ async function startMission(heroId, missionId, missionName) {
 
                 if (!res.ok) {
                     const errText = await res.text();
-                    showInfoModal("MISSION START FAILED", "⚠️ Backend error: " + errText + "\n\nYour NFT is staked but mission didn't start. You can unstake manually if needed.");
+                    showInfoModal("MISSION START FAILED", errText);
                     return;
                 }
 
@@ -2100,24 +2056,19 @@ async function startMission(heroId, missionId, missionName) {
 
                 showInfoModal("MISSION STARTED",
                     "🔥 " + result.mission_name + "\n\n" +
-                    "✅ NFT STAKED & LOCKED\n" +
                     "Difficulty: " + result.difficulty + "\n" +
                     "Duration: " + result.duration_hours + "h\n\n" +
                     "Energy Spent: " + result.energy_spent + "\n" +
                     "Hero Energy Now: " + result.hero_energy_now + "\n\n" +
                     "Estimated Success Rate: " + result.estimated_success_rate + "%\n\n" +
-                    "Your NFT is now LOCKED on-chain and cannot be transferred until mission completes."
+                    "Your emissary is now locked and cannot start another mission until this one completes."
                 );
 
                 loadPlayerAndRender();
                 fetchStatsAndRender();
             } catch(e) {
                 console.error(e);
-                if (e.message && e.message.includes("Already staked")) {
-                    showInfoModal("ALREADY STAKED", "This NFT is already staked. Cannot start another mission.");
-                } else {
-                    showInfoModal("CONNECTION ERROR", "MISSION START ERROR: " + (e.message || "Connection issue."));
-                }
+                showInfoModal("CONNECTION ERROR", "MISSION START ERROR: " + (e.message || "Connection issue."));
             }
         }
     );
@@ -2248,27 +2199,8 @@ async function openReinvokeModal(fallenHeroId) {
 
                 const result = await res.json();
 
-                // Unstake NFT after successful reinvocation
-                const tokenId = parseInt(fallenHeroId);
-                try {
-                    showInfoModal("UNSTAKING NFT", "🔓 Unlocking your revived NFT...\n\nApprove the transaction in MetaMask.");
-
-                    const signer = provider.getSigner();
-                    const contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, signer);
-
-                    const unstakeTx = await contract.unstakeToken(tokenId);
-                    await unstakeTx.wait();
-                } catch(unstakeError) {
-                    console.error("Unstake error after reinvoke:", unstakeError);
-                    showInfoModal("UNSTAKE FAILED",
-                        "⚠️ Reinvocation succeeded but unstake failed.\n\n" +
-                        "You can unstake manually later.\n\n" +
-                        "Error: " + (unstakeError.message || "Unknown error"));
-                }
-
                 showInfoModal("REINVOCATION SUCCESSFUL",
                     "✨ " + (fallenHero.name || fallenHeroId) + " has been brought back!\n\n" +
-                    "✅ NFT UNLOCKED\n\n" +
                     `XP Donated: ${result.xp_donated}\n` +
                     `Aura Donated: ${result.aura_donated}\n\n` +
                     `Hero revived with:\n` +
