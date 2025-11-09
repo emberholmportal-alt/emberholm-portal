@@ -956,11 +956,11 @@ body {
 
         <div class="section-subtitle" style="margin-top:10px;">Smart Contract (Base Sepolia Test)</div>
         <div class="terminal-box">
-            <p>Contract name: <b>Emberholm Portal</b></p>
-            <p>Address: <code>0x2F55e14F0b2B2118d2026d20Ad2C39EAcBdCAc47</code></p>
+            <p>Contract name: <b>Emberholm Portal V2</b></p>
+            <p>Address: <code>0xA93C701F0dD91DE0E82f6796d56c4c7aeE053749</code></p>
             <p>
                 View on Basescan:
-                <a href="https://sepolia.basescan.org/address/0x2F55e14F0b2B2118d2026d20Ad2C39EAcBdCAc47"
+                <a href="https://sepolia.basescan.org/address/0xA93C701F0dD91DE0E82f6796d56c4c7aeE053749"
                    target="_blank"
                    style="color:#ffcc00; text-decoration:none;">
                     → open explorer
@@ -977,6 +977,9 @@ body {
 
 <!-- 🔥 ETHERS.JS -->
 <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+
+<!-- 🔥 CONTRACT CONFIG -->
+<script src="/contract-config.js"></script>
 
 <script>
 /* --------- GLOBAL STATE --------- */
@@ -1183,14 +1186,8 @@ async function connectWallet() {
 
         // 🔥 Query NFT contract on Base Sepolia to get user's NFTs
         try {
-            const contractAddress = "0x2F55e14F0b2B2118d2026d20Ad2C39EAcBdCAc47";
-            const abi = [
-                "function balanceOf(address owner) view returns (uint256)",
-                "function ownerOf(uint256 tokenId) view returns (address)",
-                "function totalMinted() view returns (uint256)",
-                "function MAX_SUPPLY() view returns (uint256)",
-                "event Transfer(address indexed from, address indexed to, uint256 indexed tokenId)"
-            ];
+            const contractAddress = CONTRACT_CONFIG.ADDRESS;
+            const abi = CONTRACT_CONFIG.ABI;
 
             console.log(`📜 Contract address: ${contractAddress}`);
             console.log(`🌐 Network confirmed: Base Sepolia (Chain ID ${finalChainId})`);

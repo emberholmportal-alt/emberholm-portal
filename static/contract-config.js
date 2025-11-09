@@ -2,8 +2,8 @@
 // Update these values after deploying to Base Sepolia
 
 const CONTRACT_CONFIG = {
-    // ⚠️ IMPORTANTE: Actualiza esta dirección después del deploy
-    ADDRESS: "0xYOUR_DEPLOYED_CONTRACT_ADDRESS_HERE",
+    // ✅ EmberholmPortal V2 deployed on Base Sepolia
+    ADDRESS: "0xA93C701F0dD91DE0E82f6796d56c4c7aeE053749",
 
     // Base Sepolia Testnet
     CHAIN_ID: 84532,
