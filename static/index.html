@@ -718,7 +718,7 @@ body {
     <header class="top-header">
         <div class="top-status-row">
             <span>EMBERHOLM PORTAL : NODE-Δ / REALM MONITOR</span>
-            <span>ACCESS LEVEL: [CITIZEN]</span>
+            <span id="access-level">ACCESS LEVEL: [CITIZEN]</span>
             <span>STATUS: FLAME WEAKENING // MISSIONS REQUIRED</span>
         </div>
 
@@ -1445,6 +1445,10 @@ async function connectWallet() {
             }
 
             document.getElementById("connect-wallet-btn").textContent = "[CONNECTED ✓]";
+
+            // 🔥 Update ACCESS LEVEL to EMBERHOLM EMISSARY
+            document.getElementById("access-level").textContent = "ACCESS LEVEL: [EMBERHOLM EMISSARY]";
+            console.log("✅ Access level upgraded to EMBERHOLM EMISSARY");
         } catch (blockchainError) {
             console.error("❌❌❌ BLOCKCHAIN QUERY ERROR:", blockchainError);
             console.error("Error name:", blockchainError.name);
@@ -1497,6 +1501,10 @@ if (window.ethereum) {
             document.getElementById("wallet-display").textContent = "NOT CONNECTED";
             document.getElementById("connect-wallet-btn").textContent = "[CONNECT WALLET]";
             document.getElementById("connect-wallet-btn").disabled = false;
+
+            // 🔥 Reset ACCESS LEVEL to CITIZEN
+            document.getElementById("access-level").textContent = "ACCESS LEVEL: [CITIZEN]";
+            console.log("🔄 Access level downgraded to CITIZEN");
         } else {
             console.log("🔄 Reloading page due to account change");
             window.location.reload();
