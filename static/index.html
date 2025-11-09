@@ -1754,11 +1754,16 @@ async function loadPlayerAndRender(){
                         missionDuration = missionData.duration_hours;
                         const remaining = missionDuration - elapsed;
 
+                        // 🔥 Difficulty color
+                        let diffColor = "#44ff44";
+                        if (missionData.difficulty === "MEDIUM") diffColor = "#ffaa00";
+                        if (missionData.difficulty === "HARD") diffColor = "#ff4444";
+
                         if (remaining <= 0) {
                             missionComplete = true;
-                            timeRemainingHtml = `<br/><small>Mission: ${currentMission}<br/><span style="color:#44ff44;">✓ READY TO COMPLETE!</span></small>`;
+                            timeRemainingHtml = `<br/><small>Mission: [${currentMission}] ${missionData.name}<br/><span style="color:${diffColor};">● ${missionData.difficulty}</span><br/><span style="color:#44ff44;">✓ READY TO COMPLETE!</span></small>`;
                         } else {
-                            timeRemainingHtml = `<br/><small>Mission: ${currentMission}<br/>Remaining: ${remaining.toFixed(1)}h / ${missionDuration}h</small>`;
+                            timeRemainingHtml = `<br/><small>Mission: [${currentMission}] ${missionData.name}<br/><span style="color:${diffColor};">● ${missionData.difficulty}</span><br/>Remaining: ${remaining.toFixed(1)}h / ${missionDuration}h</small>`;
                         }
                     } else {
                         timeRemainingHtml = `<br/><small>Mission: ${currentMission}<br/>Elapsed: ${elapsed.toFixed(1)}h</small>`;
