@@ -729,6 +729,7 @@ body {
             <button class="cmd-link" data-target="missions">[MISSIONS]</button>
             <button class="cmd-link" data-target="profile">[PROFILE]</button>
             <button class="cmd-link" data-target="help">[HELP]</button>
+            <button class="cmd-link" data-target="tutorial">[TUTORIAL]</button>
             <button class="cmd-link" data-target="lore">[LORE]</button>
             <button class="cmd-link" data-target="announcements">[ANNOUNCEMENTS]</button>
             <button class="cmd-link" data-target="events">[EVENTS]</button>
@@ -910,6 +911,611 @@ body {
                     NOTE: All operations are logged by Ember Protocol.
                     Unauthorized interference with mission records may trigger Guild sanctions.
                 </span>
+            </div>
+        </div>
+    </section>
+
+    <!-- TUTORIAL -->
+    <section class="screen" data-screen="tutorial">
+        <div class="section-block">
+            <div class="section-title">MISSION SYSTEM // COMPLETE TUTORIAL</div>
+            <div class="mono-block">
+                <p style="color:#44ff44;"><b>⚔️ COMPREHENSIVE GUIDE TO MISSIONS IN EMBERHOLM PORTAL</b></p>
+                This tutorial covers everything you need to know about the mission system,
+                from basic mechanics to advanced strategies for maximizing your rewards.
+            </div>
+        </div>
+
+        <!-- 1. MISSION SYSTEM // OVERVIEW -->
+        <div class="section-block">
+            <div class="section-title">1. MISSION SYSTEM // OVERVIEW</div>
+            <div class="mono-block">
+                <p><b>What are Missions?</b></p>
+                Missions are time-based operations where you deploy your NFT Emissaries to complete tasks
+                across the Emberholm Realm. Each mission has specific requirements, costs, and rewards.<br/><br/>
+
+                <p><b>Mission Board:</b></p>
+                • Rotates every 72 hours with new available missions<br/>
+                • 9 total missions available: 3 EASY, 3 MEDIUM, 3 HARD<br/>
+                • Each Emissary can attempt each mission ONCE per rotation<br/>
+                • Missions run in real-time even when you're offline<br/><br/>
+
+                <p><b>Mission States:</b></p>
+                <span style="color:#44ff44;">● READY</span> - Emissary available for deployment<br/>
+                <span style="color:#ffaa00;">● ON MISSION</span> - Currently deployed, mission in progress<br/>
+                <span style="color:#ff4444;">● FALLEN</span> - Emissary died, requires reinvocation<br/><br/>
+
+                <p><b>Key Concept:</b></p>
+                Missions don't pause! Once you deploy an Emissary, the mission timer runs continuously
+                until completion. Return to [PROFILE] to check progress and claim rewards when ready.
+            </div>
+        </div>
+
+        <!-- 2. MISSION COSTS & REQUIREMENTS -->
+        <div class="section-block">
+            <div class="section-title">2. MISSION COSTS & REQUIREMENTS</div>
+            <div class="mono-block">
+                <p><b>Energy Cost by Difficulty:</b></p>
+                • <span style="color:#44ff44;">EASY</span> missions: 10 Energy<br/>
+                • <span style="color:#ffaa00;">MEDIUM</span> missions: 18 Energy<br/>
+                • <span style="color:#ff4444;">HARD</span> missions: 25 Energy<br/><br/>
+
+                <p><b>Duration by Difficulty:</b></p>
+                • <span style="color:#44ff44;">EASY</span> missions: 3 hours<br/>
+                • <span style="color:#ffaa00;">MEDIUM</span> missions: 6 hours<br/>
+                • <span style="color:#ff4444;">HARD</span> missions: 12 hours<br/><br/>
+
+                <p><b>Energy System:</b></p>
+                • Maximum Energy: 100<br/>
+                • Natural Recovery: Full refill every 48 hours<br/>
+                • Emergency Recovery: Burn XP to restore Energy instantly via [RECOVER]<br/>
+                • Energy is checked when STARTING a mission (not during)<br/><br/>
+
+                <p><b>Requirements:</b></p>
+                ✓ Connected wallet with NFT Emissaries<br/>
+                ✓ Sufficient Energy for the mission<br/>
+                ✓ Emissary in READY state (not on mission or fallen)<br/>
+                ✓ Mission not already attempted this rotation (72h cooldown per hero)
+            </div>
+        </div>
+
+        <!-- 3. MISSION REWARDS // XP & AURA -->
+        <div class="section-block">
+            <div class="section-title">3. MISSION REWARDS // XP & AURA</div>
+            <div class="mono-block">
+                <p><b>Base Rewards by Difficulty:</b></p>
+                <table style="width:100%; margin:10px 0; border-collapse:collapse;">
+                    <tr style="border-bottom:1px solid #44ff44;">
+                        <th style="text-align:left; padding:5px;">DIFFICULTY</th>
+                        <th style="text-align:right; padding:5px;">XP REWARD</th>
+                        <th style="text-align:right; padding:5px;">AURA REWARD</th>
+                    </tr>
+                    <tr>
+                        <td style="padding:5px;"><span style="color:#44ff44;">● EASY</span></td>
+                        <td style="text-align:right; padding:5px;">60 XP</td>
+                        <td style="text-align:right; padding:5px;">4 Aura</td>
+                    </tr>
+                    <tr>
+                        <td style="padding:5px;"><span style="color:#ffaa00;">● MEDIUM</span></td>
+                        <td style="text-align:right; padding:5px;">150 XP</td>
+                        <td style="text-align:right; padding:5px;">10 Aura</td>
+                    </tr>
+                    <tr>
+                        <td style="padding:5px;"><span style="color:#ff4444;">● HARD</span></td>
+                        <td style="text-align:right; padding:5px;">350 XP</td>
+                        <td style="text-align:right; padding:5px;">25 Aura</td>
+                    </tr>
+                </table>
+
+                <p><b>Bonuses & Multipliers:</b></p>
+                Your actual rewards can be HIGHER based on your Emissary's attributes:<br/><br/>
+
+                <span style="color:#44ff44;">+12%</span> if Guild matches mission's favored guild<br/>
+                <span style="color:#44ff44;">+8%</span> if Class matches mission's favored class<br/>
+                <span style="color:#44ff44;">+5%</span> if Race matches mission's favored race<br/>
+                <span style="color:#44ff44;">+1%</span> per 10 levels of XP<br/>
+                <span style="color:#44ff44;">+1%</span> per 100 Aura accumulated<br/><br/>
+
+                <p style="color:#ffaa00;"><b>🌟 PERFECT ALIGNMENT BONUS:</b></p>
+                If your Emissary matches ALL THREE (Guild + Class + Race), you get a
+                <b style="color:#ffaa00;">1.5x MULTIPLIER</b> on final rewards! This is the most powerful bonus
+                in the game and can dramatically increase your efficiency.
+            </div>
+        </div>
+
+        <!-- 4. SUCCESS RATE CALCULATION -->
+        <div class="section-block">
+            <div class="section-title">4. SUCCESS RATE CALCULATION</div>
+            <div class="mono-block">
+                <p><b>Base Success Rates:</b></p>
+                • <span style="color:#44ff44;">EASY</span> missions: 92% base success rate<br/>
+                • <span style="color:#ffaa00;">MEDIUM</span> missions: 78% base success rate<br/>
+                • <span style="color:#ff4444;">HARD</span> missions: 60% base success rate<br/><br/>
+
+                <p><b>Success Rate Formula:</b></p>
+                <code style="color:#ffaa00;">
+                    Final Success Rate = Base Rate + Bonuses<br/>
+                    <br/>
+                    Where Bonuses =<br/>
+                    &nbsp;&nbsp;+ 12% if Guild matches<br/>
+                    &nbsp;&nbsp;+ 8% if Class matches<br/>
+                    &nbsp;&nbsp;+ 5% if Race matches<br/>
+                    &nbsp;&nbsp;+ 1% per 10 XP levels<br/>
+                    &nbsp;&nbsp;+ 1% per 100 Aura<br/>
+                    <br/>
+                    Maximum: 100% (capped, cannot exceed)
+                </code><br/><br/>
+
+                <p><b>Strategic Insight:</b></p>
+                Matching your Emissary's attributes to the mission dramatically improves success rates.
+                A perfect alignment can push even HARD missions close to 85%+ success rate!<br/><br/>
+
+                <p style="color:#44ff44;"><b>💡 PRO TIP:</b></p>
+                Check each mission's "favored" attributes in the mission details. Plan your
+                Emissary deployment accordingly to maximize success chances!
+            </div>
+        </div>
+
+        <!-- 5. MISSION FAILURE // CONSEQUENCES -->
+        <div class="section-block">
+            <div class="section-title">5. MISSION FAILURE // CONSEQUENCES</div>
+            <div class="mono-block">
+                <p><b>What Happens When You Fail?</b></p>
+                When a mission fails (based on success rate calculation):<br/><br/>
+
+                • <span style="color:#ff4444;">XP Loss:</span> Lose portion of potential XP reward<br/>
+                • <span style="color:#ff4444;">No Aura:</span> Receive little to no Aura<br/>
+                • <span style="color:#ff4444;">Energy Lost:</span> Energy spent is NOT refunded<br/>
+                • <span style="color:#ff4444;">Mission Cooldown:</span> Still counts toward 72h rotation limit<br/>
+                • <span style="color:#ff4444;">Realm Stats:</span> Logged as failed mission in global statistics<br/><br/>
+
+                <p><b>XP Loss on Failure:</b></p>
+                • <span style="color:#44ff44;">EASY</span> missions: -25 XP<br/>
+                • <span style="color:#ffaa00;">MEDIUM</span> missions: -60 XP<br/>
+                • <span style="color:#ff4444;">HARD</span> missions: -140 XP<br/><br/>
+
+                <p><b>Death Chance:</b></p>
+                Some missions carry a small DEATH CHANCE on failure:<br/>
+                • <span style="color:#44ff44;">EASY</span> missions: 0% death chance (safe)<br/>
+                • <span style="color:#ffaa00;">MEDIUM</span> missions: 0.5% death chance<br/>
+                • <span style="color:#ff4444;">HARD</span> missions: 2.0% death chance<br/><br/>
+
+                If death occurs, your Emissary enters FALLEN state and requires reinvocation
+                (see next section for death system details).
+            </div>
+        </div>
+
+        <!-- 6. DEATH & REINVOCATION SYSTEM -->
+        <div class="section-block">
+            <div class="section-title">6. DEATH & REINVOCATION SYSTEM</div>
+            <div class="mono-block">
+                <p><b>Death Mechanic:</b></p>
+                When an Emissary dies (rare, only on failed MEDIUM/HARD missions):<br/>
+                • Emissary enters <span style="color:#ff4444;">FALLEN</span> state<br/>
+                • Cannot be deployed until reinvoked<br/>
+                • Requires spending XP and Aura to reinvoke<br/>
+                • Death count increases (affects future reinvocation costs)<br/><br/>
+
+                <p><b>Reinvocation Costs (Escalating):</b></p>
+                <table style="width:100%; margin:10px 0; border-collapse:collapse;">
+                    <tr style="border-bottom:1px solid #44ff44;">
+                        <th style="text-align:left; padding:5px;">DEATH COUNT</th>
+                        <th style="text-align:right; padding:5px;">XP COST</th>
+                        <th style="text-align:right; padding:5px;">AURA COST</th>
+                    </tr>
+                    <tr>
+                        <td style="padding:5px;">1st Death</td>
+                        <td style="text-align:right; padding:5px; color:#44ff44;">500 XP</td>
+                        <td style="text-align:right; padding:5px; color:#44ff44;">100 Aura</td>
+                    </tr>
+                    <tr>
+                        <td style="padding:5px;">2nd Death</td>
+                        <td style="text-align:right; padding:5px; color:#ffaa00;">1,500 XP</td>
+                        <td style="text-align:right; padding:5px; color:#ffaa00;">300 Aura</td>
+                    </tr>
+                    <tr>
+                        <td style="padding:5px;">3rd Death</td>
+                        <td style="text-align:right; padding:5px; color:#ff4444;">5,000 XP</td>
+                        <td style="text-align:right; padding:5px; color:#ff4444;">1,000 Aura</td>
+                    </tr>
+                    <tr>
+                        <td style="padding:5px;">4th+ Death</td>
+                        <td style="text-align:right; padding:5px; color:#ff0000;">10,000 XP</td>
+                        <td style="text-align:right; padding:5px; color:#ff0000;">2,500 Aura</td>
+                    </tr>
+                </table><br/>
+
+                <p style="color:#ff4444;"><b>⚠️ CRITICAL WARNING:</b></p>
+                Death costs escalate dramatically! Protect your Emissaries by choosing missions
+                with high success rates. A 4th death requires astronomical resources to recover from.
+            </div>
+        </div>
+
+        <!-- 7. MISSION FLOW // STEP-BY-STEP GUIDE -->
+        <div class="section-block">
+            <div class="section-title">7. MISSION FLOW // STEP-BY-STEP GUIDE</div>
+            <div class="mono-block">
+                <p><b>Complete Mission Walkthrough:</b></p>
+
+                <p style="color:#44ff44;"><b>STEP 1: CONNECT WALLET</b></p>
+                • Navigate to [PROFILE] section<br/>
+                • Click [CONNECT WALLET] button<br/>
+                • Approve MetaMask connection<br/>
+                • Your NFT Emissaries will load automatically<br/>
+                • ACCESS LEVEL upgrades to <span style="color:#44ff44;">[EMBERHOLM EMISSARY]</span><br/><br/>
+
+                <p style="color:#44ff44;"><b>STEP 2: REVIEW YOUR EMISSARIES</b></p>
+                • Check each Emissary's Energy level<br/>
+                • Note their Guild, Class, and Race<br/>
+                • Review current XP and Aura levels<br/>
+                • Verify they're in READY state (not on mission)<br/><br/>
+
+                <p style="color:#44ff44;"><b>STEP 3: CHOOSE A MISSION</b></p>
+                • Navigate to [MISSIONS] section<br/>
+                • Browse available missions (3 EASY, 3 MEDIUM, 3 HARD)<br/>
+                • Click on a mission to see full details<br/>
+                • Check favored Guild/Class/Race for bonuses<br/>
+                • Review duration, costs, and rewards<br/><br/>
+
+                <p style="color:#44ff44;"><b>STEP 4: SELECT EMISSARY</b></p>
+                • Click [SELECT HERO] on chosen mission<br/>
+                • System shows your available Emissaries<br/>
+                • Each shows success rate for THIS mission<br/>
+                • Choose Emissary that matches mission attributes for best odds<br/><br/>
+
+                <p style="color:#44ff44;"><b>STEP 5: DEPLOY</b></p>
+                • Review final confirmation screen<br/>
+                • Check Energy cost and estimated success rate<br/>
+                • Click [SEND] to deploy<br/>
+                • Energy is deducted immediately<br/>
+                • Emissary status changes to ON MISSION<br/><br/>
+
+                <p style="color:#44ff44;"><b>STEP 6: WAIT FOR COMPLETION</b></p>
+                • Mission runs in real-time (3h / 6h / 12h)<br/>
+                • Check progress in [PROFILE] section<br/>
+                • "% complete" shows mission advancement<br/>
+                • Timer shows remaining time<br/>
+                • You can close browser - mission continues!<br/><br/>
+
+                <p style="color:#44ff44;"><b>STEP 7: CLAIM REWARDS</b></p>
+                • When timer reaches 100%, return to [PROFILE]<br/>
+                • Mission shows <span style="color:#44ff44;">✓ READY TO COMPLETE!</span><br/>
+                • Click [CLAIM] to resolve mission<br/>
+                • Success/Failure determined by success rate<br/>
+                • Rewards credited (or penalties applied)<br/>
+                • Emissary returns to READY state<br/><br/>
+
+                <p style="color:#ffaa00;"><b>STEP 8: MANAGE ENERGY</b></p>
+                • If Energy is low, use [RECOVER] to refill via XP<br/>
+                • Or wait for natural 48h recovery cycle<br/>
+                • Plan your mission schedule around Energy availability<br/><br/>
+
+                <p style="color:#ffaa00;"><b>STEP 9: REPEAT!</b></p>
+                • Deploy same Emissary to different missions<br/>
+                • Or use other Emissaries for same mission<br/>
+                • Remember: Each hero can only do each mission ONCE per 72h rotation<br/>
+                • Mix and match for optimal efficiency!
+            </div>
+        </div>
+
+        <!-- 8. AVAILABLE MISSIONS // CURRENT ROTATION -->
+        <div class="section-block">
+            <div class="section-title">8. AVAILABLE MISSIONS // CURRENT ROTATION</div>
+            <div class="mono-block">
+                <p><b>Mission Board (refreshes every 72h):</b></p>
+                <div id="tutorial-missions-list" style="margin-top:10px;">
+                    <!-- This will be populated dynamically from missions_config.json -->
+                    Loading mission data...
+                </div>
+            </div>
+        </div>
+
+        <!-- 9. STRATEGY TIPS // MAXIMIZE EFFICIENCY -->
+        <div class="section-block">
+            <div class="section-title">9. STRATEGY TIPS // MAXIMIZE EFFICIENCY</div>
+            <div class="mono-block">
+                <p style="color:#44ff44;"><b>💡 BEGINNER STRATEGIES:</b></p>
+
+                <p><b>1. Match Attributes Early:</b></p>
+                Always prioritize missions where your Emissary's Guild/Class/Race match.
+                The +25% total bonus (+12% +8% +5%) dramatically improves success rates and rewards.<br/><br/>
+
+                <p><b>2. Start with EASY Missions:</b></p>
+                Build up XP and Aura safely with 92% base success rate and 0% death chance.
+                Use this to level up before attempting riskier missions.<br/><br/>
+
+                <p><b>3. Energy Management:</b></p>
+                EASY missions cost only 10 Energy (can do 10 per Emissary per cycle).
+                HARD missions cost 25 Energy (only 4 per cycle). Plan accordingly!<br/><br/>
+
+                <p style="color:#ffaa00;"><b>⚔️ INTERMEDIATE STRATEGIES:</b></p>
+
+                <p><b>4. Perfect Alignment Hunting:</b></p>
+                Identify missions where you have ALL THREE matches (Guild + Class + Race).
+                The 1.5x reward multiplier is massive - a HARD mission with perfect alignment
+                can give you 525 XP instead of 350!<br/><br/>
+
+                <p><b>5. Stagger Your Emissaries:</b></p>
+                Don't deploy all Emissaries at once. Stagger missions so some complete while
+                others are running. This gives you constant progression and flexibility.<br/><br/>
+
+                <p><b>6. Risk/Reward Calculation:</b></p>
+                MEDIUM missions give 2.5x rewards of EASY for only 1.8x energy cost.
+                HARD missions give 5.8x rewards of EASY for only 2.5x energy cost.
+                If you can get success rate above 75%, HARD missions are most efficient.<br/><br/>
+
+                <p style="color:#ff4444;"><b>⚡ ADVANCED STRATEGIES:</b></p>
+
+                <p><b>7. Death Risk Mitigation:</b></p>
+                HARD missions have 2% death chance on failure. At 60% base success, that's 0.8%
+                overall death risk. With bonuses pushing to 85% success, it drops to 0.3%.
+                Calculate if the risk is worth the 10x+ rewards over EASY missions.<br/><br/>
+
+                <p><b>8. Rotation Optimization:</b></p>
+                Each 72h rotation, map out which Emissaries do which missions for maximum
+                attribute matches. You have 72 hours to complete all deployments - use it wisely!<br/><br/>
+
+                <p><b>9. XP Banking:</b></p>
+                Save XP for emergency Energy recovery. Don't burn it all immediately.
+                Having 500+ XP reserve lets you keep pushing missions if RNG gives bad Energy refills.<br/><br/>
+
+                <p><b>10. Guild Synergy:</b></p>
+                If you own multiple Emissaries from the same Guild, focus on that Guild's
+                favored missions. The +12% guild bonus stacks with everything else!<br/><br/>
+
+                <p style="color:#44ff44;"><b>🏆 MASTERY STRATEGY:</b></p>
+                <p style="background-color:#111; padding:10px; border-left:3px solid #44ff44;">
+                    <b>"The Perfect Rotation"</b><br/><br/>
+                    1. Identify all missions where you have perfect alignment (Guild+Class+Race match)<br/>
+                    2. Deploy those Emissaries first with maximum Energy<br/>
+                    3. Fill remaining Energy with high-match MEDIUM missions<br/>
+                    4. Use low-Energy Emissaries on EASY missions to accumulate base XP<br/>
+                    5. Time completions so you can chain 2-3 missions per Emissary per rotation<br/>
+                    6. Reserve 1-2 Emissaries for emergency high-priority missions<br/><br/>
+
+                    Result: 300% more rewards than random deployment! 🔥
+                </p>
+            </div>
+        </div>
+
+        <!-- 10. TECHNICAL DETAILS // ADVANCED INFO -->
+        <div class="section-block">
+            <div class="section-title">10. TECHNICAL DETAILS // ADVANCED INFO</div>
+            <div class="mono-block">
+                <p><b>Backend Architecture:</b></p>
+                • Mission state stored in nfts_database.json (persistent across sessions)<br/>
+                • Active missions tracked in active_missions.json<br/>
+                • All timestamps in UTC for consistency<br/>
+                • Validation system auto-corrects data integrity on server restart<br/><br/>
+
+                <p><b>NFT Dynamic State (17 Fields):</b></p>
+                Each NFT maintains dynamic state including:<br/>
+                xp_total, aura_level, energy_current, energy_max, state, current_guild,
+                last_update, last_energy_refresh, mission_history, power_current, xp_level,
+                last_mission, total_missions_completed, death_count, current_mission_id,
+                mission_start_time, fallen_time<br/><br/>
+
+                <p><b>Mission Timing:</b></p>
+                • Missions use real-world hours (not game time)<br/>
+                • Timer starts immediately on deployment<br/>
+                • Completion calculated server-side on CLAIM<br/>
+                • No time zone issues (all UTC based)<br/><br/>
+
+                <p><b>Success Rate Calculation (Precise):</b></p>
+                <code style="color:#ffaa00;">
+                    base_rate = mission.success_rate<br/>
+                    guild_bonus = 12 if guild_match else 0<br/>
+                    class_bonus = 8 if class_match else 0<br/>
+                    race_bonus = 5 if race_match else 0<br/>
+                    level_bonus = floor(xp_level / 10)<br/>
+                    aura_bonus = floor(aura_level / 100)<br/>
+                    <br/>
+                    total_bonus = sum(all_bonuses)<br/>
+                    final_rate = min(base_rate + total_bonus, 100)<br/>
+                    <br/>
+                    success = random(0,100) < final_rate
+                </code><br/><br/>
+
+                <p><b>Reward Calculation (Precise):</b></p>
+                <code style="color:#ffaa00;">
+                    base_xp = mission.reward_xp<br/>
+                    base_aura = mission.reward_aura<br/>
+                    <br/>
+                    bonus_multiplier = 1.0<br/>
+                    bonus_multiplier += guild_bonus / 100<br/>
+                    bonus_multiplier += class_bonus / 100<br/>
+                    bonus_multiplier += race_bonus / 100<br/>
+                    bonus_multiplier += level_bonus / 100<br/>
+                    bonus_multiplier += aura_bonus / 100<br/>
+                    <br/>
+                    if guild_match AND class_match AND race_match:<br/>
+                    &nbsp;&nbsp;&nbsp;&nbsp;bonus_multiplier *= 1.5  # Perfect alignment!<br/>
+                    <br/>
+                    final_xp = base_xp * bonus_multiplier<br/>
+                    final_aura = base_aura * bonus_multiplier
+                </code><br/><br/>
+
+                <p><b>Scalability:</b></p>
+                System designed for:<br/>
+                • 35,000 NFTs simultaneous tracking<br/>
+                • Thousands of concurrent wallets<br/>
+                • Real-time stat aggregation<br/>
+                • No data loss on server restarts<br/>
+                • Automatic data validation and repair<br/><br/>
+
+                <p><b>Data Persistence:</b></p>
+                • Dynamic data NOT in git (persists locally)<br/>
+                • Configuration files (missions_config.json) IN git<br/>
+                • Fresh deploy: run init_data_files.py to create empty data files<br/>
+                • Backup strategy: copy data/*.json before major updates
+            </div>
+        </div>
+
+        <!-- FAQ SECTION -->
+        <div class="section-block">
+            <div class="section-title">FREQUENTLY ASKED QUESTIONS (FAQ)</div>
+            <div class="mono-block">
+                <p><b>Q: Can I cancel a mission once started?</b></p>
+                A: No. Once deployed, the mission runs to completion. Energy is spent immediately and non-refundable.<br/><br/>
+
+                <p><b>Q: What happens if I disconnect my wallet during a mission?</b></p>
+                A: Mission continues! It's tracked server-side. Reconnect anytime to check status and claim rewards.<br/><br/>
+
+                <p><b>Q: Do missions pause when I close the browser?</b></p>
+                A: No. Missions run in real-time on the server. Close browser freely, mission continues.<br/><br/>
+
+                <p><b>Q: Can I do the same mission multiple times?</b></p>
+                A: Yes, but only once per Emissary per 72h rotation. After claiming rewards, you must wait
+                for the mission board to refresh (72h) before that Emissary can attempt it again.<br/><br/>
+
+                <p><b>Q: What if two of my Emissaries match a mission perfectly?</b></p>
+                A: Deploy both! Each can do the mission once per rotation. Double the rewards!<br/><br/>
+
+                <p><b>Q: How does Energy recovery work exactly?</b></p>
+                A: Every 48 hours, Energy automatically refills to MAX (100). Timer is per-Emissary based on
+                last refill. Use [RECOVER] to burn XP and refill early if needed.<br/><br/>
+
+                <p><b>Q: Can I lose more XP than I have?</b></p>
+                A: No. XP can't go negative. If you have 20 XP and fail a mission with 60 XP loss, you drop to 0.<br/><br/>
+
+                <p><b>Q: Is death permanent?</b></p>
+                A: No! FALLEN state can be reversed via reinvocation. Spend XP + Aura to revive your Emissary.
+                Death count increases, making future deaths more expensive to recover from.<br/><br/>
+
+                <p><b>Q: What's the maximum success rate possible?</b></p>
+                A: 100% (capped). EASY mission (92% base) + perfect alignment (12+8+5=25%) = 100% already.
+                Level and Aura bonuses won't push it higher, but they help on MEDIUM/HARD missions.<br/><br/>
+
+                <p><b>Q: Do guild stats affect my missions?</b></p>
+                A: Your personal guild membership gives bonuses. Global guild stats (displayed in STATS/GUILDS)
+                are for leaderboard/lore purposes and don't affect individual mission calculations.<br/><br/>
+
+                <p><b>Q: Can I change my Emissary's Guild?</b></p>
+                A: Not currently. Guild is set in the NFT metadata. Future seasons may introduce guild switching.<br/><br/>
+
+                <p><b>Q: What if I have 0 Energy?</b></p>
+                A: You can't start missions. Either wait for 48h natural recovery, or use [RECOVER] to burn XP
+                and instantly refill Energy.<br/><br/>
+
+                <p><b>Q: How do I know which missions favor which attributes?</b></p>
+                A: Click on any mission in [MISSIONS] section to see full details. It lists:
+                "Favored Guild", "Favored Class", "Favored Race". Match these for bonuses!<br/><br/>
+
+                <p><b>Q: What happens to Aura in the future?</b></p>
+                A: Aura will become a currency for the Ember Exchange (future feature). Buy tactical items
+                that modify mission risk/reward. Save your Aura!<br/><br/>
+
+                <p><b>Q: Is there a level cap?</b></p>
+                A: No level cap. XP accumulates infinitely. Every 10 levels = +1% success rate bonus.
+            </div>
+        </div>
+
+        <!-- CALCULATION EXAMPLES -->
+        <div class="section-block">
+            <div class="section-title">CALCULATION EXAMPLES</div>
+            <div class="mono-block">
+                <p style="color:#44ff44;"><b>EXAMPLE 1: Basic Mission (No Bonuses)</b></p>
+                <div style="background-color:#111; padding:10px; margin:10px 0; border-left:3px solid #44ff44;">
+                    Mission: "The Lost Forge" (EASY)<br/>
+                    Emissary: Level 1, 0 Aura, No attribute matches<br/><br/>
+
+                    <b>Success Rate:</b><br/>
+                    Base: 92%<br/>
+                    Bonuses: 0% (no matches)<br/>
+                    <span style="color:#44ff44;">Final: 92%</span><br/><br/>
+
+                    <b>Rewards (on success):</b><br/>
+                    Base XP: 60<br/>
+                    Base Aura: 4<br/>
+                    Multiplier: 1.0 (no bonuses)<br/>
+                    <span style="color:#44ff44;">Final: 60 XP, 4 Aura</span>
+                </div>
+
+                <p style="color:#ffaa00;"><b>EXAMPLE 2: Partial Match (Guild + Class)</b></p>
+                <div style="background-color:#111; padding:10px; margin:10px 0; border-left:3px solid #ffaa00;">
+                    Mission: "Shadow Infiltration" (MEDIUM)<br/>
+                    Favored: Shadow Guild, Rogue class, Halfling race<br/>
+                    Emissary: Shadow Guild Rogue Elf, Level 15, 250 Aura<br/><br/>
+
+                    <b>Success Rate:</b><br/>
+                    Base: 78%<br/>
+                    Guild match: +12%<br/>
+                    Class match: +8%<br/>
+                    Race match: +0% (Elf, not Halfling)<br/>
+                    Level bonus: +1% (15 levels = 1 bonus)<br/>
+                    Aura bonus: +2% (250 Aura = 2 bonus)<br/>
+                    <span style="color:#ffaa00;">Final: 78 + 12 + 8 + 1 + 2 = 101% → 100% (capped)</span><br/><br/>
+
+                    <b>Rewards (on success):</b><br/>
+                    Base XP: 150<br/>
+                    Base Aura: 10<br/>
+                    Multiplier: 1.0 + 0.12 + 0.08 + 0.01 + 0.02 = 1.23<br/>
+                    <span style="color:#ffaa00;">Final: 184 XP, 12 Aura</span>
+                </div>
+
+                <p style="color:#ff4444;"><b>EXAMPLE 3: Perfect Alignment (MAXIMUM REWARDS)</b></p>
+                <div style="background-color:#111; padding:10px; margin:10px 0; border-left:3px solid #ff4444;">
+                    Mission: "Dragon's Crucible" (HARD)<br/>
+                    Favored: Forge Legion, Warrior class, Orc race<br/>
+                    Emissary: Forge Legion Warrior Orc, Level 35, 600 Aura<br/><br/>
+
+                    <b>Success Rate:</b><br/>
+                    Base: 60%<br/>
+                    Guild match: +12%<br/>
+                    Class match: +8%<br/>
+                    Race match: +5%<br/>
+                    Level bonus: +3% (35 levels = 3 bonus)<br/>
+                    Aura bonus: +6% (600 Aura = 6 bonus)<br/>
+                    <span style="color:#ff4444;">Final: 60 + 12 + 8 + 5 + 3 + 6 = 94%</span><br/><br/>
+
+                    <b>Rewards (on success):</b><br/>
+                    Base XP: 350<br/>
+                    Base Aura: 25<br/>
+                    Multiplier: (1.0 + 0.12 + 0.08 + 0.05 + 0.03 + 0.06) = 1.34<br/>
+                    <span style="color:#ffaa00;">Perfect Alignment Multiplier: 1.34 × 1.5 = 2.01</span><br/>
+                    <span style="color:#44ff44; font-size:1.2em;">Final: 703 XP, 50 Aura 🔥</span><br/><br/>
+
+                    <b>Analysis:</b><br/>
+                    Perfect alignment DOUBLED the rewards! This single mission gives more XP than
+                    11 EASY missions (which would take 33 hours vs 12 hours). This is the power of
+                    strategic Emissary deployment!
+                </div>
+
+                <p style="color:#ff4444;"><b>EXAMPLE 4: Death and Reinvocation</b></p>
+                <div style="background-color:#111; padding:10px; margin:10px 0; border-left:3px solid #ff0000;">
+                    Scenario: HARD mission fails, death occurs (2% chance on failure)<br/>
+                    Emissary: Level 20, 450 XP, 150 Aura, Death Count = 1 (died once before)<br/><br/>
+
+                    <b>Consequences:</b><br/>
+                    State: <span style="color:#ff4444;">FALLEN</span><br/>
+                    XP Loss: -140 (mission failure penalty)<br/>
+                    Remaining XP: 450 - 140 = 310 XP<br/><br/>
+
+                    <b>Reinvocation Cost (2nd Death):</b><br/>
+                    Cost: 1,500 XP + 300 Aura<br/><br/>
+
+                    <b>Problem:</b><br/>
+                    You only have 310 XP but need 1,500!<br/>
+                    You only have 150 Aura but need 300!<br/><br/>
+
+                    <b>Solution:</b><br/>
+                    Must use OTHER Emissaries to grind missions and accumulate enough XP/Aura
+                    to revive the fallen one. Or wait and accumulate via passive 24h gains.<br/><br/>
+
+                    <span style="color:#ff4444;">This is why death is SERIOUS! Protect your Emissaries!</span>
+                </div>
+
+                <p style="color:#44ff44;"><b>💡 KEY TAKEAWAY FROM EXAMPLES:</b></p>
+                Strategic deployment with attribute matching can give you 2-3x more rewards for the same
+                time investment. Always check mission details and match your Emissaries optimally!
+            </div>
+        </div>
+
+        <div class="section-block">
+            <div class="mono-block" style="text-align:center; color:#44ff44;">
+                <p><b>END OF TUTORIAL</b></p>
+                <p>Return to [MISSIONS] to start deploying, or [PROFILE] to check your Emissaries.</p>
+                <p style="color:#ffaa00;">May the Ember guide your path, Emissary. 🔥</p>
             </div>
         </div>
     </section>
@@ -1179,6 +1785,9 @@ navButtons.forEach(btn => {
                 } else {
                     loadPlayerAndRender();
                 }
+            } else if (target === "tutorial") {
+                // 🔥 Load missions dynamically into tutorial section
+                loadTutorialMissions();
             }
         } else {
             // si NO tiene data-target (por ej. MINT / INVOKE que hace window.location)
@@ -1657,6 +2266,74 @@ async function fetchMissionsAndRender(){
         console.error(e);
         document.getElementById("mission-list").innerHTML =
             `<div class="mono-small-note">Mission Board offline.</div>`;
+    }
+}
+
+/* --------- TUTORIAL MISSIONS LIST --------- */
+async function loadTutorialMissions(){
+    try {
+        const response = await fetchJSON("/api/missions");
+        const missions = response.missions || response;
+
+        let html = "";
+
+        // Group by difficulty
+        const easyMissions = missions.filter(m => m.difficulty === "EASY");
+        const mediumMissions = missions.filter(m => m.difficulty === "MEDIUM");
+        const hardMissions = missions.filter(m => m.difficulty === "HARD");
+
+        // EASY Missions
+        html += `<div style="margin-bottom:20px;">
+            <p style="color:#44ff44; font-size:16px;"><b>🟢 EASY MISSIONS (3h duration, 10 Energy)</b></p>`;
+
+        easyMissions.forEach(m => {
+            html += `
+            <div style="background-color:#111; padding:10px; margin:10px 0; border-left:3px solid #44ff44;">
+                <b>[${m.id}] ${m.name}</b><br/>
+                <small>Success: ${m.success_rate}% | XP: ${m.reward_xp} | Aura: ${m.reward_aura} | Death: 0%</small><br/>
+                <small>Favored: ${m.favored_guild} / ${m.favored_class} / ${m.favored_race}</small><br/>
+                <small style="color:#888;">${m.description}</small>
+            </div>`;
+        });
+        html += `</div>`;
+
+        // MEDIUM Missions
+        html += `<div style="margin-bottom:20px;">
+            <p style="color:#ffaa00; font-size:16px;"><b>🟡 MEDIUM MISSIONS (6h duration, 18 Energy)</b></p>`;
+
+        mediumMissions.forEach(m => {
+            html += `
+            <div style="background-color:#111; padding:10px; margin:10px 0; border-left:3px solid #ffaa00;">
+                <b>[${m.id}] ${m.name}</b><br/>
+                <small>Success: ${m.success_rate}% | XP: ${m.reward_xp} | Aura: ${m.reward_aura} | Death: ${m.death_chance}%</small><br/>
+                <small>Favored: ${m.favored_guild} / ${m.favored_class} / ${m.favored_race}</small><br/>
+                <small style="color:#888;">${m.description}</small>
+            </div>`;
+        });
+        html += `</div>`;
+
+        // HARD Missions
+        html += `<div style="margin-bottom:20px;">
+            <p style="color:#ff4444; font-size:16px;"><b>🔴 HARD MISSIONS (12h duration, 25 Energy)</b></p>`;
+
+        hardMissions.forEach(m => {
+            html += `
+            <div style="background-color:#111; padding:10px; margin:10px 0; border-left:3px solid #ff4444;">
+                <b>[${m.id}] ${m.name}</b><br/>
+                <small>Success: ${m.success_rate}% | XP: ${m.reward_xp} | Aura: ${m.reward_aura} | Death: ${m.death_chance}%</small><br/>
+                <small>Favored: ${m.favored_guild} / ${m.favored_class} / ${m.favored_race}</small><br/>
+                <small style="color:#888;">${m.description}</small>
+            </div>`;
+        });
+        html += `</div>`;
+
+        html += `<p style="color:#44ff44; margin-top:20px;"><b>💡 TIP:</b> Match your Emissary's Guild, Class, and Race to these favored attributes for maximum bonuses!</p>`;
+
+        document.getElementById("tutorial-missions-list").innerHTML = html;
+    } catch(e){
+        console.error("Error loading tutorial missions:", e);
+        document.getElementById("tutorial-missions-list").innerHTML =
+            `<div class="mono-small-note">Unable to load mission data.</div>`;
     }
 }
 
