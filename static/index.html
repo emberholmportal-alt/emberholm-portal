@@ -1446,8 +1446,10 @@ async function connectWallet() {
 
             document.getElementById("connect-wallet-btn").textContent = "[CONNECTED ✓]";
 
-            // 🔥 Update ACCESS LEVEL to EMBERHOLM EMISSARY
-            document.getElementById("access-level").textContent = "ACCESS LEVEL: [EMBERHOLM EMISSARY]";
+            // 🔥 Update ACCESS LEVEL to EMBERHOLM EMISSARY with green color
+            const accessLevelEl = document.getElementById("access-level");
+            accessLevelEl.textContent = "ACCESS LEVEL: [EMBERHOLM EMISSARY]";
+            accessLevelEl.style.color = "#44ff44"; // Green color
             console.log("✅ Access level upgraded to EMBERHOLM EMISSARY");
         } catch (blockchainError) {
             console.error("❌❌❌ BLOCKCHAIN QUERY ERROR:", blockchainError);
@@ -1502,8 +1504,10 @@ if (window.ethereum) {
             document.getElementById("connect-wallet-btn").textContent = "[CONNECT WALLET]";
             document.getElementById("connect-wallet-btn").disabled = false;
 
-            // 🔥 Reset ACCESS LEVEL to CITIZEN
-            document.getElementById("access-level").textContent = "ACCESS LEVEL: [CITIZEN]";
+            // 🔥 Reset ACCESS LEVEL to CITIZEN with default color
+            const accessLevelEl = document.getElementById("access-level");
+            accessLevelEl.textContent = "ACCESS LEVEL: [CITIZEN]";
+            accessLevelEl.style.color = ""; // Reset to default color
             console.log("🔄 Access level downgraded to CITIZEN");
         } else {
             console.log("🔄 Reloading page due to account change");
