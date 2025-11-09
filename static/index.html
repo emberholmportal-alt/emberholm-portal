@@ -725,8 +725,7 @@ body {
         <div class="top-command-bar" id="nav-bar">
             <button class="cmd-link" onclick="window.location.href='/mint'">MINT / INVOKE</button>
             <button class="cmd-link" data-target="home">[HOME]</button>
-            <button class="cmd-link" data-target="stats">[STATS]</button>
-            <button class="cmd-link" data-target="guilds">[GUILDS]</button>
+            <button class="cmd-link" data-target="guilds">[STATS/GUILDS]</button>
             <button class="cmd-link" data-target="missions">[MISSIONS]</button>
             <button class="cmd-link" data-target="profile">[PROFILE]</button>
             <button class="cmd-link" data-target="help">[HELP]</button>
@@ -785,8 +784,8 @@ body {
         </div>
     </section>
 
-    <!-- STATS -->
-    <section class="screen" data-screen="stats">
+    <!-- GUILDS -->
+    <section class="screen" data-screen="guilds">
         <div class="section-block">
             <div class="section-title">REALM STATUS // GLOBAL STATS</div>
 
@@ -807,23 +806,6 @@ body {
             </div>
         </div>
 
-        <div class="section-block">
-            <div class="section-title">GUILD RANKING // FACTION PERFORMANCE</div>
-            <div id="guild-ranking-list"></div>
-        </div>
-
-        <div class="section-block">
-            <div class="section-title">PLAYER EXPERIENCE LEADERBOARD // TOP OPERATIVES</div>
-            <div id="leaderboard-list">
-                <div class="mono-small-note">
-                    NOTE: Ranking is by XP gathered across all owned Emissaries.
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- GUILDS -->
-    <section class="screen" data-screen="guilds">
         <div class="section-block">
             <div class="section-title">ORDERS OF EMBERHOLM</div>
             <div id="guilds-container"></div>
@@ -1177,9 +1159,9 @@ navButtons.forEach(btn => {
             }
 
             // 🔥 Auto-load data when switching sections
-            if (target === "stats") {
+            if (target === "guilds") {
+                // 🔥 STATS/GUILDS ahora son una sola sección
                 fetchStatsAndRender();
-            } else if (target === "guilds") {
                 fetchGuildsAndRender();
             } else if (target === "missions") {
                 // 🔥 MISSIONS requiere wallet conectado
@@ -1808,12 +1790,10 @@ async function loadPlayerAndRender(){
                         const now = new Date();
                         const elapsed = (now - startTime) / 1000 / 3600; // hours
                         const percentComplete = Math.min(100, Math.floor((elapsed / missionDuration) * 100));
-                        const remaining = missionDuration - elapsed;
 
                         progressHtml = `
                             <div style="font-size:0.7rem; color:#ffaa00; margin-top:4px; line-height:1.2;">
-                                <div>⏳ ${percentComplete}% complete</div>
-                                <div style="font-size:0.6rem; color:#888;">${remaining.toFixed(1)}h remaining</div>
+                                <div>⏳ ${percentComplete}%</div>
                             </div>`;
                     }
 
