@@ -1510,18 +1510,34 @@ async function fetchStatsAndRender(){
         document.getElementById("stat-total-xp").textContent         = stats.total_exp_collected ?? 0;
         document.getElementById("stat-total-aura").textContent       = stats.total_aura_collected ?? 0;
 
-        // Guild Ranking - mostrar TODOS los gremios ordenados por XP
-        const gr = stats.guild_ranking || [];
+        // Guild Ranking - convertir objeto a array y ordenar por XP
+        const grObj = stats.guild_ranking || {};
+        const grArray = Object.keys(grObj).map(guildName => {
+            const gData = grObj[guildName];
+            const totalMissions = (gData.successes || 0) + (gData.failures || 0);
+            const successRate = totalMissions > 0
+                ? Math.round((gData.successes || 0) / totalMissions * 100)
+                : 0;
+            return {
+                name: guildName,
+                xp: gData.xp || 0,
+                aura: gData.aura || 0,
+                successes: gData.successes || 0,
+                failures: gData.failures || 0,
+                successRate: successRate
+            };
+        }).sort((a, b) => b.xp - a.xp); // Ordenar por XP descendente
+
         let htmlGR = "";
-        
-        if (gr.length === 0) {
-            htmlGR = `<div class="mono-small-note">No guild performance data yet.</div>`;
+        if (grArray.length === 0) {
+            htmlGR = `<div class="mono-small-note">No guild performance data yet. Complete missions to see guild rankings!</div>`;
         } else {
-            gr.forEach(g=>{
+            grArray.forEach((g, idx) => {
                 htmlGR += `
                 <div class="mono-block">
-                    <b>${g.name}</b><br/>
-                    Members: ${g.members || 0} | XP Total: ${g.xp_total || 0} | Aura Total: ${g.aura_total || 0} | Success Rate: ${g.success_rate || "0%"}
+                    <b>#${idx + 1} ${g.name}</b><br/>
+                    XP Total: ${g.xp} | Aura Total: ${g.aura}<br/>
+                    Successes: ${g.successes} | Failures: ${g.failures} | Success Rate: ${g.successRate}%
                 </div>`;
             });
         }
@@ -1715,24 +1731,43 @@ async function loadPlayerAndRender(){
             const currentMission = ds.current_mission_id || "";
             const missionStartTime = ds.mission_start_time || "";
 
-            // Calculate time remaining for missions
+            // Calculate time remaining for missions and mission complete status
             let timeRemainingHtml = "";
+            let missionComplete = false;
+            let missionDuration = 0;
+
             if (state === "ON_MISSION" && missionStartTime) {
                 const startTime = new Date(missionStartTime.replace("Z", "") + "Z");
                 const now = new Date();
                 const elapsed = (now - startTime) / 1000 / 3600; // hours
 
-                // Get mission duration (we'll need to fetch this from missions config)
-                // For now, show elapsed time
-                timeRemainingHtml = `<br/><small>Mission: ${currentMission}<br/>Elapsed: ${elapsed.toFixed(1)}h</small>`;
+                // Find mission duration from cached missions data
+                if (cachedMissionsData) {
+                    const missionData = cachedMissionsData.find(m => m.id === currentMission);
+                    if (missionData) {
+                        missionDuration = missionData.duration_hours;
+                        const remaining = missionDuration - elapsed;
+
+                        if (remaining <= 0) {
+                            missionComplete = true;
+                            timeRemainingHtml = `<br/><small>Mission: ${currentMission}<br/><span style="color:#44ff44;">✓ READY TO COMPLETE!</span></small>`;
+                        } else {
+                            timeRemainingHtml = `<br/><small>Mission: ${currentMission}<br/>Remaining: ${remaining.toFixed(1)}h / ${missionDuration}h</small>`;
+                        }
+                    } else {
+                        timeRemainingHtml = `<br/><small>Mission: ${currentMission}<br/>Elapsed: ${elapsed.toFixed(1)}h</small>`;
+                    }
+                } else {
+                    timeRemainingHtml = `<br/><small>Mission: ${currentMission}<br/>Elapsed: ${elapsed.toFixed(1)}h</small>`;
+                }
             }
 
             // State color
             let stateColor = "#44ff44";
             let stateText = state;
             if (state === "ON_MISSION") {
-                stateColor = "#ffaa00";
-                stateText = "🔥 ON MISSION";
+                stateColor = missionComplete ? "#44ff44" : "#ffaa00";
+                stateText = missionComplete ? "🎯 MISSION READY" : "🔥 IN PROGRESS";
             } else if (state === "FALLEN") {
                 stateColor = "#ff4444";
                 stateText = "💀 FALLEN";
@@ -1748,10 +1783,17 @@ async function loadPlayerAndRender(){
                         [SEND]
                     </button>`;
             } else if (state === "ON_MISSION") {
-                actionButtons = `
-                    <button class="terminal-btn small-btn complete-btn" data-hero="${h.token_id}">
-                        [COMPLETE]
-                    </button>`;
+                if (missionComplete) {
+                    actionButtons = `
+                        <button class="terminal-btn small-btn complete-btn" data-hero="${h.token_id}" style="color:#44ff44;">
+                            [CLAIM REWARDS]
+                        </button>`;
+                } else {
+                    actionButtons = `
+                        <button class="terminal-btn small-btn" disabled style="opacity:0.5; cursor:not-allowed;">
+                            [IN PROGRESS]
+                        </button>`;
+                }
             } else if (state === "FALLEN") {
                 actionButtons = `
                     <button class="terminal-btn small-btn reinvoke-btn" data-hero="${h.token_id}" style="color:#ff4444;">
@@ -1825,8 +1867,8 @@ async function loadPlayerAndRender(){
                 }
 
                 showConfirmModal(
-                    "COMPLETE MISSION",
-                    "Attempt to COMPLETE mission for Emissary #" + heroId + "?\n\nNote: Mission must have reached its duration time.",
+                    "CLAIM MISSION REWARDS",
+                    "Complete mission and claim rewards for Emissary #" + heroId + "?",
                     async () => {
                         try {
                             const res = await fetch("/api/mission/complete", {
@@ -1845,11 +1887,33 @@ async function loadPlayerAndRender(){
                             }
 
                             const result = await res.json();
+                            const tokenId = parseInt(heroId);
+
+                            // Unstake NFT on-chain (only if not DEATH outcome)
+                            if (result.outcome !== "DEATH") {
+                                try {
+                                    showInfoModal("UNSTAKING NFT", "🔓 Unlocking your NFT...\n\nApprove the transaction in MetaMask.");
+
+                                    const signer = provider.getSigner();
+                                    const contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, signer);
+
+                                    const unstakeTx = await contract.unstakeToken(tokenId);
+                                    await unstakeTx.wait();
+                                } catch(unstakeError) {
+                                    console.error("Unstake error:", unstakeError);
+                                    showInfoModal("UNSTAKE FAILED",
+                                        "⚠️ Mission completed but unstake failed.\n\n" +
+                                        "You can unstake manually later or try again.\n\n" +
+                                        "Error: " + (unstakeError.message || "Unknown error"));
+                                    // Continue anyway to show results
+                                }
+                            }
 
                             // Display result based on outcome
                             if (result.outcome === "SUCCESS") {
                                 let msg = "🎉 MISSION SUCCESS!\n\n" +
                                     result.mission_name + "\n\n" +
+                                    "✅ NFT UNLOCKED\n\n" +
                                     "XP Gained: " + result.xp_gained + "\n" +
                                     "Aura Gained: " + result.aura_gained + "\n\n" +
                                     "Current XP: " + result.hero_xp_now + "\n" +
@@ -1867,12 +1931,14 @@ async function loadPlayerAndRender(){
                             } else if (result.outcome === "FAILURE") {
                                 showInfoModal("MISSION FAILED",
                                     "⚠️ " + result.mission_name + "\n\n" +
+                                    "✅ NFT UNLOCKED\n\n" +
                                     "XP Lost: " + result.xp_lost + "\n\n" +
                                     "Current XP: " + result.hero_xp_now + "\n\n" +
                                     "Better luck next time!");
                             } else if (result.outcome === "DEATH") {
                                 showInfoModal("EMISSARY FALLEN",
                                     "💀 Your emissary has fallen in " + result.mission_name + "!\n\n" +
+                                    "⚠️ NFT remains STAKED until reinvocation\n\n" +
                                     "Death Count: " + result.death_count + "\n\n" +
                                     "Reinvocation Cost:\n" +
                                     "XP: " + result.reinvocation_cost.xp + "\n" +
@@ -1988,11 +2054,32 @@ async function startMission(heroId, missionId, missionName) {
         return;
     }
 
+    const tokenId = parseInt(heroId);
+
     showConfirmModal(
         "START MISSION",
-        `Send ${heroId} on ${missionName}?\n\nEnergy will be consumed and hero will enter ON_MISSION state.`,
+        `Send Emissary #${heroId} on ${missionName}?\n\nYour NFT will be STAKED (locked) on-chain during the mission to prevent transfers.\n\nYou'll need to approve 1 transaction.`,
         async () => {
             try {
+                // STEP 1: Stake NFT on-chain
+                showInfoModal("STAKING NFT", "🔒 Locking your NFT on-chain...\n\nApprove the transaction in MetaMask to stake your NFT and prevent transfers during the mission.");
+
+                const signer = provider.getSigner();
+                const contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, signer);
+
+                try {
+                    const stakeTx = await contract.stakeToken(tokenId);
+                    showInfoModal("TRANSACTION PENDING", "⏳ Waiting for blockchain confirmation...\n\nDo not close this window.");
+                    await stakeTx.wait();
+                } catch(stakeError) {
+                    if (stakeError.code === 4001 || stakeError.code === "ACTION_REJECTED") {
+                        showInfoModal("CANCELLED", "Transaction cancelled by user.");
+                        return;
+                    }
+                    throw stakeError;
+                }
+
+                // STEP 2: Start mission in backend
                 const res = await fetch("/api/mission/start", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
@@ -2005,27 +2092,32 @@ async function startMission(heroId, missionId, missionName) {
 
                 if (!res.ok) {
                     const errText = await res.text();
-                    showInfoModal("MISSION START FAILED", errText);
+                    showInfoModal("MISSION START FAILED", "⚠️ Backend error: " + errText + "\n\nYour NFT is staked but mission didn't start. You can unstake manually if needed.");
                     return;
                 }
 
                 const result = await res.json();
 
                 showInfoModal("MISSION STARTED",
-                    "🔥 " + result.mission_name + "\n" +
+                    "🔥 " + result.mission_name + "\n\n" +
+                    "✅ NFT STAKED & LOCKED\n" +
                     "Difficulty: " + result.difficulty + "\n" +
                     "Duration: " + result.duration_hours + "h\n\n" +
                     "Energy Spent: " + result.energy_spent + "\n" +
                     "Hero Energy Now: " + result.hero_energy_now + "\n\n" +
                     "Estimated Success Rate: " + result.estimated_success_rate + "%\n\n" +
-                    "Use [COMPLETE] button when mission duration has elapsed."
+                    "Your NFT is now LOCKED on-chain and cannot be transferred until mission completes."
                 );
 
                 loadPlayerAndRender();
                 fetchStatsAndRender();
             } catch(e) {
                 console.error(e);
-                showInfoModal("CONNECTION ERROR", "MISSION START ERROR: Connection issue.");
+                if (e.message && e.message.includes("Already staked")) {
+                    showInfoModal("ALREADY STAKED", "This NFT is already staked. Cannot start another mission.");
+                } else {
+                    showInfoModal("CONNECTION ERROR", "MISSION START ERROR: " + (e.message || "Connection issue."));
+                }
             }
         }
     );
@@ -2156,8 +2248,27 @@ async function openReinvokeModal(fallenHeroId) {
 
                 const result = await res.json();
 
+                // Unstake NFT after successful reinvocation
+                const tokenId = parseInt(fallenHeroId);
+                try {
+                    showInfoModal("UNSTAKING NFT", "🔓 Unlocking your revived NFT...\n\nApprove the transaction in MetaMask.");
+
+                    const signer = provider.getSigner();
+                    const contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, signer);
+
+                    const unstakeTx = await contract.unstakeToken(tokenId);
+                    await unstakeTx.wait();
+                } catch(unstakeError) {
+                    console.error("Unstake error after reinvoke:", unstakeError);
+                    showInfoModal("UNSTAKE FAILED",
+                        "⚠️ Reinvocation succeeded but unstake failed.\n\n" +
+                        "You can unstake manually later.\n\n" +
+                        "Error: " + (unstakeError.message || "Unknown error"));
+                }
+
                 showInfoModal("REINVOCATION SUCCESSFUL",
                     "✨ " + (fallenHero.name || fallenHeroId) + " has been brought back!\n\n" +
+                    "✅ NFT UNLOCKED\n\n" +
                     `XP Donated: ${result.xp_donated}\n` +
                     `Aura Donated: ${result.aura_donated}\n\n` +
                     `Hero revived with:\n` +
