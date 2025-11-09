@@ -1166,7 +1166,7 @@ navButtons.forEach(btn => {
             } else if (target === "missions") {
                 // 🔥 MISSIONS requiere wallet conectado
                 if (!connectedWallet) {
-                    alert("⚠️ WALLET REQUIRED\n\nYou must connect your wallet to access MISSIONS.\n\nClick [CONNECT WALLET] to continue.");
+                    showInfoModal("WALLET REQUIRED", "You must connect your wallet to access MISSIONS.\n\nClick [CONNECT WALLET] button in the PROFILE section to continue.");
                     switchScreen("profile"); // Redirigir a PROFILE para conectar
                     return;
                 }
@@ -1174,7 +1174,7 @@ navButtons.forEach(btn => {
             } else if (target === "profile") {
                 // 🔥 PROFILE requiere wallet conectado - si no está conectado, pedir conexión
                 if (!connectedWallet) {
-                    alert("⚠️ WALLET REQUIRED\n\nYou must connect your wallet to access your PROFILE.\n\nPlease click [CONNECT WALLET] button.");
+                    showInfoModal("WALLET REQUIRED", "You must connect your wallet to access your PROFILE.\n\nPlease click the [CONNECT WALLET] button.");
                     // No cargamos datos, solo mostramos el botón de conectar
                 } else {
                     loadPlayerAndRender();
@@ -1634,7 +1634,7 @@ async function fetchMissionsAndRender(){
                     <div style="margin-left:20px;">
                         ${connectedWallet
                             ? `<button class="cmd-link" onclick="openMissionSendModal('${m.id}')">[SEND]</button>`
-                            : `<button class="cmd-link" style="opacity:0.5;" onclick="alert('Please connect your wallet using the [CONNECT WALLET] button at the top of the page.')">[WALLET REQUIRED]</button>`
+                            : `<button class="cmd-link" style="opacity:0.5;" onclick="showInfoModal('WALLET REQUIRED', 'Please connect your wallet using the [CONNECT WALLET] button in the PROFILE section.')">[WALLET REQUIRED]</button>`
                         }
                     </div>
                 </div>
