@@ -24,6 +24,7 @@ const CONTRACT_CONFIG = {
         "function getPrimaryTokenInfo(address owner) view returns (tuple(uint256 tokenId, address owner, bool isStaked))",
         "function tokenURI(uint256 tokenId) view returns (string)",
         "function balanceOf(address owner) view returns (uint256)",
+        "function ownerOf(uint256 tokenId) view returns (address)",  // ✅ ERC721 standard
 
         // ========== STAKING ==========
         "function stakeToken(uint256 tokenId)",
