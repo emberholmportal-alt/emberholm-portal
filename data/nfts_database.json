@@ -1,0 +1,29 @@
+{
+    "_comment": "Base de datos centralizada de TODOS los NFTs minteados. Esta es la FUENTE DE VERDAD para atributos dinámicos, estadísticas globales y datos de emisarios. Se actualiza independientemente de si las wallets están conectadas.",
+    "_structure": {
+        "token_id": {
+            "token_id": "string (5 digits padded)",
+            "name": "string",
+            "guild": "string",
+            "race_class": "string",
+            "image_url": "string",
+            "dynamic_state": {
+                "xp_total": "number",
+                "aura_level": "number",
+                "energy_current": "number",
+                "energy_max": "number",
+                "state": "READY | ON_MISSION | FALLEN",
+                "current_mission_id": "string | null",
+                "mission_start_time": "ISO timestamp | null",
+                "total_missions_completed": "number",
+                "mission_history": "object",
+                "last_mission": "string",
+                "death_count": "number",
+                "last_update": "ISO timestamp"
+            },
+            "last_known_owner": "address | null",
+            "first_seen": "ISO timestamp",
+            "last_synced": "ISO timestamp"
+        }
+    }
+}

@@ -23,6 +23,7 @@ WALLET_NFTS_PATH = os.path.join(DATA_DIR, "wallet_nfts.json")
 ACHIEVEMENTS_PATH = os.path.join(DATA_DIR, "achievements.json")
 MISSIONS_CONFIG_PATH = os.path.join(DATA_DIR, "missions_config.json")
 ACTIVE_MISSIONS_PATH = os.path.join(DATA_DIR, "active_missions.json")
+NFTS_DATABASE_PATH = os.path.join(DATA_DIR, "nfts_database.json")  # 🔥 Base de datos centralizada
 
 # Carpeta donde guardaste los metadatas base (00001.json, 00002.json, etc.)
 METADATA_DIR = os.path.join(DATA_DIR, "metadata")
@@ -362,6 +363,132 @@ def save_json(path, obj):
         json.dump(obj, f, indent=4)
 
 # ---------------------------------
+# NFTs Database - Fuente de Verdad Centralizada
+# ---------------------------------
+
+def load_nfts_database():
+    """
+    Carga la base de datos centralizada de NFTs.
+    Esta es la FUENTE DE VERDAD para todos los atributos dinámicos.
+    """
+    db = load_json(NFTS_DATABASE_PATH, {})
+    # Filtrar comentarios de metadata
+    return {k: v for k, v in db.items() if not k.startswith("_")}
+
+def save_nfts_database(db):
+    """Guarda la base de datos de NFTs."""
+    # Preservar comentarios
+    full_db = load_json(NFTS_DATABASE_PATH, {})
+    comments = {k: v for k, v in full_db.items() if k.startswith("_")}
+    full_db = {**comments, **db}
+    save_json(NFTS_DATABASE_PATH, full_db)
+
+def get_nft_from_database(token_id):
+    """
+    Obtiene un NFT de la base de datos.
+    Returns: NFT object o None si no existe
+    """
+    token_id_padded = str(token_id).zfill(5)
+    db = load_nfts_database()
+    return db.get(token_id_padded)
+
+def upsert_nft_to_database(token_id, nft_data, owner_wallet=None):
+    """
+    Inserta o actualiza un NFT en la base de datos.
+
+    Args:
+        token_id: ID del token
+        nft_data: Datos del NFT (debe incluir dynamic_state)
+        owner_wallet: Wallet del dueño (opcional, para tracking)
+
+    Returns:
+        El NFT actualizado
+    """
+    token_id_padded = str(token_id).zfill(5)
+    db = load_nfts_database()
+
+    now = now_utc_str()
+
+    if token_id_padded in db:
+        # Actualizar NFT existente
+        existing = db[token_id_padded]
+        existing.update(nft_data)
+        existing["last_synced"] = now
+        if owner_wallet:
+            existing["last_known_owner"] = owner_wallet.lower()
+        db[token_id_padded] = existing
+    else:
+        # Nuevo NFT
+        nft_data["token_id"] = token_id_padded
+        nft_data["first_seen"] = now
+        nft_data["last_synced"] = now
+        if owner_wallet:
+            nft_data["last_known_owner"] = owner_wallet.lower()
+        else:
+            nft_data["last_known_owner"] = None
+        db[token_id_padded] = nft_data
+
+    save_nfts_database(db)
+    return db[token_id_padded]
+
+def sync_nft_to_database(token_id, owner_wallet=None):
+    """
+    Sincroniza un NFT desde metadata a la base de datos.
+    Si ya existe, preserva dynamic_state.
+    Si es nuevo, crea con dynamic_state inicial.
+
+    Args:
+        token_id: ID del token
+        owner_wallet: Wallet del dueño (opcional)
+
+    Returns:
+        El NFT sincronizado
+    """
+    token_id_padded = str(token_id).zfill(5)
+    existing = get_nft_from_database(token_id_padded)
+
+    if existing:
+        # Ya existe: solo actualizar owner y last_synced
+        db = load_nfts_database()
+        db[token_id_padded]["last_synced"] = now_utc_str()
+        if owner_wallet:
+            db[token_id_padded]["last_known_owner"] = owner_wallet.lower()
+        save_nfts_database(db)
+        return db[token_id_padded]
+    else:
+        # Nuevo: crear desde metadata
+        hero = create_hero_from_metadata(token_id)
+        return upsert_nft_to_database(token_id_padded, hero, owner_wallet)
+
+def update_nft_dynamic_state(token_id, dynamic_state_updates):
+    """
+    Actualiza solo el dynamic_state de un NFT en la base de datos.
+
+    Args:
+        token_id: ID del token
+        dynamic_state_updates: Dict con campos a actualizar en dynamic_state
+
+    Returns:
+        El NFT actualizado o None si no existe
+    """
+    token_id_padded = str(token_id).zfill(5)
+    nft = get_nft_from_database(token_id_padded)
+
+    if not nft:
+        print(f"⚠️ update_nft_dynamic_state: NFT {token_id_padded} not found in database")
+        return None
+
+    # Actualizar dynamic_state
+    if "dynamic_state" not in nft:
+        nft["dynamic_state"] = {}
+
+    nft["dynamic_state"].update(dynamic_state_updates)
+    nft["dynamic_state"]["last_update"] = now_utc_str()
+
+    # Guardar
+    return upsert_nft_to_database(token_id_padded, nft)
+
+# ---------------------------------
 # Helpers de tiempo
 # ---------------------------------
 
@@ -517,69 +644,79 @@ def calculate_guild_ranking():
 
 def calculate_player_leaderboard():
     """
-    Calcula el leaderboard de jugadores desde players.json.
+    Calcula el leaderboard de jugadores desde la base de datos centralizada.
+    Agrupa NFTs por last_known_owner y suma stats.
     Devuelve lista ordenada por XP total descendente.
     """
-    players_all = load_json(PLAYERS_PATH, {})
-    leaderboard = []
+    db = load_nfts_database()
 
-    for wallet, pdata in players_all.items():
-        totals = pdata.get("totals", {})
-        heroes_count = totals.get("heroes_count", 0)
-        xp_total = totals.get("xp_total_all", 0)
-        aura_total = totals.get("aura_total_all", 0)
+    # Agrupar NFTs por wallet (last_known_owner)
+    wallet_stats = {}
+    for token_id, nft in db.items():
+        owner = nft.get("last_known_owner")
+        if not owner:
+            owner = "unknown"
 
-        leaderboard.append({
-            "wallet": wallet,
-            "heroes_count": heroes_count,
-            "xp_total_all": xp_total,
-            "aura_total_all": aura_total
-        })
+        ds = nft.get("dynamic_state", {})
+        xp = ds.get("xp_total", 0)
+        aura = ds.get("aura_level", 0)
 
-    # Ordenar por XP total descendente
+        if owner not in wallet_stats:
+            wallet_stats[owner] = {
+                "wallet": owner,
+                "heroes_count": 0,
+                "xp_total_all": 0,
+                "aura_total_all": 0
+            }
+
+        wallet_stats[owner]["heroes_count"] += 1
+        wallet_stats[owner]["xp_total_all"] += xp
+        wallet_stats[owner]["aura_total_all"] += aura
+
+    # Convertir a lista y ordenar
+    leaderboard = list(wallet_stats.values())
     leaderboard.sort(key=lambda x: x["xp_total_all"], reverse=True)
     return leaderboard
 
 def count_active_missions():
     """
-    Cuenta cuántos heroes están actualmente en misión (estado ON_MISSION)
+    Cuenta cuántos NFTs están actualmente en misión (estado ON_MISSION).
+    Lee desde la base de datos centralizada.
     """
-    players_all = load_json(PLAYERS_PATH, {})
+    db = load_nfts_database()
     count = 0
 
-    for wallet, pdata in players_all.items():
-        for hero in pdata.get("heroes", []):
-            ds = hero.get("dynamic_state", {})
-            if ds.get("state") == "ON_MISSION":
-                count += 1
+    for token_id, nft in db.items():
+        ds = nft.get("dynamic_state", {})
+        if ds.get("state") == "ON_MISSION":
+            count += 1
 
     return count
 
 def calculate_guilds_data():
     """
-    Actualiza guilds.json con datos reales de members, avg_xp, avg_aura
-    calculados desde players.json
+    Actualiza guilds.json con datos reales de members, avg_xp, avg_aura.
+    Lee desde la base de datos centralizada de NFTs.
     """
-    players_all = load_json(PLAYERS_PATH, {})
+    db = load_nfts_database()
     guilds_data = load_json(GUILDS_PATH, [])
-    
-    # Calcular stats reales por gremio
+
+    # Calcular stats reales por gremio desde la DB centralizada
     guild_stats = {}
-    for wallet, pdata in players_all.items():
-        for hero in pdata.get("heroes", []):
-            guild = hero.get("guild") or hero.get("dynamic_state", {}).get("current_guild", "Unknown")
-            ds = hero.get("dynamic_state", {})
-            
-            if guild not in guild_stats:
-                guild_stats[guild] = {
-                    "total_xp": 0,
-                    "total_aura": 0,
-                    "members": 0
-                }
-            
-            guild_stats[guild]["total_xp"] += ds.get("xp_total", 0)
-            guild_stats[guild]["total_aura"] += ds.get("aura_level", 0)
-            guild_stats[guild]["members"] += 1
+    for token_id, nft in db.items():
+        guild = nft.get("guild") or nft.get("dynamic_state", {}).get("current_guild", "Unknown")
+        ds = nft.get("dynamic_state", {})
+
+        if guild not in guild_stats:
+            guild_stats[guild] = {
+                "total_xp": 0,
+                "total_aura": 0,
+                "members": 0
+            }
+
+        guild_stats[guild]["total_xp"] += ds.get("xp_total", 0)
+        guild_stats[guild]["total_aura"] += ds.get("aura_level", 0)
+        guild_stats[guild]["members"] += 1
     
     # Actualizar guilds.json con datos reales
     for g in guilds_data:
@@ -875,117 +1012,61 @@ def create_hero_from_metadata(token_id):
 
 def ensure_player(wallet):
     """
+    🔥 NUEVA VERSIÓN CON BASE DE DATOS CENTRALIZADA
+
     Devuelve el objeto del jugador para esa wallet.
-    Si no existe, lo crea cargando los NFTs desde metadata.
-    Si existe, sincroniza los NFTs con wallet_nfts.json (agrega nuevos, mantiene existentes).
+
+    FUENTE DE VERDAD: nfts_database.json (atributos dinámicos)
+    players.json: Solo cache de sesión para UI
+
+    Flujo:
+    1. Obtiene token_ids de la wallet
+    2. Sincroniza cada NFT a nfts_database.json
+    3. Lee atributos dinámicos desde DB (no desde players.json)
+    4. Construye objeto player para la sesión
     """
     # 🔥 NORMALIZE wallet address to lowercase to avoid case sensitivity issues
     wallet = wallet.lower()
 
     print(f"  🔧 ensure_player() called for {wallet[:6]}...{wallet[-4:]}")
-    players = load_json(PLAYERS_PATH, {})
 
     # Obtener los token_ids que debería tener esta billetera
     expected_token_ids = get_wallet_token_ids(wallet)
     print(f"  📋 expected_token_ids from cache: {expected_token_ids}")
 
-    player_exists = wallet in players
-    print(f"  🗂️  Player exists in players.json: {player_exists}")
+    # 🔥 SINCRONIZAR cada NFT a la base de datos centralizada
+    heroes = []
+    for token_id in expected_token_ids:
+        # Sincronizar NFT a DB (preserva dynamic_state si ya existe)
+        nft = sync_nft_to_database(token_id, owner_wallet=wallet)
+        heroes.append(nft)
+        ds = nft.get("dynamic_state", {})
+        print(f"    🔗 NFT {token_id} → DB (state: {ds.get('state', 'READY')}, xp: {ds.get('xp_total', 0)})")
 
-    if not player_exists:
-        # Jugador nuevo: crear desde cero
-        print(f"  ➕ Creating NEW player")
-        heroes = []
-        if expected_token_ids:
-            for token_id in expected_token_ids:
-                hero = create_hero_from_metadata(token_id)
-                heroes.append(hero)
-                print(f"    ✅ Created hero {token_id}")
+    # Construir objeto player para la sesión (cache temporal)
+    total_xp = sum(h["dynamic_state"]["xp_total"] for h in heroes)
+    total_aura = sum(h["dynamic_state"]["aura_level"] for h in heroes)
+    total_energy = sum(h["dynamic_state"]["energy_current"] for h in heroes)
 
-        # Calcular totales
-        total_xp = sum(h["dynamic_state"]["xp_total"] for h in heroes)
-        total_aura = sum(h["dynamic_state"]["aura_level"] for h in heroes)
-        total_energy = sum(h["dynamic_state"]["energy_current"] for h in heroes)
-
-        players[wallet] = {
-            "wallet": wallet,
-            "heroes": heroes,
-            "totals": {
-                "heroes_count": len(heroes),
-                "xp_total_all": total_xp,
-                "aura_total_all": total_aura,
-                "energy_total_available": total_energy
-            }
-        }
-        save_json(PLAYERS_PATH, players)
-        print(f"  💾 Saved new player with {len(heroes)} heroes")
-    else:
-        # Jugador existente: sincronizar NFTs
-        print(f"  🔄 SYNCING existing player")
-        player = players[wallet]
-        existing_heroes = player.get("heroes", [])
-        print(f"  📦 Existing heroes count: {len(existing_heroes)}")
-
-        # 🔥 DEBUGGING: Mostrar qué token_ids se esperan
-        print(f"  📋 Expected token_ids from cache: {expected_token_ids}")
-        existing_token_ids = [h.get("token_id") for h in existing_heroes]
-        print(f"  📋 Current token_ids in player data: {existing_token_ids}")
-
-        # Log estado de heroes existentes
-        print(f"  🔍 BEFORE sync - Hero states:")
-        for h in existing_heroes:
-            ds = h.get("dynamic_state", {})
-            print(f"    👤 Hero {h['token_id']}: state={ds.get('state', 'UNKNOWN')}, mission={ds.get('current_mission_id', 'None')}, xp={ds.get('xp_total', 0)}, aura={ds.get('aura_level', 0)}")
-
-        # Crear mapa de heroes existentes por token_id
-        existing_heroes_map = {h["token_id"]: h for h in existing_heroes}
-        print(f"  🗺️  Existing heroes map keys: {list(existing_heroes_map.keys())}")
-
-        # Crear lista nueva de heroes
-        new_heroes = []
-        for token_id in expected_token_ids:
-            token_id_padded = str(token_id).zfill(5)
-            print(f"  🔍 Processing token_id: {token_id} → padded: {token_id_padded}")
-
-            if token_id_padded in existing_heroes_map:
-                # Ya existe: mantener con su progreso
-                existing_hero = existing_heroes_map[token_id_padded]
-                new_heroes.append(existing_hero)
-                state = existing_hero['dynamic_state'].get('state', 'UNKNOWN')
-                mission = existing_hero['dynamic_state'].get('current_mission_id', 'None')
-                print(f"    ✅ PRESERVED hero {token_id_padded} with state={state}, mission={mission}")
-            else:
-                # Nuevo NFT: crear desde metadata
-                hero = create_hero_from_metadata(token_id)
-                new_heroes.append(hero)
-                print(f"    ➕ CREATED new hero {token_id_padded}")
-
-        print(f"  📋 After sync: {len(new_heroes)} heroes")
-        print(f"  🔍 AFTER sync - Hero states:")
-        for h in new_heroes:
-            ds = h.get("dynamic_state", {})
-            print(f"    👤 Hero {h['token_id']}: state={ds.get('state', 'UNKNOWN')}, mission={ds.get('current_mission_id', 'None')}")
-
-        # Actualizar la lista de heroes
-        player["heroes"] = new_heroes
-
-        # Recalcular totales
-        total_xp = sum(h["dynamic_state"]["xp_total"] for h in new_heroes)
-        total_aura = sum(h["dynamic_state"]["aura_level"] for h in new_heroes)
-        total_energy = sum(h["dynamic_state"]["energy_current"] for h in new_heroes)
-
-        player["totals"] = {
-            "heroes_count": len(new_heroes),
+    player_obj = {
+        "wallet": wallet,
+        "heroes": heroes,
+        "totals": {
+            "heroes_count": len(heroes),
             "xp_total_all": total_xp,
             "aura_total_all": total_aura,
             "energy_total_available": total_energy
         }
+    }
 
-        players[wallet] = player
-        save_json(PLAYERS_PATH, players)
-        print(f"  💾 Saved synced player")
+    # Guardar en players.json (solo cache de sesión, NO fuente de verdad)
+    players = load_json(PLAYERS_PATH, {})
+    players[wallet] = player_obj
+    save_json(PLAYERS_PATH, players)
 
-    return players[wallet], players
+    print(f"  ✅ Player synced: {len(heroes)} NFTs → DB updated, session cached")
+
+    return player_obj, players
 
 # ---------------------------------
 # API: PLAYER PROFILE
@@ -1239,7 +1320,10 @@ def api_mission_start():
     }
     save_json(ACTIVE_MISSIONS_PATH, active_missions)
 
-    # Save changes
+    # 🔥 GUARDAR a base de datos centralizada (fuente de verdad)
+    update_nft_dynamic_state(hero_id, ds)
+
+    # Guardar también a players.json (cache de sesión)
     players_all[wallet] = player_obj
     save_json(PLAYERS_PATH, players_all)
     save_json(STATS_PATH, stats_obj)
@@ -1376,8 +1460,11 @@ def api_mission_complete():
             del active_missions[mission_key]
             save_json(ACTIVE_MISSIONS_PATH, active_missions)
 
-        # Save
+        # 🔥 GUARDAR a base de datos centralizada (fuente de verdad)
         ds["last_update"] = now_utc_str()
+        update_nft_dynamic_state(hero_id, ds)
+
+        # Guardar también a players.json (cache de sesión)
         player_obj, stats_obj = apply_passive_and_regen(player_obj, stats_obj)
         players_all[wallet] = player_obj
         save_json(PLAYERS_PATH, players_all)
@@ -1421,8 +1508,11 @@ def api_mission_complete():
             del active_missions[mission_key]
             save_json(ACTIVE_MISSIONS_PATH, active_missions)
 
-        # Save
+        # 🔥 GUARDAR a base de datos centralizada (fuente de verdad)
         ds["last_update"] = now_utc_str()
+        update_nft_dynamic_state(hero_id, ds)
+
+        # Guardar también a players.json (cache de sesión)
         player_obj, stats_obj = apply_passive_and_regen(player_obj, stats_obj)
         players_all[wallet] = player_obj
         save_json(PLAYERS_PATH, players_all)
@@ -1464,8 +1554,11 @@ def api_mission_complete():
             del active_missions[mission_key]
             save_json(ACTIVE_MISSIONS_PATH, active_missions)
 
-        # Save
+        # 🔥 GUARDAR a base de datos centralizada (fuente de verdad)
         ds["last_update"] = now_utc_str()
+        update_nft_dynamic_state(hero_id, ds)
+
+        # Guardar también a players.json (cache de sesión)
         player_obj, stats_obj = apply_passive_and_regen(player_obj, stats_obj)
         players_all[wallet] = player_obj
         save_json(PLAYERS_PATH, players_all)
@@ -1617,6 +1710,83 @@ def api_ritual_reinvoke():
         "hero_aura_now": ds["aura_level"],
         "hero_energy_now": ds["energy_current"],
         "message": f"✨ REINVOKED: {fallen_hero.get('name', 'Emissary')} has been brought back from the fallen state!"
+    })
+
+# ---------------------------------
+# API: ADMIN - Poblar base de datos
+# ---------------------------------
+
+@app.route("/api/admin/populate_database", methods=["POST"])
+def api_admin_populate_database():
+    """
+    🔥 Endpoint de administración para poblar la base de datos centralizada
+    con todos los NFTs desde los archivos de metadata.
+
+    POST: {
+        "start_token": 1,        # Token ID inicial (default: 1)
+        "end_token": 100,        # Token ID final (default: 100)
+        "overwrite": false       # Si true, sobrescribe NFTs existentes
+    }
+
+    Útil para:
+    - Poblar DB inicial con NFTs ya minteados
+    - Sincronizar NFTs sin esperar a que usuarios conecten wallets
+    - Mantener estadísticas globales actualizadas
+    """
+    data = request.get_json(force=True)
+    start_token = data.get("start_token", 1)
+    end_token = data.get("end_token", 100)
+    overwrite = data.get("overwrite", False)
+
+    synced = []
+    skipped = []
+    errors = []
+
+    print(f"\n🔄 Populating database: tokens {start_token} to {end_token}")
+
+    for token_id in range(start_token, end_token + 1):
+        token_id_padded = str(token_id).zfill(5)
+
+        try:
+            # Check if metadata file exists
+            metadata_file = os.path.join(METADATA_DIR, f"{token_id_padded}.json")
+            if not os.path.exists(metadata_file):
+                skipped.append({"token_id": token_id_padded, "reason": "metadata file not found"})
+                continue
+
+            # Check if already exists in DB
+            existing = get_nft_from_database(token_id_padded)
+            if existing and not overwrite:
+                skipped.append({"token_id": token_id_padded, "reason": "already in database (use overwrite=true)"})
+                continue
+
+            # Sync to database
+            nft = sync_nft_to_database(token_id, owner_wallet=None)
+            synced.append({
+                "token_id": token_id_padded,
+                "name": nft.get("name"),
+                "guild": nft.get("guild"),
+                "xp": nft.get("dynamic_state", {}).get("xp_total", 0)
+            })
+            print(f"  ✅ Synced: {token_id_padded} - {nft.get('name')}")
+
+        except Exception as e:
+            errors.append({"token_id": token_id_padded, "error": str(e)})
+            print(f"  ❌ Error syncing {token_id_padded}: {e}")
+
+    # Recalcular stats y guilds
+    print(f"\n📊 Recalculating global stats...")
+    calculate_guilds_data()
+
+    return jsonify({
+        "success": True,
+        "synced_count": len(synced),
+        "skipped_count": len(skipped),
+        "errors_count": len(errors),
+        "synced": synced,
+        "skipped": skipped,
+        "errors": errors,
+        "message": f"Database populated: {len(synced)} NFTs synced, {len(skipped)} skipped, {len(errors)} errors"
     })
 
 # ---------------------------------
