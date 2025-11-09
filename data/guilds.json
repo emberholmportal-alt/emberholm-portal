@@ -2,9 +2,9 @@
     {
         "name": "Forge Legion",
         "flavor": "strength, steel, sworn oaths",
-        "members": 0,
-        "avg_xp": 0,
-        "avg_aura": 0,
+        "members": 14,
+        "avg_xp": 0.0,
+        "avg_aura": 0.0,
         "badge": "img/forge_legion.JPG",
         "total_xp": 0,
         "total_aura": 0
@@ -12,9 +12,9 @@
     {
         "name": "Circle of Mist",
         "flavor": "alchemy, mana, forbidden knowledge",
-        "members": 0,
-        "avg_xp": 0,
-        "avg_aura": 0,
+        "members": 32,
+        "avg_xp": 0.0,
+        "avg_aura": 0.0,
         "badge": "img/circle_of_mist.JPG",
         "total_xp": 0,
         "total_aura": 0
@@ -22,9 +22,9 @@
     {
         "name": "Shadow Guild",
         "flavor": "information, silence, sanctioned crime",
-        "members": 0,
-        "avg_xp": 0,
-        "avg_aura": 0,
+        "members": 19,
+        "avg_xp": 0.0,
+        "avg_aura": 0.0,
         "badge": "img/shadow_guild.JPG",
         "total_xp": 0,
         "total_aura": 0
@@ -32,9 +32,9 @@
     {
         "name": "Horizon Watch",
         "flavor": "scouts, tideborn, edge-of-world patrols",
-        "members": 0,
-        "avg_xp": 0,
-        "avg_aura": 0,
+        "members": 8,
+        "avg_xp": 0.0,
+        "avg_aura": 0.0,
         "badge": "img/horizon_watch.JPG",
         "total_xp": 0,
         "total_aura": 0

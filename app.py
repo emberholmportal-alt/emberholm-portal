@@ -488,6 +488,104 @@ def update_nft_dynamic_state(token_id, dynamic_state_updates):
     # Guardar
     return upsert_nft_to_database(token_id_padded, nft)
 
+def populate_database_on_startup(max_nfts=100):
+    """
+    🔥 SISTEMA AUTOMÁTICO: Poblado inicial de la base de datos al iniciar el servidor.
+
+    Escanea la carpeta de metadata y sincroniza NFTs encontrados a nfts_database.json.
+    Solo crea NFTs nuevos, preserva los existentes.
+    Esto asegura que STATS y GUILDS muestren datos reales desde el inicio.
+
+    Args:
+        max_nfts: Número máximo de NFTs a sincronizar (default: 100)
+                  Use None para sincronizar todos los archivos encontrados.
+
+    NO requiere intervención manual - se ejecuta automáticamente al iniciar el servidor.
+    """
+    print("\n" + "="*70)
+    print("🔥 STARTUP: Auto-populating NFTs database from metadata files...")
+    print("="*70)
+
+    if not os.path.exists(METADATA_DIR):
+        print(f"⚠️ Metadata directory not found: {METADATA_DIR}")
+        return
+
+    # Escanear archivos de metadata (solo primeros max_nfts)
+    metadata_files = []
+    try:
+        for filename in sorted(os.listdir(METADATA_DIR)):
+            if filename.endswith('.json') and filename[0:5].isdigit():
+                token_id = filename[0:5]
+                metadata_files.append(token_id)
+                # Limitar a max_nfts para evitar sincronizar 35000 archivos
+                if max_nfts and len(metadata_files) >= max_nfts:
+                    break
+    except Exception as e:
+        print(f"❌ Error scanning metadata directory: {e}")
+        return
+
+    if not metadata_files:
+        print("⚠️ No metadata files found")
+        return
+
+    total_available = len([f for f in os.listdir(METADATA_DIR) if f.endswith('.json')])
+    print(f"📁 Found {total_available} metadata files total")
+    print(f"📊 Syncing first {len(metadata_files)} NFTs to database...")
+
+    # Sincronizar cada NFT a la base de datos
+    synced_count = 0
+    skipped_count = 0
+    error_count = 0
+
+    for token_id in metadata_files:
+        try:
+            # Verificar si ya existe
+            existing = get_nft_from_database(token_id)
+
+            if existing:
+                skipped_count += 1
+            else:
+                # Sincronizar nuevo NFT (sin owner por ahora)
+                nft = sync_nft_to_database(token_id, owner_wallet=None)
+                synced_count += 1
+
+                # Log cada 10 NFTs
+                if synced_count % 10 == 0:
+                    print(f"  ✅ Synced {synced_count} NFTs...")
+
+        except Exception as e:
+            error_count += 1
+            if error_count <= 5:  # Solo mostrar primeros 5 errores
+                print(f"  ⚠️ Error syncing {token_id}: {e}")
+
+    print(f"\n📊 Sync complete:")
+    print(f"  ✅ {synced_count} NFTs added to database")
+    print(f"  ⏭️  {skipped_count} NFTs already in database (preserved)")
+    if error_count > 0:
+        print(f"  ⚠️ {error_count} errors")
+
+    # Recalcular stats globales
+    print(f"\n📊 Recalculating global stats...")
+    try:
+        calculate_guilds_data()
+
+        # Actualizar total_characters en stats.json
+        db = load_nfts_database()
+        total_nfts = len(db)
+
+        stats_obj = load_json(STATS_PATH, {})
+        stats_obj["total_characters"] = total_nfts
+        save_json(STATS_PATH, stats_obj)
+
+        print(f"  ✅ Guilds data updated")
+        print(f"  ✅ Stats updated (Total characters: {total_nfts})")
+    except Exception as e:
+        print(f"  ⚠️ Error updating stats: {e}")
+
+    print("="*70)
+    print("🎯 Database ready! STATS and GUILDS will show real data.")
+    print("="*70 + "\n")
+
 # ---------------------------------
 # Helpers de tiempo
 # ---------------------------------
@@ -576,11 +674,11 @@ def apply_passive_and_regen(player_obj, stats_obj):
 
 def calculate_guild_ranking():
     """
-    Calcula el ranking de guilds REAL desde players.json.
+    🔥 Calcula el ranking de guilds REAL desde la base de datos centralizada.
     Devuelve lista ordenada por XP total descendente.
     INCLUYE TODOS LOS GREMIOS, incluso los que tienen 0 miembros.
     """
-    players_all = load_json(PLAYERS_PATH, {})
+    db = load_nfts_database()  # 🔥 Leer desde base de datos centralizada
     stats_obj = load_json(STATS_PATH, {})
 
     # Lista de todos los gremios conocidos
@@ -602,22 +700,21 @@ def calculate_guild_ranking():
             "members": 0
         }
 
-    # Recorrer todos los héroes de todos los jugadores
-    for wallet, pdata in players_all.items():
-        for hero in pdata.get("heroes", []):
-            guild = hero.get("guild") or hero.get("dynamic_state", {}).get("current_guild", "Unknown")
-            ds = hero.get("dynamic_state", {})
+    # 🔥 Recorrer todos los NFTs desde la base de datos
+    for token_id, nft in db.items():
+        guild = nft.get("guild") or nft.get("dynamic_state", {}).get("current_guild", "Unknown")
+        ds = nft.get("dynamic_state", {})
 
-            if guild not in guild_stats:
-                guild_stats[guild] = {
-                    "xp_total": 0,
-                    "aura_total": 0,
-                    "members": 0
-                }
+        if guild not in guild_stats:
+            guild_stats[guild] = {
+                "xp_total": 0,
+                "aura_total": 0,
+                "members": 0
+            }
 
-            guild_stats[guild]["xp_total"] += ds.get("xp_total", 0)
-            guild_stats[guild]["aura_total"] += ds.get("aura_level", 0)
-            guild_stats[guild]["members"] += 1
+        guild_stats[guild]["xp_total"] += ds.get("xp_total", 0)
+        guild_stats[guild]["aura_total"] += ds.get("aura_level", 0)
+        guild_stats[guild]["members"] += 1
 
     # Agregar success rate desde stats.json
     guild_ranking_stats = stats_obj.get("guild_ranking", {})
@@ -1163,7 +1260,22 @@ def api_player(wallet):
     # aplicar pasivo/regen antes de mostrar
     player_obj, stats_obj = apply_passive_and_regen(player_obj, stats_obj)
 
-    # guardar cambios
+    # 🔥 CRITICAL: Guardar cambios de pasivo/regen de vuelta a la base de datos
+    # Si no hacemos esto, los cambios se pierden al reconectar
+    for hero in player_obj.get("heroes", []):
+        token_id = hero.get("token_id")
+        ds = hero.get("dynamic_state", {})
+        if token_id:
+            # Actualizar solo los campos que apply_passive_and_regen() modifica
+            update_nft_dynamic_state(token_id, {
+                "xp_total": ds.get("xp_total"),
+                "aura_level": ds.get("aura_level"),
+                "energy_current": ds.get("energy_current"),
+                "last_update": ds.get("last_update"),
+                "last_energy_refresh": ds.get("last_energy_refresh")
+            })
+
+    # guardar cambios en cache de sesión
     players_all[wallet] = player_obj
     save_json(PLAYERS_PATH, players_all)
     save_json(STATS_PATH, stats_obj)
@@ -2056,6 +2168,14 @@ def api_metadata(token_id):
     }
 
     return jsonify(response)
+
+# ---------------------------------
+# Auto-populate database on startup
+# ---------------------------------
+
+# 🔥 Sincronizar primeros 100 NFTs automáticamente
+# Esto asegura que STATS y GUILDS muestren datos reales desde el inicio
+populate_database_on_startup(max_nfts=100)
 
 # ---------------------------------
 # Run local dev server
