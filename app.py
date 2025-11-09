@@ -907,24 +907,34 @@ def ensure_player(wallet):
         existing_heroes = player.get("heroes", [])
         print(f"  📦 Existing heroes count: {len(existing_heroes)}")
 
+        # 🔥 DEBUGGING: Mostrar qué token_ids se esperan
+        print(f"  📋 Expected token_ids from cache: {expected_token_ids}")
+        existing_token_ids = [h.get("token_id") for h in existing_heroes]
+        print(f"  📋 Current token_ids in player data: {existing_token_ids}")
+
         # Log estado de heroes existentes
+        print(f"  🔍 BEFORE sync - Hero states:")
         for h in existing_heroes:
             ds = h.get("dynamic_state", {})
-            print(f"    👤 Existing hero {h['token_id']}: state={ds.get('state', 'UNKNOWN')}, mission={ds.get('current_mission_id', 'None')}")
+            print(f"    👤 Hero {h['token_id']}: state={ds.get('state', 'UNKNOWN')}, mission={ds.get('current_mission_id', 'None')}, xp={ds.get('xp_total', 0)}, aura={ds.get('aura_level', 0)}")
 
         # Crear mapa de heroes existentes por token_id
         existing_heroes_map = {h["token_id"]: h for h in existing_heroes}
+        print(f"  🗺️  Existing heroes map keys: {list(existing_heroes_map.keys())}")
 
         # Crear lista nueva de heroes
         new_heroes = []
         for token_id in expected_token_ids:
             token_id_padded = str(token_id).zfill(5)
+            print(f"  🔍 Processing token_id: {token_id} → padded: {token_id_padded}")
 
             if token_id_padded in existing_heroes_map:
                 # Ya existe: mantener con su progreso
                 existing_hero = existing_heroes_map[token_id_padded]
                 new_heroes.append(existing_hero)
-                print(f"    ✅ PRESERVED hero {token_id_padded} with state={existing_hero['dynamic_state'].get('state', 'UNKNOWN')}")
+                state = existing_hero['dynamic_state'].get('state', 'UNKNOWN')
+                mission = existing_hero['dynamic_state'].get('current_mission_id', 'None')
+                print(f"    ✅ PRESERVED hero {token_id_padded} with state={state}, mission={mission}")
             else:
                 # Nuevo NFT: crear desde metadata
                 hero = create_hero_from_metadata(token_id)
@@ -932,6 +942,10 @@ def ensure_player(wallet):
                 print(f"    ➕ CREATED new hero {token_id_padded}")
 
         print(f"  📋 After sync: {len(new_heroes)} heroes")
+        print(f"  🔍 AFTER sync - Hero states:")
+        for h in new_heroes:
+            ds = h.get("dynamic_state", {})
+            print(f"    👤 Hero {h['token_id']}: state={ds.get('state', 'UNKNOWN')}, mission={ds.get('current_mission_id', 'None')}")
 
         # Actualizar la lista de heroes
         player["heroes"] = new_heroes
@@ -966,7 +980,8 @@ def api_player(wallet):
     print(f"\n{'='*60}")
     print(f"🔍 /api/player/{wallet[:6]}...{wallet[-4:]} - Method: {request.method}")
 
-    # Si es POST, recibir token_ids y total_supply desde frontend (consultados de blockchain)
+    # 🔥 CRITICAL FIX: Si es POST, SOLO guardar cache y retornar
+    # Esto evita doble sincronización que causa pérdida de estado ON_MISSION
     if request.method == "POST":
         try:
             data = request.get_json(force=True)
@@ -990,11 +1005,19 @@ def api_player(wallet):
                 stats_obj["total_characters"] = total_supply
                 save_json(STATS_PATH, stats_obj)
                 print(f"✅ Contract total supply updated: {total_supply} characters")
+
+            print(f"{'='*60}\n")
+            # ✅ RETORNAR inmediatamente - NO llamar ensure_player() aquí
+            return jsonify({"success": True, "token_ids_cached": len(token_ids)})
+
         except Exception as e:
             print(f"❌ Error processing POST data: {e}")
             import traceback
             traceback.print_exc()
+            print(f"{'='*60}\n")
+            return jsonify({"success": False, "error": str(e)}), 500
 
+    # 🔥 Si es GET, sincronizar jugador y retornar datos
     print(f"🔄 Calling ensure_player() for wallet {wallet[:6]}...{wallet[-4:]}")
 
     stats_obj = load_json(STATS_PATH, {
