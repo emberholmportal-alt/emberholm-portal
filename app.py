@@ -860,18 +860,28 @@ def ensure_player(wallet):
     Si no existe, lo crea cargando los NFTs desde metadata.
     Si existe, sincroniza los NFTs con wallet_nfts.json (agrega nuevos, mantiene existentes).
     """
+    # 🔥 NORMALIZE wallet address to lowercase to avoid case sensitivity issues
+    wallet = wallet.lower()
+
+    print(f"  🔧 ensure_player() called for {wallet[:6]}...{wallet[-4:]}")
     players = load_json(PLAYERS_PATH, {})
 
     # Obtener los token_ids que debería tener esta billetera
     expected_token_ids = get_wallet_token_ids(wallet)
+    print(f"  📋 expected_token_ids from cache: {expected_token_ids}")
 
-    if wallet not in players:
+    player_exists = wallet in players
+    print(f"  🗂️  Player exists in players.json: {player_exists}")
+
+    if not player_exists:
         # Jugador nuevo: crear desde cero
+        print(f"  ➕ Creating NEW player")
         heroes = []
         if expected_token_ids:
             for token_id in expected_token_ids:
                 hero = create_hero_from_metadata(token_id)
                 heroes.append(hero)
+                print(f"    ✅ Created hero {token_id}")
 
         # Calcular totales
         total_xp = sum(h["dynamic_state"]["xp_total"] for h in heroes)
@@ -889,10 +899,18 @@ def ensure_player(wallet):
             }
         }
         save_json(PLAYERS_PATH, players)
+        print(f"  💾 Saved new player with {len(heroes)} heroes")
     else:
         # Jugador existente: sincronizar NFTs
+        print(f"  🔄 SYNCING existing player")
         player = players[wallet]
         existing_heroes = player.get("heroes", [])
+        print(f"  📦 Existing heroes count: {len(existing_heroes)}")
+
+        # Log estado de heroes existentes
+        for h in existing_heroes:
+            ds = h.get("dynamic_state", {})
+            print(f"    👤 Existing hero {h['token_id']}: state={ds.get('state', 'UNKNOWN')}, mission={ds.get('current_mission_id', 'None')}")
 
         # Crear mapa de heroes existentes por token_id
         existing_heroes_map = {h["token_id"]: h for h in existing_heroes}
@@ -904,11 +922,16 @@ def ensure_player(wallet):
 
             if token_id_padded in existing_heroes_map:
                 # Ya existe: mantener con su progreso
-                new_heroes.append(existing_heroes_map[token_id_padded])
+                existing_hero = existing_heroes_map[token_id_padded]
+                new_heroes.append(existing_hero)
+                print(f"    ✅ PRESERVED hero {token_id_padded} with state={existing_hero['dynamic_state'].get('state', 'UNKNOWN')}")
             else:
                 # Nuevo NFT: crear desde metadata
                 hero = create_hero_from_metadata(token_id)
                 new_heroes.append(hero)
+                print(f"    ➕ CREATED new hero {token_id_padded}")
+
+        print(f"  📋 After sync: {len(new_heroes)} heroes")
 
         # Actualizar la lista de heroes
         player["heroes"] = new_heroes
@@ -927,6 +950,7 @@ def ensure_player(wallet):
 
         players[wallet] = player
         save_json(PLAYERS_PATH, players)
+        print(f"  💾 Saved synced player")
 
     return players[wallet], players
 
@@ -936,6 +960,12 @@ def ensure_player(wallet):
 
 @app.route("/api/player/<wallet>", methods=["GET", "POST"])
 def api_player(wallet):
+    # 🔥 NORMALIZE wallet address to lowercase to avoid case sensitivity issues
+    wallet = wallet.lower()
+
+    print(f"\n{'='*60}")
+    print(f"🔍 /api/player/{wallet[:6]}...{wallet[-4:]} - Method: {request.method}")
+
     # Si es POST, recibir token_ids y total_supply desde frontend (consultados de blockchain)
     if request.method == "POST":
         try:
@@ -943,12 +973,16 @@ def api_player(wallet):
             token_ids = data.get("token_ids", [])
             total_supply = data.get("total_supply", None)
 
+            print(f"📦 POST data received: {len(token_ids)} token_ids, total_supply={total_supply}")
+
             if token_ids:
                 # Guardar los NFTs que posee esta wallet en cache
                 wallet_nfts = load_json(WALLET_NFTS_PATH, {})
+                print(f"📂 Current wallet_nfts keys: {list(wallet_nfts.keys())}")
                 wallet_nfts[wallet] = token_ids
                 save_json(WALLET_NFTS_PATH, wallet_nfts)
-                print(f"✅ Wallet {wallet[:6]}...{wallet[-4:]} registered with {len(token_ids)} NFTs from blockchain")
+                print(f"✅ Wallet {wallet[:6]}...{wallet[-4:]} registered with {len(token_ids)} NFTs: {token_ids}")
+                print(f"📂 Updated wallet_nfts keys: {list(wallet_nfts.keys())}")
 
             # 🔥 Guardar total_supply real del contrato para STATS
             if total_supply is not None:
@@ -957,7 +991,11 @@ def api_player(wallet):
                 save_json(STATS_PATH, stats_obj)
                 print(f"✅ Contract total supply updated: {total_supply} characters")
         except Exception as e:
-            print(f"⚠️ Error processing POST data: {e}")
+            print(f"❌ Error processing POST data: {e}")
+            import traceback
+            traceback.print_exc()
+
+    print(f"🔄 Calling ensure_player() for wallet {wallet[:6]}...{wallet[-4:]}")
 
     stats_obj = load_json(STATS_PATH, {
         "total_characters": 0,  # 🔥 Will be updated from blockchain contract
@@ -971,6 +1009,15 @@ def api_player(wallet):
     })
 
     player_obj, players_all = ensure_player(wallet)
+
+    # Log estado de heroes
+    if player_obj and "heroes" in player_obj:
+        for h in player_obj["heroes"]:
+            ds = h.get("dynamic_state", {})
+            state = ds.get("state", "UNKNOWN")
+            token_id = h.get("token_id", "???")
+            print(f"  👤 Hero {token_id}: state={state}")
+    print(f"{'='*60}\n")
 
     # aplicar pasivo/regen antes de mostrar
     player_obj, stats_obj = apply_passive_and_regen(player_obj, stats_obj)
@@ -1069,6 +1116,9 @@ def api_mission_start():
 
     if not wallet or not hero_id or not mission_id:
         abort(400, "Missing wallet, hero_id, or mission_id")
+
+    # 🔥 NORMALIZE wallet address to lowercase
+    wallet = wallet.lower()
 
     stats_obj = load_json(STATS_PATH, {
         "total_characters": 0,
@@ -1181,6 +1231,9 @@ def api_mission_complete():
 
     if not wallet or not hero_id:
         abort(400, "Missing wallet or hero_id")
+
+    # 🔥 NORMALIZE wallet address to lowercase
+    wallet = wallet.lower()
 
     stats_obj = load_json(STATS_PATH, {
         "total_characters": 0,
