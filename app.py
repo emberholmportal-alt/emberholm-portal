@@ -2701,6 +2701,307 @@ def api_setup_postgresql():
     return jsonify(result)
 
 # ---------------------------------
+# 🔍 AUDITORÍA COMPLETA DEL SISTEMA
+# ---------------------------------
+
+@app.route("/api/audit/system")
+def api_audit_system():
+    """
+    🔍 AUDITORÍA COMPLETA - Verifica integridad del sistema completo
+
+    Verifica:
+    - PostgreSQL: conexión, tablas, conteos
+    - Misiones activas: estado, progreso, ready to complete
+    - NFTs: estados, distribución, totales
+    - Estadísticas globales: XP, Aura, success rate
+    - Estadísticas por guild: distribución, totales
+    - Integridad: inconsistencias, datos corruptos
+    """
+
+    audit_result = {
+        "timestamp": now_utc_str(),
+        "postgresql": {},
+        "active_missions": {},
+        "nfts": {},
+        "global_stats": {},
+        "guild_stats": {},
+        "integrity_checks": {},
+        "recommendations": []
+    }
+
+    try:
+        # ========================================================================
+        # 1. POSTGRESQL STATUS
+        # ========================================================================
+        audit_result["postgresql"]["available"] = POSTGRESQL_AVAILABLE
+
+        if POSTGRESQL_AVAILABLE and db:
+            audit_result["postgresql"]["status"] = "✅ Connected"
+
+            # Verificar tablas y conteos
+            try:
+                conn = db.get_connection()
+                with conn.cursor() as cur:
+                    # Contar registros en cada tabla
+                    cur.execute("SELECT COUNT(*) FROM nfts")
+                    nfts_count = cur.fetchone()[0]
+
+                    cur.execute("SELECT COUNT(*) FROM active_missions")
+                    missions_count = cur.fetchone()[0]
+
+                    cur.execute("SELECT COUNT(*) FROM players")
+                    players_count = cur.fetchone()[0]
+
+                    cur.execute("SELECT COUNT(*) FROM global_stats")
+                    stats_count = cur.fetchone()[0]
+
+                    audit_result["postgresql"]["tables"] = {
+                        "nfts": nfts_count,
+                        "active_missions": missions_count,
+                        "players": players_count,
+                        "global_stats": stats_count
+                    }
+                db.release_connection(conn)
+            except Exception as e:
+                audit_result["postgresql"]["error"] = str(e)
+        else:
+            audit_result["postgresql"]["status"] = "❌ Not available"
+
+        # ========================================================================
+        # 2. ACTIVE MISSIONS ANALYSIS
+        # ========================================================================
+        active_missions = load_json(ACTIVE_MISSIONS_PATH, {})
+        audit_result["active_missions"]["total"] = len(active_missions)
+
+        missions_by_status = {
+            "in_progress": 0,
+            "ready_to_complete": 0,
+            "details": []
+        }
+
+        for mission_key, mission_data in active_missions.items():
+            start_time_str = mission_data.get("start_time")
+            duration_hours = mission_data.get("duration_hours", 0)
+
+            if start_time_str:
+                hours_elapsed = hours_since(start_time_str)
+                hours_remaining = duration_hours - hours_elapsed
+                progress_pct = min(100, int((hours_elapsed / duration_hours) * 100)) if duration_hours > 0 else 0
+
+                status = "ready_to_complete" if hours_remaining <= 0 else "in_progress"
+                missions_by_status[status] += 1
+
+                missions_by_status["details"].append({
+                    "mission_key": mission_key,
+                    "hero_id": mission_data.get("hero_id"),
+                    "mission_id": mission_data.get("mission_id"),
+                    "status": status,
+                    "progress": f"{progress_pct}%",
+                    "hours_elapsed": round(hours_elapsed, 2),
+                    "hours_remaining": round(max(0, hours_remaining), 2)
+                })
+
+        audit_result["active_missions"]["by_status"] = {
+            "in_progress": missions_by_status["in_progress"],
+            "ready_to_complete": missions_by_status["ready_to_complete"]
+        }
+        audit_result["active_missions"]["missions"] = missions_by_status["details"]
+
+        # ========================================================================
+        # 3. NFTs ANALYSIS
+        # ========================================================================
+        nfts_db = load_nfts_database()
+
+        nfts_by_state = {"READY": 0, "ON_MISSION": 0, "FALLEN": 0, "UNKNOWN": 0}
+        nfts_by_guild = {}
+        total_xp = 0
+        total_aura = 0
+
+        for token_id, nft in nfts_db.items():
+            ds = nft.get("dynamic_state", {})
+            state = ds.get("state", "UNKNOWN")
+            guild = nft.get("guild", "Unknown")
+
+            # Mapear nombres
+            if guild == "Dawnkeepers":
+                guild = "Order of Dawn"
+            elif guild == "Echoes of the Veil":
+                guild = "Void Echoes"
+
+            nfts_by_state[state] = nfts_by_state.get(state, 0) + 1
+
+            if guild not in nfts_by_guild:
+                nfts_by_guild[guild] = {"count": 0, "xp": 0, "aura": 0}
+
+            nfts_by_guild[guild]["count"] += 1
+            nfts_by_guild[guild]["xp"] += ds.get("xp_total", 0)
+            nfts_by_guild[guild]["aura"] += ds.get("aura_level", 0)
+
+            total_xp += ds.get("xp_total", 0)
+            total_aura += ds.get("aura_level", 0)
+
+        audit_result["nfts"]["total"] = len(nfts_db)
+        audit_result["nfts"]["by_state"] = nfts_by_state
+        audit_result["nfts"]["by_guild"] = nfts_by_guild
+        audit_result["nfts"]["totals"] = {
+            "xp": total_xp,
+            "aura": total_aura
+        }
+
+        # ========================================================================
+        # 4. GLOBAL STATS
+        # ========================================================================
+        stats_obj = load_json(STATS_PATH, {})
+
+        audit_result["global_stats"]["missions_completed"] = stats_obj.get("missions_completed", 0)
+        audit_result["global_stats"]["missions_failed"] = stats_obj.get("missions_failed", 0)
+        audit_result["global_stats"]["total_exp_collected"] = stats_obj.get("total_exp_collected", 0)
+        audit_result["global_stats"]["total_aura_collected"] = stats_obj.get("total_aura_collected", 0)
+
+        total_missions = stats_obj.get("missions_completed", 0) + stats_obj.get("missions_failed", 0)
+        if total_missions > 0:
+            success_rate = round((stats_obj.get("missions_completed", 0) / total_missions) * 100, 2)
+        else:
+            success_rate = 0
+
+        audit_result["global_stats"]["success_rate"] = f"{success_rate}%"
+        audit_result["global_stats"]["total_missions"] = total_missions
+
+        # ========================================================================
+        # 5. GUILD STATS
+        # ========================================================================
+        guilds_data = load_json(GUILDS_PATH, [])
+        guild_ranking = stats_obj.get("guild_ranking", {})
+
+        # Fix: Si guild_ranking es lista, convertir a dict
+        if isinstance(guild_ranking, list):
+            guild_ranking = {}
+
+        guild_stats_summary = []
+        for guild in guilds_data:
+            guild_name = guild.get("name", "")
+
+            rank_data = guild_ranking.get(guild_name, {})
+            successes = rank_data.get("successes", 0)
+            failures = rank_data.get("failures", 0)
+            total = successes + failures
+
+            guild_stats_summary.append({
+                "name": guild_name,
+                "members": guild.get("members", 0),
+                "total_xp": guild.get("total_xp", 0),
+                "total_aura": guild.get("total_aura", 0),
+                "avg_xp": guild.get("avg_xp", 0),
+                "avg_aura": guild.get("avg_aura", 0),
+                "missions_completed": successes,
+                "missions_failed": failures,
+                "success_rate": f"{round((successes / total * 100), 1) if total > 0 else 0}%"
+            })
+
+        audit_result["guild_stats"]["guilds"] = guild_stats_summary
+
+        # ========================================================================
+        # 6. INTEGRITY CHECKS
+        # ========================================================================
+        integrity_issues = []
+
+        # Check 1: NFTs ON_MISSION sin active_mission correspondiente
+        active_mission_heroes = set(m.get("hero_id") for m in active_missions.values())
+
+        nfts_on_mission_without_active = []
+        for token_id, nft in nfts_db.items():
+            ds = nft.get("dynamic_state", {})
+            if ds.get("state") == "ON_MISSION":
+                if token_id not in active_mission_heroes:
+                    nfts_on_mission_without_active.append(token_id)
+
+        if nfts_on_mission_without_active:
+            integrity_issues.append({
+                "type": "nft_on_mission_without_active_mission",
+                "count": len(nfts_on_mission_without_active),
+                "nfts": nfts_on_mission_without_active
+            })
+
+        # Check 2: Active missions sin NFT correspondiente o con estado != ON_MISSION
+        missions_without_nft = []
+        missions_with_wrong_state = []
+
+        for mission_key, mission_data in active_missions.items():
+            hero_id = mission_data.get("hero_id")
+            nft = nfts_db.get(hero_id)
+
+            if not nft:
+                missions_without_nft.append(mission_key)
+            else:
+                ds = nft.get("dynamic_state", {})
+                if ds.get("state") != "ON_MISSION":
+                    missions_with_wrong_state.append({
+                        "mission_key": mission_key,
+                        "hero_id": hero_id,
+                        "current_state": ds.get("state")
+                    })
+
+        if missions_without_nft:
+            integrity_issues.append({
+                "type": "active_mission_without_nft",
+                "count": len(missions_without_nft),
+                "missions": missions_without_nft
+            })
+
+        if missions_with_wrong_state:
+            integrity_issues.append({
+                "type": "active_mission_with_wrong_state",
+                "count": len(missions_with_wrong_state),
+                "details": missions_with_wrong_state
+            })
+
+        # Check 3: Verificar que guild_ranking sea dict (no lista)
+        if isinstance(stats_obj.get("guild_ranking"), list):
+            integrity_issues.append({
+                "type": "guild_ranking_wrong_type",
+                "message": "guild_ranking es una lista, debería ser dict"
+            })
+
+        audit_result["integrity_checks"]["issues_found"] = len(integrity_issues)
+        audit_result["integrity_checks"]["issues"] = integrity_issues
+
+        # ========================================================================
+        # 7. RECOMMENDATIONS
+        # ========================================================================
+        if len(integrity_issues) > 0:
+            audit_result["recommendations"].append("⚠️ Se encontraron problemas de integridad - revisar integrity_checks.issues")
+
+        if missions_by_status["ready_to_complete"] > 0:
+            audit_result["recommendations"].append(f"🎯 {missions_by_status['ready_to_complete']} misiones listas para completar - los usuarios pueden reclamar recompensas")
+
+        if nfts_by_state.get("FALLEN", 0) > 0:
+            audit_result["recommendations"].append(f"💀 {nfts_by_state['FALLEN']} NFTs caídos - requieren reinvocación")
+
+        if len(integrity_issues) == 0:
+            audit_result["recommendations"].append("✅ No se encontraron problemas de integridad")
+
+        if missions_by_status["in_progress"] > 0:
+            audit_result["recommendations"].append(f"🔥 {missions_by_status['in_progress']} misiones en progreso")
+
+        # ========================================================================
+        # FINAL STATUS
+        # ========================================================================
+        if len(integrity_issues) == 0 and POSTGRESQL_AVAILABLE:
+            audit_result["overall_status"] = "✅ Sistema funcionando correctamente"
+        elif len(integrity_issues) > 0:
+            audit_result["overall_status"] = "⚠️ Sistema funcional con problemas de integridad menores"
+        else:
+            audit_result["overall_status"] = "❌ Problemas críticos detectados"
+
+    except Exception as e:
+        audit_result["error"] = str(e)
+        audit_result["overall_status"] = "❌ Error durante auditoría"
+        import traceback
+        audit_result["traceback"] = traceback.format_exc()
+
+    return jsonify(audit_result)
+
+# ---------------------------------
 # 🔍 DEBUG: Estado completo de un hero
 # ---------------------------------
 
