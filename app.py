@@ -2375,6 +2375,98 @@ def validate_database_integrity():
     return total_nfts, fixed_count
 
 # ---------------------------------
+# DEBUG ENDPOINT - PostgreSQL Verification
+# ---------------------------------
+
+@app.route("/api/debug/postgresql")
+def api_debug_postgresql():
+    """
+    🔍 DEBUG ENDPOINT - Verificar estado de PostgreSQL
+
+    Este endpoint temporal verifica:
+    - Si DATABASE_URL está configurado
+    - Si PostgreSQL está disponible
+    - Qué tablas existen
+    - Cuántos registros hay en cada tabla
+
+    Acceder desde: https://emberholm-portal.onrender.com/api/debug/postgresql
+    """
+    import os
+
+    result = {
+        "timestamp": now_utc_str(),
+        "database_url_configured": False,
+        "postgresql_available": False,
+        "connection_error": None,
+        "tables": [],
+        "data_counts": {},
+        "module_imported": False
+    }
+
+    # Check 1: DATABASE_URL configurado
+    database_url = os.environ.get('DATABASE_URL')
+    result["database_url_configured"] = database_url is not None
+    if database_url:
+        # Ocultar password en output
+        result["database_url_host"] = database_url.split('@')[1].split('/')[0] if '@' in database_url else "unknown"
+
+    # Check 2: Módulo database importado
+    try:
+        result["module_imported"] = POSTGRESQL_AVAILABLE
+        result["postgresql_available"] = POSTGRESQL_AVAILABLE
+    except:
+        result["module_imported"] = False
+        result["postgresql_available"] = False
+
+    # Check 3: Intentar conexión y verificar tablas
+    if result["postgresql_available"]:
+        try:
+            conn = db.get_connection()
+            if conn:
+                with conn.cursor() as cur:
+                    # Verificar tablas
+                    cur.execute("""
+                        SELECT table_name
+                        FROM information_schema.tables
+                        WHERE table_schema = 'public'
+                        AND table_type = 'BASE TABLE'
+                        ORDER BY table_name
+                    """)
+                    tables = [row[0] for row in cur.fetchall()]
+                    result["tables"] = tables
+
+                    # Contar registros en cada tabla
+                    for table in tables:
+                        try:
+                            cur.execute(f"SELECT COUNT(*) FROM {table}")
+                            count = cur.fetchone()[0]
+                            result["data_counts"][table] = count
+                        except Exception as e:
+                            result["data_counts"][table] = f"Error: {str(e)}"
+
+                db.release_connection(conn)
+                result["status"] = "✅ PostgreSQL funcionando correctamente"
+            else:
+                result["connection_error"] = "No se pudo obtener conexión del pool"
+                result["status"] = "❌ Error obteniendo conexión"
+        except Exception as e:
+            result["connection_error"] = str(e)
+            result["status"] = f"❌ Error conectando: {str(e)}"
+    else:
+        result["status"] = "⚠️ PostgreSQL no disponible - usando JSON fallback"
+
+    # Check 4: Verificar si hay misiones activas
+    if "active_missions" in result["data_counts"]:
+        missions_count = result["data_counts"]["active_missions"]
+        if isinstance(missions_count, int):
+            if missions_count > 0:
+                result["missions_status"] = f"✅ {missions_count} misiones activas en PostgreSQL"
+            else:
+                result["missions_status"] = "⚠️ No hay misiones activas en PostgreSQL"
+
+    return jsonify(result)
+
+# ---------------------------------
 
 if __name__ == "__main__":
     # 🔥 VALIDAR INTEGRIDAD AL INICIAR
