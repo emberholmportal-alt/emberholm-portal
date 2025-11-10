@@ -2484,6 +2484,28 @@ def api_debug_postgresql():
             else:
                 result["missions_status"] = "⚠️ No hay misiones activas en PostgreSQL"
 
+    # Check 5: Verificar psycopg2
+    result["psycopg2_check"] = {}
+    try:
+        import psycopg2
+        result["psycopg2_check"]["installed"] = True
+        result["psycopg2_check"]["version"] = psycopg2.__version__
+    except ImportError as e:
+        result["psycopg2_check"]["installed"] = False
+        result["psycopg2_check"]["error"] = str(e)
+    except Exception as e:
+        result["psycopg2_check"]["installed"] = False
+        result["psycopg2_check"]["error"] = f"Unexpected error: {str(e)}"
+
+    # Check 6: Ver qué paquetes están instalados
+    try:
+        import pkg_resources
+        installed_packages = [f"{pkg.key}=={pkg.version}" for pkg in pkg_resources.working_set]
+        postgres_related = [pkg for pkg in installed_packages if 'psycopg' in pkg.lower() or 'postgres' in pkg.lower()]
+        result["installed_postgres_packages"] = postgres_related
+    except:
+        result["installed_postgres_packages"] = "Unable to check"
+
     return jsonify(result)
 
 # ---------------------------------
