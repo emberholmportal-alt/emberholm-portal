@@ -2410,13 +2410,33 @@ def api_debug_postgresql():
         # Ocultar password en output
         result["database_url_host"] = database_url.split('@')[1].split('/')[0] if '@' in database_url else "unknown"
 
+    # Check 1.5: Verificar si archivos existen
+    import os as os_module
+    base_dir = os_module.path.dirname(__file__)
+    result["files_exist"] = {
+        "database.py": os_module.path.exists(os_module.path.join(base_dir, "database.py")),
+        "schema.sql": os_module.path.exists(os_module.path.join(base_dir, "schema.sql")),
+        "setup_database.py": os_module.path.exists(os_module.path.join(base_dir, "setup_database.py"))
+    }
+
     # Check 2: Módulo database importado
     try:
         result["module_imported"] = POSTGRESQL_AVAILABLE
         result["postgresql_available"] = POSTGRESQL_AVAILABLE
-    except:
+        result["db_module_exists"] = db is not None
+    except Exception as e:
         result["module_imported"] = False
         result["postgresql_available"] = False
+        result["import_error"] = str(e)
+        result["db_module_exists"] = False
+
+        # Intentar importar nuevamente para capturar el error exacto
+        try:
+            import database as test_db
+            result["reimport_test"] = "Success"
+        except Exception as reimport_error:
+            result["reimport_error"] = str(reimport_error)
+            result["reimport_error_type"] = type(reimport_error).__name__
 
     # Check 3: Intentar conexión y verificar tablas
     if result["postgresql_available"]:
