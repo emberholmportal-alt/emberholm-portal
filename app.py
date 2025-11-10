@@ -1553,10 +1553,47 @@ def api_mission_start():
         "start_time": ds["mission_start_time"],
         "duration_hours": mission["duration_hours"]
     }
+
+    print(f"\n🔥 SAVING ACTIVE MISSION:")
+    print(f"  Mission Key: {mission_key}")
+    print(f"  Wallet: {wallet}")
+    print(f"  Hero ID: {hero_id}")
+    print(f"  Mission ID: {mission_id}")
+    print(f"  Start Time: {ds['mission_start_time']}")
+    print(f"  Duration: {mission['duration_hours']}h")
+    print(f"  Total active missions: {len(active_missions)}")
+
     save_json(ACTIVE_MISSIONS_PATH, active_missions)
 
+    # Verificar que se guardó correctamente
+    verify_missions = load_json(ACTIVE_MISSIONS_PATH, {})
+    print(f"  ✅ Verified: {len(verify_missions)} missions in database after save")
+    if mission_key in verify_missions:
+        print(f"  ✅ Mission {mission_key} confirmed in database")
+    else:
+        print(f"  ❌ WARNING: Mission {mission_key} NOT found in database after save!")
+
     # 🔥 GUARDAR a base de datos centralizada (fuente de verdad)
-    update_nft_dynamic_state(hero_id, ds)
+    print(f"\n🔥 UPDATING NFT DYNAMIC STATE IN DATABASE:")
+    print(f"  Token ID: {hero_id}")
+    print(f"  New State: {ds['state']}")
+    print(f"  Mission ID: {ds['current_mission_id']}")
+    print(f"  Start Time: {ds['mission_start_time']}")
+
+    update_result = update_nft_dynamic_state(hero_id, ds)
+    if update_result:
+        print(f"  ✅ NFT dynamic state updated successfully")
+    else:
+        print(f"  ❌ WARNING: Failed to update NFT dynamic state!")
+
+    # Verificar que se guardó el NFT
+    verify_nft = get_nft_from_database(hero_id)
+    if verify_nft:
+        verify_ds = verify_nft.get("dynamic_state", {})
+        print(f"  ✅ Verified NFT state: {verify_ds.get('state')}")
+        print(f"  ✅ Verified mission ID: {verify_ds.get('current_mission_id')}")
+    else:
+        print(f"  ❌ WARNING: NFT {hero_id} not found in database!")
 
     # Guardar también a players.json (cache de sesión)
     players_all[wallet] = player_obj
@@ -2653,6 +2690,87 @@ def api_setup_postgresql():
     except Exception as e:
         result["error"] = str(e)
         result["message"] = f"❌ Error durante setup: {str(e)}"
+
+    return jsonify(result)
+
+# ---------------------------------
+# 🔍 DEBUG: Estado completo de un hero
+# ---------------------------------
+
+@app.route("/api/debug/hero/<wallet>/<hero_id>")
+def api_debug_hero(wallet, hero_id):
+    """
+    🔍 DEBUG ENDPOINT - Ver estado completo de un hero específico
+
+    Muestra:
+    - Estado en nfts_database (PostgreSQL)
+    - Estado en active_missions (PostgreSQL)
+    - Estado en players.json (cache)
+    """
+    wallet = wallet.lower()
+    hero_id_padded = str(hero_id).zfill(5)
+
+    result = {
+        "wallet": wallet,
+        "hero_id": hero_id_padded,
+        "nft_in_database": None,
+        "active_mission": None,
+        "player_cache": None,
+        "timestamp": now_utc_str()
+    }
+
+    # 1. Estado en nfts_database
+    try:
+        nft = get_nft_from_database(hero_id_padded)
+        if nft:
+            result["nft_in_database"] = {
+                "exists": True,
+                "name": nft.get("name"),
+                "guild": nft.get("guild"),
+                "dynamic_state": nft.get("dynamic_state", {}),
+                "last_update": nft.get("last_update")
+            }
+        else:
+            result["nft_in_database"] = {"exists": False}
+    except Exception as e:
+        result["nft_in_database"] = {"error": str(e)}
+
+    # 2. Estado en active_missions
+    try:
+        active_missions = load_json(ACTIVE_MISSIONS_PATH, {})
+        mission_key = f"{wallet}_{hero_id_padded}"
+
+        result["active_mission"] = {
+            "mission_key": mission_key,
+            "exists": mission_key in active_missions,
+            "data": active_missions.get(mission_key),
+            "total_active_missions": len(active_missions),
+            "all_missions_keys": list(active_missions.keys())
+        }
+    except Exception as e:
+        result["active_mission"] = {"error": str(e)}
+
+    # 3. Estado en players.json (cache)
+    try:
+        players = load_json(PLAYERS_PATH, {})
+        player = players.get(wallet)
+
+        if player:
+            hero_in_cache = None
+            for h in player.get("heroes", []):
+                if h.get("token_id") == hero_id_padded:
+                    hero_in_cache = h
+                    break
+
+            result["player_cache"] = {
+                "player_exists": True,
+                "hero_in_cache": hero_in_cache is not None,
+                "hero_data": hero_in_cache if hero_in_cache else None
+            }
+        else:
+            result["player_cache"] = {"player_exists": False}
+    except Exception as e:
+        result["player_cache"] = {"error": str(e)}
 
     return jsonify(result)
 
