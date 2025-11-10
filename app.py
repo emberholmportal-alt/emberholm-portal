@@ -770,6 +770,13 @@ def calculate_guild_ranking():
     # Agregar success rate desde stats.json
     guild_ranking_stats = stats_obj.get("guild_ranking", {})
 
+    # 🔥 FIX: Si guild_ranking es una lista (error de formato antiguo), convertir a dict
+    if isinstance(guild_ranking_stats, list):
+        print("⚠️ guild_ranking was a list, converting to dict...")
+        guild_ranking_stats = {}
+        stats_obj["guild_ranking"] = guild_ranking_stats
+        save_json(STATS_PATH, stats_obj)
+
     result = []
     for guild_name, data in guild_stats.items():
         rank_data = guild_ranking_stats.get(guild_name, {})
