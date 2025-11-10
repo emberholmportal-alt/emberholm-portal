@@ -839,6 +839,7 @@ body {
                         <label>WALLET (BASE): </label>
                         <span id="wallet-display" style="color:#ffb400;font-size:14px;">Not connected</span>
                         <button class="terminal-btn small-btn" id="connect-wallet-btn">[CONNECT WALLET]</button>
+                        <button class="terminal-btn small-btn" id="disconnect-wallet-btn" style="display:none;">[DISCONNECT]</button>
                     </div>
 
                     <div id="wallet-summary" style="margin-top:10px;"></div>
@@ -2075,6 +2076,9 @@ async function connectWallet() {
         // Load profile immediately after connecting
         await loadPlayerAndRender();
 
+        // Update button visibility
+        updateWalletButtonsVisibility();
+
         return address;
     } catch (error) {
         console.error("Wallet connection error:", error);
@@ -2086,6 +2090,50 @@ async function connectWallet() {
 }
 
 document.getElementById("connect-wallet-btn").addEventListener("click", connectWallet);
+
+// 🔥 Disconnect wallet function
+function disconnectWallet() {
+    console.log("🔌 Disconnecting wallet...");
+
+    // Reset wallet state
+    connectedWallet = null;
+
+    // Update UI
+    document.getElementById("wallet-display").textContent = "Not connected";
+    document.getElementById("connect-wallet-btn").style.display = "inline-block";
+    document.getElementById("connect-wallet-btn").textContent = "[CONNECT WALLET]";
+    document.getElementById("connect-wallet-btn").disabled = false;
+    document.getElementById("disconnect-wallet-btn").style.display = "none";
+
+    // Reset ACCESS LEVEL to CITIZEN
+    const accessLevelEl = document.getElementById("access-level");
+    accessLevelEl.textContent = "ACCESS LEVEL: [CITIZEN]";
+    accessLevelEl.style.color = "";
+
+    // Clear profile data
+    document.getElementById("wallet-summary").innerHTML = "";
+    document.getElementById("prime-emissary-img").textContent = "NO DATA";
+    document.getElementById("prime-emissary-desc").innerHTML = "";
+    document.getElementById("roster-table-wrap").innerHTML = "";
+
+    console.log("✅ Wallet disconnected");
+
+    // Show info modal
+    showInfoModal("WALLET DISCONNECTED", "Your wallet has been disconnected.\n\nClick [CONNECT WALLET] to reconnect.");
+}
+
+document.getElementById("disconnect-wallet-btn").addEventListener("click", disconnectWallet);
+
+// 🔥 Helper: Update button visibility based on connection state
+function updateWalletButtonsVisibility() {
+    if (connectedWallet) {
+        document.getElementById("connect-wallet-btn").style.display = "none";
+        document.getElementById("disconnect-wallet-btn").style.display = "inline-block";
+    } else {
+        document.getElementById("connect-wallet-btn").style.display = "inline-block";
+        document.getElementById("disconnect-wallet-btn").style.display = "none";
+    }
+}
 
 // 🔥 Listen for network changes
 if (window.ethereum) {
@@ -2118,6 +2166,9 @@ if (window.ethereum) {
             accessLevelEl.textContent = "ACCESS LEVEL: [CITIZEN]";
             accessLevelEl.style.color = ""; // Reset to default color
             console.log("🔄 Access level downgraded to CITIZEN");
+
+            // Update button visibility
+            updateWalletButtonsVisibility();
         } else {
             console.log("🔄 Reloading page due to account change");
             window.location.reload();

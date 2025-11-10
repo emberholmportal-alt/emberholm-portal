@@ -76,6 +76,7 @@ def load_nfts_database():
                     guild,
                     race_class,
                     last_known_owner,
+                    image_url,
                     dynamic_state,
                     last_update
                 FROM nfts
@@ -91,6 +92,7 @@ def load_nfts_database():
                     'guild': row['guild'],
                     'race_class': row['race_class'],
                     'last_known_owner': row['last_known_owner'],
+                    'image_url': row.get('image_url', '/img/emissary-placeholder.png'),
                     'dynamic_state': row['dynamic_state'],
                     'last_update': row['last_update'].isoformat() if row['last_update'] else None
                 }
@@ -119,14 +121,15 @@ def save_nfts_database(nfts_db):
                 cur.execute("""
                     INSERT INTO nfts (
                         token_id, name, guild, race_class,
-                        last_known_owner, dynamic_state, last_update
+                        last_known_owner, image_url, dynamic_state, last_update
                     )
-                    VALUES (%s, %s, %s, %s, %s, %s, NOW())
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, NOW())
                     ON CONFLICT (token_id) DO UPDATE SET
                         name = EXCLUDED.name,
                         guild = EXCLUDED.guild,
                         race_class = EXCLUDED.race_class,
                         last_known_owner = EXCLUDED.last_known_owner,
+                        image_url = EXCLUDED.image_url,
                         dynamic_state = EXCLUDED.dynamic_state,
                         last_update = NOW()
                 """, (
@@ -135,6 +138,7 @@ def save_nfts_database(nfts_db):
                     nft_data.get('guild'),
                     nft_data.get('race_class'),
                     nft_data.get('last_known_owner'),
+                    nft_data.get('image_url', '/img/emissary-placeholder.png'),
                     Json(nft_data.get('dynamic_state', {}))
                 ))
         conn.commit()
@@ -161,7 +165,7 @@ def get_nft_from_database(token_id):
             cur.execute("""
                 SELECT
                     token_id, name, guild, race_class,
-                    last_known_owner, dynamic_state, last_update
+                    last_known_owner, image_url, dynamic_state, last_update
                 FROM nfts
                 WHERE token_id = %s
             """, (token_id,))
@@ -174,6 +178,7 @@ def get_nft_from_database(token_id):
                     'guild': row['guild'],
                     'race_class': row['race_class'],
                     'last_known_owner': row['last_known_owner'],
+                    'image_url': row.get('image_url', '/img/emissary-placeholder.png'),
                     'dynamic_state': row['dynamic_state'],
                     'last_update': row['last_update'].isoformat() if row['last_update'] else None
                 }

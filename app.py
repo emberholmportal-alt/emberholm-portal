@@ -2657,6 +2657,88 @@ def api_setup_postgresql():
     return jsonify(result)
 
 # ---------------------------------
+# 🔧 MIGRATION: Agregar columna image_url a tabla nfts
+# ---------------------------------
+
+@app.route("/api/migration/add_image_url")
+def api_migration_add_image_url():
+    """
+    🔧 MIGRATION ENDPOINT - Agregar columna image_url a tabla nfts
+
+    Esta migración agrega la columna image_url que faltaba en el schema original.
+    Es seguro ejecutarla múltiples veces (usa IF NOT EXISTS).
+    """
+    if not POSTGRESQL_AVAILABLE or not db:
+        return jsonify({
+            "success": False,
+            "error": "PostgreSQL no está disponible"
+        }), 500
+
+    result = {
+        "success": False,
+        "migration": "add_image_url_column",
+        "steps_completed": []
+    }
+
+    try:
+        conn = db.get_connection()
+
+        with conn.cursor() as cur:
+            # 1. Agregar columna image_url si no existe
+            print("🔧 Adding image_url column to nfts table...")
+            cur.execute("""
+                ALTER TABLE nfts
+                ADD COLUMN IF NOT EXISTS image_url TEXT DEFAULT '/img/emissary-placeholder.png'
+            """)
+            result["steps_completed"].append("Added image_url column")
+            print("✅ Column image_url added successfully")
+
+            # 2. Actualizar registros existentes con image_url desde metadata
+            print("🔄 Updating existing NFTs with image_url from metadata...")
+            cur.execute("SELECT token_id FROM nfts WHERE image_url IS NULL OR image_url = '/img/emissary-placeholder.png'")
+            nfts_to_update = [row[0] for row in cur.fetchall()]
+
+            updated_count = 0
+            for token_id in nfts_to_update:
+                # Obtener image_url desde metadata
+                try:
+                    from app import create_hero_from_metadata  # Import local
+                    hero = create_hero_from_metadata(token_id)
+                    image_url = hero.get('image_url', '/img/emissary-placeholder.png')
+
+                    cur.execute("""
+                        UPDATE nfts
+                        SET image_url = %s
+                        WHERE token_id = %s
+                    """, (image_url, token_id))
+                    updated_count += 1
+                except Exception as e:
+                    print(f"⚠️ Error updating image_url for {token_id}: {e}")
+
+            result["steps_completed"].append(f"Updated {updated_count} NFTs with image_url")
+            print(f"✅ Updated {updated_count} NFTs with image_url from metadata")
+
+        conn.commit()
+
+        result["success"] = True
+        result["message"] = f"✅ Migration completed: image_url column added and {updated_count} NFTs updated"
+
+        print(f"🎉 Migration successful: {result['message']}")
+
+    except Exception as e:
+        result["error"] = str(e)
+        result["message"] = f"❌ Migration failed: {str(e)}"
+        print(f"❌ Migration error: {e}")
+        import traceback
+        traceback.print_exc()
+
+    finally:
+        if conn:
+            db.release_connection(conn)
+
+    return jsonify(result)
+
+# ---------------------------------
 
 if __name__ == "__main__":
     # 🔥 VALIDAR INTEGRIDAD AL INICIAR
