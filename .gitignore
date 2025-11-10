@@ -55,10 +55,11 @@ data/active_missions.json
 data/players.json
 data/wallet_nfts.json
 data/stats.json
-data/guilds.json
 data/achievements.json
 
-# ⚙️ NOTA: missions_config.json SÍ debe estar en git (es configuración estática)
+# ⚙️ NOTA: missions_config.json y guilds.json SÍ deben estar en git
+# missions_config.json = configuración estática de misiones
+# guilds.json = configuración semi-estática (members/nombres fijos, XP/Aura se actualiza)
 
 # -------------------------------
 # Fin de .gitignore
