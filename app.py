@@ -5,6 +5,19 @@ import random
 from datetime import datetime, timedelta
 from flask import Flask, jsonify, send_from_directory, request, abort, render_template
 
+# 🔥 POSTGRESQL INTEGRATION - Persistence module
+try:
+    import database as db
+    POSTGRESQL_AVAILABLE = db.is_postgresql_available()
+    if POSTGRESQL_AVAILABLE:
+        print("✅ PostgreSQL persistence enabled")
+    else:
+        print("⚠️ PostgreSQL not configured - using JSON fallback")
+except Exception as e:
+    print(f"⚠️ PostgreSQL module import failed: {e}")
+    POSTGRESQL_AVAILABLE = False
+    db = None
+
 # ⚠️ Web3 temporarily disabled due to Render deployment issues
 # Will use local cache (wallet_nfts.json) for NFT data
 WEB3_AVAILABLE = False
@@ -350,6 +363,20 @@ def get_death_cost(death_count):
 # ---------------------------------
 
 def load_json(path, fallback):
+    """
+    Load JSON with PostgreSQL support for critical files.
+
+    🔥 SMART WRAPPER:
+    - nfts_database.json → PostgreSQL
+    - active_missions.json → PostgreSQL
+    - players.json → PostgreSQL
+    - stats.json → PostgreSQL
+    - Others (guilds, missions_config) → JSON files
+    """
+    if POSTGRESQL_AVAILABLE and db:
+        return db.load_json_or_db(path, fallback)
+
+    # Fallback to JSON file
     if not os.path.exists(path):
         return fallback
     with open(path, "r", encoding="utf-8") as f:
@@ -359,6 +386,21 @@ def load_json(path, fallback):
             return fallback
 
 def save_json(path, obj):
+    """
+    Save JSON with PostgreSQL support for critical files.
+
+    🔥 SMART WRAPPER:
+    - nfts_database.json → PostgreSQL
+    - active_missions.json → PostgreSQL
+    - players.json → PostgreSQL
+    - stats.json → PostgreSQL
+    - Others (guilds, missions_config) → JSON files
+    """
+    if POSTGRESQL_AVAILABLE and db:
+        db.save_json_or_db(path, obj)
+        return
+
+    # Fallback to JSON file
     with open(path, "w", encoding="utf-8") as f:
         json.dump(obj, f, indent=4)
 
