@@ -4,6 +4,10 @@ Script de inicialización de archivos de datos dinámicos.
 Ejecutar este script cuando se hace un fresh deploy para crear
 los archivos de datos vacíos necesarios para el sistema.
 
+⚠️ NOTA IMPORTANTE:
+- guilds.json y missions_config.json YA ESTÁN en git (no se crean aquí)
+- Este script solo crea archivos dinámicos que NO están en git
+
 Uso:
     python3 init_data_files.py
 """
@@ -31,82 +35,11 @@ DATA_FILES = {
         "total_exp_collected": 0,
         "total_aura_collected": 0,
         "guild_ranking": []
-    },
-    "guilds.json": [
-        {
-            "name": "Circle of Mist",
-            "flavor": "alchemy, mana, forbidden knowledge",
-            "members": 10599,
-            "avg_xp": 0,
-            "avg_aura": 0,
-            "badge": "/static/img/circle_of_mist.JPG",
-            "total_xp": 0,
-            "total_aura": 0,
-            "total_missions_completed": 0,
-            "total_missions_failed": 0
-        },
-        {
-            "name": "Order of Dawn",
-            "flavor": "clerics and oathbound paladins of the Core",
-            "members": 6341,
-            "avg_xp": 0,
-            "avg_aura": 0,
-            "badge": "/static/img/dawnkeepers.JPG",
-            "total_xp": 0,
-            "total_aura": 0,
-            "total_missions_completed": 0,
-            "total_missions_failed": 0
-        },
-        {
-            "name": "Shadow Guild",
-            "flavor": "information, silence, sanctioned crime",
-            "members": 6234,
-            "avg_xp": 0,
-            "avg_aura": 0,
-            "badge": "/static/img/shadow_guild.JPG",
-            "total_xp": 0,
-            "total_aura": 0,
-            "total_missions_completed": 0,
-            "total_missions_failed": 0
-        },
-        {
-            "name": "Forge Legion",
-            "flavor": "strength, steel, sworn oaths",
-            "members": 4538,
-            "avg_xp": 0,
-            "avg_aura": 0,
-            "badge": "/static/img/forge_legion.JPG",
-            "total_xp": 0,
-            "total_aura": 0,
-            "total_missions_completed": 0,
-            "total_missions_failed": 0
-        },
-        {
-            "name": "Void Echoes",
-            "flavor": "necromancy, spectrals, negotiated death-rights",
-            "members": 4302,
-            "avg_xp": 0,
-            "avg_aura": 0,
-            "badge": "/static/img/echoes_of_the_veil.JPG",
-            "total_xp": 0,
-            "total_aura": 0,
-            "total_missions_completed": 0,
-            "total_missions_failed": 0
-        },
-        {
-            "name": "Horizon Watch",
-            "flavor": "scouts, tideborn, edge-of-world patrols",
-            "members": 2986,
-            "avg_xp": 0,
-            "avg_aura": 0,
-            "badge": "/static/img/horizon_watch.JPG",
-            "total_xp": 0,
-            "total_aura": 0,
-            "total_missions_completed": 0,
-            "total_missions_failed": 0
-        }
-    ]
+    }
 }
+
+# ⚠️ NOTA: guilds.json NO está en DATA_FILES porque ya está en git
+# y se deploya automáticamente. No necesita ser creado por este script.
 
 def init_data_files():
     """Crea archivos de datos si no existen."""
