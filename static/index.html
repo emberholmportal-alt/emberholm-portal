@@ -2340,13 +2340,16 @@ async function loadTutorialMissions(){
 /* --------- PROFILE PANEL --------- */
 async function loadPlayerAndRender(){
     if (!connectedWallet) {
-        document.getElementById("wallet-summary").innerHTML = 
+        document.getElementById("wallet-summary").innerHTML =
             `<div class="mono-small-note">Please connect your MetaMask wallet first.</div>`;
         document.getElementById("prime-emissary-img").textContent = "NO DATA";
         document.getElementById("prime-emissary-desc").innerHTML = "No wallet connected.";
         document.getElementById("roster-table-wrap").innerHTML = "";
         return;
     }
+
+    // 🔥 Ensure missions data is loaded before rendering profile
+    await loadMissionsData();
 
     const wallet = connectedWallet;
 
