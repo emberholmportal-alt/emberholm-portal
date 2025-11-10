@@ -2508,6 +2508,154 @@ def api_debug_postgresql():
 
     return jsonify(result)
 
+@app.route("/api/setup/postgresql")
+def api_setup_postgresql():
+    """
+    🔧 SETUP ENDPOINT - Crear tablas de PostgreSQL
+
+    Este endpoint ejecuta el schema SQL para crear todas las tablas.
+    Solo debe ejecutarse UNA VEZ después de configurar PostgreSQL.
+
+    Acceder desde: https://emberholm-portal.onrender.com/api/setup/postgresql
+    """
+    if not POSTGRESQL_AVAILABLE:
+        return jsonify({
+            "success": False,
+            "error": "PostgreSQL no está disponible"
+        })
+
+    # Schema SQL (inline para no depender de archivo externo)
+    SCHEMA_SQL = """
+    -- EMBERHOLM PORTAL - POSTGRESQL SCHEMA
+
+    CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+    CREATE TABLE IF NOT EXISTS nfts (
+        token_id VARCHAR(10) PRIMARY KEY,
+        name VARCHAR(255),
+        guild VARCHAR(100),
+        race_class VARCHAR(100),
+        last_known_owner VARCHAR(42),
+        dynamic_state JSONB NOT NULL DEFAULT '{}'::jsonb,
+        last_update TIMESTAMP DEFAULT NOW(),
+        created_at TIMESTAMP DEFAULT NOW()
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_nfts_owner ON nfts(last_known_owner);
+    CREATE INDEX IF NOT EXISTS idx_nfts_guild ON nfts(guild);
+    CREATE INDEX IF NOT EXISTS idx_nfts_state ON nfts((dynamic_state->>'state'));
+    CREATE INDEX IF NOT EXISTS idx_nfts_xp ON nfts(((dynamic_state->>'xp_total')::int));
+    CREATE INDEX IF NOT EXISTS idx_nfts_aura ON nfts(((dynamic_state->>'aura_level')::int));
+
+    CREATE TABLE IF NOT EXISTS active_missions (
+        mission_key VARCHAR(100) PRIMARY KEY,
+        wallet VARCHAR(42) NOT NULL,
+        hero_id VARCHAR(10) NOT NULL,
+        mission_id VARCHAR(10) NOT NULL,
+        start_time TIMESTAMP NOT NULL,
+        duration_hours INTEGER NOT NULL,
+        created_at TIMESTAMP DEFAULT NOW()
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_active_missions_wallet ON active_missions(wallet);
+    CREATE INDEX IF NOT EXISTS idx_active_missions_hero ON active_missions(hero_id);
+    CREATE INDEX IF NOT EXISTS idx_active_missions_mission ON active_missions(mission_id);
+
+    CREATE TABLE IF NOT EXISTS players (
+        wallet VARCHAR(42) PRIMARY KEY,
+        player_data JSONB NOT NULL DEFAULT '{}'::jsonb,
+        last_update TIMESTAMP DEFAULT NOW(),
+        created_at TIMESTAMP DEFAULT NOW()
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_players_wallet ON players(wallet);
+
+    CREATE TABLE IF NOT EXISTS global_stats (
+        id INTEGER PRIMARY KEY DEFAULT 1,
+        stats_data JSONB NOT NULL DEFAULT '{}'::jsonb,
+        last_update TIMESTAMP DEFAULT NOW(),
+        CONSTRAINT single_row_stats CHECK (id = 1)
+    );
+
+    INSERT INTO global_stats (id, stats_data)
+    VALUES (1, '{
+        "total_characters": 0,
+        "active_guilds": 6,
+        "missions_completed": 0,
+        "missions_failed": 0,
+        "missions_in_progress": 0,
+        "total_exp_collected": 0,
+        "total_aura_collected": 0,
+        "guild_ranking": [],
+        "player_leaderboard": []
+    }'::jsonb)
+    ON CONFLICT (id) DO NOTHING;
+
+    CREATE TABLE IF NOT EXISTS achievements (
+        token_id VARCHAR(10),
+        achievement_id VARCHAR(100),
+        granted_at TIMESTAMP DEFAULT NOW(),
+        PRIMARY KEY (token_id, achievement_id)
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_achievements_token ON achievements(token_id);
+    CREATE INDEX IF NOT EXISTS idx_achievements_id ON achievements(achievement_id);
+
+    CREATE OR REPLACE FUNCTION count_active_missions()
+    RETURNS INTEGER AS $$
+        SELECT COUNT(*)::INTEGER FROM active_missions;
+    $$ LANGUAGE SQL;
+    """
+
+    result = {
+        "timestamp": now_utc_str(),
+        "success": False,
+        "tables_created": [],
+        "indexes_created": 0,
+        "error": None
+    }
+
+    try:
+        conn = db.get_connection()
+        if not conn:
+            result["error"] = "No se pudo obtener conexión a PostgreSQL"
+            return jsonify(result)
+
+        with conn.cursor() as cur:
+            # Ejecutar schema
+            cur.execute(SCHEMA_SQL)
+
+            # Verificar tablas creadas
+            cur.execute("""
+                SELECT table_name
+                FROM information_schema.tables
+                WHERE table_schema = 'public'
+                AND table_type = 'BASE TABLE'
+                ORDER BY table_name
+            """)
+            tables = [row[0] for row in cur.fetchall()]
+            result["tables_created"] = tables
+
+            # Contar índices
+            cur.execute("""
+                SELECT COUNT(*)
+                FROM pg_indexes
+                WHERE schemaname = 'public'
+            """)
+            result["indexes_created"] = cur.fetchone()[0]
+
+        conn.commit()
+        db.release_connection(conn)
+
+        result["success"] = True
+        result["message"] = f"✅ Setup completado: {len(tables)} tablas creadas, {result['indexes_created']} índices"
+
+    except Exception as e:
+        result["error"] = str(e)
+        result["message"] = f"❌ Error durante setup: {str(e)}"
+
+    return jsonify(result)
+
 # ---------------------------------
 
 if __name__ == "__main__":
