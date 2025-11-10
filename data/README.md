@@ -8,6 +8,13 @@ Este directorio contiene archivos de datos para el sistema de misiones de Emberh
   - ✅ Este archivo DEBE estar en git
   - ⚙️ Contiene configuración estática del juego
 
+- **`guilds.json`** - Configuración semi-estática de guilds
+  - ✅ Este archivo DEBE estar en git
+  - 📊 Estructura base y member counts son fijos (35,000 NFTs distribuidos)
+  - 🔄 XP/Aura totales se actualizan dinámicamente via `calculate_guilds_data()`
+  - 🎨 Contiene rutas de badges: `/static/img/*.JPG`
+  - ⚠️ **CRÍTICO**: Si no está en git, la sección STATS/GUILDS aparece vacía
+
 ## Archivos Dinámicos (NO en Git)
 
 Los siguientes archivos son dinámicos y **NO** deben incluirse en git:
@@ -17,7 +24,6 @@ Los siguientes archivos son dinámicos y **NO** deben incluirse en git:
 - **`players.json`** - Cache de sesión de datos de jugadores
 - **`wallet_nfts.json`** - Mapeo de wallets a token IDs de NFTs
 - **`stats.json`** - Estadísticas globales del realm
-- **`guilds.json`** - Estadísticas agregadas por guild
 - **`achievements.json`** - Sistema de logros (futuro)
 
 ### ⚠️ IMPORTANTE
