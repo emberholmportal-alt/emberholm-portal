@@ -856,13 +856,14 @@ def count_active_missions():
 
 def calculate_guilds_data():
     """
-    🔥 Actualiza guilds.json con XP/Aura desde nfts_database.json.
-    PRESERVA los member counts reales (35,000 NFTs) - solo actualiza XP/Aura.
+    🔥 Actualiza guilds.json con datos dinámicos desde nfts_database.
+    - Members: cuenta real de NFTs registrados (empieza en 0, crece orgánicamente)
+    - XP/Aura: suma total desde dynamic_state de todos los NFTs
     """
     db = load_nfts_database()
     guilds_data = load_json(GUILDS_PATH, [])
 
-    # Calcular XP/Aura por gremio desde la DB de NFTs activos
+    # Calcular stats por gremio desde la DB de NFTs registrados
     guild_stats = {}
     for token_id, nft in db.items():
         guild = nft.get("guild")
@@ -879,34 +880,37 @@ def calculate_guilds_data():
 
         if guild not in guild_stats:
             guild_stats[guild] = {
+                "members": 0,        # 🔥 Contador dinámico (empieza en 0)
                 "total_xp": 0,
                 "total_aura": 0
             }
 
+        # 🔥 Incrementar contador por cada NFT registrado en DB
+        guild_stats[guild]["members"] += 1
         guild_stats[guild]["total_xp"] += ds.get("xp_total", 0)
         guild_stats[guild]["total_aura"] += ds.get("aura_level", 0)
 
-    # 🔥 Actualizar guilds.json SOLO con XP/Aura
-    # NO tocar members (ya tienen los counts reales de 35,000 NFTs)
+    # 🔥 Actualizar guilds.json con conteos REALES (no hardcoded)
     for g in guilds_data:
         guild_name = g.get("name", "")
-        members_count = g.get("members", 0)  # 🔥 PRESERVAR count real
 
         if guild_name in guild_stats:
             stats = guild_stats[guild_name]
-            # NO actualizar members - usar el que ya está
+
+            # 🔥 Actualizar con datos reales desde nfts_database
+            g["members"] = stats["members"]              # Dinámico: empieza en 0, crece orgánicamente
             g["total_xp"] = stats["total_xp"]
             g["total_aura"] = stats["total_aura"]
-            g["avg_xp"] = round(stats["total_xp"] / members_count, 2) if members_count > 0 else 0
-            g["avg_aura"] = round(stats["total_aura"] / members_count, 2) if members_count > 0 else 0
+            g["avg_xp"] = round(stats["total_xp"] / stats["members"], 2) if stats["members"] > 0 else 0
+            g["avg_aura"] = round(stats["total_aura"] / stats["members"], 2) if stats["members"] > 0 else 0
         else:
-            # Si no hay datos de XP/Aura, dejar en 0 pero preservar members
-            # g["members"] ya tiene el valor correcto, NO tocarlo
+            # Guild sin NFTs registrados: todo en 0
+            g["members"] = 0                              # 🔥 0 en vez de preservar hardcoded
             g["total_xp"] = 0
             g["total_aura"] = 0
             g["avg_xp"] = 0
             g["avg_aura"] = 0
-    
+
     save_json(GUILDS_PATH, guilds_data)
     return guilds_data
 
@@ -1029,7 +1033,8 @@ def api_stats():
         "total_exp_collected":  stats_obj.get("total_exp_collected", 0),
         "total_aura_collected": stats_obj.get("total_aura_collected", 0),
         "guild_ranking":        guild_rank_list,
-        "player_leaderboard":   leaderboard
+        "player_leaderboard":   leaderboard,
+        "last_updated":         now_utc_str()  # 🔥 Timestamp de actualización
     }
     return jsonify(resp)
 
@@ -1041,7 +1046,11 @@ def api_stats():
 def api_guilds():
     # 🔥 Recalcular datos reales antes de devolver
     guilds_data = calculate_guilds_data()
-    return jsonify(guilds_data)
+
+    return jsonify({
+        "guilds": guilds_data,
+        "last_updated": now_utc_str()  # 🔥 Timestamp de actualización
+    })
 
 # ---------------------------------
 # API: MISSIONS

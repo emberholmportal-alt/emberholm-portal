@@ -788,7 +788,10 @@ body {
     <!-- GUILDS -->
     <section class="screen" data-screen="guilds">
         <div class="section-block">
-            <div class="section-title">REALM STATUS // GLOBAL STATS</div>
+            <div class="section-title" style="display: flex; justify-content: space-between; align-items: center;">
+                <span>REALM STATUS // GLOBAL STATS</span>
+                <span id="stats-last-updated" style="font-size: 0.7em; color: #888; font-weight: normal;">Loading...</span>
+            </div>
 
             <div class="stats-row">
                 <div class="stats-col">
@@ -2188,6 +2191,13 @@ async function fetchStatsAndRender(){
         document.getElementById("stat-total-xp").textContent         = stats.total_exp_collected ?? 0;
         document.getElementById("stat-total-aura").textContent       = stats.total_aura_collected ?? 0;
 
+        // 🔥 Actualizar timestamp
+        if (stats.last_updated) {
+            const timestamp = new Date(stats.last_updated);
+            const formattedTime = timestamp.toISOString().replace('T', ' ').substring(0, 19) + ' UTC';
+            document.getElementById("stats-last-updated").textContent = `Last updated: ${formattedTime}`;
+        }
+
         // 🔥 Guild Ranking - el backend devuelve un ARRAY, no un objeto
         const grArray = stats.guild_ranking || [];
 
@@ -2228,7 +2238,8 @@ async function fetchStatsAndRender(){
 /* --------- GUILDS PANEL --------- */
 async function fetchGuildsAndRender(){
     try {
-        const guilds = await fetchJSON("/api/guilds");
+        const response = await fetchJSON("/api/guilds");
+        const guilds = response.guilds || response; // 🔥 Compatibilidad con formato nuevo y viejo
         let html = "";
         guilds.forEach(g=>{
             html += `
