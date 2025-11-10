@@ -2450,9 +2450,13 @@ async function loadPlayerAndRender(){
             primeImgEl.style.justifyContent="center";
 
             if(prime.image_url){
-                primeImgEl.innerHTML = `<img src="${prime.image_url}"
-                    style="max-width:128px;max-height:128px;image-rendering:pixelated;object-fit:contain;"
-                    alt="${prime.name}"/>`;
+                primeImgEl.innerHTML = `
+                    <div style="display:flex; flex-direction:column; align-items:center; gap:4px;">
+                        <img src="${prime.image_url}"
+                            style="max-width:128px;max-height:128px;image-rendering:pixelated;object-fit:contain;"
+                            alt="${prime.name}"/>
+                        <div style="font-size:0.7em; color:#888;">#${prime.token_id}</div>
+                    </div>`;
             } else {
                 primeImgEl.textContent = prime.token_id || "NO IMG";
             }
@@ -2573,10 +2577,13 @@ async function loadPlayerAndRender(){
             <tr>
                 <td>
                     <div style="display:flex; align-items:center; gap:8px;">
-                        <img src="${h.image_url || '/img/emissary-placeholder.png'}"
-                             alt="${h.name}"
-                             style="width:40px; height:40px; border:1px solid var(--line); object-fit:cover;"
-                             onerror="this.src='/img/emissary-placeholder.png'"/>
+                        <div style="display:flex; flex-direction:column; align-items:center; gap:2px;">
+                            <img src="${h.image_url || '/img/emissary-placeholder.png'}"
+                                 alt="${h.name}"
+                                 style="width:40px; height:40px; border:1px solid var(--line); object-fit:cover;"
+                                 onerror="this.src='/img/emissary-placeholder.png'"/>
+                            <div style="font-size:0.6em; color:#888;">#${h.token_id}</div>
+                        </div>
                         <div>
                             <div>${h.name || h.token_id}</div>
                             <button class="terminal-btn" style="font-size:0.6rem; padding:2px 6px; margin-top:2px;"
