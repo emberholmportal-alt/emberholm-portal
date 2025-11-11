@@ -38,6 +38,14 @@ build/
 .idea/
 .vscode/
 
+# 📦 Node.js / Hardhat
+node_modules/
+cache/
+artifacts/
+coverage/
+typechain/
+typechain-types/
+
 # 🔒 Configuración privada
 .env.local
 .env.production
