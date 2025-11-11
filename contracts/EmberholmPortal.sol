@@ -24,8 +24,8 @@ import "@openzeppelin/contracts/utils/Strings.sol";
  * - Staking: On-chain (CRITICAL - prevents transfers during missions)
  * - Equipment: On-chain (future Items contract integration)
  *
- * Version: 2.0 (Ultra-Optimized - Backend First)
- * Network: Base Sepolia (testnet) → Base (mainnet ready)
+ * Version: 3.0 (Professional - No Treasury)
+ * Network: Base Mainnet
  */
 
 // Interface for future Items contract
@@ -56,7 +56,6 @@ contract EmberholmPortal is ERC721, ERC2981, Ownable {
     string private baseTokenURI = "https://emberholm-portal.onrender.com/api/metadata/";
     bool public mintOpen = true;
 
-    address public treasury;
     address public missionManager; // Backend wallet for game operations
 
     // Items contract (connected later)
@@ -108,10 +107,8 @@ contract EmberholmPortal is ERC721, ERC2981, Ownable {
 
     // ========== CONSTRUCTOR ==========
 
-    constructor(address _treasury) ERC721("Emberholm Portal", "EMBERHOLM") Ownable(msg.sender) {
-        require(_treasury != address(0), "Invalid treasury");
-        treasury = _treasury;
-        _setDefaultRoyalty(_treasury, 500); // 5% royalty
+    constructor() ERC721("Emberholm Portal", "EMBERHOLM") Ownable(msg.sender) {
+        _setDefaultRoyalty(msg.sender, 500); // 5% royalty to owner
         _nextTokenId = 1; // Start from token ID 1
     }
 
@@ -481,19 +478,20 @@ contract EmberholmPortal is ERC721, ERC2981, Ownable {
         baseTokenURI = _newBase;
     }
 
-    function setTreasury(address _newTreasury) external onlyOwner {
-        require(_newTreasury != address(0), "Invalid address");
-        treasury = _newTreasury;
-        _setDefaultRoyalty(_newTreasury, 500);
-    }
-
     function setMissionManager(address _missionManager) external onlyOwner {
         missionManager = _missionManager;
         emit MissionManagerSet(_missionManager);
     }
 
+    /**
+     * @dev Withdraw contract balance to owner (standard implementation)
+     */
     function withdraw() external onlyOwner {
-        payable(treasury).transfer(address(this).balance);
+        uint256 balance = address(this).balance;
+        require(balance > 0, "No funds to withdraw");
+
+        (bool success, ) = payable(msg.sender).call{value: balance}("");
+        require(success, "Transfer failed");
     }
 
     function _baseURI() internal view override returns (string memory) {
