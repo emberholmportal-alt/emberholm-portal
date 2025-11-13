@@ -930,8 +930,84 @@ body {
             </div>
         </div>
 
-        <!-- 1. MISSION SYSTEM // OVERVIEW -->
+        <!-- TUTORIAL INDEX / TABLE OF CONTENTS -->
         <div class="section-block">
+            <div class="section-title">📚 TUTORIAL INDEX // QUICK NAVIGATION</div>
+            <div class="mono-block">
+                <p style="color:#ffaa00;"><b>Jump to any section:</b></p>
+
+                <!-- BASICS -->
+                <p style="color:#44ff44; margin-top:15px; margin-bottom:8px;"><b>⚡ BASICS:</b></p>
+                <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:8px; margin-bottom:15px;">
+                    <button class="terminal-btn" onclick="scrollToSection('tutorial-section-1')" style="text-align:left; padding:8px 12px;">
+                        1. Mission System Overview
+                    </button>
+                    <button class="terminal-btn" onclick="scrollToSection('tutorial-section-2')" style="text-align:left; padding:8px 12px;">
+                        2. Costs & Requirements
+                    </button>
+                    <button class="terminal-btn" onclick="scrollToSection('tutorial-section-3')" style="text-align:left; padding:8px 12px;">
+                        3. Rewards (XP & Aura)
+                    </button>
+                </div>
+
+                <!-- MECHANICS -->
+                <p style="color:#44ff44; margin-top:15px; margin-bottom:8px;"><b>⚙️ MECHANICS:</b></p>
+                <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:8px; margin-bottom:15px;">
+                    <button class="terminal-btn" onclick="scrollToSection('tutorial-section-4')" style="text-align:left; padding:8px 12px;">
+                        4. Success Rate Calculation
+                    </button>
+                    <button class="terminal-btn" onclick="scrollToSection('tutorial-section-5')" style="text-align:left; padding:8px 12px;">
+                        5. Mission Failure & Consequences
+                    </button>
+                    <button class="terminal-btn" onclick="scrollToSection('tutorial-section-6')" style="text-align:left; padding:8px 12px;">
+                        6. Death & Reinvocation System
+                    </button>
+                </div>
+
+                <!-- GAMEPLAY -->
+                <p style="color:#44ff44; margin-top:15px; margin-bottom:8px;"><b>🎮 GAMEPLAY:</b></p>
+                <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:8px; margin-bottom:15px;">
+                    <button class="terminal-btn" onclick="scrollToSection('tutorial-section-7')" style="text-align:left; padding:8px 12px;">
+                        7. Mission Flow (Step-by-Step)
+                    </button>
+                    <button class="terminal-btn" onclick="scrollToSection('tutorial-section-8')" style="text-align:left; padding:8px 12px;">
+                        8. Party Missions (5-Hero Ops)
+                    </button>
+                    <button class="terminal-btn" onclick="scrollToSection('tutorial-section-9')" style="text-align:left; padding:8px 12px;">
+                        9. Available Missions
+                    </button>
+                </div>
+
+                <!-- ADVANCED -->
+                <p style="color:#44ff44; margin-top:15px; margin-bottom:8px;"><b>🔥 ADVANCED:</b></p>
+                <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:8px; margin-bottom:15px;">
+                    <button class="terminal-btn" onclick="scrollToSection('tutorial-section-10')" style="text-align:left; padding:8px 12px;">
+                        10. Strategy Tips & Optimization
+                    </button>
+                    <button class="terminal-btn" onclick="scrollToSection('tutorial-section-11')" style="text-align:left; padding:8px 12px;">
+                        11. Technical Details
+                    </button>
+                </div>
+
+                <!-- REFERENCE -->
+                <p style="color:#44ff44; margin-top:15px; margin-bottom:8px;"><b>📖 REFERENCE:</b></p>
+                <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:8px; margin-bottom:15px;">
+                    <button class="terminal-btn" onclick="scrollToSection('tutorial-section-faq')" style="text-align:left; padding:8px 12px;">
+                        Frequently Asked Questions (FAQ)
+                    </button>
+                    <button class="terminal-btn" onclick="scrollToSection('tutorial-section-examples')" style="text-align:left; padding:8px 12px;">
+                        Calculation Examples
+                    </button>
+                </div>
+
+                <p style="color:#888; font-size:0.9em; margin-top:15px;">
+                    💡 Click any button to jump directly to that section. Use browser back button or scroll up to return to index.
+                </p>
+            </div>
+        </div>
+
+        <!-- 1. MISSION SYSTEM // OVERVIEW -->
+        <div class="section-block" id="tutorial-section-1">
             <div class="section-title">1. MISSION SYSTEM // OVERVIEW</div>
             <div class="mono-block">
                 <p><b>What are Missions?</b></p>
@@ -956,7 +1032,7 @@ body {
         </div>
 
         <!-- 2. MISSION COSTS & REQUIREMENTS -->
-        <div class="section-block">
+        <div class="section-block" id="tutorial-section-2">
             <div class="section-title">2. MISSION COSTS & REQUIREMENTS</div>
             <div class="mono-block">
                 <p><b>Energy Cost by Difficulty:</b></p>
@@ -984,7 +1060,7 @@ body {
         </div>
 
         <!-- 3. MISSION REWARDS // XP & AURA -->
-        <div class="section-block">
+        <div class="section-block" id="tutorial-section-3">
             <div class="section-title">3. MISSION REWARDS // XP & AURA</div>
             <div class="mono-block">
                 <p><b>Base Rewards by Difficulty:</b></p>
@@ -1028,7 +1104,7 @@ body {
         </div>
 
         <!-- 4. SUCCESS RATE CALCULATION -->
-        <div class="section-block">
+        <div class="section-block" id="tutorial-section-4">
             <div class="section-title">4. SUCCESS RATE CALCULATION</div>
             <div class="mono-block">
                 <p><b>Base Success Rates:</b></p>
@@ -1061,7 +1137,7 @@ body {
         </div>
 
         <!-- 5. MISSION FAILURE // CONSEQUENCES -->
-        <div class="section-block">
+        <div class="section-block" id="tutorial-section-5">
             <div class="section-title">5. MISSION FAILURE // CONSEQUENCES</div>
             <div class="mono-block">
                 <p><b>What Happens When You Fail?</b></p>
@@ -1090,7 +1166,7 @@ body {
         </div>
 
         <!-- 6. DEATH & REINVOCATION SYSTEM -->
-        <div class="section-block">
+        <div class="section-block" id="tutorial-section-6">
             <div class="section-title">6. DEATH & REINVOCATION SYSTEM</div>
             <div class="mono-block">
                 <p><b>Death Mechanic:</b></p>
@@ -1136,7 +1212,7 @@ body {
         </div>
 
         <!-- 7. MISSION FLOW // STEP-BY-STEP GUIDE -->
-        <div class="section-block">
+        <div class="section-block" id="tutorial-section-7">
             <div class="section-title">7. MISSION FLOW // STEP-BY-STEP GUIDE</div>
             <div class="mono-block">
                 <p><b>Complete Mission Walkthrough:</b></p>
@@ -1203,7 +1279,7 @@ body {
         </div>
 
         <!-- 8. PARTY MISSIONS // COORDINATED OPERATIONS -->
-        <div class="section-block">
+        <div class="section-block" id="tutorial-section-8">
             <div class="section-title">8. PARTY MISSIONS // COORDINATED OPERATIONS</div>
             <div class="mono-block">
                 <p style="color:#ffaa00;"><b>🔥 PARTY MISSIONS: 5-HERO COORDINATED OPERATIONS</b></p>
@@ -1330,7 +1406,7 @@ body {
         </div>
 
         <!-- 9. AVAILABLE MISSIONS // CURRENT ROTATION -->
-        <div class="section-block">
+        <div class="section-block" id="tutorial-section-9">
             <div class="section-title">9. AVAILABLE MISSIONS // CURRENT ROTATION</div>
             <div class="mono-block">
                 <p><b>Mission Board (refreshes every 72h):</b></p>
@@ -1342,7 +1418,7 @@ body {
         </div>
 
         <!-- 10. STRATEGY TIPS // MAXIMIZE EFFICIENCY -->
-        <div class="section-block">
+        <div class="section-block" id="tutorial-section-10">
             <div class="section-title">10. STRATEGY TIPS // MAXIMIZE EFFICIENCY</div>
             <div class="mono-block">
                 <p style="color:#44ff44;"><b>💡 BEGINNER STRATEGIES:</b></p>
@@ -1410,7 +1486,7 @@ body {
         </div>
 
         <!-- 11. TECHNICAL DETAILS // ADVANCED INFO -->
-        <div class="section-block">
+        <div class="section-block" id="tutorial-section-11">
             <div class="section-title">11. TECHNICAL DETAILS // ADVANCED INFO</div>
             <div class="mono-block">
                 <p><b>Backend Architecture:</b></p>
@@ -1483,7 +1559,7 @@ body {
         </div>
 
         <!-- FAQ SECTION -->
-        <div class="section-block">
+        <div class="section-block" id="tutorial-section-faq">
             <div class="section-title">FREQUENTLY ASKED QUESTIONS (FAQ)</div>
             <div class="mono-block">
                 <p><b>Q: Can I cancel a mission once started?</b></p>
@@ -1542,7 +1618,7 @@ body {
         </div>
 
         <!-- CALCULATION EXAMPLES -->
-        <div class="section-block">
+        <div class="section-block" id="tutorial-section-examples">
             <div class="section-title">CALCULATION EXAMPLES</div>
             <div class="mono-block">
                 <p style="color:#44ff44;"><b>EXAMPLE 1: Basic Mission (No Bonuses)</b></p>
@@ -2599,6 +2675,27 @@ async function loadTutorialMissions(){
         console.error("Error loading tutorial missions:", e);
         document.getElementById("tutorial-missions-list").innerHTML =
             `<div class="mono-small-note">Unable to load mission data.</div>`;
+    }
+}
+
+// Smooth scroll to tutorial section
+function scrollToSection(sectionId) {
+    const section = document.getElementById(sectionId);
+    if (section) {
+        section.scrollIntoView({
+            behavior: 'smooth',
+            block: 'start'
+        });
+
+        // Optional: Add a brief highlight effect to the section
+        section.style.transition = 'background-color 0.5s ease';
+        const originalBg = section.style.backgroundColor;
+        section.style.backgroundColor = 'rgba(68, 255, 68, 0.1)';
+        setTimeout(() => {
+            section.style.backgroundColor = originalBg;
+        }, 1000);
+    } else {
+        console.warn(`Section with ID "${sectionId}" not found`);
     }
 }
 
