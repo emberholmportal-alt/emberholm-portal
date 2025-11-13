@@ -1723,12 +1723,20 @@ def api_mission_start():
     # Apply passive gains
     player_obj, stats_obj = apply_passive_and_regen(player_obj, stats_obj)
 
-    # Find mission
+    # Find mission (check both MISSIONS and EVENTS)
     mission = None
     for m in MISSIONS:
         if m["id"] == mission_id:
             mission = m
             break
+
+    # If not found in missions, check events
+    if mission is None:
+        for e in EVENTS:
+            if e["id"] == mission_id:
+                mission = e
+                break
+
     if mission is None:
         abort(400, "Mission not found")
 
@@ -2113,12 +2121,20 @@ def api_mission_complete():
     if not mission_id:
         abort(400, "No active mission found")
 
-    # Find mission
+    # Find mission (check both MISSIONS and EVENTS)
     mission = None
     for m in MISSIONS:
         if m["id"] == mission_id:
             mission = m
             break
+
+    # If not found in missions, check events
+    if mission is None:
+        for e in EVENTS:
+            if e["id"] == mission_id:
+                mission = e
+                break
+
     if mission is None:
         abort(400, "Mission configuration not found")
 
