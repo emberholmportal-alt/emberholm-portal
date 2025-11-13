@@ -2998,13 +2998,22 @@ async function loadPlayerAndRender(){
 
 /* --------- MISSION MODALS --------- */
 
-// Global mission data cache
+// Global mission data cache (includes both missions and events)
 let cachedMissionsData = null;
 
 async function loadMissionsData() {
     if (!cachedMissionsData) {
-        const response = await fetchJSON("/api/missions");
-        cachedMissionsData = response.missions || response;
+        // Load both regular missions and events
+        const [missionsResponse, eventsResponse] = await Promise.all([
+            fetchJSON("/api/missions"),
+            fetchJSON("/api/events")
+        ]);
+
+        const missions = missionsResponse.missions || missionsResponse || [];
+        const events = eventsResponse.events || eventsResponse || [];
+
+        // Combine missions and events into single array
+        cachedMissionsData = [...missions, ...events];
     }
     return cachedMissionsData;
 }
