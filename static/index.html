@@ -1630,23 +1630,10 @@ body {
     <section class="screen" data-screen="events">
         <div class="section-block">
             <div class="section-title">EVENTS // SPECIAL OPERATIONS</div>
-
-            <div class="mono-block">
-                CURRENT EVENT: FIRST FLAME RALLY [LAUNCH EVENT]<br/><br/>
-
-                Description: Emergency call to all Emissaries. A universal operation
-                that any registered hero can attempt. Risk profile is controlled.
-                Rewards grant baseline XP and Aura more evenly than standard Guild-targeted missions.<br/><br/>
-
-                Purpose: Stabilize morale and let new Emissaries prove presence in the field.
-                This event is independent of the 72h mission board rotation,
-                but participation will still be logged.<br/><br/>
-
-                RULE: Each Emissary can participate once per event.
-            </div>
-
+            <div id="events-list"></div>
             <div class="mono-small-note">
-                NOTE: Special Events may appear without warning and may ignore standard Guild targeting.
+                NOTE: Special Events may appear without warning and may ignore standard Guild targeting.<br/>
+                Each Emissary can participate once per event.
             </div>
         </div>
     </section>
@@ -1781,6 +1768,9 @@ navButtons.forEach(btn => {
                     return;
                 }
                 fetchMissionsAndRender();
+            } else if (target === "events") {
+                // 🔥 EVENTS section - load active events
+                fetchEventsAndRender();
             } else if (target === "profile") {
                 // 🔥 PROFILE requiere wallet conectado - si no está conectado, pedir conexión
                 if (!connectedWallet) {
@@ -2328,6 +2318,83 @@ async function fetchMissionsAndRender(){
         console.error(e);
         document.getElementById("mission-list").innerHTML =
             `<div class="mono-small-note">Mission Board offline.</div>`;
+    }
+}
+
+/* --------- EVENTS PANEL --------- */
+async function fetchEventsAndRender(){
+    try {
+        const response = await fetchJSON("/api/events");
+        const events = response.events || [];
+        const eventSettings = response.event_settings || {};
+
+        if (events.length === 0) {
+            document.getElementById("events-list").innerHTML =
+                `<div class="mono-block">
+                    NO ACTIVE EVENTS<br/><br/>
+                    Check back later. Special events may appear at any time.
+                </div>`;
+            return;
+        }
+
+        let html = "";
+        events.forEach(e => {
+            // Event active status
+            const isActive = e.event_active !== false;
+            const statusColor = isActive ? "#44ff44" : "#888";
+
+            // Difficulty color
+            let diffColor = "#44ff44";
+            if (e.difficulty === "MEDIUM") diffColor = "#ffaa00";
+            if (e.difficulty === "HARD") diffColor = "#ff4444";
+
+            // Time remaining display
+            const timeRemaining = e.time_remaining_hours || 0;
+            const daysLeft = Math.floor(timeRemaining / 24);
+            const hoursLeft = Math.floor(timeRemaining % 24);
+            let timeDisplay = "";
+            if (daysLeft > 0) {
+                timeDisplay = `${daysLeft}d ${hoursLeft}h remaining`;
+            } else {
+                timeDisplay = `${hoursLeft}h remaining`;
+            }
+
+            html += `
+            <div class="mono-block" style="margin-bottom:20px; border:2px solid ${diffColor};">
+                <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                    <div style="flex:1;">
+                        <b style="font-size:18px;">[${e.id}] ${e.name}</b><br/>
+                        <span style="color:${diffColor};">● ${e.difficulty}</span> |
+                        Duration: ${e.duration_hours}h |
+                        Energy: ${e.energy_cost}<br/>
+                        <span style="color:${statusColor};">⏱️ ${timeDisplay}</span><br/><br/>
+
+                        <b>Rewards:</b><br/>
+                        XP: ${e.reward_xp} | Aura: ${e.reward_aura}<br/>
+                        Success Rate: ${e.success_rate}% (base)<br/><br/>
+
+                        <div style="font-size:14px; color:#aaa;">
+                            ${e.description || ""}<br/><br/>
+                            <i>${e.lore || ""}</i>
+                        </div>
+                    </div>
+                    <div style="margin-left:20px;">
+                        ${connectedWallet && isActive
+                            ? `<button class="cmd-link" onclick="openEventSendModal('${e.id}')">[PARTICIPATE]</button>`
+                            : !connectedWallet
+                            ? `<button class="cmd-link" style="opacity:0.5;" onclick="showInfoModal('WALLET REQUIRED', 'Please connect your wallet using the [CONNECT WALLET] button in the PROFILE section.')">[WALLET REQUIRED]</button>`
+                            : `<button class="cmd-link" style="opacity:0.5;">[ENDED]</button>`
+                        }
+                    </div>
+                </div>
+            </div>`;
+        });
+
+        document.getElementById("events-list").innerHTML = html;
+    } catch(e){
+        console.error(e);
+        document.getElementById("events-list").innerHTML =
+            `<div class="mono-small-note">Events system offline.</div>`;
     }
 }
 
@@ -3106,6 +3173,7 @@ window.addEventListener("DOMContentLoaded", () => {
     fetchStatsAndRender();
     fetchGuildsAndRender();
     fetchMissionsAndRender();
+    fetchEventsAndRender();
 });
 
 /* ========== CUSTOM MODAL FUNCTIONS ========== */
@@ -3244,6 +3312,12 @@ async function openMissionSendModal(missionId) {
         return;
     }
 
+    // 🔥 PARTY MISSION DETECTION: If mission requires party_size, redirect to party modal
+    if (mission.party_size && mission.party_size === 5) {
+        await openPartyMissionModal(missionId);
+        return;
+    }
+
     try {
         const player = await fetchJSON(`/api/player/${encodeURIComponent(connectedWallet)}`);
         const readyHeroes = (player.heroes || []).filter(h => {
@@ -3304,6 +3378,264 @@ async function selectHero(heroId, missionId, missionName) {
     await startMission(heroId, missionId, missionName);
 }
 
+// Open Hero Selection Modal (from EVENTS)
+async function openEventSendModal(eventId) {
+    if (!connectedWallet) {
+        showInfoModal("WALLET REQUIRED", "Please connect your wallet first!");
+        return;
+    }
+
+    try {
+        const response = await fetchJSON("/api/events");
+        const events = response.events || [];
+        const event = events.find(e => e.id === eventId);
+
+        if (!event) {
+            showInfoModal("ERROR", "⚠️ Event not found");
+            return;
+        }
+
+        const player = await fetchJSON(`/api/player/${encodeURIComponent(connectedWallet)}`);
+        const readyHeroes = (player.heroes || []).filter(h => {
+            const ds = h.dynamic_state || {};
+            return ds.state === "READY";
+        });
+
+        if (readyHeroes.length === 0) {
+            showInfoModal("NO EMISSARIES", "⚠️ No emissaries available!\n\nAll your emissaries are either on mission or fallen.");
+            return;
+        }
+
+        // Build modal content with hero images
+        let modalHTML = '';
+        readyHeroes.forEach((hero) => {
+            const ds = hero.dynamic_state || {};
+            const energyCost = event.energy_cost || 0;
+            const hasEnoughEnergy = ds.energy_current >= energyCost;
+            const disabledClass = hasEnoughEnergy ? '' : 'disabled';
+            const clickHandler = hasEnoughEnergy ?
+                `onclick="selectHeroForEvent('${hero.token_id}', '${eventId}', '${event.name}')"` :
+                '';
+
+            modalHTML += `
+                <div class="modal-list-item ${disabledClass}" ${clickHandler}>
+                    <div style="display:flex; align-items:center;">
+                        <img src="${hero.image_url || '/img/emissary-placeholder.png'}"
+                             class="modal-hero-img"
+                             onerror="this.src='/img/emissary-placeholder.png'"/>
+                        <div style="flex:1;">
+                            <div class="modal-item-header">${hero.name || hero.token_id}</div>
+                            <div class="modal-item-details">
+                                ${hero.race_class} | Guild: ${hero.guild}<br/>
+                                XP: ${ds.xp_total || 0} | Aura: ${ds.aura_level || 0} |
+                                Energy: ${ds.energy_current || 0}/${ds.energy_max || 100}
+                                ${hasEnoughEnergy ? '' : ' <span style="color:#ff4444;">❌ Not enough energy!</span>'}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+
+        document.getElementById('hero-select-title').textContent =
+            `SELECT EMISSARY FOR EVENT: ${event.name}`;
+        document.getElementById('hero-select-body').innerHTML = modalHTML;
+        showModal('hero-select-modal');
+
+    } catch (e) {
+        console.error(e);
+        showInfoModal("ERROR", "❌ Error loading event: " + e.message);
+    }
+}
+
+// Select Hero for Event and Start
+async function selectHeroForEvent(heroId, eventId, eventName) {
+    hideModal('hero-select-modal');
+    await startMission(heroId, eventId, eventName);
+}
+
+// 🔥 PARTY MISSION MODAL - Select exactly 5 heroes
+let selectedPartyHeroes = [];
+
+async function openPartyMissionModal(missionId) {
+    if (!connectedWallet) {
+        showInfoModal("WALLET REQUIRED", "Please connect your wallet first!");
+        return;
+    }
+
+    const missions = await loadMissionsData();
+    const mission = missions.find(m => m.id === missionId);
+    if (!mission) {
+        showInfoModal("ERROR", "⚠️ Mission not found");
+        return;
+    }
+
+    try {
+        const player = await fetchJSON(`/api/player/${encodeURIComponent(connectedWallet)}`);
+        const readyHeroes = (player.heroes || []).filter(h => {
+            const ds = h.dynamic_state || {};
+            return ds.state === "READY";
+        });
+
+        if (readyHeroes.length < 5) {
+            showInfoModal("NOT ENOUGH EMISSARIES",
+                `⚠️ This is a PARTY MISSION requiring exactly 5 emissaries!\n\n` +
+                `You currently have ${readyHeroes.length} emissaries in READY state.\n\n` +
+                `You need ${5 - readyHeroes.length} more READY emissaries to participate.`);
+            return;
+        }
+
+        // Reset selection
+        selectedPartyHeroes = [];
+
+        // Build modal content with checkboxes
+        let modalHTML = `
+            <div style="margin-bottom:16px; padding:12px; background:#1a1a1a; border:2px solid #ffaa00;">
+                <b style="color:#ffaa00;">⚠️ PARTY MISSION</b><br/>
+                Select exactly 5 emissaries for this mission.<br/>
+                Each hero will have independent success/failure rolls.<br/>
+                Successful heroes receive +20% bonus rewards!
+            </div>
+            <div id="party-selection-count" style="margin-bottom:12px; font-size:16px; color:#ffaa00;">
+                Selected: <span id="party-count">0</span> / 5
+            </div>
+        `;
+
+        readyHeroes.forEach((hero) => {
+            const ds = hero.dynamic_state || {};
+            const energyCost = mission.energy_cost || 0;
+            const hasEnoughEnergy = ds.energy_current >= energyCost;
+
+            modalHTML += `
+                <div class="modal-list-item" style="opacity: ${hasEnoughEnergy ? '1' : '0.5'};">
+                    <div style="display:flex; align-items:center; gap:12px;">
+                        <input type="checkbox"
+                               id="party-hero-${hero.token_id}"
+                               value="${hero.token_id}"
+                               ${hasEnoughEnergy ? '' : 'disabled'}
+                               onchange="updatePartySelection()"
+                               style="width:20px; height:20px; cursor:pointer;"/>
+                        <img src="${hero.image_url || '/img/emissary-placeholder.png'}"
+                             class="modal-hero-img"
+                             onerror="this.src='/img/emissary-placeholder.png'"/>
+                        <div style="flex:1;">
+                            <div class="modal-item-header">${hero.name || hero.token_id}</div>
+                            <div class="modal-item-details">
+                                ${hero.race_class} | Guild: ${hero.guild}<br/>
+                                XP: ${ds.xp_total || 0} | Aura: ${ds.aura_level || 0} |
+                                Energy: ${ds.energy_current || 0}/${ds.energy_max || 100}
+                                ${hasEnoughEnergy ? '' : ' <span style="color:#ff4444;">❌ Not enough energy!</span>'}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+
+        modalHTML += `
+            <div style="margin-top:16px; text-align:center;">
+                <button id="party-start-btn"
+                        class="terminal-btn"
+                        onclick="startPartyMission('${missionId}', '${mission.name}')"
+                        disabled
+                        style="opacity:0.5; cursor:not-allowed;">
+                    [START PARTY MISSION]
+                </button>
+            </div>
+        `;
+
+        document.getElementById('party-select-title').textContent =
+            `SELECT 5 EMISSARIES FOR: ${mission.name}`;
+        document.getElementById('party-select-body').innerHTML = modalHTML;
+        showModal('party-select-modal');
+
+    } catch (e) {
+        console.error(e);
+        showInfoModal("ERROR", "❌ Error loading emissaries: " + e.message);
+    }
+}
+
+// Update party selection count and enable/disable button
+function updatePartySelection() {
+    const checkboxes = document.querySelectorAll('[id^="party-hero-"]:checked');
+    const count = checkboxes.length;
+
+    document.getElementById('party-count').textContent = count;
+
+    const startBtn = document.getElementById('party-start-btn');
+    if (count === 5) {
+        startBtn.disabled = false;
+        startBtn.style.opacity = '1';
+        startBtn.style.cursor = 'pointer';
+        document.getElementById('party-selection-count').style.color = '#44ff44';
+    } else {
+        startBtn.disabled = true;
+        startBtn.style.opacity = '0.5';
+        startBtn.style.cursor = 'not-allowed';
+        document.getElementById('party-selection-count').style.color = count > 5 ? '#ff4444' : '#ffaa00';
+    }
+
+    // Store selected hero IDs
+    selectedPartyHeroes = Array.from(checkboxes).map(cb => parseInt(cb.value));
+}
+
+// Start party mission with 5 heroes
+async function startPartyMission(missionId, missionName) {
+    if (selectedPartyHeroes.length !== 5) {
+        showInfoModal("ERROR", "⚠️ You must select exactly 5 emissaries!");
+        return;
+    }
+
+    hideModal('party-select-modal');
+
+    showConfirmModal(
+        "START PARTY MISSION",
+        `Send party of 5 emissaries on: ${missionName}?\n\n` +
+        `All 5 heroes will be locked during the mission.\n` +
+        `Each hero has independent success/failure probability.\n` +
+        `Successful heroes get +20% bonus rewards!\n\n` +
+        `Energy will be consumed for all heroes.`,
+        async () => {
+            try {
+                const res = await fetch("/api/mission/start", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        wallet: connectedWallet,
+                        hero_ids: selectedPartyHeroes,
+                        mission_id: missionId
+                    })
+                });
+
+                if (!res.ok) {
+                    const errText = await res.text();
+                    showInfoModal("PARTY MISSION START FAILED", errText);
+                    return;
+                }
+
+                const result = await res.json();
+
+                showInfoModal("PARTY MISSION STARTED",
+                    "🔥 " + result.mission_name + "\n\n" +
+                    "Difficulty: " + result.difficulty + "\n" +
+                    "Duration: " + result.duration_hours + "h\n\n" +
+                    "Party Size: 5 emissaries\n" +
+                    "Energy Spent per Hero: " + result.energy_cost + "\n\n" +
+                    "All 5 emissaries are now locked and cannot start another mission until this one completes.\n\n" +
+                    "Each hero will have independent success/failure rolls.\n" +
+                    "Successful heroes receive +20% bonus rewards!"
+                );
+
+                loadPlayerAndRender();
+                fetchStatsAndRender();
+            } catch(e) {
+                console.error(e);
+                showInfoModal("CONNECTION ERROR", "PARTY MISSION START ERROR: " + (e.message || "Connection issue."));
+            }
+        }
+    );
+}
+
 </script>
 
 <!-- CUSTOM MODALS -->
@@ -3327,6 +3659,19 @@ async function selectHero(heroId, missionId, missionName) {
         </div>
         <div class="terminal-modal-body" id="hero-select-body">
             <!-- Hero list will be inserted here -->
+        </div>
+    </div>
+</div>
+
+<!-- PARTY SELECT MODAL -->
+<div id="party-select-modal" class="modal-overlay" onclick="if(event.target===this) hideModal('party-select-modal')">
+    <div class="terminal-modal">
+        <div class="terminal-modal-header">
+            <span id="party-select-title">SELECT 5 EMISSARIES</span>
+            <button class="terminal-modal-close" onclick="hideModal('party-select-modal')">×</button>
+        </div>
+        <div class="terminal-modal-body" id="party-select-body">
+            <!-- Party hero selection will be inserted here -->
         </div>
     </div>
 </div>
