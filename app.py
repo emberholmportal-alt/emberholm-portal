@@ -1604,12 +1604,15 @@ def handle_party_mission_start(wallet, hero_ids, mission_id):
         if energy_current < cost_energy:
             abort(400, f"Hero {hero_id} doesn't have enough energy. Required: {cost_energy}, Available: {energy_current}")
 
-        # Check mission cooldown (72h)
-        mission_hist = ds.get("mission_history", {})
-        last_run_ts = mission_hist.get(mission_id)
-        if last_run_ts and hours_since(last_run_ts) < ROTATION_HOURS:
-            hours_left = ROTATION_HOURS - hours_since(last_run_ts)
-            abort(400, f"Hero {hero_id} already completed this mission. Cooldown: {hours_left:.1f}h remaining. Try a different mission or wait.")
+        # TEMPORARY: Skip cooldown validation for party missions
+        # Reason: Mission 003/006/009 can be done solo OR party mode
+        # Heroes who did it solo should be able to do party version
+        # Future: These missions will be party-only, this won't be needed
+        # mission_hist = ds.get("mission_history", {})
+        # last_run_ts = mission_hist.get(mission_id)
+        # if last_run_ts and hours_since(last_run_ts) < ROTATION_HOURS:
+        #     hours_left = ROTATION_HOURS - hours_since(last_run_ts)
+        #     abort(400, f"Hero {hero_id} already completed this mission. Cooldown: {hours_left:.1f}h remaining.")
 
         heroes.append(hero)
 
@@ -1770,7 +1773,7 @@ def api_mission_start():
     last_run_ts = mission_hist.get(mission_id)
     if last_run_ts and hours_since(last_run_ts) < ROTATION_HOURS:
         hours_left = ROTATION_HOURS - hours_since(last_run_ts)
-        abort(400, f"This emissary already completed this mission. Cooldown: {hours_left:.1f}h remaining. Try a different mission or wait.")
+        abort(400, f"This Emissary has already served on this operation. The Order requires {hours_left:.1f}h recovery before redeployment to this mission. Select another assignment.")
 
     # Deduct energy
     ds["energy_current"] = max(0, energy_current - cost_energy)
