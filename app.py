@@ -1534,19 +1534,176 @@ def api_spend_xp():
 # API: NEW MISSION SYSTEM
 # ---------------------------------
 
+def handle_party_mission_start(wallet, hero_ids, mission_id):
+    """
+    Handle party mission start (5 heroes required)
+    """
+    # Validate party size
+    if len(hero_ids) != 5:
+        abort(400, f"Party missions require exactly 5 heroes. Received: {len(hero_ids)}")
+
+    # Find mission
+    mission = None
+    for m in MISSIONS:
+        if m["id"] == mission_id:
+            mission = m
+            break
+
+    if mission is None:
+        # Check if it's an event
+        for e in EVENTS:
+            if e["id"] == mission_id:
+                mission = e
+                break
+
+    if mission is None:
+        abort(400, "Mission not found")
+
+    # Verify it's a party mission
+    if mission.get("party_size") != 5:
+        abort(400, "This mission is not a party mission")
+
+    # Load player data
+    stats_obj = load_json(STATS_PATH, {
+        "total_characters": 0,
+        "active_guilds": 6,
+        "missions_completed": 0,
+        "missions_failed": 0,
+        "total_exp_collected": 0,
+        "total_aura_collected": 0,
+        "guild_ranking": {},
+        "player_leaderboard": []
+    })
+    player_obj, players_all = ensure_player(wallet)
+    player_obj, stats_obj = apply_passive_and_regen(player_obj, stats_obj)
+
+    # Validate all 5 heroes
+    heroes = []
+    for hero_id in hero_ids:
+        hero = None
+        for h in player_obj.get("heroes", []):
+            if h.get("token_id") == hero_id:
+                hero = h
+                break
+
+        if hero is None:
+            abort(404, f"Hero {hero_id} not found")
+
+        ds = hero["dynamic_state"]
+
+        # Validations
+        if ds.get("state") == "FALLEN":
+            abort(400, f"Hero {hero_id} is fallen. Perform reinvocation ritual first.")
+
+        if ds.get("state") == "ON_MISSION":
+            abort(400, f"Hero {hero_id} is already on a mission")
+
+        # Check energy
+        cost_energy = mission["energy_cost"]
+        energy_current = ds.get("energy_current", 0)
+        if energy_current < cost_energy:
+            abort(400, f"Hero {hero_id} doesn't have enough energy. Required: {cost_energy}, Available: {energy_current}")
+
+        # Check mission cooldown (72h)
+        mission_hist = ds.get("mission_history", {})
+        last_run_ts = mission_hist.get(mission_id)
+        if last_run_ts and hours_since(last_run_ts) < ROTATION_HOURS:
+            hours_left = ROTATION_HOURS - hours_since(last_run_ts)
+            abort(400, f"Hero {hero_id} already completed this mission. Cooldown: {hours_left:.1f}h remaining. Try a different mission or wait.")
+
+        heroes.append(hero)
+
+    # All validations passed - start mission for all 5 heroes
+    now_utc = now_utc_str()
+
+    for hero in heroes:
+        ds = hero["dynamic_state"]
+
+        # Deduct energy
+        ds["energy_current"] = max(0, ds["energy_current"] - mission["energy_cost"])
+
+        # Set hero state to ON_MISSION
+        ds["state"] = "ON_MISSION"
+        ds["mission_start_time"] = now_utc
+        ds["current_mission_id"] = mission_id
+        ds["last_update"] = now_utc
+
+        # Update NFT dynamic state in database
+        update_nft_dynamic_state(hero["token_id"], ds)
+
+    # Track active mission (party format)
+    active_missions = load_json(ACTIVE_MISSIONS_PATH, {})
+    mission_key = f"{wallet}_{mission_id}_party"
+    active_missions[mission_key] = {
+        "wallet": wallet,
+        "hero_ids": hero_ids,
+        "mission_id": mission_id,
+        "start_time": now_utc,
+        "duration_hours": mission["duration_hours"],
+        "is_party": True
+    }
+
+    save_json(ACTIVE_MISSIONS_PATH, active_missions)
+
+    # Save player data
+    players_all[wallet] = player_obj
+    save_json(PLAYERS_PATH, players_all)
+    save_json(STATS_PATH, stats_obj)
+
+    print(f"\n🎮 PARTY MISSION STARTED:")
+    print(f"  Wallet: {wallet}")
+    print(f"  Heroes: {hero_ids}")
+    print(f"  Mission: {mission_id} - {mission['name']}")
+    print(f"  Duration: {mission['duration_hours']}h")
+
+    # Calculate average success rate
+    total_success_rate = 0
+    for hero in heroes:
+        success_rate, bonus = calculate_mission_success_rate(hero, mission)
+        total_success_rate += success_rate
+
+    avg_success_rate = total_success_rate / 5
+
+    return jsonify({
+        "success": True,
+        "party": True,
+        "hero_ids": hero_ids,
+        "mission_id": mission_id,
+        "mission_name": mission["name"],
+        "energy_spent_per_hero": mission["energy_cost"],
+        "total_energy_spent": mission["energy_cost"] * 5,
+        "duration_hours": mission["duration_hours"],
+        "estimated_success_rate": round(avg_success_rate, 2),
+        "party_bonus": "+20% rewards for successful heroes",
+        "message": f"Party of 5 heroes embarked on {mission['name']}! Duration: {mission['duration_hours']}h"
+    })
+
 @app.route("/api/mission/start", methods=["POST"])
 def api_mission_start():
     """
-    Start a mission (with staking integration).
-    POST: { "wallet": "0x...", "hero_id": "00001", "mission_id": "001" }
+    Start a mission (solo or party).
+    POST solo: { "wallet": "0x...", "hero_id": "00001", "mission_id": "001" }
+    POST party: { "wallet": "0x...", "hero_ids": ["00001", "00002", ...], "mission_id": "003" }
     """
     data = request.get_json(force=True)
     wallet = data.get("wallet")
     hero_id = data.get("hero_id")
+    hero_ids = data.get("hero_ids")
     mission_id = data.get("mission_id")
 
-    if not wallet or not hero_id or not mission_id:
-        abort(400, "Missing wallet, hero_id, or mission_id")
+    if not wallet or not mission_id:
+        abort(400, "Missing wallet or mission_id")
+
+    # Detect party mission
+    is_party = hero_ids is not None and len(hero_ids) > 0
+
+    if is_party:
+        # PARTY MISSION (5 HEROES)
+        return handle_party_mission_start(wallet.lower(), hero_ids, mission_id)
+
+    # SOLO MISSION (EXISTING CODE CONTINUES)
+    if not hero_id:
+        abort(400, "Missing hero_id for solo mission")
 
     # 🔥 NORMALIZE wallet address to lowercase
     wallet = wallet.lower()
@@ -1605,7 +1762,7 @@ def api_mission_start():
     last_run_ts = mission_hist.get(mission_id)
     if last_run_ts and hours_since(last_run_ts) < ROTATION_HOURS:
         hours_left = ROTATION_HOURS - hours_since(last_run_ts)
-        abort(400, f"Mission on cooldown. {hours_left:.1f} hours remaining")
+        abort(400, f"This emissary already completed this mission. Cooldown: {hours_left:.1f}h remaining. Try a different mission or wait.")
 
     # Deduct energy
     ds["energy_current"] = max(0, energy_current - cost_energy)
@@ -1690,21 +1847,237 @@ def api_mission_start():
         "message": f"{hero.get('name', 'Emissary')} has embarked on {mission['name']}! Duration: {mission['duration_hours']}h"
     })
 
+def handle_party_mission_complete(wallet, party_mission):
+    """
+    Complete party mission (process all 5 heroes individually)
+    """
+    hero_ids = party_mission["hero_ids"]
+    mission_id = party_mission["mission_id"]
+    mission_key = party_mission.get("mission_key", f"{wallet}_{mission_id}_party")
+
+    # Find mission
+    mission = None
+    for m in MISSIONS:
+        if m["id"] == mission_id:
+            mission = m
+            break
+
+    if mission is None:
+        # Check events
+        for e in EVENTS:
+            if e["id"] == mission_id:
+                mission = e
+                break
+
+    if mission is None:
+        abort(400, "Mission not found")
+
+    # Load player data
+    stats_obj = load_json(STATS_PATH, {
+        "total_characters": 0,
+        "active_guilds": 6,
+        "missions_completed": 0,
+        "missions_failed": 0,
+        "total_exp_collected": 0,
+        "total_aura_collected": 0,
+        "guild_ranking": {},
+        "player_leaderboard": []
+    })
+    player_obj, players_all = ensure_player(wallet)
+    player_obj, stats_obj = apply_passive_and_regen(player_obj, stats_obj)
+
+    # Check if mission is ready to complete
+    start_time_str = party_mission.get("start_time")
+    if not start_time_str:
+        abort(400, "Mission start time not found")
+
+    hours_elapsed = hours_since(start_time_str)
+    duration_required = mission["duration_hours"]
+
+    if hours_elapsed < duration_required:
+        hours_remaining = duration_required - hours_elapsed
+        abort(400, f"Mission not ready. {hours_remaining:.1f} hours remaining")
+
+    # Process each hero individually
+    results = []
+    total_xp = 0
+    total_aura = 0
+    party_bonus_multiplier = mission.get("party_bonus_multiplier", 1.2)
+    guild_name = None
+
+    for hero_id in hero_ids:
+        # Find hero
+        hero = None
+        for h in player_obj.get("heroes", []):
+            if h.get("token_id") == hero_id:
+                hero = h
+                break
+
+        if hero is None:
+            continue
+
+        ds = hero["dynamic_state"]
+
+        # Check if hero is on this mission
+        if ds.get("state") != "ON_MISSION" or ds.get("current_mission_id") != mission_id:
+            continue
+
+        # Get guild name (for stats update)
+        if guild_name is None:
+            guild_name = hero.get("guild")
+
+        # Roll outcome for THIS SPECIFIC HERO
+        outcome, xp_gain, aura_gain, xp_loss = roll_mission_outcome(hero, mission)
+
+        # Apply party bonus if success
+        if outcome == "SUCCESS":
+            xp_gain = int(xp_gain * party_bonus_multiplier)
+            aura_gain = int(aura_gain * party_bonus_multiplier)
+
+            ds["xp_total"] = ds.get("xp_total", 0) + xp_gain
+            ds["aura_level"] = ds.get("aura_level", 0) + aura_gain
+            ds["state"] = "READY"
+            ds["total_missions_completed"] = ds.get("total_missions_completed", 0) + 1
+
+            # Update mission history
+            if "mission_history" not in ds:
+                ds["mission_history"] = {}
+            ds["mission_history"][mission_id] = now_utc_str()
+
+            # Update global stats
+            stats_obj["missions_completed"] = stats_obj.get("missions_completed", 0) + 1
+            stats_obj["total_exp_collected"] = stats_obj.get("total_exp_collected", 0) + xp_gain
+            stats_obj["total_aura_collected"] = stats_obj.get("total_aura_collected", 0) + aura_gain
+
+            # Update guild stats
+            if guild_name:
+                update_guild_stats(guild_name, xp_gain, aura_gain, stats_obj)
+
+            total_xp += xp_gain
+            total_aura += aura_gain
+
+            # Check and grant achievements
+            total_missions_completed = ds.get("total_missions_completed", 0)
+            achievements_granted = check_and_grant_mission_achievements(hero_id, total_missions_completed)
+
+        elif outcome == "FAILURE":
+            ds["xp_total"] = max(0, ds.get("xp_total", 0) - xp_loss)
+            ds["state"] = "READY"
+            ds["total_missions_failed"] = ds.get("total_missions_failed", 0) + 1
+
+            # Update mission history (even on failure, still cooldown)
+            if "mission_history" not in ds:
+                ds["mission_history"] = {}
+            ds["mission_history"][mission_id] = now_utc_str()
+
+            stats_obj["missions_failed"] = stats_obj.get("missions_failed", 0) + 1
+
+        elif outcome == "DEATH":
+            ds["xp_total"] = max(0, ds.get("xp_total", 0) - xp_loss)
+            ds["state"] = "FALLEN"
+            ds["death_count"] = ds.get("death_count", 0) + 1
+            ds["total_missions_failed"] = ds.get("total_missions_failed", 0) + 1
+
+            # Update mission history (even on death, still cooldown)
+            if "mission_history" not in ds:
+                ds["mission_history"] = {}
+            ds["mission_history"][mission_id] = now_utc_str()
+
+            stats_obj["missions_failed"] = stats_obj.get("missions_failed", 0) + 1
+
+        # Clear mission state
+        ds["mission_start_time"] = None
+        ds["current_mission_id"] = None
+        ds["last_update"] = now_utc_str()
+
+        # Update NFT dynamic state in database
+        update_nft_dynamic_state(hero_id, ds)
+
+        results.append({
+            "hero_id": hero_id,
+            "hero_name": hero.get("name"),
+            "outcome": outcome,
+            "xp_gain": xp_gain if outcome == "SUCCESS" else 0,
+            "aura_gain": aura_gain if outcome == "SUCCESS" else 0,
+            "xp_loss": xp_loss if outcome != "SUCCESS" else 0,
+            "new_xp_total": ds.get("xp_total", 0),
+            "new_aura_total": ds.get("aura_level", 0),
+            "new_state": ds.get("state")
+        })
+
+    # Remove from active missions
+    active_missions = load_json(ACTIVE_MISSIONS_PATH, {})
+    if mission_key in active_missions:
+        del active_missions[mission_key]
+        save_json(ACTIVE_MISSIONS_PATH, active_missions)
+
+    # Save player data
+    players_all[wallet] = player_obj
+    save_json(PLAYERS_PATH, players_all)
+    save_json(STATS_PATH, stats_obj)
+
+    # Calculate summary
+    successes = len([r for r in results if r["outcome"] == "SUCCESS"])
+    failures = len([r for r in results if r["outcome"] == "FAILURE"])
+    deaths = len([r for r in results if r["outcome"] == "DEATH"])
+
+    print(f"\n🎮 PARTY MISSION COMPLETED:")
+    print(f"  Mission: {mission['name']}")
+    print(f"  Successes: {successes}, Failures: {failures}, Deaths: {deaths}")
+    print(f"  Total XP: {total_xp}, Total Aura: {total_aura}")
+
+    return jsonify({
+        "success": True,
+        "party": True,
+        "mission_name": mission["name"],
+        "results": results,
+        "summary": {
+            "successes": successes,
+            "failures": failures,
+            "deaths": deaths,
+            "total_xp": total_xp,
+            "total_aura": total_aura,
+            "party_bonus": f"+{int((party_bonus_multiplier - 1) * 100)}%"
+        }
+    })
+
 @app.route("/api/mission/complete", methods=["POST"])
 def api_mission_complete():
     """
-    Complete a mission (with probability-based outcome).
-    POST: { "wallet": "0x...", "hero_id": "00001" }
+    Complete a mission (solo or party).
+    POST solo: { "wallet": "0x...", "hero_id": "00001" }
+    POST party: Mission is detected automatically from active_missions
     """
     data = request.get_json(force=True)
     wallet = data.get("wallet")
     hero_id = data.get("hero_id")
 
-    if not wallet or not hero_id:
-        abort(400, "Missing wallet or hero_id")
+    if not wallet:
+        abort(400, "Missing wallet")
 
     # 🔥 NORMALIZE wallet address to lowercase
     wallet = wallet.lower()
+
+    # Check if this is a party mission
+    active_missions = load_json(ACTIVE_MISSIONS_PATH, {})
+
+    # Look for party mission for this wallet
+    party_mission = None
+    for key, mission_data in active_missions.items():
+        if mission_data.get("is_party") and mission_data.get("wallet") == wallet:
+            # Check if the provided hero_id is part of this party
+            if hero_id and hero_id in mission_data.get("hero_ids", []):
+                party_mission = mission_data.copy()
+                party_mission["mission_key"] = key
+                break
+
+    if party_mission:
+        # PARTY MISSION COMPLETION
+        return handle_party_mission_complete(wallet, party_mission)
+
+    # SOLO MISSION COMPLETION (EXISTING CODE CONTINUES)
+    if not hero_id:
+        abort(400, "Missing hero_id for solo mission")
 
     stats_obj = load_json(STATS_PATH, {
         "total_characters": 0,
