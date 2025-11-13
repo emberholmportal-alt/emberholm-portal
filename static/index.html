@@ -2279,11 +2279,17 @@ async function fetchMissionsAndRender(){
             if (m.difficulty === "MEDIUM") diffColor = "#ffaa00";
             if (m.difficulty === "HARD") diffColor = "#ff4444";
 
+            // Party mission label
+            let partyLabel = "";
+            if (m.party_size && m.party_size === 5) {
+                partyLabel = ` <span style="color:#ffaa00; font-weight:bold;">[PARTY MISSION]</span>`;
+            }
+
             html += `
             <div class="mono-block" style="margin-bottom:20px; border:2px solid ${diffColor};">
                 <div style="display:flex; justify-content:space-between; align-items:flex-start;">
                     <div style="flex:1;">
-                        <b style="font-size:18px;">[${m.id}] ${m.name}</b><br/>
+                        <b style="font-size:18px;">[${m.id}] ${m.name}${partyLabel}</b><br/>
                         <span style="color:${diffColor};">● ${m.difficulty}</span> |
                         Duration: ${m.duration_hours}h |
                         Energy: ${m.energy_cost}<br/>
@@ -2416,9 +2422,10 @@ async function loadTutorialMissions(){
             <p style="color:#44ff44; font-size:16px;"><b>🟢 EASY MISSIONS (3h duration, 10 Energy)</b></p>`;
 
         easyMissions.forEach(m => {
+            const partyTag = (m.party_size && m.party_size === 5) ? ' <span style="color:#ffaa00;">[PARTY]</span>' : '';
             html += `
             <div style="background-color:#111; padding:10px; margin:10px 0; border-left:3px solid #44ff44;">
-                <b>[${m.id}] ${m.name}</b><br/>
+                <b>[${m.id}] ${m.name}${partyTag}</b><br/>
                 <small>Success: ${m.success_rate}% | XP: ${m.reward_xp} | Aura: ${m.reward_aura} | Death: 0%</small><br/>
                 <small>Favored: ${m.favored_guild} / ${m.favored_class} / ${m.favored_race}</small><br/>
                 <small style="color:#888;">${m.description}</small>
@@ -2431,9 +2438,10 @@ async function loadTutorialMissions(){
             <p style="color:#ffaa00; font-size:16px;"><b>🟡 MEDIUM MISSIONS (6h duration, 18 Energy)</b></p>`;
 
         mediumMissions.forEach(m => {
+            const partyTag = (m.party_size && m.party_size === 5) ? ' <span style="color:#ffaa00;">[PARTY]</span>' : '';
             html += `
             <div style="background-color:#111; padding:10px; margin:10px 0; border-left:3px solid #ffaa00;">
-                <b>[${m.id}] ${m.name}</b><br/>
+                <b>[${m.id}] ${m.name}${partyTag}</b><br/>
                 <small>Success: ${m.success_rate}% | XP: ${m.reward_xp} | Aura: ${m.reward_aura} | Death: ${m.death_chance}%</small><br/>
                 <small>Favored: ${m.favored_guild} / ${m.favored_class} / ${m.favored_race}</small><br/>
                 <small style="color:#888;">${m.description}</small>
@@ -2446,9 +2454,10 @@ async function loadTutorialMissions(){
             <p style="color:#ff4444; font-size:16px;"><b>🔴 HARD MISSIONS (12h duration, 25 Energy)</b></p>`;
 
         hardMissions.forEach(m => {
+            const partyTag = (m.party_size && m.party_size === 5) ? ' <span style="color:#ffaa00;">[PARTY]</span>' : '';
             html += `
             <div style="background-color:#111; padding:10px; margin:10px 0; border-left:3px solid #ff4444;">
-                <b>[${m.id}] ${m.name}</b><br/>
+                <b>[${m.id}] ${m.name}${partyTag}</b><br/>
                 <small>Success: ${m.success_rate}% | XP: ${m.reward_xp} | Aura: ${m.reward_aura} | Death: ${m.death_chance}%</small><br/>
                 <small>Favored: ${m.favored_guild} / ${m.favored_class} / ${m.favored_race}</small><br/>
                 <small style="color:#888;">${m.description}</small>
