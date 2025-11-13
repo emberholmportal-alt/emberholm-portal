@@ -998,6 +998,35 @@ app = Flask(
     static_url_path=""  # sirve /img/... /music/... directo
 )
 
+# ---------------------------------
+# Error Handlers - Convert all HTTP errors to JSON
+# ---------------------------------
+# This ensures error messages are shown in portal modals, not as raw HTML
+@app.errorhandler(400)
+def bad_request_error(e):
+    """Handle 400 Bad Request errors"""
+    return jsonify({"error": str(e.description)}), 400
+
+@app.errorhandler(404)
+def not_found_error(e):
+    """Handle 404 Not Found errors"""
+    return jsonify({"error": str(e.description)}), 404
+
+@app.errorhandler(500)
+def internal_server_error(e):
+    """Handle 500 Internal Server errors"""
+    return jsonify({"error": str(e.description)}), 500
+
+# Generic handler for all HTTP exceptions
+@app.errorhandler(Exception)
+def handle_exception(e):
+    """Handle all other exceptions"""
+    # Pass through HTTP errors
+    if hasattr(e, 'code'):
+        return jsonify({"error": str(e.description) if hasattr(e, 'description') else str(e)}), e.code
+    # Handle non-HTTP exceptions
+    return jsonify({"error": str(e)}), 500
+
 # Initialize missions configuration
 MISSIONS_CONFIG = load_missions_config()
 MISSIONS = MISSIONS_CONFIG.get("missions", [])

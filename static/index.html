@@ -2964,8 +2964,23 @@ async function loadPlayerAndRender(){
                             });
 
                             if(!res.ok){
-                                const errText = await res.text();
-                                showInfoModal("MISSION COMPLETE FAILED", errText);
+                                // Parse error response as JSON (backend returns {"error": "message"})
+                                let errorMessage = "Unknown error occurred";
+                                try {
+                                    const errorData = await res.json();
+                                    errorMessage = errorData.error || errorData.message || JSON.stringify(errorData);
+                                } catch (parseError) {
+                                    // Fallback: try to get text if JSON parsing fails
+                                    try {
+                                        const errText = await res.text();
+                                        // Strip HTML tags if present
+                                        errorMessage = errText.replace(/<[^>]*>/g, '').trim();
+                                        if (!errorMessage) errorMessage = "Request failed";
+                                    } catch {
+                                        errorMessage = `Request failed with status ${res.status}`;
+                                    }
+                                }
+                                showInfoModal("⚠️ MISSION COMPLETION BLOCKED", errorMessage);
                                 return;
                             }
 
@@ -3060,15 +3075,29 @@ async function loadPlayerAndRender(){
                     });
 
                     if(!res.ok){
-                        const errText = await res.text();
-                        alert("RECOVERY FAILED:\n" + errText);
+                        // Parse error response as JSON (backend returns {"error": "message"})
+                        let errorMessage = "Unknown error occurred";
+                        try {
+                            const errorData = await res.json();
+                            errorMessage = errorData.error || errorData.message || JSON.stringify(errorData);
+                        } catch (parseError) {
+                            // Fallback: try to get text if JSON parsing fails
+                            try {
+                                const errText = await res.text();
+                                // Strip HTML tags if present
+                                errorMessage = errText.replace(/<[^>]*>/g, '').trim();
+                                if (!errorMessage) errorMessage = "Request failed";
+                            } catch {
+                                errorMessage = `Request failed with status ${res.status}`;
+                            }
+                        }
+                        showInfoModal("⚠️ RECOVERY BLOCKED", errorMessage);
                         return;
                     }
 
                     const dataAfter = await res.json();
 
-                    alert(
-                        "RECOVERY COMPLETE\n\n" +
+                    showInfoModal("RECOVERY COMPLETE",
                         "Hero: #" + dataAfter.hero_id + "\n" +
                         "Energy Now: " + dataAfter.energy_current + "\n" +
                         "XP Remaining: " + dataAfter.xp_total
@@ -3139,8 +3168,23 @@ async function startMission(heroId, missionId, missionName) {
                 });
 
                 if (!res.ok) {
-                    const errText = await res.text();
-                    showInfoModal("MISSION START FAILED", errText);
+                    // Parse error response as JSON (backend returns {"error": "message"})
+                    let errorMessage = "Unknown error occurred";
+                    try {
+                        const errorData = await res.json();
+                        errorMessage = errorData.error || errorData.message || JSON.stringify(errorData);
+                    } catch (parseError) {
+                        // Fallback: try to get text if JSON parsing fails
+                        try {
+                            const errText = await res.text();
+                            // Strip HTML tags if present
+                            errorMessage = errText.replace(/<[^>]*>/g, '').trim();
+                            if (!errorMessage) errorMessage = "Request failed";
+                        } catch {
+                            errorMessage = `Request failed with status ${res.status}`;
+                        }
+                    }
+                    showInfoModal("⚠️ MISSION START BLOCKED", errorMessage);
                     return;
                 }
 
@@ -3284,8 +3328,23 @@ async function openReinvokeModal(fallenHeroId) {
                 });
 
                 if (!res.ok) {
-                    const errText = await res.text();
-                    showInfoModal("REINVOCATION FAILED", errText);
+                    // Parse error response as JSON (backend returns {"error": "message"})
+                    let errorMessage = "Unknown error occurred";
+                    try {
+                        const errorData = await res.json();
+                        errorMessage = errorData.error || errorData.message || JSON.stringify(errorData);
+                    } catch (parseError) {
+                        // Fallback: try to get text if JSON parsing fails
+                        try {
+                            const errText = await res.text();
+                            // Strip HTML tags if present
+                            errorMessage = errText.replace(/<[^>]*>/g, '').trim();
+                            if (!errorMessage) errorMessage = "Request failed";
+                        } catch {
+                            errorMessage = `Request failed with status ${res.status}`;
+                        }
+                    }
+                    showInfoModal("⚠️ REINVOCATION BLOCKED", errorMessage);
                     return;
                 }
 
@@ -3881,8 +3940,23 @@ async function startPartyMission(missionId, missionName) {
                 });
 
                 if (!res.ok) {
-                    const errText = await res.text();
-                    showInfoModal("PARTY MISSION START FAILED", errText);
+                    // Parse error response as JSON (backend returns {"error": "message"})
+                    let errorMessage = "Unknown error occurred";
+                    try {
+                        const errorData = await res.json();
+                        errorMessage = errorData.error || errorData.message || JSON.stringify(errorData);
+                    } catch (parseError) {
+                        // Fallback: try to get text if JSON parsing fails
+                        try {
+                            const errText = await res.text();
+                            // Strip HTML tags if present
+                            errorMessage = errText.replace(/<[^>]*>/g, '').trim();
+                            if (!errorMessage) errorMessage = "Request failed";
+                        } catch {
+                            errorMessage = `Request failed with status ${res.status}`;
+                        }
+                    }
+                    showInfoModal("⚠️ PARTY MISSION BLOCKED", errorMessage);
                     return;
                 }
 
