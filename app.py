@@ -80,7 +80,7 @@ def load_missions_config():
 # Load events configuration from JSON
 def load_events_config():
     """Load events configuration from events_config.json"""
-    events_path = os.path.join(DATA_PATH, "events_config.json")
+    events_path = os.path.join(DATA_DIR, "events_config.json")
     return load_json(events_path, {
         "events": [],
         "event_settings": {}
