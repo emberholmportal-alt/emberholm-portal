@@ -22,7 +22,7 @@
     },
     {
       "id": "EVENT_002",
-      "name": "Core Stabilization Emergency",
+      "name": "Core Stabilization Emergency [EVENT_001]",
       "difficulty": "EASY",
       "duration_hours": 4,
       "energy_cost": 12,
