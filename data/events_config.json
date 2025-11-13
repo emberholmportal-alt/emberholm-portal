@@ -1,0 +1,29 @@
+{
+  "events": [
+    {
+      "id": "EVENT_001",
+      "name": "Festival of the Eternal Flame",
+      "difficulty": "EASY",
+      "duration_hours": 6,
+      "energy_cost": 15,
+      "reward_xp": 150,
+      "reward_aura": 15,
+      "success_rate": 95,
+      "xp_loss_on_fail": 20,
+      "death_chance": 0,
+      "available_from": "2025-01-20T00:00:00Z",
+      "available_until": "2025-01-27T23:59:59Z",
+      "event_active": true,
+      "favored_guild": null,
+      "favored_class": null,
+      "favored_race": null,
+      "description": "The Eternal Flame burns brightest during this sacred week. All emissaries are called to participate in the festival and receive the blessing of fire.",
+      "lore": "Once a year, the Eternal Flame at the heart of Emberholm burns with extraordinary intensity. During this time, even the simplest tasks yield tremendous rewards as the fire shares its ancient power with all who serve."
+    }
+  ],
+  "event_settings": {
+    "max_concurrent_events": 2,
+    "cooldown_hours": 72,
+    "bonus_multiplier": 2.5
+  }
+}

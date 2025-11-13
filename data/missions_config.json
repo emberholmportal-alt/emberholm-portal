@@ -48,8 +48,10 @@
       "favored_guild": "Order of Dawn",
       "favored_class": "Paladin",
       "favored_race": "Elf",
-      "description": "Patrol the eastern borders as the sun rises. Defend settlements from nocturnal threats.",
-      "lore": "The Order of Dawn rises with the sun, ever vigilant against the shadows that retreat at first light. Simple patrol duty, yet essential to protect the realm."
+      "party_size": 5,
+      "party_bonus_multiplier": 1.2,
+      "description": "Patrol the eastern borders as the sun rises. Defend settlements from nocturnal threats. [PARTY MISSION - 5 HEROES REQUIRED]",
+      "lore": "The Order of Dawn rises with the sun, ever vigilant against the shadows that retreat at first light. Simple patrol duty, yet essential to protect the realm. A coordinated party of five heroes can cover more ground and earn greater rewards."
     },
     {
       "id": "004",
@@ -99,8 +101,10 @@
       "favored_guild": "Void Echoes",
       "favored_class": "Necromancer",
       "favored_race": "Undead",
-      "description": "Reality tears open. Seal the breach before void entities pour through into our realm.",
-      "lore": "The Veil separates our world from the Void. When it tears, horrors beyond comprehension threaten to cross over. Only the Void Echoes understand these rifts well enough to seal them."
+      "party_size": 5,
+      "party_bonus_multiplier": 1.2,
+      "description": "Reality tears open. Seal the breach before void entities pour through into our realm. [PARTY MISSION - 5 HEROES REQUIRED]",
+      "lore": "The Veil separates our world from the Void. When it tears, horrors beyond comprehension threaten to cross over. Only the Void Echoes understand these rifts well enough to seal them. This breach is massive - a full party of five heroes is required to contain it."
     },
     {
       "id": "007",
@@ -150,8 +154,10 @@
       "favored_guild": "Circle of Mist",
       "favored_class": "Wizard",
       "favored_race": "Human",
-      "description": "Harness the power of a total eclipse. The ritual is dangerous, but the rewards transcendent.",
-      "lore": "When sun and moon align, the veil between worlds grows thin. The Circle of Mist performs forbidden rituals during these moments, tapping into cosmic power that could destroy the unprepared."
+      "party_size": 5,
+      "party_bonus_multiplier": 1.2,
+      "description": "Harness the power of a total eclipse. The ritual is dangerous, but the rewards transcendent. [PARTY MISSION - 5 HEROES REQUIRED]",
+      "lore": "When sun and moon align, the veil between worlds grows thin. The Circle of Mist performs forbidden rituals during these moments, tapping into cosmic power that could destroy the unprepared. The ritual requires five channelers working in perfect synchronicity."
     }
   ],
   "death_costs": {

@@ -77,11 +77,25 @@ def load_missions_config():
         "bonuses": {}
     })
 
+# Load events configuration from JSON
+def load_events_config():
+    """Load events configuration from events_config.json"""
+    events_path = os.path.join(DATA_PATH, "events_config.json")
+    return load_json(events_path, {
+        "events": [],
+        "event_settings": {}
+    })
+
 # Missions configuration (loaded at startup)
 MISSIONS_CONFIG = {}
 MISSIONS = []
 DEATH_COSTS = {}
 BONUSES = {}
+
+# Events configuration (loaded at startup)
+EVENTS_CONFIG = {}
+EVENTS = []
+EVENT_SETTINGS = {}
 
 # ---------------------------------
 # Achievements System
@@ -990,6 +1004,11 @@ MISSIONS = MISSIONS_CONFIG.get("missions", [])
 DEATH_COSTS = MISSIONS_CONFIG.get("death_costs", {})
 BONUSES = MISSIONS_CONFIG.get("bonuses", {})
 
+# Initialize events configuration
+EVENTS_CONFIG = load_events_config()
+EVENTS = EVENTS_CONFIG.get("events", [])
+EVENT_SETTINGS = EVENTS_CONFIG.get("event_settings", {})
+
 # ---------------------------------
 # Rutas estáticas base
 # ---------------------------------
@@ -1060,6 +1079,44 @@ def api_guilds():
 def api_missions():
     """Return all available missions"""
     return jsonify({"missions": MISSIONS})
+
+@app.route("/api/events")
+def api_events():
+    """Return all active events (filtered by availability dates)"""
+    from datetime import datetime
+
+    active_events = []
+    current_time = datetime.utcnow()
+
+    for event in EVENTS:
+        available_from_str = event.get("available_from")
+        available_until_str = event.get("available_until")
+        event_active = event.get("event_active", True)
+
+        # Check if event is active
+        if not event_active:
+            continue
+
+        # Parse dates
+        try:
+            available_from = datetime.fromisoformat(available_from_str.replace("Z", ""))
+            available_until = datetime.fromisoformat(available_until_str.replace("Z", ""))
+
+            # Check if current time is within event window
+            if available_from <= current_time <= available_until:
+                # Calculate time remaining
+                time_remaining_seconds = (available_until - current_time).total_seconds()
+                event_copy = event.copy()
+                event_copy["time_remaining_hours"] = round(time_remaining_seconds / 3600, 1)
+                active_events.append(event_copy)
+        except (ValueError, AttributeError) as e:
+            print(f"⚠️ Error parsing event dates for {event.get('name')}: {e}")
+            continue
+
+    return jsonify({
+        "events": active_events,
+        "event_settings": EVENT_SETTINGS
+    })
 
 # ---------------------------------
 # Helpers para NFTs y metadata
