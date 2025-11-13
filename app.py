@@ -1,8 +1,22 @@
 import json
 import os
 import time
+import random
 from datetime import datetime, timedelta
-from flask import Flask, jsonify, send_from_directory, request, abort, render_template, render_template
+from flask import Flask, jsonify, send_from_directory, request, abort, render_template
+
+# 🔥 POSTGRESQL INTEGRATION - Persistence module
+try:
+    import database as db
+    POSTGRESQL_AVAILABLE = db.is_postgresql_available()
+    if POSTGRESQL_AVAILABLE:
+        print("✅ PostgreSQL persistence enabled")
+    else:
+        print("⚠️ PostgreSQL not configured - using JSON fallback")
+except Exception as e:
+    print(f"⚠️ PostgreSQL module import failed: {e}")
+    POSTGRESQL_AVAILABLE = False
+    db = None
 
 # ⚠️ Web3 temporarily disabled due to Render deployment issues
 # Will use local cache (wallet_nfts.json) for NFT data
@@ -19,6 +33,10 @@ PLAYERS_PATH = os.path.join(DATA_DIR, "players.json")
 STATS_PATH   = os.path.join(DATA_DIR, "stats.json")
 GUILDS_PATH  = os.path.join(DATA_DIR, "guilds.json")
 WALLET_NFTS_PATH = os.path.join(DATA_DIR, "wallet_nfts.json")
+ACHIEVEMENTS_PATH = os.path.join(DATA_DIR, "achievements.json")
+MISSIONS_CONFIG_PATH = os.path.join(DATA_DIR, "missions_config.json")
+ACTIVE_MISSIONS_PATH = os.path.join(DATA_DIR, "active_missions.json")
+NFTS_DATABASE_PATH = os.path.join(DATA_DIR, "nfts_database.json")  # 🔥 Base de datos centralizada
 
 # Carpeta donde guardaste los metadatas base (00001.json, 00002.json, etc.)
 METADATA_DIR = os.path.join(DATA_DIR, "metadata")
@@ -50,42 +68,329 @@ XP_COST_PER_ENERGY = 5
 # En cuántas horas se resetea el cooldown de misión
 ROTATION_HOURS = 72
 
-# Misiones disponibles en la rotación actual
-MISSIONS = [
-    {
-        "id": "001",
-        "name": "The Lost Forge",
-        "difficulty": "EASY",
-        "energy_cost": 10,
-        "reward_xp": 25,
-        "reward_aura": 2,
-        "favored": "Forge Legion / Orc Warrior"
+# Load missions configuration from JSON
+def load_missions_config():
+    """Load missions configuration from missions_config.json"""
+    return load_json(MISSIONS_CONFIG_PATH, {
+        "missions": [],
+        "death_costs": {},
+        "bonuses": {}
+    })
+
+# Load events configuration from JSON
+def load_events_config():
+    """Load events configuration from events_config.json"""
+    events_path = os.path.join(DATA_DIR, "events_config.json")
+    return load_json(events_path, {
+        "events": [],
+        "event_settings": {}
+    })
+
+# Missions configuration (loaded at startup)
+MISSIONS_CONFIG = {}
+MISSIONS = []
+DEATH_COSTS = {}
+BONUSES = {}
+
+# Events configuration (loaded at startup)
+EVENTS_CONFIG = {}
+EVENTS = []
+EVENT_SETTINGS = {}
+
+# ---------------------------------
+# Achievements System
+# ---------------------------------
+
+AVAILABLE_ACHIEVEMENTS = {
+    "first_mission": {
+        "name": "First Mission",
+        "description": "Complete your first mission",
+        "icon": "🎯"
     },
-    {
-        "id": "002",
-        "name": "Circle Interference Node",
-        "difficulty": "MEDIUM",
-        "energy_cost": 18,
-        "reward_xp": 60,
-        "reward_aura": 5,
-        "favored": "Circle of Mist / Human Wizard"
+    "10_missions": {
+        "name": "Veteran Explorer",
+        "description": "Complete 10 missions",
+        "icon": "⚔️"
     },
-    {
-        "id": "003",
-        "name": "Veil Breach Containment",
-        "difficulty": "HARD",
-        "energy_cost": 25,
-        "reward_xp": 120,
-        "reward_aura": 11,
-        "favored": "Echoes of the Veil / Necromancer"
+    "50_missions": {
+        "name": "Seasoned Warrior",
+        "description": "Complete 50 missions",
+        "icon": "🏆"
+    },
+    "100_missions": {
+        "name": "Legendary Hero",
+        "description": "Complete 100 missions",
+        "icon": "👑"
+    },
+    "reach_level_10": {
+        "name": "Level 10 Achieved",
+        "description": "Reach level 10",
+        "icon": "⭐"
+    },
+    "reach_level_50": {
+        "name": "Level 50 Achieved",
+        "description": "Reach level 50",
+        "icon": "💫"
+    },
+    "guild_master": {
+        "name": "Guild Master",
+        "description": "Become a guild leader",
+        "icon": "🏅"
+    },
+    "dragon_slayer": {
+        "name": "Dragon Slayer",
+        "description": "Defeat a legendary dragon",
+        "icon": "🐉"
+    },
+    "void_walker": {
+        "name": "Void Walker",
+        "description": "Complete all Void Echoes missions",
+        "icon": "🌌"
+    },
+    "forge_master": {
+        "name": "Forge Master",
+        "description": "Complete all Forge Legion missions",
+        "icon": "⚒️"
     }
-]
+}
+
+def get_token_achievements(token_id):
+    """Get all achievements for a token"""
+    achievements_db = load_json(ACHIEVEMENTS_PATH, {})
+    token_id_str = str(token_id).zfill(5)
+    return achievements_db.get(token_id_str, [])
+
+def grant_achievement(token_id, achievement_id):
+    """Grant an achievement to a token"""
+    if achievement_id not in AVAILABLE_ACHIEVEMENTS:
+        return False, "Invalid achievement ID"
+
+    achievements_db = load_json(ACHIEVEMENTS_PATH, {})
+    token_id_str = str(token_id).zfill(5)
+
+    if token_id_str not in achievements_db:
+        achievements_db[token_id_str] = []
+
+    if achievement_id not in achievements_db[token_id_str]:
+        achievements_db[token_id_str].append(achievement_id)
+        save_json(ACHIEVEMENTS_PATH, achievements_db)
+        return True, "Achievement granted"
+
+    return False, "Achievement already exists"
+
+def check_and_grant_mission_achievements(token_id, total_missions):
+    """Auto-grant achievements based on mission count"""
+    achievements = []
+
+    if total_missions == 1:
+        success, msg = grant_achievement(token_id, "first_mission")
+        if success:
+            achievements.append("first_mission")
+
+    if total_missions == 10:
+        success, msg = grant_achievement(token_id, "10_missions")
+        if success:
+            achievements.append("10_missions")
+
+    if total_missions == 50:
+        success, msg = grant_achievement(token_id, "50_missions")
+        if success:
+            achievements.append("50_missions")
+
+    if total_missions == 100:
+        success, msg = grant_achievement(token_id, "100_missions")
+        if success:
+            achievements.append("100_missions")
+
+    return achievements
+
+# ---------------------------------
+# Mission System - Probability & Outcome Calculation
+# ---------------------------------
+
+def calculate_mission_success_rate(hero, mission):
+    """
+    Calculate total success rate for a mission based on hero attributes.
+    Returns: success_rate (0-98)
+    """
+    base_rate = mission["success_rate"]
+    bonus = 0
+
+    # Extract hero data
+    hero_guild = hero.get("dynamic_state", {}).get("current_guild", hero.get("guild", "Unknown"))
+    hero_level = calculate_level_from_xp(hero.get("dynamic_state", {}).get("xp_total", 0))
+    hero_aura = hero.get("dynamic_state", {}).get("aura_level", 0)
+
+    # Extract race and class from metadata
+    race_class = hero.get("race_class", "")
+    hero_race = race_class.split()[0] if race_class else "Unknown"
+    hero_class = race_class.split()[1] if len(race_class.split()) > 1 else "Unknown"
+
+    # Guild bonus
+    if hero_guild == mission.get("favored_guild"):
+        bonus += BONUSES.get("guild_match", 12)
+
+    # Class bonus
+    if hero_class == mission.get("favored_class"):
+        bonus += BONUSES.get("class_match", 8)
+
+    # Race bonus
+    if hero_race == mission.get("favored_race"):
+        bonus += BONUSES.get("race_match", 5)
+
+    # Level bonus (1% per 10 levels)
+    level_bonus = (hero_level // 10) * BONUSES.get("level_per_10", 1)
+    bonus += level_bonus
+
+    # Aura bonus (1% per 100 Aura)
+    aura_bonus = (hero_aura // 100) * BONUSES.get("aura_per_100", 1)
+    bonus += aura_bonus
+
+    # Cap at 98% (never 100%)
+    total_success_rate = min(98, base_rate + bonus)
+
+    return total_success_rate, bonus
+
+def calculate_level_from_xp(xp):
+    """Simple level calculation: 1 level per 100 XP"""
+    return max(1, xp // 100)
+
+def calculate_death_protection(hero_level, hero_aura):
+    """
+    Calculate death protection percentage.
+    Level 50+ and Aura 500+ provides significant protection.
+    Returns: protection percentage (0-50)
+    """
+    protection = 0
+
+    # Level protection (max 30%)
+    if hero_level >= 50:
+        protection += 30
+    elif hero_level >= 30:
+        protection += 15
+    elif hero_level >= 10:
+        protection += 5
+
+    # Aura protection (max 20%)
+    if hero_aura >= 500:
+        protection += 20
+    elif hero_aura >= 250:
+        protection += 10
+    elif hero_aura >= 100:
+        protection += 5
+
+    return min(50, protection)
+
+def roll_mission_outcome(hero, mission):
+    """
+    Roll for mission outcome.
+    Returns: ("SUCCESS", details) | ("FAILURE", details) | ("DEATH", details)
+    """
+    # Calculate success rate
+    success_rate, bonus = calculate_mission_success_rate(hero, mission)
+
+    # Roll for success
+    roll = random.randint(1, 100)
+
+    if roll <= success_rate:
+        # Mission succeeded
+        reward_multiplier = 1.0
+
+        # Check perfect alignment (all 3 match: guild, class, race)
+        hero_guild = hero.get("dynamic_state", {}).get("current_guild", hero.get("guild", "Unknown"))
+        race_class = hero.get("race_class", "")
+        hero_race = race_class.split()[0] if race_class else "Unknown"
+        hero_class = race_class.split()[1] if len(race_class.split()) > 1 else "Unknown"
+
+        perfect_alignment = (
+            hero_guild == mission.get("favored_guild") and
+            hero_class == mission.get("favored_class") and
+            hero_race == mission.get("favored_race")
+        )
+
+        if perfect_alignment:
+            reward_multiplier = BONUSES.get("perfect_alignment_multiplier", 1.5)
+
+        xp_reward = int(mission["reward_xp"] * reward_multiplier)
+        aura_reward = int(mission["reward_aura"] * reward_multiplier)
+
+        return ("SUCCESS", {
+            "xp_gain": xp_reward,
+            "aura_gain": aura_reward,
+            "perfect_alignment": perfect_alignment,
+            "success_rate": success_rate,
+            "roll": roll
+        })
+    else:
+        # Mission failed - check for death
+        death_chance = mission.get("death_chance", 0)
+
+        if death_chance > 0:
+            # Calculate death protection
+            hero_level = calculate_level_from_xp(hero.get("dynamic_state", {}).get("xp_total", 0))
+            hero_aura = hero.get("dynamic_state", {}).get("aura_level", 0)
+            protection = calculate_death_protection(hero_level, hero_aura)
+
+            # Reduce death chance by protection
+            effective_death_chance = death_chance * (1 - protection / 100)
+
+            # Roll for death
+            death_roll = random.uniform(0, 100)
+
+            if death_roll <= effective_death_chance:
+                # Hero died
+                return ("DEATH", {
+                    "death_roll": death_roll,
+                    "death_chance": effective_death_chance,
+                    "protection": protection,
+                    "success_rate": success_rate,
+                    "roll": roll
+                })
+
+        # Failed but survived
+        xp_loss = mission.get("xp_loss_on_fail", 0)
+
+        return ("FAILURE", {
+            "xp_loss": xp_loss,
+            "success_rate": success_rate,
+            "roll": roll
+        })
+
+def get_death_cost(death_count):
+    """
+    Get reinvocation cost based on death count.
+    Returns: (xp_cost, aura_cost)
+    """
+    if death_count == 0:
+        cost = DEATH_COSTS.get("first_death", {"xp_cost": 500, "aura_cost": 100})
+    elif death_count == 1:
+        cost = DEATH_COSTS.get("second_death", {"xp_cost": 1500, "aura_cost": 300})
+    elif death_count == 2:
+        cost = DEATH_COSTS.get("third_death", {"xp_cost": 5000, "aura_cost": 1000})
+    else:
+        cost = DEATH_COSTS.get("fourth_plus", {"xp_cost": 10000, "aura_cost": 2500})
+
+    return cost["xp_cost"], cost["aura_cost"]
 
 # ---------------------------------
 # Helpers de lectura/escritura JSON
 # ---------------------------------
 
 def load_json(path, fallback):
+    """
+    Load JSON with PostgreSQL support for critical files.
+
+    🔥 SMART WRAPPER:
+    - nfts_database.json → PostgreSQL
+    - active_missions.json → PostgreSQL
+    - players.json → PostgreSQL
+    - stats.json → PostgreSQL
+    - Others (guilds, missions_config) → JSON files
+    """
+    if POSTGRESQL_AVAILABLE and db:
+        return db.load_json_or_db(path, fallback)
+
+    # Fallback to JSON file
     if not os.path.exists(path):
         return fallback
     with open(path, "r", encoding="utf-8") as f:
@@ -95,8 +400,247 @@ def load_json(path, fallback):
             return fallback
 
 def save_json(path, obj):
+    """
+    Save JSON with PostgreSQL support for critical files.
+
+    🔥 SMART WRAPPER:
+    - nfts_database.json → PostgreSQL
+    - active_missions.json → PostgreSQL
+    - players.json → PostgreSQL
+    - stats.json → PostgreSQL
+    - Others (guilds, missions_config) → JSON files
+    """
+    if POSTGRESQL_AVAILABLE and db:
+        db.save_json_or_db(path, obj)
+        return
+
+    # Fallback to JSON file
     with open(path, "w", encoding="utf-8") as f:
         json.dump(obj, f, indent=4)
+
+# ---------------------------------
+# NFTs Database - Fuente de Verdad Centralizada
+# ---------------------------------
+
+def load_nfts_database():
+    """
+    Carga la base de datos centralizada de NFTs.
+    Esta es la FUENTE DE VERDAD para todos los atributos dinámicos.
+    """
+    db = load_json(NFTS_DATABASE_PATH, {})
+    # Filtrar comentarios de metadata
+    return {k: v for k, v in db.items() if not k.startswith("_")}
+
+def save_nfts_database(db):
+    """Guarda la base de datos de NFTs."""
+    # Preservar comentarios
+    full_db = load_json(NFTS_DATABASE_PATH, {})
+    comments = {k: v for k, v in full_db.items() if k.startswith("_")}
+    full_db = {**comments, **db}
+    save_json(NFTS_DATABASE_PATH, full_db)
+
+def get_nft_from_database(token_id):
+    """
+    Obtiene un NFT de la base de datos.
+    Returns: NFT object o None si no existe
+    """
+    token_id_padded = str(token_id).zfill(5)
+    db = load_nfts_database()
+    return db.get(token_id_padded)
+
+def upsert_nft_to_database(token_id, nft_data, owner_wallet=None):
+    """
+    Inserta o actualiza un NFT en la base de datos.
+
+    Args:
+        token_id: ID del token
+        nft_data: Datos del NFT (debe incluir dynamic_state)
+        owner_wallet: Wallet del dueño (opcional, para tracking)
+
+    Returns:
+        El NFT actualizado
+    """
+    token_id_padded = str(token_id).zfill(5)
+    db = load_nfts_database()
+
+    now = now_utc_str()
+
+    if token_id_padded in db:
+        # Actualizar NFT existente
+        existing = db[token_id_padded]
+        existing.update(nft_data)
+        existing["last_synced"] = now
+        if owner_wallet:
+            existing["last_known_owner"] = owner_wallet.lower()
+        db[token_id_padded] = existing
+    else:
+        # Nuevo NFT
+        nft_data["token_id"] = token_id_padded
+        nft_data["first_seen"] = now
+        nft_data["last_synced"] = now
+        if owner_wallet:
+            nft_data["last_known_owner"] = owner_wallet.lower()
+        else:
+            nft_data["last_known_owner"] = None
+        db[token_id_padded] = nft_data
+
+    save_nfts_database(db)
+    return db[token_id_padded]
+
+def sync_nft_to_database(token_id, owner_wallet=None):
+    """
+    Sincroniza un NFT desde metadata a la base de datos.
+    Si ya existe, preserva dynamic_state.
+    Si es nuevo, crea con dynamic_state inicial.
+
+    Args:
+        token_id: ID del token
+        owner_wallet: Wallet del dueño (opcional)
+
+    Returns:
+        El NFT sincronizado
+    """
+    token_id_padded = str(token_id).zfill(5)
+    existing = get_nft_from_database(token_id_padded)
+
+    if existing:
+        # Ya existe: solo actualizar owner y last_synced
+        db = load_nfts_database()
+        db[token_id_padded]["last_synced"] = now_utc_str()
+        if owner_wallet:
+            db[token_id_padded]["last_known_owner"] = owner_wallet.lower()
+        save_nfts_database(db)
+        return db[token_id_padded]
+    else:
+        # Nuevo: crear desde metadata
+        hero = create_hero_from_metadata(token_id)
+        return upsert_nft_to_database(token_id_padded, hero, owner_wallet)
+
+def update_nft_dynamic_state(token_id, dynamic_state_updates):
+    """
+    Actualiza solo el dynamic_state de un NFT en la base de datos.
+
+    Args:
+        token_id: ID del token
+        dynamic_state_updates: Dict con campos a actualizar en dynamic_state
+
+    Returns:
+        El NFT actualizado o None si no existe
+    """
+    token_id_padded = str(token_id).zfill(5)
+    nft = get_nft_from_database(token_id_padded)
+
+    if not nft:
+        print(f"⚠️ update_nft_dynamic_state: NFT {token_id_padded} not found in database")
+        return None
+
+    # Actualizar dynamic_state
+    if "dynamic_state" not in nft:
+        nft["dynamic_state"] = {}
+
+    nft["dynamic_state"].update(dynamic_state_updates)
+    nft["dynamic_state"]["last_update"] = now_utc_str()
+
+    # Guardar
+    return upsert_nft_to_database(token_id_padded, nft)
+
+def populate_database_on_startup(max_nfts=100):
+    """
+    🔥 SISTEMA AUTOMÁTICO: Poblado inicial de la base de datos al iniciar el servidor.
+
+    Escanea la carpeta de metadata y sincroniza NFTs encontrados a nfts_database.json.
+    Solo crea NFTs nuevos, preserva los existentes.
+    Esto asegura que STATS y GUILDS muestren datos reales desde el inicio.
+
+    Args:
+        max_nfts: Número máximo de NFTs a sincronizar (default: 100)
+                  Use None para sincronizar todos los archivos encontrados.
+
+    NO requiere intervención manual - se ejecuta automáticamente al iniciar el servidor.
+    """
+    print("\n" + "="*70)
+    print("🔥 STARTUP: Auto-populating NFTs database from metadata files...")
+    print("="*70)
+
+    if not os.path.exists(METADATA_DIR):
+        print(f"⚠️ Metadata directory not found: {METADATA_DIR}")
+        return
+
+    # Escanear archivos de metadata (solo primeros max_nfts)
+    metadata_files = []
+    try:
+        for filename in sorted(os.listdir(METADATA_DIR)):
+            if filename.endswith('.json') and filename[0:5].isdigit():
+                token_id = filename[0:5]
+                metadata_files.append(token_id)
+                # Limitar a max_nfts para evitar sincronizar 35000 archivos
+                if max_nfts and len(metadata_files) >= max_nfts:
+                    break
+    except Exception as e:
+        print(f"❌ Error scanning metadata directory: {e}")
+        return
+
+    if not metadata_files:
+        print("⚠️ No metadata files found")
+        return
+
+    total_available = len([f for f in os.listdir(METADATA_DIR) if f.endswith('.json')])
+    print(f"📁 Found {total_available} metadata files total")
+    print(f"📊 Syncing first {len(metadata_files)} NFTs to database...")
+
+    # Sincronizar cada NFT a la base de datos
+    synced_count = 0
+    skipped_count = 0
+    error_count = 0
+
+    for token_id in metadata_files:
+        try:
+            # Verificar si ya existe
+            existing = get_nft_from_database(token_id)
+
+            if existing:
+                skipped_count += 1
+            else:
+                # Sincronizar nuevo NFT (sin owner por ahora)
+                nft = sync_nft_to_database(token_id, owner_wallet=None)
+                synced_count += 1
+
+                # Log cada 10 NFTs
+                if synced_count % 10 == 0:
+                    print(f"  ✅ Synced {synced_count} NFTs...")
+
+        except Exception as e:
+            error_count += 1
+            if error_count <= 5:  # Solo mostrar primeros 5 errores
+                print(f"  ⚠️ Error syncing {token_id}: {e}")
+
+    print(f"\n📊 Sync complete:")
+    print(f"  ✅ {synced_count} NFTs added to database")
+    print(f"  ⏭️  {skipped_count} NFTs already in database (preserved)")
+    if error_count > 0:
+        print(f"  ⚠️ {error_count} errors")
+
+    # Recalcular stats globales
+    print(f"\n📊 Recalculating global stats...")
+    try:
+        calculate_guilds_data()
+
+        # Actualizar total_characters en stats.json
+        db = load_nfts_database()
+        total_nfts = len(db)
+
+        stats_obj = load_json(STATS_PATH, {})
+        stats_obj["total_characters"] = total_nfts
+        save_json(STATS_PATH, stats_obj)
+
+        print(f"  ✅ Guilds data updated")
+        print(f"  ✅ Stats updated (Total characters: {total_nfts})")
+    except Exception as e:
+        print(f"  ⚠️ Error updating stats: {e}")
+
+    print("="*70)
+    print("🎯 Database ready! STATS and GUILDS will show real data.")
+    print("="*70 + "\n")
 
 # ---------------------------------
 # Helpers de tiempo
@@ -186,51 +730,66 @@ def apply_passive_and_regen(player_obj, stats_obj):
 
 def calculate_guild_ranking():
     """
-    Calcula el ranking de guilds REAL desde players.json.
+    🔥 Calcula el ranking de guilds combinando:
+    - Member counts REALES desde guilds.json (35,000 NFTs)
+    - XP/Aura dinámicos desde nfts_database.json (NFTs que completaron misiones)
+
     Devuelve lista ordenada por XP total descendente.
-    INCLUYE TODOS LOS GREMIOS, incluso los que tienen 0 miembros.
     """
-    players_all = load_json(PLAYERS_PATH, {})
+    guilds_data = load_json(GUILDS_PATH, [])
+    db = load_nfts_database()  # Solo para XP/Aura de NFTs activos
     stats_obj = load_json(STATS_PATH, {})
 
-    # Lista de todos los gremios conocidos
-    all_guilds = [
-        "Forge Legion",
-        "Circle of Mist",
-        "Shadow Guild",
-        "Horizon Watch",
-        "Dawnkeepers",
-        "Echoes of the Veil"
-    ]
-
-    # Inicializar stats para TODOS los gremios
+    # Construir dict de stats por gremio desde guilds.json (member counts reales)
     guild_stats = {}
-    for g in all_guilds:
-        guild_stats[g] = {
-            "xp_total": 0,
-            "aura_total": 0,
-            "members": 0
+    for guild in guilds_data:
+        guild_name = guild.get("name", "")
+        guild_stats[guild_name] = {
+            "members": guild.get("members", 0),  # 🔥 Count REAL de 35,000 NFTs
+            "xp_total": guild.get("total_xp", 0),
+            "aura_total": guild.get("total_aura", 0)
         }
 
-    # Recorrer todos los héroes de todos los jugadores
-    for wallet, pdata in players_all.items():
-        for hero in pdata.get("heroes", []):
-            guild = hero.get("guild") or hero.get("dynamic_state", {}).get("current_guild", "Unknown")
-            ds = hero.get("dynamic_state", {})
+    # 🔥 Actualizar XP/Aura solo desde nfts_database.json (NFTs que jugaron misiones)
+    # NO actualizar member counts - esos son fijos desde guilds.json
+    for token_id, nft in db.items():
+        guild = nft.get("guild")
+        # Mapear nombres antiguos a nuevos
+        if guild == "Dawnkeepers":
+            guild = "Order of Dawn"
+        elif guild == "Echoes of the Veil":
+            guild = "Void Echoes"
 
-            if guild not in guild_stats:
-                guild_stats[guild] = {
-                    "xp_total": 0,
-                    "aura_total": 0,
-                    "members": 0
-                }
+        if not guild:
+            guild = nft.get("dynamic_state", {}).get("current_guild", "Unknown")
 
-            guild_stats[guild]["xp_total"] += ds.get("xp_total", 0)
-            guild_stats[guild]["aura_total"] += ds.get("aura_level", 0)
-            guild_stats[guild]["members"] += 1
+        ds = nft.get("dynamic_state", {})
+        xp = ds.get("xp_total", 0)
+        aura = ds.get("aura_level", 0)
+
+        # Si el gremio no existe en guild_stats, crearlo
+        if guild not in guild_stats:
+            guild_stats[guild] = {
+                "members": 0,
+                "xp_total": 0,
+                "aura_total": 0
+            }
+
+        # Solo agregar XP/Aura si el NFT tiene progreso
+        # NO incrementar members (ya están correctos desde guilds.json)
+        if xp > 0 or aura > 0:
+            guild_stats[guild]["xp_total"] += xp
+            guild_stats[guild]["aura_total"] += aura
 
     # Agregar success rate desde stats.json
     guild_ranking_stats = stats_obj.get("guild_ranking", {})
+
+    # 🔥 FIX: Si guild_ranking es una lista (error de formato antiguo), convertir a dict
+    if isinstance(guild_ranking_stats, list):
+        print("⚠️ guild_ranking was a list, converting to dict...")
+        guild_ranking_stats = {}
+        stats_obj["guild_ranking"] = guild_ranking_stats
+        save_json(STATS_PATH, stats_obj)
 
     result = []
     for guild_name, data in guild_stats.items():
@@ -244,7 +803,7 @@ def calculate_guild_ranking():
             "name": guild_name,
             "xp_total": data["xp_total"],
             "aura_total": data["aura_total"],
-            "members": data["members"],
+            "members": data["members"],  # 🔥 Count REAL de 35,000 NFTs
             "success_rate": f"{success_rate}%"
         })
 
@@ -254,86 +813,138 @@ def calculate_guild_ranking():
 
 def calculate_player_leaderboard():
     """
-    Calcula el leaderboard de jugadores desde players.json.
+    Calcula el leaderboard de jugadores desde la base de datos centralizada.
+    Agrupa NFTs por last_known_owner y suma stats.
     Devuelve lista ordenada por XP total descendente.
     """
-    players_all = load_json(PLAYERS_PATH, {})
-    leaderboard = []
+    db = load_nfts_database()
 
-    for wallet, pdata in players_all.items():
-        totals = pdata.get("totals", {})
-        heroes_count = totals.get("heroes_count", 0)
-        xp_total = totals.get("xp_total_all", 0)
-        aura_total = totals.get("aura_total_all", 0)
+    # Agrupar NFTs por wallet (last_known_owner)
+    wallet_stats = {}
+    for token_id, nft in db.items():
+        owner = nft.get("last_known_owner")
+        if not owner:
+            owner = "unknown"
 
-        leaderboard.append({
-            "wallet": wallet,
-            "heroes_count": heroes_count,
-            "xp_total_all": xp_total,
-            "aura_total_all": aura_total
-        })
+        ds = nft.get("dynamic_state", {})
+        xp = ds.get("xp_total", 0)
+        aura = ds.get("aura_level", 0)
 
-    # Ordenar por XP total descendente
+        if owner not in wallet_stats:
+            wallet_stats[owner] = {
+                "wallet": owner,
+                "heroes_count": 0,
+                "xp_total_all": 0,
+                "aura_total_all": 0
+            }
+
+        wallet_stats[owner]["heroes_count"] += 1
+        wallet_stats[owner]["xp_total_all"] += xp
+        wallet_stats[owner]["aura_total_all"] += aura
+
+    # Convertir a lista y ordenar
+    leaderboard = list(wallet_stats.values())
     leaderboard.sort(key=lambda x: x["xp_total_all"], reverse=True)
     return leaderboard
 
+def count_active_missions():
+    """
+    Cuenta cuántos NFTs están actualmente en misión.
+
+    🔥 Lee desde active_missions.json (tracking específico de misiones activas)
+    Fallback: cuenta desde nfts_database.json si active_missions está vacío
+    """
+    # Primero intentar desde active_missions.json (más rápido y específico)
+    active_missions = load_json(ACTIVE_MISSIONS_PATH, {})
+    count = len(active_missions)
+
+    # Si active_missions está vacío, contar desde DB como fallback
+    if count == 0:
+        db = load_nfts_database()
+        for token_id, nft in db.items():
+            ds = nft.get("dynamic_state", {})
+            if ds.get("state") == "ON_MISSION":
+                count += 1
+
+    return count
+
 def calculate_guilds_data():
     """
-    Actualiza guilds.json con datos reales de members, avg_xp, avg_aura
-    calculados desde players.json
+    🔥 Actualiza guilds.json con datos dinámicos desde nfts_database.
+    - Members: cuenta real de NFTs registrados (empieza en 0, crece orgánicamente)
+    - XP/Aura: suma total desde dynamic_state de todos los NFTs
     """
-    players_all = load_json(PLAYERS_PATH, {})
+    db = load_nfts_database()
     guilds_data = load_json(GUILDS_PATH, [])
-    
-    # Calcular stats reales por gremio
+
+    # Calcular stats por gremio desde la DB de NFTs registrados
     guild_stats = {}
-    for wallet, pdata in players_all.items():
-        for hero in pdata.get("heroes", []):
-            guild = hero.get("guild") or hero.get("dynamic_state", {}).get("current_guild", "Unknown")
-            ds = hero.get("dynamic_state", {})
-            
-            if guild not in guild_stats:
-                guild_stats[guild] = {
-                    "total_xp": 0,
-                    "total_aura": 0,
-                    "members": 0
-                }
-            
-            guild_stats[guild]["total_xp"] += ds.get("xp_total", 0)
-            guild_stats[guild]["total_aura"] += ds.get("aura_level", 0)
-            guild_stats[guild]["members"] += 1
-    
-    # Actualizar guilds.json con datos reales
+    for token_id, nft in db.items():
+        guild = nft.get("guild")
+        # Mapear nombres antiguos a nuevos
+        if guild == "Dawnkeepers":
+            guild = "Order of Dawn"
+        elif guild == "Echoes of the Veil":
+            guild = "Void Echoes"
+
+        if not guild:
+            guild = nft.get("dynamic_state", {}).get("current_guild", "Unknown")
+
+        ds = nft.get("dynamic_state", {})
+
+        if guild not in guild_stats:
+            guild_stats[guild] = {
+                "members": 0,        # 🔥 Contador dinámico (empieza en 0)
+                "total_xp": 0,
+                "total_aura": 0
+            }
+
+        # 🔥 Incrementar contador por cada NFT registrado en DB
+        guild_stats[guild]["members"] += 1
+        guild_stats[guild]["total_xp"] += ds.get("xp_total", 0)
+        guild_stats[guild]["total_aura"] += ds.get("aura_level", 0)
+
+    # 🔥 Actualizar guilds.json con conteos REALES (no hardcoded)
     for g in guilds_data:
         guild_name = g.get("name", "")
+
         if guild_name in guild_stats:
             stats = guild_stats[guild_name]
-            g["members"] = stats["members"]
+
+            # 🔥 Actualizar con datos reales desde nfts_database
+            g["members"] = stats["members"]              # Dinámico: empieza en 0, crece orgánicamente
             g["total_xp"] = stats["total_xp"]
             g["total_aura"] = stats["total_aura"]
             g["avg_xp"] = round(stats["total_xp"] / stats["members"], 2) if stats["members"] > 0 else 0
             g["avg_aura"] = round(stats["total_aura"] / stats["members"], 2) if stats["members"] > 0 else 0
         else:
-            # Si no hay datos, poner en 0
-            g["members"] = 0
+            # Guild sin NFTs registrados: todo en 0
+            g["members"] = 0                              # 🔥 0 en vez de preservar hardcoded
             g["total_xp"] = 0
             g["total_aura"] = 0
             g["avg_xp"] = 0
             g["avg_aura"] = 0
-    
+
     save_json(GUILDS_PATH, guilds_data)
     return guilds_data
 
 def update_guild_stats(guild_name, xp_gain, aura_gain, stats_obj, success=True):
     """
-    - Suma XP/Aura ganadas por ese gremio a stats["guild_ranking"].
-    - Refleja actividad en guilds.json (members, avg_xp, avg_aura).
-    - Actualiza success/failure count.
+    🔥 Actualiza stats del gremio cuando un NFT completa/falla una misión:
+    - Acumula XP/Aura ganadas en stats["guild_ranking"]
+    - Incrementa total_missions_completed/failed en guilds.json
+    - Recalcula avg_xp/avg_aura en guilds.json
     """
     if not guild_name:
         return stats_obj
 
-    # 1) stats["guild_ranking"]
+    # Mapear nombres antiguos a nuevos
+    if guild_name == "Dawnkeepers":
+        guild_name = "Order of Dawn"
+    elif guild_name == "Echoes of the Veil":
+        guild_name = "Void Echoes"
+
+    # 1) Actualizar stats["guild_ranking"] (para success rate)
     guild_ranking = stats_obj.get("guild_ranking", {})
     if guild_name not in guild_ranking:
         guild_ranking[guild_name] = {
@@ -345,16 +956,35 @@ def update_guild_stats(guild_name, xp_gain, aura_gain, stats_obj, success=True):
 
     guild_ranking[guild_name]["xp"]   += xp_gain
     guild_ranking[guild_name]["aura"] += aura_gain
-    
+
     if success:
         guild_ranking[guild_name]["successes"] = guild_ranking[guild_name].get("successes", 0) + 1
     else:
         guild_ranking[guild_name]["failures"] = guild_ranking[guild_name].get("failures", 0) + 1
-    
+
     stats_obj["guild_ranking"] = guild_ranking
 
-    # 2) Recalcular guilds.json con datos reales
-    calculate_guilds_data()
+    # 2) 🔥 Actualizar guilds.json directamente
+    guilds_data = load_json(GUILDS_PATH, [])
+    for guild in guilds_data:
+        if guild.get("name") == guild_name:
+            # Incrementar contador de misiones
+            if success:
+                guild["total_missions_completed"] = guild.get("total_missions_completed", 0) + 1
+            else:
+                guild["total_missions_failed"] = guild.get("total_missions_failed", 0) + 1
+
+            # Actualizar XP/Aura total del gremio
+            guild["total_xp"] = guild.get("total_xp", 0) + xp_gain
+            guild["total_aura"] = guild.get("total_aura", 0) + aura_gain
+
+            # Recalcular promedios
+            members = guild.get("members", 1)
+            guild["avg_xp"] = round(guild["total_xp"] / members, 2) if members > 0 else 0
+            guild["avg_aura"] = round(guild["total_aura"] / members, 2) if members > 0 else 0
+            break
+
+    save_json(GUILDS_PATH, guilds_data)
 
     return stats_obj
 
@@ -367,6 +997,17 @@ app = Flask(
     static_folder="static",
     static_url_path=""  # sirve /img/... /music/... directo
 )
+
+# Initialize missions configuration
+MISSIONS_CONFIG = load_missions_config()
+MISSIONS = MISSIONS_CONFIG.get("missions", [])
+DEATH_COSTS = MISSIONS_CONFIG.get("death_costs", {})
+BONUSES = MISSIONS_CONFIG.get("bonuses", {})
+
+# Initialize events configuration
+EVENTS_CONFIG = load_events_config()
+EVENTS = EVENTS_CONFIG.get("events", [])
+EVENT_SETTINGS = EVENTS_CONFIG.get("event_settings", {})
 
 # ---------------------------------
 # Rutas estáticas base
@@ -399,15 +1040,20 @@ def api_stats():
     # 🔥 Calcular leaderboard real de jugadores
     leaderboard = calculate_player_leaderboard()
 
+    # 🔥 Contar misiones activas en tiempo real
+    missions_in_progress = count_active_missions()
+
     resp = {
         "total_characters":     stats_obj.get("total_characters", 0),  # 🔥 Real value from blockchain contract
         "active_guilds":        stats_obj.get("active_guilds", 6),
         "missions_completed":   stats_obj.get("missions_completed", 0),
         "missions_failed":      stats_obj.get("missions_failed", 0),
+        "missions_in_progress": missions_in_progress,  # 🔥 Real-time count
         "total_exp_collected":  stats_obj.get("total_exp_collected", 0),
         "total_aura_collected": stats_obj.get("total_aura_collected", 0),
         "guild_ranking":        guild_rank_list,
-        "player_leaderboard":   leaderboard
+        "player_leaderboard":   leaderboard,
+        "last_updated":         now_utc_str()  # 🔥 Timestamp de actualización
     }
     return jsonify(resp)
 
@@ -419,7 +1065,11 @@ def api_stats():
 def api_guilds():
     # 🔥 Recalcular datos reales antes de devolver
     guilds_data = calculate_guilds_data()
-    return jsonify(guilds_data)
+
+    return jsonify({
+        "guilds": guilds_data,
+        "last_updated": now_utc_str()  # 🔥 Timestamp de actualización
+    })
 
 # ---------------------------------
 # API: MISSIONS
@@ -427,7 +1077,46 @@ def api_guilds():
 
 @app.route("/api/missions")
 def api_missions():
-    return jsonify(MISSIONS)
+    """Return all available missions"""
+    return jsonify({"missions": MISSIONS})
+
+@app.route("/api/events")
+def api_events():
+    """Return all active events (filtered by availability dates)"""
+    from datetime import datetime
+
+    active_events = []
+    current_time = datetime.utcnow()
+
+    for event in EVENTS:
+        available_from_str = event.get("available_from")
+        available_until_str = event.get("available_until")
+        event_active = event.get("event_active", True)
+
+        # Check if event is active
+        if not event_active:
+            continue
+
+        # Parse dates
+        try:
+            available_from = datetime.fromisoformat(available_from_str.replace("Z", ""))
+            available_until = datetime.fromisoformat(available_until_str.replace("Z", ""))
+
+            # Check if current time is within event window
+            if available_from <= current_time <= available_until:
+                # Calculate time remaining
+                time_remaining_seconds = (available_until - current_time).total_seconds()
+                event_copy = event.copy()
+                event_copy["time_remaining_hours"] = round(time_remaining_seconds / 3600, 1)
+                active_events.append(event_copy)
+        except (ValueError, AttributeError) as e:
+            print(f"⚠️ Error parsing event dates for {event.get('name')}: {e}")
+            continue
+
+    return jsonify({
+        "events": active_events,
+        "event_settings": EVENT_SETTINGS
+    })
 
 # ---------------------------------
 # Helpers para NFTs y metadata
@@ -448,25 +1137,28 @@ def ipfs_to_http(ipfs_url):
 
 def get_wallet_token_ids(wallet):
     """
-    🔥 Obtiene los token_ids REALES que posee una billetera consultando la blockchain.
+    🔥 Obtiene los token_ids que posee una billetera.
 
-    Consulta el contrato NFT en Base Sepolia para obtener los NFTs que realmente
-    posee la wallet conectada.
+    PRIORIDAD:
+    1. Lee desde wallet_nfts.json (cache poblado por frontend)
+    2. Si no hay cache, intenta blockchain (solo si hay conexión)
 
     Returns:
         list: Lista de token_ids (como strings con formato "00001") que posee la wallet
-
-    Si hay error consultando blockchain, devuelve lista vacía.
     """
 
-    # Si no hay conexión a blockchain, intentar desde cache local
+    # 🔥 PRIORIDAD 1: Leer desde cache (poblado por frontend cuando conecta wallet)
+    wallet_nfts = load_json(WALLET_NFTS_PATH, {})
+    wallet_lower = wallet.lower()
+
+    for w, tokens in wallet_nfts.items():
+        if w.lower() == wallet_lower:
+            print(f"✅ Using cached NFTs for wallet {wallet[:6]}...{wallet[-4:]}: {len(tokens)} NFTs")
+            return tokens
+
+    # 🔥 PRIORIDAD 2: Si no hay cache, intentar blockchain (solo si hay conexión)
     if w3 is None or nft_contract is None:
-        print(f"⚠️ No blockchain connection. Checking local cache for wallet: {wallet}")
-        wallet_nfts = load_json(WALLET_NFTS_PATH, {})
-        wallet_lower = wallet.lower()
-        for w, tokens in wallet_nfts.items():
-            if w.lower() == wallet_lower:
-                return tokens
+        print(f"⚠️ No blockchain connection and no cache for wallet: {wallet}")
         return []
 
     try:
@@ -476,46 +1168,25 @@ def get_wallet_token_ids(wallet):
         else:
             checksum_wallet = wallet
 
-        # Obtener balance de NFTs de esta wallet
-        balance = nft_contract.functions.balanceOf(checksum_wallet).call()
+        # 🔥 Usar tokensOfOwner() - una sola llamada eficiente
+        print(f"🔍 Querying blockchain for wallet {wallet[:6]}...{wallet[-4:]}")
+        token_ids_raw = nft_contract.functions.tokensOfOwner(checksum_wallet).call()
 
-        print(f"🔍 Wallet {wallet[:6]}...{wallet[-4:]} has {balance} NFTs")
+        # Formatear token_ids como strings con 5 dígitos
+        token_ids = [str(tid).zfill(5) for tid in token_ids_raw]
+        print(f"✅ Blockchain returned {len(token_ids)} NFTs")
 
-        if balance == 0:
-            return []
-
-        # Obtener todos los token IDs que posee esta wallet
-        token_ids = []
-        for i in range(balance):
-            try:
-                token_id = nft_contract.functions.tokenOfOwnerByIndex(checksum_wallet, i).call()
-                # Formatear token_id como string con 5 dígitos (ej: "00001")
-                token_id_str = str(token_id).zfill(5)
-                token_ids.append(token_id_str)
-                print(f"  ✅ Token #{token_id_str}")
-            except Exception as e:
-                print(f"  ⚠️ Error getting token at index {i}: {e}")
-                continue
-
-        # Cache los resultados en wallet_nfts.json para referencia
+        # Cache los resultados para próxima vez
         if token_ids:
-            wallet_nfts = load_json(WALLET_NFTS_PATH, {})
             wallet_nfts[wallet] = token_ids
             save_json(WALLET_NFTS_PATH, wallet_nfts)
+            print(f"✅ Cached NFTs for wallet {wallet[:6]}...{wallet[-4:]}")
 
         return token_ids
 
     except Exception as e:
         print(f"❌ Error querying blockchain for wallet {wallet}: {e}")
-
-        # Fallback: intentar desde cache local
-        wallet_nfts = load_json(WALLET_NFTS_PATH, {})
-        wallet_lower = wallet.lower()
-        for w, tokens in wallet_nfts.items():
-            if w.lower() == wallet_lower:
-                print(f"  📦 Using cached data: {len(tokens)} NFTs")
-                return tokens
-
+        print(f"⚠️ No cache available - returning empty list")
         return []
 
 def create_hero_from_metadata(token_id):
@@ -539,14 +1210,20 @@ def create_hero_from_metadata(token_id):
                 "aura_level": 0,
                 "energy_current": 100,
                 "energy_max": 100,
-                "state": "READY",
+                "state": "READY",  # READY, ON_MISSION, FALLEN
                 "current_guild": "Unassigned",
                 "last_update": now_utc_str(),
                 "last_energy_refresh": now_utc_str(),
-                "mission_history": {},
+                "mission_history": {},  # {mission_id: timestamp}
                 "power_current": 10,
                 "xp_level": 1,
-                "last_mission": "None"
+                "last_mission": "None",
+                # 🔥 CAMPOS ADICIONALES para sistema de misiones completo
+                "total_missions_completed": 0,
+                "death_count": 0,
+                "current_mission_id": None,
+                "mission_start_time": None,
+                "fallen_time": None
             }
         }
 
@@ -585,14 +1262,20 @@ def create_hero_from_metadata(token_id):
             "aura_level": 0,
             "energy_current": 100,
             "energy_max": 100,
-            "state": "READY",
+            "state": "READY",  # READY, ON_MISSION, FALLEN
             "current_guild": guild,
             "last_update": now_utc_str(),
             "last_energy_refresh": now_utc_str(),
-            "mission_history": {},
+            "mission_history": {},  # {mission_id: timestamp}
             "power_current": power_current,
             "xp_level": 1,
-            "last_mission": "None"
+            "last_mission": "None",
+            # 🔥 CAMPOS ADICIONALES para sistema de misiones completo
+            "total_missions_completed": 0,
+            "death_count": 0,
+            "current_mission_id": None,
+            "mission_start_time": None,
+            "fallen_time": None
         }
     }
 
@@ -604,79 +1287,61 @@ def create_hero_from_metadata(token_id):
 
 def ensure_player(wallet):
     """
+    🔥 NUEVA VERSIÓN CON BASE DE DATOS CENTRALIZADA
+
     Devuelve el objeto del jugador para esa wallet.
-    Si no existe, lo crea cargando los NFTs desde metadata.
-    Si existe, sincroniza los NFTs con wallet_nfts.json (agrega nuevos, mantiene existentes).
+
+    FUENTE DE VERDAD: nfts_database.json (atributos dinámicos)
+    players.json: Solo cache de sesión para UI
+
+    Flujo:
+    1. Obtiene token_ids de la wallet
+    2. Sincroniza cada NFT a nfts_database.json
+    3. Lee atributos dinámicos desde DB (no desde players.json)
+    4. Construye objeto player para la sesión
     """
-    players = load_json(PLAYERS_PATH, {})
+    # 🔥 NORMALIZE wallet address to lowercase to avoid case sensitivity issues
+    wallet = wallet.lower()
+
+    print(f"  🔧 ensure_player() called for {wallet[:6]}...{wallet[-4:]}")
 
     # Obtener los token_ids que debería tener esta billetera
     expected_token_ids = get_wallet_token_ids(wallet)
+    print(f"  📋 expected_token_ids from cache: {expected_token_ids}")
 
-    if wallet not in players:
-        # Jugador nuevo: crear desde cero
-        heroes = []
-        if expected_token_ids:
-            for token_id in expected_token_ids:
-                hero = create_hero_from_metadata(token_id)
-                heroes.append(hero)
+    # 🔥 SINCRONIZAR cada NFT a la base de datos centralizada
+    heroes = []
+    for token_id in expected_token_ids:
+        # Sincronizar NFT a DB (preserva dynamic_state si ya existe)
+        nft = sync_nft_to_database(token_id, owner_wallet=wallet)
+        heroes.append(nft)
+        ds = nft.get("dynamic_state", {})
+        print(f"    🔗 NFT {token_id} → DB (state: {ds.get('state', 'READY')}, xp: {ds.get('xp_total', 0)})")
 
-        # Calcular totales
-        total_xp = sum(h["dynamic_state"]["xp_total"] for h in heroes)
-        total_aura = sum(h["dynamic_state"]["aura_level"] for h in heroes)
-        total_energy = sum(h["dynamic_state"]["energy_current"] for h in heroes)
+    # Construir objeto player para la sesión (cache temporal)
+    total_xp = sum(h["dynamic_state"]["xp_total"] for h in heroes)
+    total_aura = sum(h["dynamic_state"]["aura_level"] for h in heroes)
+    total_energy = sum(h["dynamic_state"]["energy_current"] for h in heroes)
 
-        players[wallet] = {
-            "wallet": wallet,
-            "heroes": heroes,
-            "totals": {
-                "heroes_count": len(heroes),
-                "xp_total_all": total_xp,
-                "aura_total_all": total_aura,
-                "energy_total_available": total_energy
-            }
-        }
-        save_json(PLAYERS_PATH, players)
-    else:
-        # Jugador existente: sincronizar NFTs
-        player = players[wallet]
-        existing_heroes = player.get("heroes", [])
-
-        # Crear mapa de heroes existentes por token_id
-        existing_heroes_map = {h["token_id"]: h for h in existing_heroes}
-
-        # Crear lista nueva de heroes
-        new_heroes = []
-        for token_id in expected_token_ids:
-            token_id_padded = str(token_id).zfill(5)
-
-            if token_id_padded in existing_heroes_map:
-                # Ya existe: mantener con su progreso
-                new_heroes.append(existing_heroes_map[token_id_padded])
-            else:
-                # Nuevo NFT: crear desde metadata
-                hero = create_hero_from_metadata(token_id)
-                new_heroes.append(hero)
-
-        # Actualizar la lista de heroes
-        player["heroes"] = new_heroes
-
-        # Recalcular totales
-        total_xp = sum(h["dynamic_state"]["xp_total"] for h in new_heroes)
-        total_aura = sum(h["dynamic_state"]["aura_level"] for h in new_heroes)
-        total_energy = sum(h["dynamic_state"]["energy_current"] for h in new_heroes)
-
-        player["totals"] = {
-            "heroes_count": len(new_heroes),
+    player_obj = {
+        "wallet": wallet,
+        "heroes": heroes,
+        "totals": {
+            "heroes_count": len(heroes),
             "xp_total_all": total_xp,
             "aura_total_all": total_aura,
             "energy_total_available": total_energy
         }
+    }
 
-        players[wallet] = player
-        save_json(PLAYERS_PATH, players)
+    # Guardar en players.json (solo cache de sesión, NO fuente de verdad)
+    players = load_json(PLAYERS_PATH, {})
+    players[wallet] = player_obj
+    save_json(PLAYERS_PATH, players)
 
-    return players[wallet], players
+    print(f"  ✅ Player synced: {len(heroes)} NFTs → DB updated, session cached")
+
+    return player_obj, players
 
 # ---------------------------------
 # API: PLAYER PROFILE
@@ -684,19 +1349,48 @@ def ensure_player(wallet):
 
 @app.route("/api/player/<wallet>", methods=["GET", "POST"])
 def api_player(wallet):
-    # Si es POST, recibir token_ids y total_supply desde frontend (consultados de blockchain)
+    # 🔥 NORMALIZE wallet address to lowercase to avoid case sensitivity issues
+    wallet = wallet.lower()
+
+    print(f"\n{'='*60}")
+    print(f"🔍 /api/player/{wallet[:6]}...{wallet[-4:]} - Method: {request.method}")
+
+    # 🔥 CRITICAL FIX: Si es POST, SOLO guardar cache y retornar
+    # Esto evita doble sincronización que causa pérdida de estado ON_MISSION
     if request.method == "POST":
         try:
             data = request.get_json(force=True)
             token_ids = data.get("token_ids", [])
             total_supply = data.get("total_supply", None)
 
+            print(f"📦 POST data received: {len(token_ids)} token_ids, total_supply={total_supply}")
+
             if token_ids:
                 # Guardar los NFTs que posee esta wallet en cache
                 wallet_nfts = load_json(WALLET_NFTS_PATH, {})
+                print(f"📂 Current wallet_nfts keys: {list(wallet_nfts.keys())}")
                 wallet_nfts[wallet] = token_ids
                 save_json(WALLET_NFTS_PATH, wallet_nfts)
-                print(f"✅ Wallet {wallet[:6]}...{wallet[-4:]} registered with {len(token_ids)} NFTs from blockchain")
+                print(f"✅ Wallet {wallet[:6]}...{wallet[-4:]} registered with {len(token_ids)} NFTs: {token_ids}")
+                print(f"📂 Updated wallet_nfts keys: {list(wallet_nfts.keys())}")
+
+                # 🔥 AUTO-SINCRONIZACIÓN: Sincronizar cada NFT a la base de datos centralizada
+                print(f"🔄 AUTO-SYNC: Syncing {len(token_ids)} NFTs to database...")
+                synced_count = 0
+                for token_id in token_ids:
+                    try:
+                        # Sincronizar NFT a DB (si existe preserva estado, si es nuevo lo crea)
+                        nft = sync_nft_to_database(token_id, owner_wallet=wallet)
+                        synced_count += 1
+                        ds = nft.get("dynamic_state", {})
+                        print(f"  ✅ {token_id} → DB (xp: {ds.get('xp_total', 0)}, state: {ds.get('state', 'READY')})")
+                    except Exception as e:
+                        print(f"  ⚠️ Error syncing {token_id}: {e}")
+
+                # 🔥 AUTO-RECALCULAR STATS: Actualizar guilds.json con datos reales
+                print(f"📊 AUTO-RECALC: Updating global stats...")
+                calculate_guilds_data()
+                print(f"✅ Auto-sync complete: {synced_count}/{len(token_ids)} NFTs synced to database")
 
             # 🔥 Guardar total_supply real del contrato para STATS
             if total_supply is not None:
@@ -704,8 +1398,20 @@ def api_player(wallet):
                 stats_obj["total_characters"] = total_supply
                 save_json(STATS_PATH, stats_obj)
                 print(f"✅ Contract total supply updated: {total_supply} characters")
+
+            print(f"{'='*60}\n")
+            # ✅ RETORNAR inmediatamente - NO llamar ensure_player() aquí
+            return jsonify({"success": True, "token_ids_cached": len(token_ids), "synced_to_database": synced_count if token_ids else 0})
+
         except Exception as e:
-            print(f"⚠️ Error processing POST data: {e}")
+            print(f"❌ Error processing POST data: {e}")
+            import traceback
+            traceback.print_exc()
+            print(f"{'='*60}\n")
+            return jsonify({"success": False, "error": str(e)}), 500
+
+    # 🔥 Si es GET, sincronizar jugador y retornar datos
+    print(f"🔄 Calling ensure_player() for wallet {wallet[:6]}...{wallet[-4:]}")
 
     stats_obj = load_json(STATS_PATH, {
         "total_characters": 0,  # 🔥 Will be updated from blockchain contract
@@ -720,10 +1426,34 @@ def api_player(wallet):
 
     player_obj, players_all = ensure_player(wallet)
 
+    # Log estado de heroes
+    if player_obj and "heroes" in player_obj:
+        for h in player_obj["heroes"]:
+            ds = h.get("dynamic_state", {})
+            state = ds.get("state", "UNKNOWN")
+            token_id = h.get("token_id", "???")
+            print(f"  👤 Hero {token_id}: state={state}")
+    print(f"{'='*60}\n")
+
     # aplicar pasivo/regen antes de mostrar
     player_obj, stats_obj = apply_passive_and_regen(player_obj, stats_obj)
 
-    # guardar cambios
+    # 🔥 CRITICAL: Guardar cambios de pasivo/regen de vuelta a la base de datos
+    # Si no hacemos esto, los cambios se pierden al reconectar
+    for hero in player_obj.get("heroes", []):
+        token_id = hero.get("token_id")
+        ds = hero.get("dynamic_state", {})
+        if token_id:
+            # Actualizar solo los campos que apply_passive_and_regen() modifica
+            update_nft_dynamic_state(token_id, {
+                "xp_total": ds.get("xp_total"),
+                "aura_level": ds.get("aura_level"),
+                "energy_current": ds.get("energy_current"),
+                "last_update": ds.get("last_update"),
+                "last_energy_refresh": ds.get("last_energy_refresh")
+            })
+
+    # guardar cambios en cache de sesión
     players_all[wallet] = player_obj
     save_json(PLAYERS_PATH, players_all)
     save_json(STATS_PATH, stats_obj)
@@ -801,21 +1531,185 @@ def api_spend_xp():
     })
 
 # ---------------------------------
-# API: EXECUTE MISSION (SEND)
+# API: NEW MISSION SYSTEM
 # ---------------------------------
 
-@app.route("/api/mission/execute", methods=["POST"])
-def api_mission_execute():
+def handle_party_mission_start(wallet, hero_ids, mission_id):
+    """
+    Handle party mission start (5 heroes required)
+    """
+    # Validate party size
+    if len(hero_ids) != 5:
+        abort(400, f"Party missions require exactly 5 heroes. Received: {len(hero_ids)}")
+
+    # Find mission
+    mission = None
+    for m in MISSIONS:
+        if m["id"] == mission_id:
+            mission = m
+            break
+
+    if mission is None:
+        # Check if it's an event
+        for e in EVENTS:
+            if e["id"] == mission_id:
+                mission = e
+                break
+
+    if mission is None:
+        abort(400, "Mission not found")
+
+    # Verify it's a party mission
+    if mission.get("party_size") != 5:
+        abort(400, "This mission is not a party mission")
+
+    # Load player data
+    stats_obj = load_json(STATS_PATH, {
+        "total_characters": 0,
+        "active_guilds": 6,
+        "missions_completed": 0,
+        "missions_failed": 0,
+        "total_exp_collected": 0,
+        "total_aura_collected": 0,
+        "guild_ranking": {},
+        "player_leaderboard": []
+    })
+    player_obj, players_all = ensure_player(wallet)
+    player_obj, stats_obj = apply_passive_and_regen(player_obj, stats_obj)
+
+    # Validate all 5 heroes
+    heroes = []
+    for hero_id in hero_ids:
+        hero = None
+        for h in player_obj.get("heroes", []):
+            if h.get("token_id") == hero_id:
+                hero = h
+                break
+
+        if hero is None:
+            abort(404, f"Hero {hero_id} not found")
+
+        ds = hero["dynamic_state"]
+
+        # Validations
+        if ds.get("state") == "FALLEN":
+            abort(400, f"Hero {hero_id} is fallen. Perform reinvocation ritual first.")
+
+        if ds.get("state") == "ON_MISSION":
+            abort(400, f"Hero {hero_id} is already on a mission")
+
+        # Check energy
+        cost_energy = mission["energy_cost"]
+        energy_current = ds.get("energy_current", 0)
+        if energy_current < cost_energy:
+            abort(400, f"Hero {hero_id} doesn't have enough energy. Required: {cost_energy}, Available: {energy_current}")
+
+        # Check mission cooldown (72h)
+        mission_hist = ds.get("mission_history", {})
+        last_run_ts = mission_hist.get(mission_id)
+        if last_run_ts and hours_since(last_run_ts) < ROTATION_HOURS:
+            hours_left = ROTATION_HOURS - hours_since(last_run_ts)
+            abort(400, f"Hero {hero_id} already completed this mission. Cooldown: {hours_left:.1f}h remaining. Try a different mission or wait.")
+
+        heroes.append(hero)
+
+    # All validations passed - start mission for all 5 heroes
+    now_utc = now_utc_str()
+
+    for hero in heroes:
+        ds = hero["dynamic_state"]
+
+        # Deduct energy
+        ds["energy_current"] = max(0, ds["energy_current"] - mission["energy_cost"])
+
+        # Set hero state to ON_MISSION
+        ds["state"] = "ON_MISSION"
+        ds["mission_start_time"] = now_utc
+        ds["current_mission_id"] = mission_id
+        ds["last_update"] = now_utc
+
+        # Update NFT dynamic state in database
+        update_nft_dynamic_state(hero["token_id"], ds)
+
+    # Track active mission (party format)
+    active_missions = load_json(ACTIVE_MISSIONS_PATH, {})
+    mission_key = f"{wallet}_{mission_id}_party"
+    active_missions[mission_key] = {
+        "wallet": wallet,
+        "hero_ids": hero_ids,
+        "mission_id": mission_id,
+        "start_time": now_utc,
+        "duration_hours": mission["duration_hours"],
+        "is_party": True
+    }
+
+    save_json(ACTIVE_MISSIONS_PATH, active_missions)
+
+    # Save player data
+    players_all[wallet] = player_obj
+    save_json(PLAYERS_PATH, players_all)
+    save_json(STATS_PATH, stats_obj)
+
+    print(f"\n🎮 PARTY MISSION STARTED:")
+    print(f"  Wallet: {wallet}")
+    print(f"  Heroes: {hero_ids}")
+    print(f"  Mission: {mission_id} - {mission['name']}")
+    print(f"  Duration: {mission['duration_hours']}h")
+
+    # Calculate average success rate
+    total_success_rate = 0
+    for hero in heroes:
+        success_rate, bonus = calculate_mission_success_rate(hero, mission)
+        total_success_rate += success_rate
+
+    avg_success_rate = total_success_rate / 5
+
+    return jsonify({
+        "success": True,
+        "party": True,
+        "hero_ids": hero_ids,
+        "mission_id": mission_id,
+        "mission_name": mission["name"],
+        "energy_spent_per_hero": mission["energy_cost"],
+        "total_energy_spent": mission["energy_cost"] * 5,
+        "duration_hours": mission["duration_hours"],
+        "estimated_success_rate": round(avg_success_rate, 2),
+        "party_bonus": "+20% rewards for successful heroes",
+        "message": f"Party of 5 heroes embarked on {mission['name']}! Duration: {mission['duration_hours']}h"
+    })
+
+@app.route("/api/mission/start", methods=["POST"])
+def api_mission_start():
+    """
+    Start a mission (solo or party).
+    POST solo: { "wallet": "0x...", "hero_id": "00001", "mission_id": "001" }
+    POST party: { "wallet": "0x...", "hero_ids": ["00001", "00002", ...], "mission_id": "003" }
+    """
     data = request.get_json(force=True)
-    wallet     = data.get("wallet")
-    hero_id    = data.get("hero_id")
+    wallet = data.get("wallet")
+    hero_id = data.get("hero_id")
+    hero_ids = data.get("hero_ids")
     mission_id = data.get("mission_id")
 
-    if not wallet or not hero_id or not mission_id:
-        abort(400, "invalid input")
+    if not wallet or not mission_id:
+        abort(400, "Missing wallet or mission_id")
+
+    # Detect party mission
+    is_party = hero_ids is not None and len(hero_ids) > 0
+
+    if is_party:
+        # PARTY MISSION (5 HEROES)
+        return handle_party_mission_start(wallet.lower(), hero_ids, mission_id)
+
+    # SOLO MISSION (EXISTING CODE CONTINUES)
+    if not hero_id:
+        abort(400, "Missing hero_id for solo mission")
+
+    # 🔥 NORMALIZE wallet address to lowercase
+    wallet = wallet.lower()
 
     stats_obj = load_json(STATS_PATH, {
-        "total_characters": 0,  # 🔥 Will be updated from blockchain contract
+        "total_characters": 0,
         "active_guilds": 6,
         "missions_completed": 0,
         "missions_failed": 0,
@@ -826,85 +1720,807 @@ def api_mission_execute():
     })
     player_obj, players_all = ensure_player(wallet)
 
-    # refrescar antes de operar
+    # Apply passive gains
     player_obj, stats_obj = apply_passive_and_regen(player_obj, stats_obj)
 
-    # ubicar misión
+    # Find mission (check both MISSIONS and EVENTS)
     mission = None
     for m in MISSIONS:
         if m["id"] == mission_id:
             mission = m
             break
-    if mission is None:
-        abort(400, "mission not found")
 
-    # ubicar héroe
+    # If not found in missions, check events
+    if mission is None:
+        for e in EVENTS:
+            if e["id"] == mission_id:
+                mission = e
+                break
+
+    if mission is None:
+        abort(400, "Mission not found")
+
+    # Find hero
     hero = None
     for h in player_obj.get("heroes", []):
         if h.get("token_id") == hero_id:
             hero = h
             break
     if hero is None:
-        abort(404, "hero not found")
+        abort(404, "Hero not found")
 
     ds = hero["dynamic_state"]
-    xp_total        = ds.get("xp_total", 0)
-    aura_level      = ds.get("aura_level", 0)
-    energy_current  = ds.get("energy_current", 0)
-    energy_max      = ds.get("energy_max", 100)
-    mission_hist    = ds.get("mission_history", {})
-    hero_guild_name = hero.get("guild") or ds.get("current_guild", "Unknown Guild")
 
-    # check energía
+    # Check if hero is fallen
+    if ds.get("state") == "FALLEN":
+        abort(400, "Hero is fallen. Perform reinvocation ritual first.")
+
+    # Check if hero is already on a mission
+    if ds.get("state") == "ON_MISSION":
+        abort(400, "Hero is already on a mission")
+
+    # Check energy
     cost_energy = mission["energy_cost"]
+    energy_current = ds.get("energy_current", 0)
     if energy_current < cost_energy:
-        abort(400, "not enough energy")
+        abort(400, f"Not enough energy. Required: {cost_energy}, Available: {energy_current}")
 
-    # check cooldown (72h)
+    # Check mission cooldown (72h)
+    mission_hist = ds.get("mission_history", {})
     last_run_ts = mission_hist.get(mission_id)
     if last_run_ts and hours_since(last_run_ts) < ROTATION_HOURS:
-        abort(400, "mission on cooldown")
+        hours_left = ROTATION_HOURS - hours_since(last_run_ts)
+        abort(400, f"This emissary already completed this mission. Cooldown: {hours_left:.1f}h remaining. Try a different mission or wait.")
 
-    # resolver misión (por ahora siempre éxito)
-    xp_gain   = mission["reward_xp"]
-    aura_gain = mission["reward_aura"]
+    # Deduct energy
+    ds["energy_current"] = max(0, energy_current - cost_energy)
 
-    xp_total       += xp_gain
-    aura_level     += aura_gain
-    energy_current -= cost_energy
+    # Set hero state to ON_MISSION
+    ds["state"] = "ON_MISSION"
+    ds["mission_start_time"] = now_utc_str()
+    ds["current_mission_id"] = mission_id
+    ds["last_update"] = now_utc_str()
 
-    ds["xp_total"]        = xp_total
-    ds["aura_level"]      = aura_level
-    ds["energy_current"]  = max(0, energy_current)
-    ds["last_update"]     = now_utc_str()
-    ds["last_mission"]    = mission["name"]
-    mission_hist[mission_id] = now_utc_str()
-    ds["mission_history"]    = mission_hist
+    # Track active mission
+    active_missions = load_json(ACTIVE_MISSIONS_PATH, {})
+    mission_key = f"{wallet}_{hero_id}"
+    active_missions[mission_key] = {
+        "wallet": wallet,
+        "hero_id": hero_id,
+        "mission_id": mission_id,
+        "start_time": ds["mission_start_time"],
+        "duration_hours": mission["duration_hours"]
+    }
 
-    stats_obj["missions_completed"]   = stats_obj.get("missions_completed", 0) + 1
-    stats_obj["total_exp_collected"]  = stats_obj.get("total_exp_collected", 0) + xp_gain
-    stats_obj["total_aura_collected"] = stats_obj.get("total_aura_collected", 0) + aura_gain
+    print(f"\n🔥 SAVING ACTIVE MISSION:")
+    print(f"  Mission Key: {mission_key}")
+    print(f"  Wallet: {wallet}")
+    print(f"  Hero ID: {hero_id}")
+    print(f"  Mission ID: {mission_id}")
+    print(f"  Start Time: {ds['mission_start_time']}")
+    print(f"  Duration: {mission['duration_hours']}h")
+    print(f"  Total active missions: {len(active_missions)}")
 
-    # ranking gremio
-    stats_obj = update_guild_stats(hero_guild_name, xp_gain, aura_gain, stats_obj)
+    save_json(ACTIVE_MISSIONS_PATH, active_missions)
 
-    # recalcular totales, con pasivo otra vez
+    # Verificar que se guardó correctamente
+    verify_missions = load_json(ACTIVE_MISSIONS_PATH, {})
+    print(f"  ✅ Verified: {len(verify_missions)} missions in database after save")
+    if mission_key in verify_missions:
+        print(f"  ✅ Mission {mission_key} confirmed in database")
+    else:
+        print(f"  ❌ WARNING: Mission {mission_key} NOT found in database after save!")
+
+    # 🔥 GUARDAR a base de datos centralizada (fuente de verdad)
+    print(f"\n🔥 UPDATING NFT DYNAMIC STATE IN DATABASE:")
+    print(f"  Token ID: {hero_id}")
+    print(f"  New State: {ds['state']}")
+    print(f"  Mission ID: {ds['current_mission_id']}")
+    print(f"  Start Time: {ds['mission_start_time']}")
+
+    update_result = update_nft_dynamic_state(hero_id, ds)
+    if update_result:
+        print(f"  ✅ NFT dynamic state updated successfully")
+    else:
+        print(f"  ❌ WARNING: Failed to update NFT dynamic state!")
+
+    # Verificar que se guardó el NFT
+    verify_nft = get_nft_from_database(hero_id)
+    if verify_nft:
+        verify_ds = verify_nft.get("dynamic_state", {})
+        print(f"  ✅ Verified NFT state: {verify_ds.get('state')}")
+        print(f"  ✅ Verified mission ID: {verify_ds.get('current_mission_id')}")
+    else:
+        print(f"  ❌ WARNING: NFT {hero_id} not found in database!")
+
+    # Guardar también a players.json (cache de sesión)
+    players_all[wallet] = player_obj
+    save_json(PLAYERS_PATH, players_all)
+    save_json(STATS_PATH, stats_obj)
+
+    # Calculate success rate for display
+    success_rate, bonus = calculate_mission_success_rate(hero, mission)
+
+    return jsonify({
+        "success": True,
+        "hero_id": hero_id,
+        "mission_id": mission_id,
+        "mission_name": mission["name"],
+        "energy_spent": cost_energy,
+        "hero_energy_now": ds["energy_current"],
+        "duration_hours": mission["duration_hours"],
+        "completion_time": datetime.fromisoformat(ds["mission_start_time"].replace("Z", "")) + timedelta(hours=mission["duration_hours"]),
+        "estimated_success_rate": success_rate,
+        "difficulty": mission["difficulty"],
+        "message": f"{hero.get('name', 'Emissary')} has embarked on {mission['name']}! Duration: {mission['duration_hours']}h"
+    })
+
+def handle_party_mission_complete(wallet, party_mission):
+    """
+    Complete party mission (process all 5 heroes individually)
+    """
+    hero_ids = party_mission["hero_ids"]
+    mission_id = party_mission["mission_id"]
+    mission_key = party_mission.get("mission_key", f"{wallet}_{mission_id}_party")
+
+    # Find mission
+    mission = None
+    for m in MISSIONS:
+        if m["id"] == mission_id:
+            mission = m
+            break
+
+    if mission is None:
+        # Check events
+        for e in EVENTS:
+            if e["id"] == mission_id:
+                mission = e
+                break
+
+    if mission is None:
+        abort(400, "Mission not found")
+
+    # Load player data
+    stats_obj = load_json(STATS_PATH, {
+        "total_characters": 0,
+        "active_guilds": 6,
+        "missions_completed": 0,
+        "missions_failed": 0,
+        "total_exp_collected": 0,
+        "total_aura_collected": 0,
+        "guild_ranking": {},
+        "player_leaderboard": []
+    })
+    player_obj, players_all = ensure_player(wallet)
     player_obj, stats_obj = apply_passive_and_regen(player_obj, stats_obj)
 
+    # Check if mission is ready to complete
+    start_time_str = party_mission.get("start_time")
+    if not start_time_str:
+        abort(400, "Mission start time not found")
+
+    hours_elapsed = hours_since(start_time_str)
+    duration_required = mission["duration_hours"]
+
+    if hours_elapsed < duration_required:
+        hours_remaining = duration_required - hours_elapsed
+        abort(400, f"Mission not ready. {hours_remaining:.1f} hours remaining")
+
+    # Process each hero individually
+    results = []
+    total_xp = 0
+    total_aura = 0
+    party_bonus_multiplier = mission.get("party_bonus_multiplier", 1.2)
+    guild_name = None
+
+    for hero_id in hero_ids:
+        # Find hero
+        hero = None
+        for h in player_obj.get("heroes", []):
+            if h.get("token_id") == hero_id:
+                hero = h
+                break
+
+        if hero is None:
+            continue
+
+        ds = hero["dynamic_state"]
+
+        # Check if hero is on this mission
+        if ds.get("state") != "ON_MISSION" or ds.get("current_mission_id") != mission_id:
+            continue
+
+        # Get guild name (for stats update)
+        if guild_name is None:
+            guild_name = hero.get("guild")
+
+        # Roll outcome for THIS SPECIFIC HERO
+        outcome, xp_gain, aura_gain, xp_loss = roll_mission_outcome(hero, mission)
+
+        # Apply party bonus if success
+        if outcome == "SUCCESS":
+            xp_gain = int(xp_gain * party_bonus_multiplier)
+            aura_gain = int(aura_gain * party_bonus_multiplier)
+
+            ds["xp_total"] = ds.get("xp_total", 0) + xp_gain
+            ds["aura_level"] = ds.get("aura_level", 0) + aura_gain
+            ds["state"] = "READY"
+            ds["total_missions_completed"] = ds.get("total_missions_completed", 0) + 1
+
+            # Update mission history
+            if "mission_history" not in ds:
+                ds["mission_history"] = {}
+            ds["mission_history"][mission_id] = now_utc_str()
+
+            # Update global stats
+            stats_obj["missions_completed"] = stats_obj.get("missions_completed", 0) + 1
+            stats_obj["total_exp_collected"] = stats_obj.get("total_exp_collected", 0) + xp_gain
+            stats_obj["total_aura_collected"] = stats_obj.get("total_aura_collected", 0) + aura_gain
+
+            # Update guild stats
+            if guild_name:
+                update_guild_stats(guild_name, xp_gain, aura_gain, stats_obj)
+
+            total_xp += xp_gain
+            total_aura += aura_gain
+
+            # Check and grant achievements
+            total_missions_completed = ds.get("total_missions_completed", 0)
+            achievements_granted = check_and_grant_mission_achievements(hero_id, total_missions_completed)
+
+        elif outcome == "FAILURE":
+            ds["xp_total"] = max(0, ds.get("xp_total", 0) - xp_loss)
+            ds["state"] = "READY"
+            ds["total_missions_failed"] = ds.get("total_missions_failed", 0) + 1
+
+            # Update mission history (even on failure, still cooldown)
+            if "mission_history" not in ds:
+                ds["mission_history"] = {}
+            ds["mission_history"][mission_id] = now_utc_str()
+
+            stats_obj["missions_failed"] = stats_obj.get("missions_failed", 0) + 1
+
+        elif outcome == "DEATH":
+            ds["xp_total"] = max(0, ds.get("xp_total", 0) - xp_loss)
+            ds["state"] = "FALLEN"
+            ds["death_count"] = ds.get("death_count", 0) + 1
+            ds["total_missions_failed"] = ds.get("total_missions_failed", 0) + 1
+
+            # Update mission history (even on death, still cooldown)
+            if "mission_history" not in ds:
+                ds["mission_history"] = {}
+            ds["mission_history"][mission_id] = now_utc_str()
+
+            stats_obj["missions_failed"] = stats_obj.get("missions_failed", 0) + 1
+
+        # Clear mission state
+        ds["mission_start_time"] = None
+        ds["current_mission_id"] = None
+        ds["last_update"] = now_utc_str()
+
+        # Update NFT dynamic state in database
+        update_nft_dynamic_state(hero_id, ds)
+
+        results.append({
+            "hero_id": hero_id,
+            "hero_name": hero.get("name"),
+            "outcome": outcome,
+            "xp_gain": xp_gain if outcome == "SUCCESS" else 0,
+            "aura_gain": aura_gain if outcome == "SUCCESS" else 0,
+            "xp_loss": xp_loss if outcome != "SUCCESS" else 0,
+            "new_xp_total": ds.get("xp_total", 0),
+            "new_aura_total": ds.get("aura_level", 0),
+            "new_state": ds.get("state")
+        })
+
+    # Remove from active missions
+    active_missions = load_json(ACTIVE_MISSIONS_PATH, {})
+    if mission_key in active_missions:
+        del active_missions[mission_key]
+        save_json(ACTIVE_MISSIONS_PATH, active_missions)
+
+    # Save player data
+    players_all[wallet] = player_obj
+    save_json(PLAYERS_PATH, players_all)
+    save_json(STATS_PATH, stats_obj)
+
+    # Calculate summary
+    successes = len([r for r in results if r["outcome"] == "SUCCESS"])
+    failures = len([r for r in results if r["outcome"] == "FAILURE"])
+    deaths = len([r for r in results if r["outcome"] == "DEATH"])
+
+    print(f"\n🎮 PARTY MISSION COMPLETED:")
+    print(f"  Mission: {mission['name']}")
+    print(f"  Successes: {successes}, Failures: {failures}, Deaths: {deaths}")
+    print(f"  Total XP: {total_xp}, Total Aura: {total_aura}")
+
+    return jsonify({
+        "success": True,
+        "party": True,
+        "mission_name": mission["name"],
+        "results": results,
+        "summary": {
+            "successes": successes,
+            "failures": failures,
+            "deaths": deaths,
+            "total_xp": total_xp,
+            "total_aura": total_aura,
+            "party_bonus": f"+{int((party_bonus_multiplier - 1) * 100)}%"
+        }
+    })
+
+@app.route("/api/mission/complete", methods=["POST"])
+def api_mission_complete():
+    """
+    Complete a mission (solo or party).
+    POST solo: { "wallet": "0x...", "hero_id": "00001" }
+    POST party: Mission is detected automatically from active_missions
+    """
+    data = request.get_json(force=True)
+    wallet = data.get("wallet")
+    hero_id = data.get("hero_id")
+
+    if not wallet:
+        abort(400, "Missing wallet")
+
+    # 🔥 NORMALIZE wallet address to lowercase
+    wallet = wallet.lower()
+
+    # Check if this is a party mission
+    active_missions = load_json(ACTIVE_MISSIONS_PATH, {})
+
+    # Look for party mission for this wallet
+    party_mission = None
+    for key, mission_data in active_missions.items():
+        if mission_data.get("is_party") and mission_data.get("wallet") == wallet:
+            # Check if the provided hero_id is part of this party
+            if hero_id and hero_id in mission_data.get("hero_ids", []):
+                party_mission = mission_data.copy()
+                party_mission["mission_key"] = key
+                break
+
+    if party_mission:
+        # PARTY MISSION COMPLETION
+        return handle_party_mission_complete(wallet, party_mission)
+
+    # SOLO MISSION COMPLETION (EXISTING CODE CONTINUES)
+    if not hero_id:
+        abort(400, "Missing hero_id for solo mission")
+
+    stats_obj = load_json(STATS_PATH, {
+        "total_characters": 0,
+        "active_guilds": 6,
+        "missions_completed": 0,
+        "missions_failed": 0,
+        "total_exp_collected": 0,
+        "total_aura_collected": 0,
+        "guild_ranking": {},
+        "player_leaderboard": []
+    })
+    player_obj, players_all = ensure_player(wallet)
+
+    # Apply passive gains
+    player_obj, stats_obj = apply_passive_and_regen(player_obj, stats_obj)
+
+    # Find hero
+    hero = None
+    for h in player_obj.get("heroes", []):
+        if h.get("token_id") == hero_id:
+            hero = h
+            break
+    if hero is None:
+        abort(404, "Hero not found")
+
+    ds = hero["dynamic_state"]
+
+    # Check if hero is on a mission
+    if ds.get("state") != "ON_MISSION":
+        abort(400, "Hero is not on a mission")
+
+    mission_id = ds.get("current_mission_id")
+    if not mission_id:
+        abort(400, "No active mission found")
+
+    # Find mission (check both MISSIONS and EVENTS)
+    mission = None
+    for m in MISSIONS:
+        if m["id"] == mission_id:
+            mission = m
+            break
+
+    # If not found in missions, check events
+    if mission is None:
+        for e in EVENTS:
+            if e["id"] == mission_id:
+                mission = e
+                break
+
+    if mission is None:
+        abort(400, "Mission configuration not found")
+
+    # Check if mission duration has elapsed
+    start_time_str = ds.get("mission_start_time")
+    if not start_time_str:
+        abort(400, "Mission start time not found")
+
+    hours_elapsed = hours_since(start_time_str)
+    if hours_elapsed < mission["duration_hours"]:
+        hours_left = mission["duration_hours"] - hours_elapsed
+        abort(400, f"Mission not yet complete. {hours_left:.1f} hours remaining")
+
+    # Roll for outcome
+    outcome, details = roll_mission_outcome(hero, mission)
+
+    hero_guild_name = hero.get("guild") or ds.get("current_guild", "Unknown Guild")
+    total_missions_completed = ds.get("total_missions_completed", 0)
+
+    # Process outcome
+    if outcome == "SUCCESS":
+        # Mission succeeded
+        xp_gain = details["xp_gain"]
+        aura_gain = details["aura_gain"]
+
+        ds["xp_total"] = ds.get("xp_total", 0) + xp_gain
+        ds["aura_level"] = ds.get("aura_level", 0) + aura_gain
+        ds["state"] = "READY"
+        ds["last_mission"] = mission["name"]
+        ds["current_mission_id"] = None
+        ds["mission_start_time"] = None
+
+        # Update mission history
+        mission_hist = ds.get("mission_history", {})
+        mission_hist[mission_id] = now_utc_str()
+        ds["mission_history"] = mission_hist
+
+        # Update mission count
+        total_missions_completed += 1
+        ds["total_missions_completed"] = total_missions_completed
+
+        # Update stats
+        stats_obj["missions_completed"] = stats_obj.get("missions_completed", 0) + 1
+        stats_obj["total_exp_collected"] = stats_obj.get("total_exp_collected", 0) + xp_gain
+        stats_obj["total_aura_collected"] = stats_obj.get("total_aura_collected", 0) + aura_gain
+
+        # Update guild stats
+        stats_obj = update_guild_stats(hero_guild_name, xp_gain, aura_gain, stats_obj, success=True)
+
+        # Check and grant achievements
+        achievements_granted = check_and_grant_mission_achievements(hero_id, total_missions_completed)
+
+        # Remove from active missions
+        active_missions = load_json(ACTIVE_MISSIONS_PATH, {})
+        mission_key = f"{wallet}_{hero_id}"
+        if mission_key in active_missions:
+            del active_missions[mission_key]
+            save_json(ACTIVE_MISSIONS_PATH, active_missions)
+
+        # 🔥 GUARDAR a base de datos centralizada (fuente de verdad)
+        ds["last_update"] = now_utc_str()
+        update_nft_dynamic_state(hero_id, ds)
+
+        # Guardar también a players.json (cache de sesión)
+        player_obj, stats_obj = apply_passive_and_regen(player_obj, stats_obj)
+        players_all[wallet] = player_obj
+        save_json(PLAYERS_PATH, players_all)
+        save_json(STATS_PATH, stats_obj)
+
+        return jsonify({
+            "success": True,
+            "outcome": "SUCCESS",
+            "hero_id": hero_id,
+            "mission_name": mission["name"],
+            "xp_gained": xp_gain,
+            "aura_gained": aura_gain,
+            "perfect_alignment": details.get("perfect_alignment", False),
+            "hero_xp_now": ds["xp_total"],
+            "hero_aura_now": ds["aura_level"],
+            "achievements_granted": achievements_granted,
+            "message": f"🎉 SUCCESS! {hero.get('name', 'Emissary')} completed {mission['name']}!"
+        })
+
+    elif outcome == "FAILURE":
+        # Mission failed but hero survived
+        xp_loss = details["xp_loss"]
+
+        current_xp = ds.get("xp_total", 0)
+        ds["xp_total"] = max(0, current_xp - xp_loss)
+        ds["state"] = "READY"
+        ds["last_mission"] = f"{mission['name']} (Failed)"
+        ds["current_mission_id"] = None
+        ds["mission_start_time"] = None
+
+        # Update stats
+        stats_obj["missions_failed"] = stats_obj.get("missions_failed", 0) + 1
+
+        # Update guild stats
+        stats_obj = update_guild_stats(hero_guild_name, -xp_loss, 0, stats_obj, success=False)
+
+        # Remove from active missions
+        active_missions = load_json(ACTIVE_MISSIONS_PATH, {})
+        mission_key = f"{wallet}_{hero_id}"
+        if mission_key in active_missions:
+            del active_missions[mission_key]
+            save_json(ACTIVE_MISSIONS_PATH, active_missions)
+
+        # 🔥 GUARDAR a base de datos centralizada (fuente de verdad)
+        ds["last_update"] = now_utc_str()
+        update_nft_dynamic_state(hero_id, ds)
+
+        # Guardar también a players.json (cache de sesión)
+        player_obj, stats_obj = apply_passive_and_regen(player_obj, stats_obj)
+        players_all[wallet] = player_obj
+        save_json(PLAYERS_PATH, players_all)
+        save_json(STATS_PATH, stats_obj)
+
+        return jsonify({
+            "success": True,
+            "outcome": "FAILURE",
+            "hero_id": hero_id,
+            "mission_name": mission["name"],
+            "xp_lost": xp_loss,
+            "hero_xp_now": ds["xp_total"],
+            "message": f"⚠️ FAILED: {hero.get('name', 'Emissary')} failed {mission['name']} and lost {xp_loss} XP."
+        })
+
+    elif outcome == "DEATH":
+        # Hero died
+        ds["state"] = "FALLEN"
+        ds["fallen_time"] = now_utc_str()
+        ds["current_mission_id"] = None
+        ds["mission_start_time"] = None
+        ds["last_mission"] = f"{mission['name']} (Fallen)"
+
+        # Increment death count
+        death_count = ds.get("death_count", 0)
+        ds["death_count"] = death_count + 1
+
+        # Calculate reinvocation cost
+        xp_cost, aura_cost = get_death_cost(death_count)
+
+        # Update stats
+        stats_obj["missions_failed"] = stats_obj.get("missions_failed", 0) + 1
+        stats_obj["total_deaths"] = stats_obj.get("total_deaths", 0) + 1
+
+        # Remove from active missions
+        active_missions = load_json(ACTIVE_MISSIONS_PATH, {})
+        mission_key = f"{wallet}_{hero_id}"
+        if mission_key in active_missions:
+            del active_missions[mission_key]
+            save_json(ACTIVE_MISSIONS_PATH, active_missions)
+
+        # 🔥 GUARDAR a base de datos centralizada (fuente de verdad)
+        ds["last_update"] = now_utc_str()
+        update_nft_dynamic_state(hero_id, ds)
+
+        # Guardar también a players.json (cache de sesión)
+        player_obj, stats_obj = apply_passive_and_regen(player_obj, stats_obj)
+        players_all[wallet] = player_obj
+        save_json(PLAYERS_PATH, players_all)
+        save_json(STATS_PATH, stats_obj)
+
+        return jsonify({
+            "success": True,
+            "outcome": "DEATH",
+            "hero_id": hero_id,
+            "mission_name": mission["name"],
+            "death_count": ds["death_count"],
+            "reinvocation_cost": {
+                "xp": xp_cost,
+                "aura": aura_cost
+            },
+            "message": f"💀 FALLEN: {hero.get('name', 'Emissary')} has fallen in {mission['name']}. Reinvocation ritual required."
+        })
+
+    else:
+        abort(500, "Unknown mission outcome")
+
+@app.route("/api/ritual/reinvoke", methods=["POST"])
+def api_ritual_reinvoke():
+    """
+    Perform reinvocation ritual for a fallen hero.
+    POST: {
+        "wallet": "0x...",
+        "fallen_hero_id": "00001",
+        "sacrifices": [
+            {"hero_id": "00002", "xp_donate": 300, "aura_donate": 50},
+            {"hero_id": "00003", "xp_donate": 200, "aura_donate": 50}
+        ]
+    }
+    """
+    data = request.get_json(force=True)
+    wallet = data.get("wallet")
+    fallen_hero_id = data.get("fallen_hero_id")
+    sacrifices = data.get("sacrifices", [])
+
+    if not wallet or not fallen_hero_id or not sacrifices:
+        abort(400, "Missing wallet, fallen_hero_id, or sacrifices")
+
+    stats_obj = load_json(STATS_PATH, {
+        "total_characters": 0,
+        "active_guilds": 6,
+        "missions_completed": 0,
+        "missions_failed": 0,
+        "total_exp_collected": 0,
+        "total_aura_collected": 0,
+        "guild_ranking": {},
+        "player_leaderboard": []
+    })
+    player_obj, players_all = ensure_player(wallet)
+
+    # Apply passive gains
+    player_obj, stats_obj = apply_passive_and_regen(player_obj, stats_obj)
+
+    # Find fallen hero
+    fallen_hero = None
+    for h in player_obj.get("heroes", []):
+        if h.get("token_id") == fallen_hero_id:
+            fallen_hero = h
+            break
+    if fallen_hero is None:
+        abort(404, "Fallen hero not found")
+
+    ds = fallen_hero["dynamic_state"]
+
+    # Check if hero is fallen
+    if ds.get("state") != "FALLEN":
+        abort(400, "Hero is not fallen")
+
+    # Get death count and calculate cost
+    death_count = ds.get("death_count", 0)
+    if death_count == 0:
+        death_count = 1  # At least first death
+    xp_cost, aura_cost = get_death_cost(death_count - 1)
+
+    # Calculate total sacrifice
+    total_xp_donated = 0
+    total_aura_donated = 0
+
+    for sacrifice in sacrifices:
+        sacrifice_hero_id = sacrifice.get("hero_id")
+        xp_donate = sacrifice.get("xp_donate", 0)
+        aura_donate = sacrifice.get("aura_donate", 0)
+
+        # Find sacrifice hero
+        sacrifice_hero = None
+        for h in player_obj.get("heroes", []):
+            if h.get("token_id") == sacrifice_hero_id:
+                sacrifice_hero = h
+                break
+
+        if sacrifice_hero is None:
+            abort(404, f"Sacrifice hero {sacrifice_hero_id} not found")
+
+        # Check if sacrifice hero is from same wallet
+        if sacrifice_hero.get("token_id") == fallen_hero_id:
+            abort(400, "Cannot sacrifice the fallen hero itself")
+
+        # Check if sacrifice hero has enough resources
+        sac_ds = sacrifice_hero["dynamic_state"]
+        sac_xp = sac_ds.get("xp_total", 0)
+        sac_aura = sac_ds.get("aura_level", 0)
+
+        if sac_xp < xp_donate:
+            abort(400, f"Sacrifice hero {sacrifice_hero_id} doesn't have enough XP")
+        if sac_aura < aura_donate:
+            abort(400, f"Sacrifice hero {sacrifice_hero_id} doesn't have enough Aura")
+
+        # Deduct from sacrifice hero
+        sac_ds["xp_total"] = max(0, sac_xp - xp_donate)
+        sac_ds["aura_level"] = max(0, sac_aura - aura_donate)
+        sac_ds["last_update"] = now_utc_str()
+
+        total_xp_donated += xp_donate
+        total_aura_donated += aura_donate
+
+    # Check if total donation is sufficient
+    if total_xp_donated < xp_cost:
+        abort(400, f"Insufficient XP. Required: {xp_cost}, Donated: {total_xp_donated}")
+    if total_aura_donated < aura_cost:
+        abort(400, f"Insufficient Aura. Required: {aura_cost}, Donated: {total_aura_donated}")
+
+    # Revive fallen hero
+    ds["state"] = "READY"
+    ds["xp_total"] = 100  # Revive with 100 XP
+    ds["aura_level"] = 20  # Revive with 20 Aura
+    ds["energy_current"] = ds.get("energy_max", 100) // 2  # Revive with 50% energy
+    ds["last_update"] = now_utc_str()
+    ds["fallen_time"] = None
+
+    # Update stats
+    stats_obj["total_reinvocations"] = stats_obj.get("total_reinvocations", 0) + 1
+
+    # Save
+    player_obj, stats_obj = apply_passive_and_regen(player_obj, stats_obj)
     players_all[wallet] = player_obj
     save_json(PLAYERS_PATH, players_all)
     save_json(STATS_PATH, stats_obj)
 
     return jsonify({
-        "hero_id": hero_id,
-        "mission_id": mission_id,
-        "mission_name": mission["name"],
-        "energy_spent": cost_energy,
-        "xp_gained": xp_gain,
-        "aura_gained": aura_gain,
-        "hero_energy_now": ds["energy_current"],
+        "success": True,
+        "hero_id": fallen_hero_id,
+        "xp_donated": total_xp_donated,
+        "aura_donated": total_aura_donated,
         "hero_xp_now": ds["xp_total"],
-        "hero_aura_now": ds["aura_level"]
+        "hero_aura_now": ds["aura_level"],
+        "hero_energy_now": ds["energy_current"],
+        "message": f"✨ REINVOKED: {fallen_hero.get('name', 'Emissary')} has been brought back from the fallen state!"
+    })
+
+# ---------------------------------
+# API: ADMIN - Poblar base de datos
+# ---------------------------------
+
+@app.route("/api/admin/populate_database", methods=["POST"])
+def api_admin_populate_database():
+    """
+    🔥 Endpoint de administración para poblar la base de datos centralizada
+    con todos los NFTs desde los archivos de metadata.
+
+    POST: {
+        "start_token": 1,        # Token ID inicial (default: 1)
+        "end_token": 100,        # Token ID final (default: 100)
+        "overwrite": false       # Si true, sobrescribe NFTs existentes
+    }
+
+    Útil para:
+    - Poblar DB inicial con NFTs ya minteados
+    - Sincronizar NFTs sin esperar a que usuarios conecten wallets
+    - Mantener estadísticas globales actualizadas
+    """
+    data = request.get_json(force=True)
+    start_token = data.get("start_token", 1)
+    end_token = data.get("end_token", 100)
+    overwrite = data.get("overwrite", False)
+
+    synced = []
+    skipped = []
+    errors = []
+
+    print(f"\n🔄 Populating database: tokens {start_token} to {end_token}")
+
+    for token_id in range(start_token, end_token + 1):
+        token_id_padded = str(token_id).zfill(5)
+
+        try:
+            # Check if metadata file exists
+            metadata_file = os.path.join(METADATA_DIR, f"{token_id_padded}.json")
+            if not os.path.exists(metadata_file):
+                skipped.append({"token_id": token_id_padded, "reason": "metadata file not found"})
+                continue
+
+            # Check if already exists in DB
+            existing = get_nft_from_database(token_id_padded)
+            if existing and not overwrite:
+                skipped.append({"token_id": token_id_padded, "reason": "already in database (use overwrite=true)"})
+                continue
+
+            # Sync to database
+            nft = sync_nft_to_database(token_id, owner_wallet=None)
+            synced.append({
+                "token_id": token_id_padded,
+                "name": nft.get("name"),
+                "guild": nft.get("guild"),
+                "xp": nft.get("dynamic_state", {}).get("xp_total", 0)
+            })
+            print(f"  ✅ Synced: {token_id_padded} - {nft.get('name')}")
+
+        except Exception as e:
+            errors.append({"token_id": token_id_padded, "error": str(e)})
+            print(f"  ❌ Error syncing {token_id_padded}: {e}")
+
+    # Recalcular stats y guilds
+    print(f"\n📊 Recalculating global stats...")
+    calculate_guilds_data()
+
+    return jsonify({
+        "success": True,
+        "synced_count": len(synced),
+        "skipped_count": len(skipped),
+        "errors_count": len(errors),
+        "synced": synced,
+        "skipped": skipped,
+        "errors": errors,
+        "message": f"Database populated: {len(synced)} NFTs synced, {len(skipped)} skipped, {len(errors)} errors"
     })
 
 # ---------------------------------
@@ -1024,6 +2640,65 @@ def find_dynamic_state_for_token(token_id):
     }
 
 # ---------------------------------
+# API: ACHIEVEMENTS
+# ---------------------------------
+
+@app.route("/api/achievements")
+def api_achievements_list():
+    """List all available achievements"""
+    return jsonify({
+        "success": True,
+        "achievements": AVAILABLE_ACHIEVEMENTS
+    })
+
+@app.route("/api/achievements/<token_id>")
+def api_token_achievements(token_id):
+    """Get achievements for a specific token"""
+    achievements = get_token_achievements(token_id)
+
+    # Format achievements with details
+    detailed_achievements = []
+    for ach_id in achievements:
+        if ach_id in AVAILABLE_ACHIEVEMENTS:
+            ach = AVAILABLE_ACHIEVEMENTS[ach_id]
+            detailed_achievements.append({
+                "id": ach_id,
+                "name": ach["name"],
+                "description": ach["description"],
+                "icon": ach["icon"]
+            })
+
+    return jsonify({
+        "success": True,
+        "token_id": token_id,
+        "achievements": detailed_achievements,
+        "total": len(achievements)
+    })
+
+@app.route("/api/achievements/grant", methods=["POST"])
+def api_grant_achievement():
+    """
+    Grant an achievement to a token
+    POST body: { "token_id": "00042", "achievement_id": "first_mission" }
+    """
+    data = request.get_json()
+
+    if not data or "token_id" not in data or "achievement_id" not in data:
+        return jsonify({"success": False, "error": "Missing token_id or achievement_id"}), 400
+
+    token_id = data["token_id"]
+    achievement_id = data["achievement_id"]
+
+    success, message = grant_achievement(token_id, achievement_id)
+
+    return jsonify({
+        "success": success,
+        "message": message,
+        "token_id": token_id,
+        "achievement_id": achievement_id
+    })
+
+# ---------------------------------
 # API: NFT METADATA dinámica tipo DX Terminal / OpenSea
 # ---------------------------------
 
@@ -1043,14 +2718,19 @@ def api_metadata(token_id):
     dyn = find_dynamic_state_for_token(token_id)
 
     current_guild = dyn.get("current_guild", base_meta.get("starting_guild", "Unknown"))
+    starting_guild = base_meta.get("starting_guild", "Unknown")
     energy_str = f"{dyn.get('energy_current',0)} / {dyn.get('energy_max',0)}"
+
+    # Get achievements for this token
+    achievements = get_token_achievements(token_id)
 
     traits = [
         {"trait_type": "Token ID",      "value": base_meta.get("token_id")},
         {"trait_type": "Race",          "value": base_meta.get("race")},
         {"trait_type": "Class",         "value": base_meta.get("class")},
         {"trait_type": "Rarity",        "value": base_meta.get("rarity")},
-        {"trait_type": "Guild",         "value": current_guild},
+        {"trait_type": "Starting Guild", "value": starting_guild},
+        {"trait_type": "Current Guild",  "value": current_guild},
         {"trait_type": "Age",           "value": base_meta.get("age")},
         {"trait_type": "STR",           "value": base_meta.get("str")},
         {"trait_type": "DEX",           "value": base_meta.get("dex")},
@@ -1067,6 +2747,23 @@ def api_metadata(token_id):
         {"trait_type": "Last Update",   "value": dyn.get("last_update", now_utc_str())}
     ]
 
+    # Add achievements to attributes
+    for ach_id in achievements:
+        if ach_id in AVAILABLE_ACHIEVEMENTS:
+            ach = AVAILABLE_ACHIEVEMENTS[ach_id]
+            traits.append({
+                "trait_type": f"Achievement: {ach['name']}",
+                "value": "✅"
+            })
+
+    # Add total achievements count
+    if len(achievements) > 0:
+        traits.append({
+            "display_type": "number",
+            "trait_type": "Total Achievements",
+            "value": len(achievements)
+        })
+
     response = {
         "name":        base_meta.get("name", f"Emissary #{str(token_id).zfill(5)}"),
         "description": base_meta.get("description", "Emissary of Emberholm."),
@@ -1077,8 +2774,855 @@ def api_metadata(token_id):
     return jsonify(response)
 
 # ---------------------------------
+# Auto-populate database on startup
+# ---------------------------------
+
+# 🔥 NO sincronizar metadata al inicio - los member counts son fijos en guilds.json
+# Solo sincronizar NFTs cuando los usuarios conecten sus wallets (auto-sync en POST /api/player)
+# XP/Aura/Misiones se acumulan desde nfts_database.json cuando los NFTs juegan misiones
+print("✅ Server initialized - member counts fixed at 35,000 NFTs")
+print("   XP/Aura will accumulate as NFTs complete missions")
+
+# ---------------------------------
 # Run local dev server
+# ---------------------------------
+# 🔥 VALIDACIÓN DE INTEGRIDAD DE DATOS
+# ---------------------------------
+
+def validate_nft_dynamic_state(nft):
+    """
+    Valida que un NFT tenga todos los campos dinámicos requeridos.
+    Si faltan campos, los agrega con valores por defecto.
+
+    Args:
+        nft: Objeto NFT desde nfts_database.json
+
+    Returns:
+        NFT validado y corregido
+    """
+    if "dynamic_state" not in nft:
+        nft["dynamic_state"] = {}
+
+    ds = nft["dynamic_state"]
+
+    # 🔥 CAMPOS REQUERIDOS con valores por defecto
+    required_fields = {
+        "xp_total": 0,
+        "aura_level": 0,
+        "energy_current": 100,
+        "energy_max": 100,
+        "state": "READY",
+        "current_guild": nft.get("guild", "Unassigned"),
+        "last_update": now_utc_str(),
+        "last_energy_refresh": now_utc_str(),
+        "mission_history": {},
+        "power_current": 10,
+        "xp_level": 1,
+        "last_mission": "None",
+        "total_missions_completed": 0,
+        "death_count": 0,
+        "current_mission_id": None,
+        "mission_start_time": None,
+        "fallen_time": None
+    }
+
+    # Agregar campos faltantes
+    for field, default_value in required_fields.items():
+        if field not in ds:
+            ds[field] = default_value
+
+    nft["dynamic_state"] = ds
+    return nft
+
+def validate_database_integrity():
+    """
+    🔥 VALIDACIÓN COMPLETA DE INTEGRIDAD DE LA BASE DE DATOS
+
+    Verifica que todos los NFTs en nfts_database.json tengan:
+    - Todos los campos dinámicos requeridos
+    - Valores válidos (no None donde no debe ser)
+    - Estructura correcta
+
+    Se ejecuta al iniciar el servidor para garantizar integridad.
+    """
+    print("\n" + "="*70)
+    print("🔍 VALIDATING DATABASE INTEGRITY...")
+    print("="*70)
+
+    db = load_nfts_database()
+    total_nfts = len(db)
+    fixed_count = 0
+
+    print(f"📊 Total NFTs in database: {total_nfts}")
+
+    for token_id, nft in db.items():
+        original_nft = json.dumps(nft, sort_keys=True)
+        validated_nft = validate_nft_dynamic_state(nft)
+
+        if json.dumps(validated_nft, sort_keys=True) != original_nft:
+            db[token_id] = validated_nft
+            fixed_count += 1
+
+    if fixed_count > 0:
+        print(f"🔧 Fixed {fixed_count} NFTs with missing/invalid fields")
+        save_nfts_database(db)
+        print(f"✅ Database integrity validated and fixed")
+    else:
+        print(f"✅ All {total_nfts} NFTs have complete and valid data")
+
+    print("="*70 + "\n")
+    return total_nfts, fixed_count
+
+# ---------------------------------
+# DEBUG ENDPOINT - PostgreSQL Verification
+# ---------------------------------
+
+@app.route("/api/debug/postgresql")
+def api_debug_postgresql():
+    """
+    🔍 DEBUG ENDPOINT - Verificar estado de PostgreSQL
+
+    Este endpoint temporal verifica:
+    - Si DATABASE_URL está configurado
+    - Si PostgreSQL está disponible
+    - Qué tablas existen
+    - Cuántos registros hay en cada tabla
+
+    Acceder desde: https://emberholm-portal.onrender.com/api/debug/postgresql
+    """
+    import os
+
+    result = {
+        "timestamp": now_utc_str(),
+        "database_url_configured": False,
+        "postgresql_available": False,
+        "connection_error": None,
+        "tables": [],
+        "data_counts": {},
+        "module_imported": False
+    }
+
+    # Check 1: DATABASE_URL configurado
+    database_url = os.environ.get('DATABASE_URL')
+    result["database_url_configured"] = database_url is not None
+    if database_url:
+        # Ocultar password en output
+        result["database_url_host"] = database_url.split('@')[1].split('/')[0] if '@' in database_url else "unknown"
+
+    # Check 1.5: Verificar si archivos existen
+    import os as os_module
+    base_dir = os_module.path.dirname(__file__)
+    result["files_exist"] = {
+        "database.py": os_module.path.exists(os_module.path.join(base_dir, "database.py")),
+        "schema.sql": os_module.path.exists(os_module.path.join(base_dir, "schema.sql")),
+        "setup_database.py": os_module.path.exists(os_module.path.join(base_dir, "setup_database.py"))
+    }
+
+    # Check 2: Módulo database importado
+    try:
+        result["module_imported"] = POSTGRESQL_AVAILABLE
+        result["postgresql_available"] = POSTGRESQL_AVAILABLE
+        result["db_module_exists"] = db is not None
+    except Exception as e:
+        result["module_imported"] = False
+        result["postgresql_available"] = False
+        result["import_error"] = str(e)
+        result["db_module_exists"] = False
+
+        # Intentar importar nuevamente para capturar el error exacto
+        try:
+            import database as test_db
+            result["reimport_test"] = "Success"
+        except Exception as reimport_error:
+            result["reimport_error"] = str(reimport_error)
+            result["reimport_error_type"] = type(reimport_error).__name__
+
+    # Check 3: Intentar conexión y verificar tablas
+    if result["postgresql_available"]:
+        try:
+            conn = db.get_connection()
+            if conn:
+                with conn.cursor() as cur:
+                    # Verificar tablas
+                    cur.execute("""
+                        SELECT table_name
+                        FROM information_schema.tables
+                        WHERE table_schema = 'public'
+                        AND table_type = 'BASE TABLE'
+                        ORDER BY table_name
+                    """)
+                    tables = [row[0] for row in cur.fetchall()]
+                    result["tables"] = tables
+
+                    # Contar registros en cada tabla
+                    for table in tables:
+                        try:
+                            cur.execute(f"SELECT COUNT(*) FROM {table}")
+                            count = cur.fetchone()[0]
+                            result["data_counts"][table] = count
+                        except Exception as e:
+                            result["data_counts"][table] = f"Error: {str(e)}"
+
+                db.release_connection(conn)
+                result["status"] = "✅ PostgreSQL funcionando correctamente"
+            else:
+                result["connection_error"] = "No se pudo obtener conexión del pool"
+                result["status"] = "❌ Error obteniendo conexión"
+        except Exception as e:
+            result["connection_error"] = str(e)
+            result["status"] = f"❌ Error conectando: {str(e)}"
+    else:
+        result["status"] = "⚠️ PostgreSQL no disponible - usando JSON fallback"
+
+    # Check 4: Verificar si hay misiones activas
+    if "active_missions" in result["data_counts"]:
+        missions_count = result["data_counts"]["active_missions"]
+        if isinstance(missions_count, int):
+            if missions_count > 0:
+                result["missions_status"] = f"✅ {missions_count} misiones activas en PostgreSQL"
+            else:
+                result["missions_status"] = "⚠️ No hay misiones activas en PostgreSQL"
+
+    # Check 5: Verificar psycopg2
+    result["psycopg2_check"] = {}
+    try:
+        import psycopg2
+        result["psycopg2_check"]["installed"] = True
+        result["psycopg2_check"]["version"] = psycopg2.__version__
+    except ImportError as e:
+        result["psycopg2_check"]["installed"] = False
+        result["psycopg2_check"]["error"] = str(e)
+    except Exception as e:
+        result["psycopg2_check"]["installed"] = False
+        result["psycopg2_check"]["error"] = f"Unexpected error: {str(e)}"
+
+    # Check 6: Ver qué paquetes están instalados
+    try:
+        import pkg_resources
+        installed_packages = [f"{pkg.key}=={pkg.version}" for pkg in pkg_resources.working_set]
+        postgres_related = [pkg for pkg in installed_packages if 'psycopg' in pkg.lower() or 'postgres' in pkg.lower()]
+        result["installed_postgres_packages"] = postgres_related
+    except:
+        result["installed_postgres_packages"] = "Unable to check"
+
+    return jsonify(result)
+
+@app.route("/api/setup/postgresql")
+def api_setup_postgresql():
+    """
+    🔧 SETUP ENDPOINT - Crear tablas de PostgreSQL
+
+    Este endpoint ejecuta el schema SQL para crear todas las tablas.
+    Solo debe ejecutarse UNA VEZ después de configurar PostgreSQL.
+
+    Acceder desde: https://emberholm-portal.onrender.com/api/setup/postgresql
+    """
+    if not POSTGRESQL_AVAILABLE:
+        return jsonify({
+            "success": False,
+            "error": "PostgreSQL no está disponible"
+        })
+
+    # Schema SQL (inline para no depender de archivo externo)
+    SCHEMA_SQL = """
+    -- EMBERHOLM PORTAL - POSTGRESQL SCHEMA
+
+    CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+    CREATE TABLE IF NOT EXISTS nfts (
+        token_id VARCHAR(10) PRIMARY KEY,
+        name VARCHAR(255),
+        guild VARCHAR(100),
+        race_class VARCHAR(100),
+        last_known_owner VARCHAR(42),
+        dynamic_state JSONB NOT NULL DEFAULT '{}'::jsonb,
+        last_update TIMESTAMP DEFAULT NOW(),
+        created_at TIMESTAMP DEFAULT NOW()
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_nfts_owner ON nfts(last_known_owner);
+    CREATE INDEX IF NOT EXISTS idx_nfts_guild ON nfts(guild);
+    CREATE INDEX IF NOT EXISTS idx_nfts_state ON nfts((dynamic_state->>'state'));
+    CREATE INDEX IF NOT EXISTS idx_nfts_xp ON nfts(((dynamic_state->>'xp_total')::int));
+    CREATE INDEX IF NOT EXISTS idx_nfts_aura ON nfts(((dynamic_state->>'aura_level')::int));
+
+    CREATE TABLE IF NOT EXISTS active_missions (
+        mission_key VARCHAR(100) PRIMARY KEY,
+        wallet VARCHAR(42) NOT NULL,
+        hero_id VARCHAR(10) NOT NULL,
+        mission_id VARCHAR(10) NOT NULL,
+        start_time TIMESTAMP NOT NULL,
+        duration_hours INTEGER NOT NULL,
+        created_at TIMESTAMP DEFAULT NOW()
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_active_missions_wallet ON active_missions(wallet);
+    CREATE INDEX IF NOT EXISTS idx_active_missions_hero ON active_missions(hero_id);
+    CREATE INDEX IF NOT EXISTS idx_active_missions_mission ON active_missions(mission_id);
+
+    CREATE TABLE IF NOT EXISTS players (
+        wallet VARCHAR(42) PRIMARY KEY,
+        player_data JSONB NOT NULL DEFAULT '{}'::jsonb,
+        last_update TIMESTAMP DEFAULT NOW(),
+        created_at TIMESTAMP DEFAULT NOW()
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_players_wallet ON players(wallet);
+
+    CREATE TABLE IF NOT EXISTS global_stats (
+        id INTEGER PRIMARY KEY DEFAULT 1,
+        stats_data JSONB NOT NULL DEFAULT '{}'::jsonb,
+        last_update TIMESTAMP DEFAULT NOW(),
+        CONSTRAINT single_row_stats CHECK (id = 1)
+    );
+
+    INSERT INTO global_stats (id, stats_data)
+    VALUES (1, '{
+        "total_characters": 0,
+        "active_guilds": 6,
+        "missions_completed": 0,
+        "missions_failed": 0,
+        "missions_in_progress": 0,
+        "total_exp_collected": 0,
+        "total_aura_collected": 0,
+        "guild_ranking": [],
+        "player_leaderboard": []
+    }'::jsonb)
+    ON CONFLICT (id) DO NOTHING;
+
+    CREATE TABLE IF NOT EXISTS achievements (
+        token_id VARCHAR(10),
+        achievement_id VARCHAR(100),
+        granted_at TIMESTAMP DEFAULT NOW(),
+        PRIMARY KEY (token_id, achievement_id)
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_achievements_token ON achievements(token_id);
+    CREATE INDEX IF NOT EXISTS idx_achievements_id ON achievements(achievement_id);
+
+    CREATE OR REPLACE FUNCTION count_active_missions()
+    RETURNS INTEGER AS $$
+        SELECT COUNT(*)::INTEGER FROM active_missions;
+    $$ LANGUAGE SQL;
+    """
+
+    result = {
+        "timestamp": now_utc_str(),
+        "success": False,
+        "tables_created": [],
+        "indexes_created": 0,
+        "error": None
+    }
+
+    try:
+        conn = db.get_connection()
+        if not conn:
+            result["error"] = "No se pudo obtener conexión a PostgreSQL"
+            return jsonify(result)
+
+        with conn.cursor() as cur:
+            # Ejecutar schema
+            cur.execute(SCHEMA_SQL)
+
+            # Verificar tablas creadas
+            cur.execute("""
+                SELECT table_name
+                FROM information_schema.tables
+                WHERE table_schema = 'public'
+                AND table_type = 'BASE TABLE'
+                ORDER BY table_name
+            """)
+            tables = [row[0] for row in cur.fetchall()]
+            result["tables_created"] = tables
+
+            # Contar índices
+            cur.execute("""
+                SELECT COUNT(*)
+                FROM pg_indexes
+                WHERE schemaname = 'public'
+            """)
+            result["indexes_created"] = cur.fetchone()[0]
+
+        conn.commit()
+        db.release_connection(conn)
+
+        result["success"] = True
+        result["message"] = f"✅ Setup completado: {len(tables)} tablas creadas, {result['indexes_created']} índices"
+
+    except Exception as e:
+        result["error"] = str(e)
+        result["message"] = f"❌ Error durante setup: {str(e)}"
+
+    return jsonify(result)
+
+# ---------------------------------
+# 🔍 AUDITORÍA COMPLETA DEL SISTEMA
+# ---------------------------------
+
+@app.route("/api/audit/system")
+def api_audit_system():
+    """
+    🔍 AUDITORÍA COMPLETA - Verifica integridad del sistema completo
+
+    Verifica:
+    - PostgreSQL: conexión, tablas, conteos
+    - Misiones activas: estado, progreso, ready to complete
+    - NFTs: estados, distribución, totales
+    - Estadísticas globales: XP, Aura, success rate
+    - Estadísticas por guild: distribución, totales
+    - Integridad: inconsistencias, datos corruptos
+    """
+
+    audit_result = {
+        "timestamp": now_utc_str(),
+        "postgresql": {},
+        "active_missions": {},
+        "nfts": {},
+        "global_stats": {},
+        "guild_stats": {},
+        "integrity_checks": {},
+        "recommendations": []
+    }
+
+    try:
+        # ========================================================================
+        # 1. POSTGRESQL STATUS
+        # ========================================================================
+        audit_result["postgresql"]["available"] = POSTGRESQL_AVAILABLE
+
+        if POSTGRESQL_AVAILABLE and db:
+            audit_result["postgresql"]["status"] = "✅ Connected"
+
+            # Verificar tablas y conteos
+            try:
+                conn = db.get_connection()
+                with conn.cursor() as cur:
+                    # Contar registros en cada tabla
+                    cur.execute("SELECT COUNT(*) FROM nfts")
+                    nfts_count = cur.fetchone()[0]
+
+                    cur.execute("SELECT COUNT(*) FROM active_missions")
+                    missions_count = cur.fetchone()[0]
+
+                    cur.execute("SELECT COUNT(*) FROM players")
+                    players_count = cur.fetchone()[0]
+
+                    cur.execute("SELECT COUNT(*) FROM global_stats")
+                    stats_count = cur.fetchone()[0]
+
+                    audit_result["postgresql"]["tables"] = {
+                        "nfts": nfts_count,
+                        "active_missions": missions_count,
+                        "players": players_count,
+                        "global_stats": stats_count
+                    }
+                db.release_connection(conn)
+            except Exception as e:
+                audit_result["postgresql"]["error"] = str(e)
+        else:
+            audit_result["postgresql"]["status"] = "❌ Not available"
+
+        # ========================================================================
+        # 2. ACTIVE MISSIONS ANALYSIS
+        # ========================================================================
+        active_missions = load_json(ACTIVE_MISSIONS_PATH, {})
+        audit_result["active_missions"]["total"] = len(active_missions)
+
+        missions_by_status = {
+            "in_progress": 0,
+            "ready_to_complete": 0,
+            "details": []
+        }
+
+        for mission_key, mission_data in active_missions.items():
+            start_time_str = mission_data.get("start_time")
+            duration_hours = mission_data.get("duration_hours", 0)
+
+            if start_time_str:
+                hours_elapsed = hours_since(start_time_str)
+                hours_remaining = duration_hours - hours_elapsed
+                progress_pct = min(100, int((hours_elapsed / duration_hours) * 100)) if duration_hours > 0 else 0
+
+                status = "ready_to_complete" if hours_remaining <= 0 else "in_progress"
+                missions_by_status[status] += 1
+
+                missions_by_status["details"].append({
+                    "mission_key": mission_key,
+                    "hero_id": mission_data.get("hero_id"),
+                    "mission_id": mission_data.get("mission_id"),
+                    "status": status,
+                    "progress": f"{progress_pct}%",
+                    "hours_elapsed": round(hours_elapsed, 2),
+                    "hours_remaining": round(max(0, hours_remaining), 2)
+                })
+
+        audit_result["active_missions"]["by_status"] = {
+            "in_progress": missions_by_status["in_progress"],
+            "ready_to_complete": missions_by_status["ready_to_complete"]
+        }
+        audit_result["active_missions"]["missions"] = missions_by_status["details"]
+
+        # ========================================================================
+        # 3. NFTs ANALYSIS
+        # ========================================================================
+        nfts_db = load_nfts_database()
+
+        nfts_by_state = {"READY": 0, "ON_MISSION": 0, "FALLEN": 0, "UNKNOWN": 0}
+        nfts_by_guild = {}
+        total_xp = 0
+        total_aura = 0
+
+        for token_id, nft in nfts_db.items():
+            ds = nft.get("dynamic_state", {})
+            state = ds.get("state", "UNKNOWN")
+            guild = nft.get("guild", "Unknown")
+
+            # Mapear nombres
+            if guild == "Dawnkeepers":
+                guild = "Order of Dawn"
+            elif guild == "Echoes of the Veil":
+                guild = "Void Echoes"
+
+            nfts_by_state[state] = nfts_by_state.get(state, 0) + 1
+
+            if guild not in nfts_by_guild:
+                nfts_by_guild[guild] = {"count": 0, "xp": 0, "aura": 0}
+
+            nfts_by_guild[guild]["count"] += 1
+            nfts_by_guild[guild]["xp"] += ds.get("xp_total", 0)
+            nfts_by_guild[guild]["aura"] += ds.get("aura_level", 0)
+
+            total_xp += ds.get("xp_total", 0)
+            total_aura += ds.get("aura_level", 0)
+
+        audit_result["nfts"]["total"] = len(nfts_db)
+        audit_result["nfts"]["by_state"] = nfts_by_state
+        audit_result["nfts"]["by_guild"] = nfts_by_guild
+        audit_result["nfts"]["totals"] = {
+            "xp": total_xp,
+            "aura": total_aura
+        }
+
+        # ========================================================================
+        # 4. GLOBAL STATS
+        # ========================================================================
+        stats_obj = load_json(STATS_PATH, {})
+
+        audit_result["global_stats"]["missions_completed"] = stats_obj.get("missions_completed", 0)
+        audit_result["global_stats"]["missions_failed"] = stats_obj.get("missions_failed", 0)
+        audit_result["global_stats"]["total_exp_collected"] = stats_obj.get("total_exp_collected", 0)
+        audit_result["global_stats"]["total_aura_collected"] = stats_obj.get("total_aura_collected", 0)
+
+        total_missions = stats_obj.get("missions_completed", 0) + stats_obj.get("missions_failed", 0)
+        if total_missions > 0:
+            success_rate = round((stats_obj.get("missions_completed", 0) / total_missions) * 100, 2)
+        else:
+            success_rate = 0
+
+        audit_result["global_stats"]["success_rate"] = f"{success_rate}%"
+        audit_result["global_stats"]["total_missions"] = total_missions
+
+        # ========================================================================
+        # 5. GUILD STATS
+        # ========================================================================
+        guilds_data = load_json(GUILDS_PATH, [])
+        guild_ranking = stats_obj.get("guild_ranking", {})
+
+        # Fix: Si guild_ranking es lista, convertir a dict
+        if isinstance(guild_ranking, list):
+            guild_ranking = {}
+
+        guild_stats_summary = []
+        for guild in guilds_data:
+            guild_name = guild.get("name", "")
+
+            rank_data = guild_ranking.get(guild_name, {})
+            successes = rank_data.get("successes", 0)
+            failures = rank_data.get("failures", 0)
+            total = successes + failures
+
+            guild_stats_summary.append({
+                "name": guild_name,
+                "members": guild.get("members", 0),
+                "total_xp": guild.get("total_xp", 0),
+                "total_aura": guild.get("total_aura", 0),
+                "avg_xp": guild.get("avg_xp", 0),
+                "avg_aura": guild.get("avg_aura", 0),
+                "missions_completed": successes,
+                "missions_failed": failures,
+                "success_rate": f"{round((successes / total * 100), 1) if total > 0 else 0}%"
+            })
+
+        audit_result["guild_stats"]["guilds"] = guild_stats_summary
+
+        # ========================================================================
+        # 6. INTEGRITY CHECKS
+        # ========================================================================
+        integrity_issues = []
+
+        # Check 1: NFTs ON_MISSION sin active_mission correspondiente
+        active_mission_heroes = set(m.get("hero_id") for m in active_missions.values())
+
+        nfts_on_mission_without_active = []
+        for token_id, nft in nfts_db.items():
+            ds = nft.get("dynamic_state", {})
+            if ds.get("state") == "ON_MISSION":
+                if token_id not in active_mission_heroes:
+                    nfts_on_mission_without_active.append(token_id)
+
+        if nfts_on_mission_without_active:
+            integrity_issues.append({
+                "type": "nft_on_mission_without_active_mission",
+                "count": len(nfts_on_mission_without_active),
+                "nfts": nfts_on_mission_without_active
+            })
+
+        # Check 2: Active missions sin NFT correspondiente o con estado != ON_MISSION
+        missions_without_nft = []
+        missions_with_wrong_state = []
+
+        for mission_key, mission_data in active_missions.items():
+            hero_id = mission_data.get("hero_id")
+            nft = nfts_db.get(hero_id)
+
+            if not nft:
+                missions_without_nft.append(mission_key)
+            else:
+                ds = nft.get("dynamic_state", {})
+                if ds.get("state") != "ON_MISSION":
+                    missions_with_wrong_state.append({
+                        "mission_key": mission_key,
+                        "hero_id": hero_id,
+                        "current_state": ds.get("state")
+                    })
+
+        if missions_without_nft:
+            integrity_issues.append({
+                "type": "active_mission_without_nft",
+                "count": len(missions_without_nft),
+                "missions": missions_without_nft
+            })
+
+        if missions_with_wrong_state:
+            integrity_issues.append({
+                "type": "active_mission_with_wrong_state",
+                "count": len(missions_with_wrong_state),
+                "details": missions_with_wrong_state
+            })
+
+        # Check 3: Verificar que guild_ranking sea dict (no lista)
+        if isinstance(stats_obj.get("guild_ranking"), list):
+            integrity_issues.append({
+                "type": "guild_ranking_wrong_type",
+                "message": "guild_ranking es una lista, debería ser dict"
+            })
+
+        audit_result["integrity_checks"]["issues_found"] = len(integrity_issues)
+        audit_result["integrity_checks"]["issues"] = integrity_issues
+
+        # ========================================================================
+        # 7. RECOMMENDATIONS
+        # ========================================================================
+        if len(integrity_issues) > 0:
+            audit_result["recommendations"].append("⚠️ Se encontraron problemas de integridad - revisar integrity_checks.issues")
+
+        if missions_by_status["ready_to_complete"] > 0:
+            audit_result["recommendations"].append(f"🎯 {missions_by_status['ready_to_complete']} misiones listas para completar - los usuarios pueden reclamar recompensas")
+
+        if nfts_by_state.get("FALLEN", 0) > 0:
+            audit_result["recommendations"].append(f"💀 {nfts_by_state['FALLEN']} NFTs caídos - requieren reinvocación")
+
+        if len(integrity_issues) == 0:
+            audit_result["recommendations"].append("✅ No se encontraron problemas de integridad")
+
+        if missions_by_status["in_progress"] > 0:
+            audit_result["recommendations"].append(f"🔥 {missions_by_status['in_progress']} misiones en progreso")
+
+        # ========================================================================
+        # FINAL STATUS
+        # ========================================================================
+        if len(integrity_issues) == 0 and POSTGRESQL_AVAILABLE:
+            audit_result["overall_status"] = "✅ Sistema funcionando correctamente"
+        elif len(integrity_issues) > 0:
+            audit_result["overall_status"] = "⚠️ Sistema funcional con problemas de integridad menores"
+        else:
+            audit_result["overall_status"] = "❌ Problemas críticos detectados"
+
+    except Exception as e:
+        audit_result["error"] = str(e)
+        audit_result["overall_status"] = "❌ Error durante auditoría"
+        import traceback
+        audit_result["traceback"] = traceback.format_exc()
+
+    return jsonify(audit_result)
+
+# ---------------------------------
+# 🔍 DEBUG: Estado completo de un hero
+# ---------------------------------
+
+@app.route("/api/debug/hero/<wallet>/<hero_id>")
+def api_debug_hero(wallet, hero_id):
+    """
+    🔍 DEBUG ENDPOINT - Ver estado completo de un hero específico
+
+    Muestra:
+    - Estado en nfts_database (PostgreSQL)
+    - Estado en active_missions (PostgreSQL)
+    - Estado en players.json (cache)
+    """
+    wallet = wallet.lower()
+    hero_id_padded = str(hero_id).zfill(5)
+
+    result = {
+        "wallet": wallet,
+        "hero_id": hero_id_padded,
+        "nft_in_database": None,
+        "active_mission": None,
+        "player_cache": None,
+        "timestamp": now_utc_str()
+    }
+
+    # 1. Estado en nfts_database
+    try:
+        nft = get_nft_from_database(hero_id_padded)
+        if nft:
+            result["nft_in_database"] = {
+                "exists": True,
+                "name": nft.get("name"),
+                "guild": nft.get("guild"),
+                "dynamic_state": nft.get("dynamic_state", {}),
+                "last_update": nft.get("last_update")
+            }
+        else:
+            result["nft_in_database"] = {"exists": False}
+    except Exception as e:
+        result["nft_in_database"] = {"error": str(e)}
+
+    # 2. Estado en active_missions
+    try:
+        active_missions = load_json(ACTIVE_MISSIONS_PATH, {})
+        mission_key = f"{wallet}_{hero_id_padded}"
+
+        result["active_mission"] = {
+            "mission_key": mission_key,
+            "exists": mission_key in active_missions,
+            "data": active_missions.get(mission_key),
+            "total_active_missions": len(active_missions),
+            "all_missions_keys": list(active_missions.keys())
+        }
+    except Exception as e:
+        result["active_mission"] = {"error": str(e)}
+
+    # 3. Estado en players.json (cache)
+    try:
+        players = load_json(PLAYERS_PATH, {})
+        player = players.get(wallet)
+
+        if player:
+            hero_in_cache = None
+            for h in player.get("heroes", []):
+                if h.get("token_id") == hero_id_padded:
+                    hero_in_cache = h
+                    break
+
+            result["player_cache"] = {
+                "player_exists": True,
+                "hero_in_cache": hero_in_cache is not None,
+                "hero_data": hero_in_cache if hero_in_cache else None
+            }
+        else:
+            result["player_cache"] = {"player_exists": False}
+    except Exception as e:
+        result["player_cache"] = {"error": str(e)}
+
+    return jsonify(result)
+
+# ---------------------------------
+# 🔧 MIGRATION: Agregar columna image_url a tabla nfts
+# ---------------------------------
+
+@app.route("/api/migration/add_image_url")
+def api_migration_add_image_url():
+    """
+    🔧 MIGRATION ENDPOINT - Agregar columna image_url a tabla nfts
+
+    Esta migración agrega la columna image_url que faltaba en el schema original.
+    Es seguro ejecutarla múltiples veces (usa IF NOT EXISTS).
+    """
+    if not POSTGRESQL_AVAILABLE or not db:
+        return jsonify({
+            "success": False,
+            "error": "PostgreSQL no está disponible"
+        }), 500
+
+    result = {
+        "success": False,
+        "migration": "add_image_url_column",
+        "steps_completed": []
+    }
+
+    try:
+        conn = db.get_connection()
+
+        with conn.cursor() as cur:
+            # 1. Agregar columna image_url si no existe
+            print("🔧 Adding image_url column to nfts table...")
+            cur.execute("""
+                ALTER TABLE nfts
+                ADD COLUMN IF NOT EXISTS image_url TEXT DEFAULT '/img/emissary-placeholder.png'
+            """)
+            result["steps_completed"].append("Added image_url column")
+            print("✅ Column image_url added successfully")
+
+            # 2. Actualizar registros existentes con image_url desde metadata
+            print("🔄 Updating existing NFTs with image_url from metadata...")
+            cur.execute("SELECT token_id FROM nfts WHERE image_url IS NULL OR image_url = '/img/emissary-placeholder.png'")
+            nfts_to_update = [row[0] for row in cur.fetchall()]
+
+            updated_count = 0
+            for token_id in nfts_to_update:
+                # Obtener image_url desde metadata
+                try:
+                    from app import create_hero_from_metadata  # Import local
+                    hero = create_hero_from_metadata(token_id)
+                    image_url = hero.get('image_url', '/img/emissary-placeholder.png')
+
+                    cur.execute("""
+                        UPDATE nfts
+                        SET image_url = %s
+                        WHERE token_id = %s
+                    """, (image_url, token_id))
+                    updated_count += 1
+                except Exception as e:
+                    print(f"⚠️ Error updating image_url for {token_id}: {e}")
+
+            result["steps_completed"].append(f"Updated {updated_count} NFTs with image_url")
+            print(f"✅ Updated {updated_count} NFTs with image_url from metadata")
+
+        conn.commit()
+
+        result["success"] = True
+        result["message"] = f"✅ Migration completed: image_url column added and {updated_count} NFTs updated"
+
+        print(f"🎉 Migration successful: {result['message']}")
+
+    except Exception as e:
+        result["error"] = str(e)
+        result["message"] = f"❌ Migration failed: {str(e)}"
+        print(f"❌ Migration error: {e}")
+        import traceback
+        traceback.print_exc()
+
+    finally:
+        if conn:
+            db.release_connection(conn)
+
+    return jsonify(result)
+
 # ---------------------------------
 
 if __name__ == "__main__":
+    # 🔥 VALIDAR INTEGRIDAD AL INICIAR
+    validate_database_integrity()
+
     app.run(debug=True)

@@ -38,6 +38,14 @@ build/
 .idea/
 .vscode/
 
+# 📦 Node.js / Hardhat
+node_modules/
+cache/
+artifacts/
+coverage/
+typechain/
+typechain-types/
+
 # 🔒 Configuración privada
 .env.local
 .env.production
@@ -47,6 +55,19 @@ credentials.json
 # 🧪 Archivos temporales
 test_*.py
 *_temp.py
+
+# 🔥 Datos dinámicos del juego (NO incluir en git)
+# Estos archivos cambian con cada misión/jugador
+data/nfts_database.json
+data/active_missions.json
+data/players.json
+data/wallet_nfts.json
+data/stats.json
+data/achievements.json
+
+# ⚙️ NOTA: missions_config.json y guilds.json SÍ deben estar en git
+# missions_config.json = configuración estática de misiones
+# guilds.json = configuración semi-estática (members/nombres fijos, XP/Aura se actualiza)
 
 # -------------------------------
 # Fin de .gitignore

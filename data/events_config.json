@@ -1,0 +1,49 @@
+{
+  "events": [
+    {
+      "id": "EVENT_001",
+      "name": "Festival of the Eternal Flame",
+      "difficulty": "EASY",
+      "duration_hours": 6,
+      "energy_cost": 15,
+      "reward_xp": 150,
+      "reward_aura": 15,
+      "success_rate": 95,
+      "xp_loss_on_fail": 20,
+      "death_chance": 0,
+      "available_from": "2025-01-20T00:00:00Z",
+      "available_until": "2025-01-27T23:59:59Z",
+      "event_active": false,
+      "favored_guild": null,
+      "favored_class": null,
+      "favored_race": null,
+      "description": "The Eternal Flame burns brightest during this sacred week. All emissaries are called to participate in the festival and receive the blessing of fire.",
+      "lore": "Once a year, the Eternal Flame at the heart of Emberholm burns with extraordinary intensity. During this time, even the simplest tasks yield tremendous rewards as the fire shares its ancient power with all who serve."
+    },
+    {
+      "id": "EVENT_002",
+      "name": "Core Stabilization Emergency",
+      "difficulty": "EASY",
+      "duration_hours": 4,
+      "energy_cost": 12,
+      "reward_xp": 180,
+      "reward_aura": 20,
+      "success_rate": 90,
+      "xp_loss_on_fail": 25,
+      "death_chance": 0,
+      "available_from": "2025-11-13T00:00:00Z",
+      "available_until": "2025-11-27T23:59:59Z",
+      "event_active": true,
+      "favored_guild": null,
+      "favored_class": null,
+      "favored_race": null,
+      "description": "PRIORITY ALERT: The Ember Core has dropped to critical levels. All Orders are mobilizing emergency aura supply operations. Every emissary capable of field deployment is required to participate in stabilization runs.",
+      "lore": "The sensors installed by Circle of Mist detected catastrophic fluctuations in the Core three cycles ago. Since then, the Flame has dimmed by 40%, and reality thinning accelerated in five border zones. Horizon Watch reported Voidform sightings closer to the inner districts than ever recorded. The six Orders have suspended all internal conflicts and authorized an emergency protocol: flood the Core with aura from every available source. This is not training. This is survival."
+    }
+  ],
+  "event_settings": {
+    "max_concurrent_events": 2,
+    "cooldown_hours": 72,
+    "bonus_multiplier": 2.5
+  }
+}
