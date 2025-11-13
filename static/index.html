@@ -2369,7 +2369,7 @@ async function fetchEventsAndRender(){
             <div class="mono-block" style="margin-bottom:20px; border:2px solid ${diffColor};">
                 <div style="display:flex; justify-content:space-between; align-items:flex-start;">
                     <div style="flex:1;">
-                        <b style="font-size:18px;">[${e.id}] ${e.name}</b><br/>
+                        <b style="font-size:18px;">${e.name}</b><br/>
                         <span style="color:${diffColor};">● ${e.difficulty}</span> |
                         Duration: ${e.duration_hours}h |
                         Energy: ${e.energy_cost}<br/>
@@ -3281,10 +3281,18 @@ async function openMissionListModal(heroId) {
             `<span style="color:#ff4444;">⚠️ Death Risk: ${mission.death_chance}%</span>` :
             `<span style="color:#44ff44;">✓ No Death Risk</span>`;
 
+        // Check if it's a party mission
+        const isPartyMission = mission.party_size && mission.party_size === 5;
+        const clickHandler = isPartyMission
+            ? `onclick="showPartyMissionWarning('${mission.name}')"`
+            : `onclick="selectMission('${mission.id}', '${heroId}', '${mission.name}')"`;
+
+        const partyLabel = isPartyMission ? ' <span style="color:#ffaa00;">[PARTY]</span>' : '';
+
         modalHTML += `
-            <div class="modal-list-item" onclick="selectMission('${mission.id}', '${heroId}', '${mission.name}')">
+            <div class="modal-list-item" ${clickHandler}>
                 <div class="modal-item-header">
-                    ${mission.name}
+                    ${mission.name}${partyLabel}
                 </div>
                 <div class="modal-item-details">
                     <div>Difficulty: <span style="color:${diffColor};">${mission.difficulty}</span> |
@@ -3292,6 +3300,7 @@ async function openMissionListModal(heroId) {
                          Energy: ${mission.energy_cost}</div>
                     <div>Rewards: ${mission.reward_xp} XP, ${mission.reward_aura} Aura</div>
                     <div>${deathRisk}</div>
+                    ${isPartyMission ? '<div style="color:#ffaa00;">⚠️ Requires 5 Emissaries</div>' : ''}
                 </div>
             </div>
         `;
@@ -3305,6 +3314,17 @@ async function openMissionListModal(heroId) {
 async function selectMission(missionId, heroId, missionName) {
     hideModal('mission-select-modal');
     await startMission(heroId, missionId, missionName);
+}
+
+// Show warning for party missions selected from PROFILE
+function showPartyMissionWarning(missionName) {
+    hideModal('mission-select-modal');
+    showInfoModal(
+        "PARTY MISSION",
+        `${missionName} is a PARTY MISSION requiring exactly 5 Emissaries.\n\n` +
+        `Party missions cannot be started from the PROFILE panel.\n\n` +
+        `Please access the [MISSIONS] panel to select 5 heroes for this coordinated operation.`
+    );
 }
 
 // Open Hero Selection Modal (from MISSIONS)
@@ -3584,8 +3604,8 @@ function updatePartySelection() {
         document.getElementById('party-selection-count').style.color = count > 5 ? '#ff4444' : '#ffaa00';
     }
 
-    // Store selected hero IDs
-    selectedPartyHeroes = Array.from(checkboxes).map(cb => parseInt(cb.value));
+    // Store selected hero IDs (keep as strings - token_ids like "00003")
+    selectedPartyHeroes = Array.from(checkboxes).map(cb => cb.value);
 }
 
 // Start party mission with 5 heroes
