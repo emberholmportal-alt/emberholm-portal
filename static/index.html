@@ -131,6 +131,7 @@ hr.emberline {
     flex-wrap: nowrap;
     justify-content: space-between;
     align-items: center;
+    justify-content: center;
     gap: 15px;
     color: #c9b896;
     font-family: 'Crimson Text', serif;
@@ -163,6 +164,7 @@ hr.emberline {
     flex-wrap: nowrap;
     gap: 4px;
     align-items: center;
+    justify-content: center;
 }
 
 .cmd-link {
@@ -624,6 +626,7 @@ a.social-link:hover {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    justify-content: center;
     font-family: 'Cinzel', serif;
     letter-spacing: 2px;
     text-shadow: 2px 2px 0 #000, 0 0 10px rgba(201, 184, 150, 0.3);
@@ -852,6 +855,44 @@ a.social-link:hover {
 }
 
 .mono-block a[href^="#"]:active {
+
+/* Table of Contents Grid Layout */
+.toc-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 15px 30px;
+    margin-top: 15px;
+}
+
+.toc-section {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.toc-section-title {
+    color: #c9b896;
+    font-weight: 700;
+    font-family: 'Cinzel', serif;
+    font-size: 14px;
+    margin-bottom: 5px;
+    letter-spacing: 1px;
+    text-shadow: 2px 2px 0 #000, 0 0 8px rgba(201, 184, 150, 0.3);
+}
+
+.toc-grid .mono-block a[href^="#"] {
+    display: block;
+    width: 100%;
+    padding: 8px 14px;
+    text-align: left;
+}
+
+@media (max-width: 768px) {
+    .toc-grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+}
     border-color: #1a1510 #4a3d30 #4a3d30 #1a1510;
     box-shadow: inset 1px 1px 3px rgba(0,0,0,0.8);
     transform: translateY(0px);
@@ -1242,36 +1283,40 @@ a:hover {
     <section class="screen" data-screen="tutorial">
         <!-- INDEX -->
         <div class="section-block">
-            <div class="section-title">HELP / TUTORIAL // COMPLETE GUIDE</div>
-            <div class="mono-block" style="text-align:center;">
-                <p style="color:#c9b896; font-size:16px;"><b>⚔️ COMPREHENSIVE EMBERHOLM PORTAL GUIDE</b></p>
-                <p>Complete documentation for missions, mechanics, and strategies.</p>
-            </div>
-        </div>
-
-        <div class="section-block">
             <div class="section-title">📋 TABLE OF CONTENTS // QUICK ACCESS</div>
-            <div class="mono-block" style="font-size:14px; line-height:1.8;">
-                <p><b style="color:#c9b896;">ESSENTIALS:</b></p>
-                <a href="#help-basics" style="color:#8a7050;">→ Basic Principles (Energy, XP, Aura)</a><br/>
-                <a href="#help-commandflow" style="color:#8a7050;">→ Command Flow (How to get started)</a><br/><br/>
+            <div class="mono-block">
+                <div class="toc-grid">
+                    <div class="toc-section">
+                        <div class="toc-section-title">ESSENTIALS</div>
+                        <a href="#help-basics">→ Basic Principles</a>
+                        <a href="#help-commandflow">→ Command Flow</a>
+                    </div>
 
-                <p><b style="color:#c9b896;">MISSION SYSTEM:</b></p>
-                <a href="#tut-1-overview" style="color:#8a7050;">1. Mission System Overview</a><br/>
-                <a href="#tut-2-costs" style="color:#8a7050;">2. Mission Costs & Requirements</a><br/>
-                <a href="#tut-3-rewards" style="color:#8a7050;">3. Mission Rewards (XP & Aura)</a><br/>
-                <a href="#tut-4-success" style="color:#8a7050;">4. Success Rate Calculation</a><br/>
-                <a href="#tut-5-failure" style="color:#8a7050;">5. Mission Failure & Consequences</a><br/>
-                <a href="#tut-6-death" style="color:#8a7050;">6. Death & Reinvocation System</a><br/>
-                <a href="#tut-7-flow" style="color:#8a7050;">7. Mission Flow (Step-by-Step Guide)</a><br/>
-                <a href="#tut-8-party" style="color:#8a7050;">8. Party Missions (5-Hero Operations)</a><br/>
-                <a href="#tut-9-missions" style="color:#8a7050;">9. Available Missions (Current Rotation)</a><br/>
-                <a href="#tut-10-strategy" style="color:#8a7050;">10. Strategy Tips (Maximize Efficiency)</a><br/>
-                <a href="#tut-11-technical" style="color:#8a7050;">11. Technical Details (Advanced)</a><br/><br/>
+                    <div class="toc-section">
+                        <div class="toc-section-title">MISSION SYSTEM</div>
+                        <a href="#tut-1-overview">1. System Overview</a>
+                        <a href="#tut-2-costs">2. Costs & Requirements</a>
+                        <a href="#tut-3-rewards">3. Rewards (XP & Aura)</a>
+                        <a href="#tut-4-success">4. Success Rate</a>
+                        <a href="#tut-5-failure">5. Failure & Consequences</a>
+                        <a href="#tut-6-death">6. Death & Reinvocation</a>
+                    </div>
 
-                <p><b style="color:#c9b896;">REFERENCE:</b></p>
-                <a href="#tut-faq" style="color:#8a7050;">→ Frequently Asked Questions (FAQ)</a><br/>
-                <a href="#tut-examples" style="color:#8a7050;">→ Calculation Examples</a><br/>
+                    <div class="toc-section">
+                        <div class="toc-section-title">ADVANCED</div>
+                        <a href="#tut-7-flow">7. Step-by-Step Guide</a>
+                        <a href="#tut-8-party">8. Party Missions</a>
+                        <a href="#tut-9-missions">9. Current Rotation</a>
+                        <a href="#tut-10-strategy">10. Strategy Tips</a>
+                        <a href="#tut-11-technical">11. Technical Details</a>
+                    </div>
+
+                    <div class="toc-section">
+                        <div class="toc-section-title">REFERENCE</div>
+                        <a href="#tut-faq">→ FAQ</a>
+
+                        <a href="#tut-examples">→ Calculation Examples</a>
+                </div>
             </div>
         </div>
 
