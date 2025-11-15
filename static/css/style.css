@@ -11,14 +11,27 @@
 
 .ash-particle {
     position: fixed;
-    width: 2px;
-    height: 2px;
-    background: rgba(201, 184, 150, 0.4); /* Dorado suave gótico-medieval - Aumentado para mejor visibilidad */
+    width: 5px;  /* Aumentado de 2px a 5px para MÁXIMA visibilidad */
+    height: 5px;
+    background: rgba(255, 140, 0, 0.8); /* Opacidad MÁXIMA para testing - era 0.4 */
     border-radius: 50%;
     pointer-events: none; /* Las partículas no bloquean clicks */
-    z-index: 9998; /* Por debajo de la consola (9999) pero sobre el contenido */
+    z-index: 999999; /* Z-index MUY alto para asegurar visibilidad */
     animation: ashFall linear infinite;
-    box-shadow: 0 0 3px rgba(201, 184, 150, 0.5); /* Sombra dorada más visible */
+    box-shadow: 0 0 10px rgba(255, 140, 0, 0.9), 0 0 20px rgba(255, 100, 0, 0.6); /* Glow intenso */
+}
+
+/* DEBUG: Versión de prueba - partícula fija visible */
+.ash-particle-debug {
+    position: fixed !important;
+    top: 20px !important;
+    left: 20px !important;
+    width: 30px !important;
+    height: 30px !important;
+    background: red !important;
+    border: 3px solid yellow !important;
+    z-index: 999999999 !important;
+    animation: none !important;
 }
 
 /* ===============================================================
@@ -48,18 +61,18 @@
 
 /* Variante: Cenizas grandes (más visibles) */
 .ash-particle.large {
-    width: 3px;
-    height: 3px;
-    background: rgba(138, 112, 80, 0.45); /* Marrón oscuro gótico - Aumentado */
-    box-shadow: 0 0 4px rgba(138, 112, 80, 0.5);
+    width: 8px;  /* Aumentado para testing */
+    height: 8px;
+    background: rgba(255, 100, 0, 0.85); /* Naranja intenso - Muy visible */
+    box-shadow: 0 0 12px rgba(255, 100, 0, 0.8);
 }
 
 /* Variante: Cenizas pequeñas (más sutiles) */
 .ash-particle.small {
-    width: 1px;
-    height: 1px;
-    background: rgba(201, 184, 150, 0.3); /* Dorado sutil - Aumentado para visibilidad */
-    box-shadow: 0 0 2px rgba(201, 184, 150, 0.3);
+    width: 3px;  /* Aumentado de 1px a 3px */
+    height: 3px;
+    background: rgba(255, 140, 0, 0.7); /* Más visible */
+    box-shadow: 0 0 6px rgba(255, 140, 0, 0.6);
 }
 
 /* ===============================================================

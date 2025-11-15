@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DIAGNÓSTICO ASH PARTICLES - Emberholm Portal</title>
+
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            background: #0a0a0a;
+            color: #c9b896;
+            font-family: 'Courier New', monospace;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: rgba(0, 0, 0, 0.8);
+            border: 3px solid #8a7050;
+            padding: 30px;
+        }
+
+        h1 {
+            color: #d4af37;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 24px;
+        }
+
+        .test-section {
+            background: rgba(20, 10, 5, 0.8);
+            border: 2px solid #4a3d30;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+        }
+
+        .test-section h2 {
+            color: #ff8c00;
+            margin-bottom: 15px;
+            font-size: 18px;
+        }
+
+        .result {
+            padding: 10px;
+            margin: 10px 0;
+            border-left: 4px solid #8a7050;
+            background: rgba(0, 0, 0, 0.5);
+        }
+
+        .success { border-left-color: #00ff00; color: #8fff8f; }
+        .error { border-left-color: #ff0000; color: #ff6b6b; }
+        .warning { border-left-color: #ffaa00; color: #ffd700; }
+
+        button {
+            background: linear-gradient(180deg, #8a7050 0%, #5a4830 100%);
+            border: 2px solid #c9b896;
+            color: #c9b896;
+            padding: 12px 24px;
+            margin: 10px 5px;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            border-radius: 4px;
+        }
+
+        button:hover {
+            background: linear-gradient(180deg, #aa9070 0%, #7a6850 100%);
+            box-shadow: 0 0 15px rgba(201, 184, 150, 0.5);
+        }
+
+        /* === PRUEBA 1: PARTÍCULA INLINE BÁSICA === */
+        .test-particle-1 {
+            position: fixed;
+            top: 100px;
+            left: 100px;
+            width: 30px;
+            height: 30px;
+            background: red;
+            border: 3px solid yellow;
+            border-radius: 50%;
+            z-index: 999999;
+        }
+
+        /* === PRUEBA 2: PARTÍCULA CON ANIMACIÓN === */
+        .test-particle-2 {
+            position: fixed;
+            width: 10px;
+            height: 10px;
+            background: rgba(255, 140, 0, 0.8);
+            border-radius: 50%;
+            z-index: 999999;
+            animation: testFall 5s linear infinite;
+            box-shadow: 0 0 10px rgba(255, 140, 0, 0.9);
+        }
+
+        @keyframes testFall {
+            0% {
+                transform: translateY(0) translateX(0);
+                opacity: 0;
+            }
+            10% {
+                opacity: 1;
+            }
+            90% {
+                opacity: 0.8;
+            }
+            100% {
+                transform: translateY(100vh) translateX(20px);
+                opacity: 0;
+            }
+        }
+
+        code {
+            background: #1a1410;
+            padding: 2px 6px;
+            border-radius: 3px;
+            color: #ff8c00;
+        }
+
+        .info {
+            padding: 15px;
+            background: rgba(138, 112, 80, 0.2);
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔥 DIAGNÓSTICO DE PARTÍCULAS DE CENIZA</h1>
+
+        <!-- SECCIÓN 1: PRUEBAS INLINE -->
+        <div class="test-section">
+            <h2>PRUEBA 1: Partículas Inline (No requieren archivos externos)</h2>
+
+            <div class="info">
+                Esta prueba crea partículas DIRECTAMENTE en el HTML con CSS inline.
+                Si estas funcionan pero las otras no, el problema está en los archivos externos.
+            </div>
+
+            <div id="inline-results"></div>
+
+            <button onclick="runInlineTest()">🔴 Ejecutar Prueba Inline</button>
+        </div>
+
+        <!-- SECCIÓN 2: VERIFICACIÓN DE ARCHIVOS -->
+        <div class="test-section">
+            <h2>PRUEBA 2: Verificar Archivos Externos</h2>
+
+            <div class="info">
+                Verifica si <code>style.css</code> y <code>ash-particles.js</code> se cargan correctamente.
+            </div>
+
+            <div id="files-results"></div>
+
+            <button onclick="checkFiles()">📁 Verificar Archivos</button>
+        </div>
+
+        <!-- SECCIÓN 3: PARTÍCULAS DEL SISTEMA -->
+        <div class="test-section">
+            <h2>PRUEBA 3: Sistema de Partículas (Requiere archivos externos)</h2>
+
+            <div class="info">
+                Cuenta las partículas creadas por <code>ash-particles.js</code>.
+                Si el número es 0, el JavaScript no se ejecutó.
+            </div>
+
+            <div id="system-results"></div>
+
+            <button onclick="checkSystemParticles()">🔥 Verificar Sistema</button>
+        </div>
+
+        <!-- SECCIÓN 4: DIAGNÓSTICO CONSOLE -->
+        <div class="test-section">
+            <h2>PRUEBA 4: Logs de Console</h2>
+
+            <div class="info">
+                Abre DevTools (F12) → Console y verifica estos mensajes:
+                <br><br>
+                ✅ <code>[Emberholm Ash Particles] 40 particles initialized</code>
+                <br>
+                ✅ <code>[Emberholm Ash Particles] 🔴 DEBUG particle created</code>
+            </div>
+
+            <div id="console-results">
+                <div class="result warning">
+                    Presiona F12 para abrir DevTools y ve a la pestaña Console.
+                </div>
+            </div>
+        </div>
+
+        <!-- SECCIÓN 5: PRUEBA DE Z-INDEX -->
+        <div class="test-section">
+            <h2>PRUEBA 5: Test de Z-Index</h2>
+
+            <div class="info">
+                Crea una partícula con z-index EXTREMADAMENTE alto para verificar
+                que no esté siendo cubierta por otros elementos.
+            </div>
+
+            <div id="zindex-results"></div>
+
+            <button onclick="testZIndex()">📊 Test Z-Index</button>
+        </div>
+    </div>
+
+    <!-- SCRIPTS DE PRUEBA -->
+    <script>
+        // ========================================
+        // PRUEBA 1: INLINE TEST
+        // ========================================
+        function runInlineTest() {
+            const results = document.getElementById('inline-results');
+            results.innerHTML = '';
+
+            // Crear 5 partículas de prueba inline
+            for (let i = 0; i < 5; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'test-particle-2';
+                particle.style.left = (20 + i * 15) + '%';
+                particle.style.animationDelay = (i * 0.5) + 's';
+                document.body.appendChild(particle);
+            }
+
+            results.innerHTML = `
+                <div class="result success">
+                    ✅ Se crearon 5 partículas naranjas animadas
+                    <br>Deberías verlas cayendo desde arriba en diferentes posiciones horizontales.
+                    <br>Si las ves: El problema NO es con CSS o z-index.
+                    <br>Si NO las ves: Problema con el navegador o pantalla.
+                </div>
+            `;
+
+            console.log('[TEST] 5 partículas inline creadas con clase test-particle-2');
+        }
+
+        // ========================================
+        // PRUEBA 2: VERIFICAR ARCHIVOS
+        // ========================================
+        function checkFiles() {
+            const results = document.getElementById('files-results');
+            results.innerHTML = '';
+
+            const cssLink = document.querySelector('link[href*="style.css"]');
+            const jsScript = document.querySelector('script[src*="ash-particles.js"]');
+
+            let html = '';
+
+            if (cssLink) {
+                html += `<div class="result success">✅ CSS encontrado: ${cssLink.href}</div>`;
+            } else {
+                html += `<div class="result error">❌ CSS NO encontrado en el HTML</div>`;
+            }
+
+            if (jsScript) {
+                html += `<div class="result success">✅ JavaScript encontrado: ${jsScript.src}</div>`;
+            } else {
+                html += `<div class="result error">❌ JavaScript NO encontrado en el HTML</div>`;
+            }
+
+            // Verificar si los archivos se cargaron (usando performance API)
+            const resources = performance.getEntriesByType('resource');
+            const cssLoaded = resources.some(r => r.name.includes('style.css'));
+            const jsLoaded = resources.some(r => r.name.includes('ash-particles.js'));
+
+            if (cssLoaded) {
+                html += `<div class="result success">✅ style.css se CARGÓ correctamente</div>`;
+            } else {
+                html += `<div class="result error">❌ style.css NO se cargó (404 o bloqueado)</div>`;
+            }
+
+            if (jsLoaded) {
+                html += `<div class="result success">✅ ash-particles.js se CARGÓ correctamente</div>`;
+            } else {
+                html += `<div class="result error">❌ ash-particles.js NO se cargó (404 o bloqueado)</div>`;
+            }
+
+            results.innerHTML = html;
+        }
+
+        // ========================================
+        // PRUEBA 3: SISTEMA DE PARTÍCULAS
+        // ========================================
+        function checkSystemParticles() {
+            const results = document.getElementById('system-results');
+            const particles = document.querySelectorAll('.ash-particle');
+            const debugParticle = document.getElementById('ash-debug-particle');
+
+            let html = '';
+
+            html += `<div class="result ${particles.length > 0 ? 'success' : 'error'}">
+                ${particles.length > 0 ? '✅' : '❌'} Partículas encontradas: ${particles.length}
+                <br>Esperado: 40 (desktop) o 20 (móvil)
+            </div>`;
+
+            if (debugParticle) {
+                html += `<div class="result success">
+                    ✅ Partícula DEBUG encontrada en el DOM
+                    <br>Posición: top:50px, left:50px
+                    <br>¿La ves en la esquina superior izquierda (círculo rojo con borde amarillo)?
+                </div>`;
+            } else {
+                html += `<div class="result error">
+                    ❌ Partícula DEBUG NO encontrada
+                    <br>Esto indica que ash-particles.js no se ejecutó correctamente.
+                </div>`;
+            }
+
+            // Contar por tipo
+            if (particles.length > 0) {
+                const small = document.querySelectorAll('.ash-particle.small').length;
+                const large = document.querySelectorAll('.ash-particle.large').length;
+                const normal = particles.length - small - large - (debugParticle ? 1 : 0);
+
+                html += `<div class="result">
+                    📊 Desglose:
+                    <br>• Normales: ${normal}
+                    <br>• Pequeñas: ${small}
+                    <br>• Grandes: ${large}
+                    <br>• Debug: ${debugParticle ? 1 : 0}
+                </div>`;
+            }
+
+            results.innerHTML = html;
+
+            console.log('[TEST] Total particles:', particles.length);
+            console.log('[TEST] Debug particle:', debugParticle);
+        }
+
+        // ========================================
+        // PRUEBA 5: Z-INDEX
+        // ========================================
+        function testZIndex() {
+            const results = document.getElementById('zindex-results');
+
+            // Crear partícula con z-index ABSURDO
+            const zTest = document.createElement('div');
+            zTest.style.cssText = `
+                position: fixed;
+                top: 200px;
+                right: 50px;
+                width: 50px;
+                height: 50px;
+                background: lime;
+                border: 5px solid magenta;
+                border-radius: 50%;
+                z-index: 999999999999;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-weight: bold;
+                font-size: 10px;
+            `;
+            zTest.textContent = 'Z-TEST';
+            document.body.appendChild(zTest);
+
+            results.innerHTML = `
+                <div class="result success">
+                    ✅ Partícula de prueba Z-INDEX creada
+                    <br>Posición: esquina superior derecha (50px del borde)
+                    <br>Color: VERDE LIMA con borde MAGENTA
+                    <br>Z-index: 999999999999 (EXTREMADAMENTE alto)
+                    <br><br>
+                    Si ves esta partícula pero NO las naranjas, el problema es con
+                    el z-index de las partículas del sistema (999999 no es suficiente).
+                </div>
+            `;
+
+            console.log('[TEST] Z-index test particle created with z-index: 999999999999');
+        }
+
+        // ========================================
+        // AUTO-RUN AL CARGAR
+        // ========================================
+        window.addEventListener('load', function() {
+            console.log('='.repeat(60));
+            console.log('DIAGNÓSTICO DE PARTÍCULAS DE CENIZA - EMBERHOLM PORTAL');
+            console.log('='.repeat(60));
+            console.log('');
+            console.log('Instrucciones:');
+            console.log('1. Haz click en cada botón de prueba');
+            console.log('2. Observa los resultados en pantalla');
+            console.log('3. Verifica si ves las partículas visuales');
+            console.log('4. Reporta los resultados');
+            console.log('');
+            console.log('='.repeat(60));
+
+            // Auto-ejecutar verificación de archivos
+            setTimeout(checkFiles, 1000);
+            setTimeout(checkSystemParticles, 2000);
+        });
+    </script>
+
+    <!-- PARTÍCULA DE PRUEBA ESTÁTICA (SIEMPRE VISIBLE) -->
+    <div class="test-particle-1"></div>
+
+    <!-- ENLACES A LOS ARCHIVOS DEL SISTEMA (para probar) -->
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="css/style.css">
+    <script src="/static/js/ash-particles.js"></script>
+    <script src="js/ash-particles.js"></script>
+</body>
+</html>

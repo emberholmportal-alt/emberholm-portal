@@ -85,6 +85,36 @@
     }
 
     // =========================================
+    // FUNCIÓN: CREAR PARTÍCULA DE DEBUG
+    // =========================================
+    function createDebugParticle() {
+        const debug = document.createElement('div');
+        debug.className = 'ash-particle ash-particle-debug';
+        debug.id = 'ash-debug-particle';
+        debug.textContent = 'DEBUG';
+        debug.style.cssText = `
+            position: fixed !important;
+            top: 50px !important;
+            left: 50px !important;
+            width: 40px !important;
+            height: 40px !important;
+            background: red !important;
+            border: 4px solid yellow !important;
+            border-radius: 50% !important;
+            z-index: 999999999 !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            font-size: 8px !important;
+            font-weight: bold !important;
+            color: white !important;
+            animation: none !important;
+            pointer-events: none !important;
+        `;
+        return debug;
+    }
+
+    // =========================================
     // FUNCIÓN: INICIALIZAR PARTÍCULAS
     // =========================================
     function initializeAshParticles() {
@@ -105,6 +135,10 @@
         // Crear y agregar nuevas partículas usando DocumentFragment (mejor performance)
         const fragment = document.createDocumentFragment();
 
+        // 🔴 AGREGAR PARTÍCULA DE DEBUG FIJA (esquina superior izquierda)
+        const debugParticle = createDebugParticle();
+        fragment.appendChild(debugParticle);
+
         for (let i = 0; i < particleCount; i++) {
             const particle = createAshParticle(i);
             fragment.appendChild(particle);
@@ -114,6 +148,8 @@
 
         // Log de confirmación (útil para debugging)
         console.log(`[Emberholm Ash Particles] ${particleCount} particles initialized (${isMobile ? 'mobile' : 'desktop'} mode)`);
+        console.log(`[Emberholm Ash Particles] 🔴 DEBUG particle created at top-left corner (50px, 50px)`);
+        console.log(`[Emberholm Ash Particles] If you see a RED circle with yellow border, the system is working!`);
     }
 
     // =========================================
