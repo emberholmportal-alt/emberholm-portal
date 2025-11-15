@@ -13,12 +13,12 @@
     position: fixed;
     width: 2px;
     height: 2px;
-    background: rgba(201, 184, 150, 0.2); /* Dorado suave gótico-medieval */
+    background: rgba(201, 184, 150, 0.4); /* Dorado suave gótico-medieval - Aumentado para mejor visibilidad */
     border-radius: 50%;
     pointer-events: none; /* Las partículas no bloquean clicks */
     z-index: 9998; /* Por debajo de la consola (9999) pero sobre el contenido */
     animation: ashFall linear infinite;
-    box-shadow: 0 0 2px rgba(201, 184, 150, 0.25); /* Sombra dorada sutil */
+    box-shadow: 0 0 3px rgba(201, 184, 150, 0.5); /* Sombra dorada más visible */
 }
 
 /* ===============================================================
@@ -50,16 +50,16 @@
 .ash-particle.large {
     width: 3px;
     height: 3px;
-    background: rgba(138, 112, 80, 0.25); /* Marrón oscuro gótico */
-    box-shadow: 0 0 3px rgba(138, 112, 80, 0.3);
+    background: rgba(138, 112, 80, 0.45); /* Marrón oscuro gótico - Aumentado */
+    box-shadow: 0 0 4px rgba(138, 112, 80, 0.5);
 }
 
 /* Variante: Cenizas pequeñas (más sutiles) */
 .ash-particle.small {
     width: 1px;
     height: 1px;
-    background: rgba(201, 184, 150, 0.12); /* Dorado muy sutil */
-    box-shadow: none; /* Sin sombra para partículas pequeñas */
+    background: rgba(201, 184, 150, 0.3); /* Dorado sutil - Aumentado para visibilidad */
+    box-shadow: 0 0 2px rgba(201, 184, 150, 0.3);
 }
 
 /* ===============================================================
@@ -86,11 +86,15 @@
 /* En móviles, hacer las partículas ligeramente más visibles */
 @media (max-width: 768px) {
     .ash-particle {
-        background: rgba(201, 184, 150, 0.25); /* Más opacidad en móviles */
+        background: rgba(201, 184, 150, 0.5); /* Más opacidad en móviles */
     }
 
     .ash-particle.large {
-        background: rgba(138, 112, 80, 0.3);
+        background: rgba(138, 112, 80, 0.55);
+    }
+
+    .ash-particle.small {
+        background: rgba(201, 184, 150, 0.35);
     }
 }
 
