@@ -43,15 +43,16 @@
     top: 20px;
     right: 20px;
     background: linear-gradient(180deg, #8a7050 0%, #5a4830 100%);
-    border: 2px solid #c9b896;
+    border: 1px solid #c9b896;
     color: #c9b896;
-    padding: 8px 16px;
+    padding: 4px 8px;
     cursor: pointer;
     font-family: 'Courier New', monospace;
-    font-size: 12px;
-    border-radius: 4px;
+    font-size: 9px;
+    border-radius: 3px;
     z-index: 999999;
     transition: all 0.3s;
+    line-height: 1.2;
 }
 
 .ash-toggle-button:hover {

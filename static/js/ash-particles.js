@@ -19,8 +19,8 @@
         const button = document.createElement('button');
         button.id = 'ash-toggle-btn';
         button.className = 'ash-toggle-button';
-        button.innerHTML = particlesEnabled ? '🔥 ASH: ON' : '❄️ ASH: OFF';
-        button.title = 'Toggle ash particles';
+        button.innerHTML = particlesEnabled ? '🔥 ASH' : '❄️ ASH';
+        button.title = 'Toggle ash particles (ON/OFF)';
 
         button.addEventListener('click', function() {
             particlesEnabled = !particlesEnabled;
@@ -29,10 +29,10 @@
             console.log('[Emberholm Ash] Toggle clicked, new state:', particlesEnabled ? 'ON' : 'OFF');
 
             if (particlesEnabled) {
-                button.innerHTML = '🔥 ASH: ON';
+                button.innerHTML = '🔥 ASH';
                 initializeAshParticles();
             } else {
-                button.innerHTML = '❄️ ASH: OFF';
+                button.innerHTML = '❄️ ASH';
                 removeAllParticles();
             }
         });
