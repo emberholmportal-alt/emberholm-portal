@@ -10,13 +10,14 @@
 /* Atmospheric particles - Ash falling effect */
 .ash-particle {
     position: fixed;
-    width: 3px;
-    height: 3px;
-    background: rgba(255, 140, 0, 0.3);
+    width: 5px;
+    height: 5px;
+    background: rgba(255, 140, 0, 0.6);
     border-radius: 50%;
     animation: fall linear infinite;
     z-index: 9999;
     pointer-events: none;
+    box-shadow: 0 0 8px rgba(255, 140, 0, 0.4);
 }
 
 @keyframes fall {

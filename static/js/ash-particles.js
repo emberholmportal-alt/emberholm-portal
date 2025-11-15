@@ -6,8 +6,11 @@
 (function() {
     'use strict';
 
-    // Estado del sistema (activado/desactivado)
+    // Estado del sistema - Por defecto ACTIVADO (true)
+    // Solo se desactiva si el usuario explícitamente lo puso en 'false'
     let particlesEnabled = localStorage.getItem('ashParticlesEnabled') !== 'false';
+
+    console.log('[Emberholm Ash] Initial state:', particlesEnabled ? 'ENABLED' : 'DISABLED');
 
     function createToggleButton() {
         // Verificar que no existe ya
@@ -23,6 +26,8 @@
             particlesEnabled = !particlesEnabled;
             localStorage.setItem('ashParticlesEnabled', particlesEnabled);
 
+            console.log('[Emberholm Ash] Toggle clicked, new state:', particlesEnabled ? 'ON' : 'OFF');
+
             if (particlesEnabled) {
                 button.innerHTML = '🔥 ASH: ON';
                 initializeAshParticles();
@@ -33,6 +38,7 @@
         });
 
         document.body.appendChild(button);
+        console.log('[Emberholm Ash] Toggle button created');
     }
 
     function removeAllParticles() {
@@ -55,6 +61,8 @@
             return;
         }
 
+        console.log('[Emberholm Ash] Creating 30 particles...');
+
         // Crear 30 partículas
         for (let i = 0; i < 30; i++) {
             const ash = document.createElement('div');
@@ -65,17 +73,33 @@
             document.body.appendChild(ash);
         }
 
-        console.log('[Emberholm Ash] 30 particles initialized');
+        console.log('[Emberholm Ash] ✓ 30 particles created and appended to body');
+
+        // Verificar que se crearon
+        const count = document.querySelectorAll('.ash-particle').length;
+        console.log('[Emberholm Ash] Verification: Found', count, 'particles in DOM');
     }
 
-    // Inicializar cuando cargue el DOM
+    // Inicializar cuando cargue el DOM con delay de 3 segundos
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', function() {
             createToggleButton();
-            initializeAshParticles();
+
+            // Delay de 3 segundos antes de activar las partículas
+            console.log('[Emberholm Ash] Waiting 3 seconds before auto-activation...');
+            setTimeout(function() {
+                console.log('[Emberholm Ash] 3 seconds elapsed, initializing particles...');
+                initializeAshParticles();
+            }, 3000);
         });
     } else {
         createToggleButton();
-        initializeAshParticles();
+
+        // Delay de 3 segundos antes de activar las partículas
+        console.log('[Emberholm Ash] Waiting 3 seconds before auto-activation...');
+        setTimeout(function() {
+            console.log('[Emberholm Ash] 3 seconds elapsed, initializing particles...');
+            initializeAshParticles();
+        }, 3000);
     }
 })();
