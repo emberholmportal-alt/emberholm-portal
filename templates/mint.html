@@ -942,5 +942,35 @@
 
   <!-- Atmospheric Particles System -->
   <script src="{{ url_for('static', filename='js/ash-particles.js') }}"></script>
+
+  <!-- Botón para toggle de partículas -->
+  <button id="particles-toggle"
+          onclick="toggleAshParticles(); updateParticlesButton();"
+          style="position: fixed; bottom: 20px; right: 20px;
+                 padding: 10px 15px;
+                 background: rgba(139, 69, 19, 0.8);
+                 border: 2px solid #d4af37;
+                 color: #d4af37;
+                 border-radius: 5px;
+                 cursor: pointer;
+                 font-family: 'Courier New', monospace;
+                 font-size: 0.9em;
+                 z-index: 99999;">
+      🔥 Particles: ON
+  </button>
+
+  <script>
+  function updateParticlesButton() {
+      const btn = document.getElementById('particles-toggle');
+      const state = window.getAshParticlesState ? window.getAshParticlesState() : true;
+      btn.textContent = state ? '🔥 Particles: ON' : '❄️ Particles: OFF';
+  }
+
+  // Actualizar botón al cargar
+  document.addEventListener('DOMContentLoaded', function() {
+      setTimeout(updateParticlesButton, 100);
+  });
+  </script>
+
 </body>
 </html>

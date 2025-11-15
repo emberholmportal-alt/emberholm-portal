@@ -1,153 +1,88 @@
 /* ===============================================================
-   ATMOSPHERIC PARTICLES SYSTEM - ASH FALLING EFFECT
-   Emberholm Portal - Simple version with toggle control
+   ATMOSPHERIC PARTICLES SYSTEM - EMBERHOLM PORTAL
+   Sistema de partículas de ceniza con toggle ON/OFF
    =============================================================== */
 
 (function() {
     'use strict';
 
-    // Estado del sistema - Por defecto ACTIVADO (true)
-    // Solo se desactiva si el usuario explícitamente lo puso en 'false'
-    let particlesEnabled = localStorage.getItem('ashParticlesEnabled') !== 'false';
+    let particlesEnabled = true;
+    let particles = [];
 
-    console.log('[Emberholm Ash] Initial state:', particlesEnabled ? 'ENABLED' : 'DISABLED');
+    // Crear partículas
+    function createParticles() {
+        // Limpiar partículas existentes
+        particles.forEach(p => p.remove());
+        particles = [];
 
-    function createToggleButton() {
-        // Verificar que no existe ya
-        if (document.getElementById('ash-toggle-btn')) return;
-
-        const button = document.createElement('button');
-        button.id = 'ash-toggle-btn';
-        button.className = 'ash-toggle-button';
-        button.innerHTML = particlesEnabled ? '🔥 ASH' : '❄️ ASH';
-        button.title = 'Toggle ash particles (ON/OFF)';
-
-        button.addEventListener('click', function() {
-            particlesEnabled = !particlesEnabled;
-            localStorage.setItem('ashParticlesEnabled', particlesEnabled);
-
-            console.log('[Emberholm Ash] Toggle clicked, new state:', particlesEnabled ? 'ON' : 'OFF');
-
-            if (particlesEnabled) {
-                button.innerHTML = '🔥 ASH';
-                initializeAshParticles();
-            } else {
-                button.innerHTML = '❄️ ASH';
-                removeAllParticles();
-            }
-        });
-
-        document.body.appendChild(button);
-        console.log('[Emberholm Ash] Toggle button created');
-    }
-
-    function removeAllParticles() {
-        const existingParticles = document.querySelectorAll('.ash-particle');
-        existingParticles.forEach(particle => particle.remove());
-    }
-
-    function initializeAshParticles() {
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', initializeAshParticles);
-            return;
-        }
-
-        // Limpiar partículas previas
-        removeAllParticles();
-
-        // Si está desactivado, no crear partículas
-        if (!particlesEnabled) {
-            console.log('[Emberholm Ash] Particles disabled by user');
-            return;
-        }
-
-        console.log('[Emberholm Ash] Creating 30 particles...');
+        if (!particlesEnabled) return;
 
         // Crear 30 partículas
         for (let i = 0; i < 30; i++) {
             const ash = document.createElement('div');
             ash.className = 'ash-particle';
+
+            // Posición horizontal aleatoria
             ash.style.left = Math.random() * 100 + '%';
+
+            // Duración aleatoria (10-20 segundos)
             ash.style.animationDuration = (Math.random() * 10 + 10) + 's';
+
+            // Delay inicial aleatorio (0-5 segundos)
             ash.style.animationDelay = Math.random() * 5 + 's';
+
             document.body.appendChild(ash);
+            particles.push(ash);
         }
 
-        console.log('[Emberholm Ash] ✓ 30 particles created and appended to body');
-
-        // Verificar que se crearon
-        const count = document.querySelectorAll('.ash-particle').length;
-        console.log('[Emberholm Ash] Verification: Found', count, 'particles in DOM');
-
-        // DIAGNÓSTICO: Inspeccionar computed styles de primera partícula
-        const firstParticle = document.querySelector('.ash-particle');
-        if (firstParticle) {
-            console.log('[Emberholm Ash] 🔬 DIAGNOSTIC - First particle computed styles:');
-            const styles = window.getComputedStyle(firstParticle);
-            console.log('  position:', styles.position);
-            console.log('  width:', styles.width);
-            console.log('  height:', styles.height);
-            console.log('  background:', styles.background);
-            console.log('  backgroundColor:', styles.backgroundColor);
-            console.log('  opacity:', styles.opacity);
-            console.log('  visibility:', styles.visibility);
-            console.log('  display:', styles.display);
-            console.log('  zIndex:', styles.zIndex);
-            console.log('  top:', styles.top);
-            console.log('  left:', styles.left);
-            console.log('  animation:', styles.animation);
-            console.log('  animationName:', styles.animationName);
-            console.log('  animationDuration:', styles.animationDuration);
-            console.log('  transform:', styles.transform);
-        } else {
-            console.error('[Emberholm Ash] ERROR: No particle found in DOM after creation!');
-        }
+        console.log('[Emberholm] Ash particles:', particlesEnabled ? 'ENABLED' : 'DISABLED');
     }
 
-    // Inicializar cuando cargue el DOM con delay de 3 segundos
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', function() {
-            createToggleButton();
+    // Función para toggle ON/OFF
+    window.toggleAshParticles = function() {
+        particlesEnabled = !particlesEnabled;
+        createParticles();
 
-            // Delay de 3 segundos antes de FORZAR activación (ignora localStorage)
-            console.log('[Emberholm Ash] Waiting 3 seconds before FORCED auto-activation...');
-            setTimeout(function() {
-                console.log('[Emberholm Ash] 3 seconds elapsed, FORCING activation...');
+        // Guardar preferencia en localStorage
+        try {
+            localStorage.setItem('emberholm_particles', particlesEnabled ? 'on' : 'off');
+        } catch(e) {
+            // Si localStorage no está disponible, ignorar
+        }
 
-                // FORZAR activación independientemente de localStorage
-                particlesEnabled = true;
-                localStorage.setItem('ashParticlesEnabled', 'true');
+        return particlesEnabled;
+    };
 
-                // Actualizar botón
-                const button = document.getElementById('ash-toggle-btn');
-                if (button) {
-                    button.innerHTML = '🔥 ASH';
-                }
+    // Función para obtener estado
+    window.getAshParticlesState = function() {
+        return particlesEnabled;
+    };
 
-                // Inicializar partículas
-                initializeAshParticles();
-            }, 3000);
-        });
-    } else {
-        createToggleButton();
+    // Inicialización
+    function init() {
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', init);
+            return;
+        }
 
-        // Delay de 3 segundos antes de FORZAR activación (ignora localStorage)
-        console.log('[Emberholm Ash] Waiting 3 seconds before FORCED auto-activation...');
-        setTimeout(function() {
-            console.log('[Emberholm Ash] 3 seconds elapsed, FORCING activation...');
-
-            // FORZAR activación independientemente de localStorage
-            particlesEnabled = true;
-            localStorage.setItem('ashParticlesEnabled', 'true');
-
-            // Actualizar botón
-            const button = document.getElementById('ash-toggle-btn');
-            if (button) {
-                button.innerHTML = '🔥 ASH';
+        // Cargar preferencia guardada
+        try {
+            const saved = localStorage.getItem('emberholm_particles');
+            if (saved === 'off') {
+                particlesEnabled = false;
             }
+        } catch(e) {
+            // Si localStorage no está disponible, usar valor por defecto
+        }
 
-            // Inicializar partículas
-            initializeAshParticles();
-        }, 3000);
+        createParticles();
     }
+
+    // Auto-inicializar
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+    } else {
+        init();
+    }
+
 })();

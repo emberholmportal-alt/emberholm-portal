@@ -4,28 +4,25 @@
    =============================================================== */
 
 /* ===============================================================
-   ATMOSPHERIC EFFECTS - FALLING ASH PARTICLES (SIMPLE VERSION)
+   ATMOSPHERIC PARTICLES - ASH FALLING EFFECT
    =============================================================== */
 
-/* Atmospheric particles - Ash falling effect - EXTREME VISIBILITY FOR TESTING */
 .ash-particle {
-    position: fixed !important;
-    width: 15px !important;
-    height: 15px !important;
-    background: rgba(255, 140, 0, 0.9) !important;
-    border-radius: 50% !important;
-    animation: fall linear infinite !important;
-    z-index: 999999 !important;
-    pointer-events: none !important;
-    box-shadow: 0 0 20px rgba(255, 140, 0, 0.8), 0 0 40px rgba(255, 100, 0, 0.6) !important;
-    border: 2px solid rgba(255, 200, 0, 0.9) !important;
-    display: block !important;
-    visibility: visible !important;
+    position: fixed;
+    width: 2px;
+    height: 2px;
+    background: rgba(255, 140, 0, 0.3);
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 9999;
+    will-change: transform, opacity;
+    animation: ashFall linear infinite;
 }
 
-@keyframes fall {
+/* Animación de caída */
+@keyframes ashFall {
     0% {
-        transform: translateY(-10px);
+        transform: translateY(-10px) translateX(0);
         opacity: 0;
     }
     10% {
@@ -35,32 +32,9 @@
         opacity: 0.5;
     }
     100% {
-        transform: translateY(100vh);
+        transform: translateY(100vh) translateX(15px);
         opacity: 0;
     }
-}
-
-/* Toggle button - Upper right corner */
-.ash-toggle-button {
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    background: linear-gradient(180deg, #8a7050 0%, #5a4830 100%);
-    border: 1px solid #c9b896;
-    color: #c9b896;
-    padding: 4px 8px;
-    cursor: pointer;
-    font-family: 'Courier New', monospace;
-    font-size: 9px;
-    border-radius: 3px;
-    z-index: 999999;
-    transition: all 0.3s;
-    line-height: 1.2;
-}
-
-.ash-toggle-button:hover {
-    background: linear-gradient(180deg, #aa9070 0%, #7a6850 100%);
-    box-shadow: 0 0 15px rgba(201, 184, 150, 0.5);
 }
 
 /* ===============================================================
