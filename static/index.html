@@ -6,6 +6,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>EMBERHOLM PORTAL // NODE-Δ</title>
 
+<!-- Atmospheric Particles - Global Styles -->
+<link rel="stylesheet" href="css/style.css">
+
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Crimson+Text:wght@400;600&family=Spectral:wght@400;600&display=swap');
 
@@ -896,53 +899,6 @@ a.social-link:hover {
     border-color: #1a1510 #4a3d30 #4a3d30 #1a1510;
     box-shadow: inset 1px 1px 3px rgba(0,0,0,0.8);
     transform: translateY(0px);
-}
-
-/* ============================================
-   ATMOSPHERIC EFFECTS - FALLING ASH PARTICLES
-   ============================================ */
-
-.ash-particle {
-    position: fixed;
-    width: 2px;
-    height: 2px;
-    background: rgba(201, 184, 150, 0.2); /* Adaptado a la paleta gótico-medieval */
-    border-radius: 50%;
-    pointer-events: none; /* Las partículas no interfieren con clicks */
-    z-index: 9998; /* Por debajo de la consola (9999) */
-    animation: fall linear infinite;
-    box-shadow: 0 0 2px rgba(201, 184, 150, 0.25);
-}
-
-@keyframes fall {
-    0% {
-        transform: translateY(-10px) translateX(0);
-        opacity: 0;
-    }
-    10% {
-        opacity: 1;
-    }
-    90% {
-        opacity: 0.5;
-    }
-    100% {
-        transform: translateY(100vh) translateX(20px);
-        opacity: 0;
-    }
-}
-
-/* Variación para cenizas más grandes y lentas */
-.ash-particle.large {
-    width: 3px;
-    height: 3px;
-    background: rgba(138, 112, 80, 0.25); /* Color gótico más oscuro */
-}
-
-/* Variación para cenizas más pequeñas y rápidas */
-.ash-particle.small {
-    width: 1px;
-    height: 1px;
-    background: rgba(201, 184, 150, 0.12);
 }
 
 /* ============================================
@@ -4503,47 +4459,6 @@ async function startPartyMission(missionId, missionName) {
 </div>
 
 <!-- ============================================
-     ATMOSPHERIC PARTICLES SYSTEM
-     ============================================ -->
-<script>
-function initializeAshParticles() {
-    const particleCount = 35; // Cantidad moderada de partículas
-    const container = document.body;
-
-    for (let i = 0; i < particleCount; i++) {
-        const ash = document.createElement('div');
-        ash.className = 'ash-particle';
-
-        // Variar tamaños aleatoriamente
-        const rand = Math.random();
-        if (rand > 0.7) {
-            ash.classList.add('large');
-        } else if (rand < 0.3) {
-            ash.classList.add('small');
-        }
-
-        // Posición horizontal aleatoria
-        ash.style.left = Math.random() * 100 + '%';
-
-        // Duración de animación aleatoria (entre 10 y 18 segundos para efecto más lento y atmosférico)
-        ash.style.animationDuration = (Math.random() * 8 + 10) + 's';
-
-        // Delay aleatorio para que no caigan todas a la vez
-        ash.style.animationDelay = Math.random() * 8 + 's';
-
-        container.appendChild(ash);
-    }
-}
-
-// Inicializar cuando cargue la página
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initializeAshParticles);
-} else {
-    initializeAshParticles();
-}
-</script>
-
-<!-- ============================================
      REALM DISPATCH LIVE FEED SYSTEM
      ============================================ -->
 <script>
@@ -4656,6 +4571,9 @@ document.addEventListener('visibilitychange', function() {
     }
 });
 </script>
+
+<!-- Atmospheric Particles System -->
+<script src="js/ash-particles.js"></script>
 
 </body>
 </html>

@@ -359,52 +359,10 @@
     ::-webkit-scrollbar-thumb:hover {
       background: linear-gradient(180deg, #5a4d40 0%, #3a2d20 100%);
     }
-
-    /* ============================================
-       ATMOSPHERIC EFFECTS - FALLING ASH PARTICLES
-       ============================================ */
-
-    .ash-particle {
-      position: fixed;
-      width: 2px;
-      height: 2px;
-      background: rgba(201, 184, 150, 0.2);
-      border-radius: 50%;
-      pointer-events: none;
-      z-index: 9998;
-      animation: fall linear infinite;
-      box-shadow: 0 0 2px rgba(201, 184, 150, 0.25);
-    }
-
-    @keyframes fall {
-      0% {
-        transform: translateY(-10px) translateX(0);
-        opacity: 0;
-      }
-      10% {
-        opacity: 1;
-      }
-      90% {
-        opacity: 0.5;
-      }
-      100% {
-        transform: translateY(100vh) translateX(20px);
-        opacity: 0;
-      }
-    }
-
-    .ash-particle.large {
-      width: 3px;
-      height: 3px;
-      background: rgba(138, 112, 80, 0.25);
-    }
-
-    .ash-particle.small {
-      width: 1px;
-      height: 1px;
-      background: rgba(201, 184, 150, 0.12);
-    }
   </style>
+
+  <!-- Atmospheric Particles - Global Styles -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
   <!-- top -->
@@ -982,38 +940,7 @@
 
   </script>
 
-  <!-- ============================================
-       ATMOSPHERIC PARTICLES SYSTEM
-       ============================================ -->
-  <script>
-  function initializeAshParticles() {
-    const particleCount = 35;
-    const container = document.body;
-
-    for (let i = 0; i < particleCount; i++) {
-      const ash = document.createElement('div');
-      ash.className = 'ash-particle';
-
-      const rand = Math.random();
-      if (rand > 0.7) {
-        ash.classList.add('large');
-      } else if (rand < 0.3) {
-        ash.classList.add('small');
-      }
-
-      ash.style.left = Math.random() * 100 + '%';
-      ash.style.animationDuration = (Math.random() * 8 + 10) + 's';
-      ash.style.animationDelay = Math.random() * 8 + 's';
-
-      container.appendChild(ash);
-    }
-  }
-
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initializeAshParticles);
-  } else {
-    initializeAshParticles();
-  }
-  </script>
+  <!-- Atmospheric Particles System -->
+  <script src="{{ url_for('static', filename='js/ash-particles.js') }}"></script>
 </body>
 </html>

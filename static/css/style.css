@@ -1,0 +1,99 @@
+/* ===============================================================
+   EMBERHOLM PORTAL - GLOBAL STYLES
+   Gothic Medieval Aesthetic
+   =============================================================== */
+
+/* ===============================================================
+   ATMOSPHERIC EFFECTS - FALLING ASH PARTICLES (GLOBAL)
+   Descripción: Partículas de ceniza que caen en todas las páginas
+   Paleta: Gothic Medieval (dorado #c9b896, marrón #8a7050)
+   =============================================================== */
+
+.ash-particle {
+    position: fixed;
+    width: 2px;
+    height: 2px;
+    background: rgba(201, 184, 150, 0.2); /* Dorado suave gótico-medieval */
+    border-radius: 50%;
+    pointer-events: none; /* Las partículas no bloquean clicks */
+    z-index: 9998; /* Por debajo de la consola (9999) pero sobre el contenido */
+    animation: ashFall linear infinite;
+    box-shadow: 0 0 2px rgba(201, 184, 150, 0.25); /* Sombra dorada sutil */
+}
+
+/* ===============================================================
+   ANIMACIÓN DE CAÍDA
+   =============================================================== */
+
+@keyframes ashFall {
+    0% {
+        transform: translateY(-10px) translateX(0px);
+        opacity: 0;
+    }
+    10% {
+        opacity: 1;
+    }
+    90% {
+        opacity: 0.5;
+    }
+    100% {
+        transform: translateY(100vh) translateX(20px); /* Ligero desplazamiento horizontal */
+        opacity: 0;
+    }
+}
+
+/* ===============================================================
+   VARIANTES DE TAMAÑO
+   =============================================================== */
+
+/* Variante: Cenizas grandes (más visibles) */
+.ash-particle.large {
+    width: 3px;
+    height: 3px;
+    background: rgba(138, 112, 80, 0.25); /* Marrón oscuro gótico */
+    box-shadow: 0 0 3px rgba(138, 112, 80, 0.3);
+}
+
+/* Variante: Cenizas pequeñas (más sutiles) */
+.ash-particle.small {
+    width: 1px;
+    height: 1px;
+    background: rgba(201, 184, 150, 0.12); /* Dorado muy sutil */
+    box-shadow: none; /* Sin sombra para partículas pequeñas */
+}
+
+/* ===============================================================
+   OPTIMIZACIONES
+   =============================================================== */
+
+/* Asegurar que las partículas no interfieran con la interfaz */
+.ash-particle:hover {
+    cursor: default;
+}
+
+/* Desactivar animaciones si el usuario prefiere reducir movimiento */
+@media (prefers-reduced-motion: reduce) {
+    .ash-particle {
+        animation: none;
+        opacity: 0; /* Ocultar partículas completamente */
+    }
+}
+
+/* ===============================================================
+   RESPONSIVE - MÓVILES
+   =============================================================== */
+
+/* En móviles, hacer las partículas ligeramente más visibles */
+@media (max-width: 768px) {
+    .ash-particle {
+        background: rgba(201, 184, 150, 0.25); /* Más opacidad en móviles */
+    }
+
+    .ash-particle.large {
+        background: rgba(138, 112, 80, 0.3);
+    }
+}
+
+/* ===============================================================
+   FIN DE ATMOSPHERIC EFFECTS
+   =============================================================== */
