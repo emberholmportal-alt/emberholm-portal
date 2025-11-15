@@ -5,15 +5,24 @@
   <title>Emberholm Portal // Invocation Console</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
+    @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Crimson+Text:wght@400;600&family=Spectral:wght@400;600&display=swap');
+
     :root {
-      --bg: #050505;
-      --line: #fcb900;
-      --text: #fcb900;
-      --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      --bg: #0a0a0a;
+      --line: #8a7050;
+      --text: #8a7050;
+      --text-highlight: #c9b896;
+      --border-light: #4a3d30;
+      --border-dark: #2a2520;
+      --border-darker: #1a1510;
+      --mono: 'Spectral', serif;
     }
     * { box-sizing: border-box; }
     body {
-      background: var(--bg);
+      background:
+        radial-gradient(ellipse at center, rgba(80, 0, 0, 0.3) 0%, transparent 70%),
+        radial-gradient(ellipse at 20% 80%, rgba(40, 0, 0, 0.2) 0%, transparent 50%),
+        var(--bg);
       color: var(--text);
       font-family: var(--mono);
       margin: 0;
@@ -23,55 +32,73 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      background: #050505;
-      border-bottom: 3px solid var(--line);
+      background: linear-gradient(135deg, rgba(20,10,10,0.95) 0%, rgba(10,5,5,0.98) 100%);
+      border-bottom: 3px solid var(--border-dark);
       padding: 8px 14px;
       gap: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.7);
     }
     .topbar-title {
+      font-family: 'Cinzel', serif;
       font-weight: 700;
       font-size: 0.9rem;
-      letter-spacing: 0.04em;
+      letter-spacing: 0.08em;
+      color: var(--text-highlight);
+      text-shadow: 2px 2px 0 #000, 0 0 8px rgba(201, 184, 150, 0.3);
     }
     .mint-counter {
-      font-family: var(--mono);
-      color: var(--text);
+      font-family: 'Crimson Text', serif;
+      color: var(--text-highlight);
       font-size: 0.75rem;
       letter-spacing: 0.05em;
       margin-bottom: 6px;
       text-align: center;
-      border: 1px solid rgba(252,185,0,0.4);
+      border: 2px solid var(--border-dark);
+      border-color: var(--border-light) var(--border-darker) var(--border-darker) var(--border-light);
       padding: 4px 8px;
-      background: rgba(0, 0, 0, 0.25);
-      box-shadow: inset 0 0 6px rgba(252,185,0,0.15);
+      background: linear-gradient(135deg, rgba(20,10,10,0.6) 0%, rgba(10,5,5,0.8) 100%);
+      box-shadow: inset 1px 1px 2px rgba(0,0,0,0.7), 0 0 8px rgba(0,0,0,0.5);
     }
     .back-btn {
-      background: transparent;
+      background: linear-gradient(180deg, rgba(50,40,30,0.8) 0%, rgba(30,24,18,0.9) 100%);
       color: var(--text);
-      border: 2px solid var(--line);
-      padding: 3px 10px;
+      border: 2px solid;
+      border-color: var(--border-light) var(--border-darker) var(--border-darker) var(--border-light);
+      padding: 4px 12px;
       cursor: pointer;
-      font-family: var(--mono);
+      font-family: 'Crimson Text', serif;
       font-size: 0.75rem;
+      text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+      box-shadow: 2px 2px 4px rgba(0,0,0,0.6);
+      transition: all 0.2s;
     }
     .back-btn:hover {
-      background: rgba(252,185,0,0.15);
+      background: linear-gradient(180deg, rgba(60,48,36,0.9) 0%, rgba(40,32,24,1) 100%);
+      color: var(--text-highlight);
+      border-color: #5a4d40 var(--border-dark) var(--border-dark) #5a4d40;
     }
     .status-strip {
-      background: #050505;
-      border-bottom: 2px solid var(--line);
+      background: linear-gradient(135deg, rgba(15,10,8,0.95) 0%, rgba(10,5,5,0.98) 100%);
+      border-bottom: 2px solid var(--border-dark);
       display: flex;
       justify-content: flex-end;
       padding: 4px 14px;
       font-size: 0.65rem;
+      font-family: 'Crimson Text', serif;
+      color: var(--text-highlight);
     }
     .main-shell {
       width: 100%;
       max-width: 1300px;
       margin: 10px auto 40px;
-      border: 3px solid var(--line);
-      background: #0a0a0a;
+      border: 3px solid var(--border-dark);
+      background: linear-gradient(135deg, rgba(20,10,10,0.95) 0%, rgba(10,5,5,0.98) 100%);
       padding: 10px;
+      box-shadow:
+        0 0 0 1px #000,
+        0 0 0 6px var(--border-darker),
+        inset 0 0 40px rgba(0,0,0,0.8),
+        0 0 60px rgba(0, 0, 0, 0.9);
     }
     .top-row {
       display: grid;
@@ -79,18 +106,23 @@
       gap: 10px;
     }
     .console-window {
-      border: 2px solid var(--line);
+      border: 2px solid var(--border-dark);
       min-height: 240px;
-      background: #050505;
+      background: linear-gradient(135deg, rgba(15,10,8,0.6) 0%, rgba(10,8,5,0.8) 100%);
       position: relative;
       display: flex;
       flex-direction: column;
+      box-shadow: inset 1px 1px 2px rgba(42,37,32,0.3), 0 4px 8px rgba(0,0,0,0.6);
     }
     .console-title {
       padding: 4px 6px;
-      border-bottom: 2px solid var(--line);
+      border-bottom: 2px solid var(--border-dark);
       font-size: 0.7rem;
       font-weight: 700;
+      font-family: 'Cinzel', serif;
+      color: var(--text-highlight);
+      background: linear-gradient(180deg, rgba(30,20,15,0.8) 0%, rgba(20,15,10,0.9) 100%);
+      text-shadow: 2px 2px 0 #000, 0 0 8px rgba(201, 184, 150, 0.3);
     }
     .console-body {
       padding: 10px;
@@ -98,35 +130,45 @@
       line-height: 1.5;
       height: 260px;
       overflow-y: auto;
-      background: radial-gradient(circle, rgba(5,5,5,1) 0%, rgba(0,0,0,1) 65%);
-      border: 1px solid var(--line);
+      background: radial-gradient(circle, rgba(15,10,8,0.9) 0%, rgba(5,5,5,1) 65%);
+      border: 1px solid var(--border-darker);
     }
     .console-footer {
-      border-top: 2px solid var(--line);
+      border-top: 2px solid var(--border-dark);
       display: flex;
       gap: 4px;
       padding: 4px;
       font-size: 0.65rem;
+      background: linear-gradient(135deg, rgba(15,10,8,0.4) 0%, rgba(10,8,5,0.6) 100%);
     }
     .tag {
-      border: 1px solid var(--line);
+      border: 2px solid var(--border-dark);
+      border-color: var(--border-light) var(--border-darker) var(--border-darker) var(--border-light);
       padding: 2px 6px;
       white-space: nowrap;
+      background: linear-gradient(135deg, rgba(20,10,10,0.6) 0%, rgba(10,5,5,0.8) 100%);
+      font-family: 'Crimson Text', serif;
+      color: var(--text);
     }
     .portal-panel {
-      border: 2px solid var(--line);
-      background: #050505;
+      border: 2px solid var(--border-dark);
+      background: linear-gradient(135deg, rgba(15,10,8,0.6) 0%, rgba(10,8,5,0.8) 100%);
       display: flex;
       flex-direction: column;
       gap: 4px;
       min-height: 240px;
+      box-shadow: inset 1px 1px 2px rgba(42,37,32,0.3), 0 4px 8px rgba(0,0,0,0.6);
     }
     .portal-title {
       padding: 4px 6px;
-      border-bottom: 2px solid var(--line);
+      border-bottom: 2px solid var(--border-dark);
       text-align: center;
       font-size: 0.68rem;
       font-weight: 700;
+      font-family: 'Cinzel', serif;
+      color: var(--text-highlight);
+      background: linear-gradient(180deg, rgba(30,20,15,0.8) 0%, rgba(20,15,10,0.9) 100%);
+      text-shadow: 2px 2px 0 #000, 0 0 8px rgba(201, 184, 150, 0.3);
     }
     .portal-body {
       flex: 1;
@@ -134,7 +176,7 @@
       flex-direction: column;
       align-items: center;
       justify-content: flex-start;
-      background: #010101;
+      background: radial-gradient(circle, rgba(15,10,8,0.9) 0%, rgba(5,5,5,1) 65%);
       gap: 4px;
     }
     .portal-video {
@@ -145,45 +187,57 @@
       font-size: 0.58rem;
       line-height: 1.25;
       color: var(--text);
-      background: rgba(0,0,0,0.35);
-      border: 1px solid rgba(252,185,0,0.25);
+      background: rgba(0,0,0,0.5);
+      border: 2px solid var(--border-darker);
       padding: 3px 5px;
       font-family: var(--mono);
       white-space: pre-line;
+      box-shadow: inset 2px 2px 4px rgba(0,0,0,0.7);
     }
     .portal-log {
       width: 100%;
       height: auto;
       max-height: 210px;
-      background: #000;
       min-height: 50px;
       margin-top: 4px;
       font-size: 0.58rem;
       line-height: 1.25;
       color: var(--text);
-      background: rgba(0,0,0,0.35);
-      border: 1px solid rgba(252,185,0,0.25);
+      background: rgba(0,0,0,0.5);
+      border: 2px solid var(--border-darker);
       padding: 3px 5px;
       font-family: var(--mono);
       white-space: pre-line;
+      box-shadow: inset 2px 2px 4px rgba(0,0,0,0.7);
     }
     .portal-footer {
       display: flex;
       gap: 6px;
       padding: 4px 6px;
+      background: linear-gradient(135deg, rgba(15,10,8,0.4) 0%, rgba(10,8,5,0.6) 100%);
+      border-top: 2px solid var(--border-dark);
     }
     .btn-audio {
       flex: 1;
-      background: transparent;
-      border: 2px solid var(--line);
+      background: linear-gradient(180deg, rgba(50,40,30,0.8) 0%, rgba(30,24,18,0.9) 100%);
+      border: 2px solid;
+      border-color: var(--border-light) var(--border-darker) var(--border-darker) var(--border-light);
       color: var(--text);
-      font-family: var(--mono);
+      font-family: 'Crimson Text', serif;
       font-size: 0.68rem;
       cursor: pointer;
       height: 26px;
+      box-shadow: 2px 2px 4px rgba(0,0,0,0.6);
+      transition: all 0.2s;
+    }
+    .btn-audio:hover {
+      background: linear-gradient(180deg, rgba(60,48,36,0.9) 0%, rgba(40,32,24,1) 100%);
+      color: var(--text-highlight);
     }
     .btn-audio.active {
-      background: rgba(252,185,0,0.12);
+      background: linear-gradient(180deg, rgba(60,48,36,0.9) 0%, rgba(40,32,24,1) 100%);
+      color: var(--text-highlight);
+      border-color: #5a4d40 var(--border-dark) var(--border-dark) #5a4d40;
     }
     .invoke-row {
       display: flex;
@@ -191,33 +245,59 @@
       gap: 6px;
       padding: 6px 0 2px;
       font-size: 0.7rem;
+      font-family: 'Crimson Text', serif;
     }
     .invoke-row input {
       width: 70px;
-      background: #010101;
-      border: 1px solid var(--line);
-      color: var(--text);
-      padding: 3px;
+      background: linear-gradient(135deg, rgba(20,10,10,0.6) 0%, rgba(10,5,5,0.8) 100%);
+      border: 2px solid var(--border-dark);
+      border-color: var(--border-darker) var(--border-light) var(--border-light) var(--border-darker);
+      color: var(--text-highlight);
+      padding: 4px;
       font-family: var(--mono);
+      box-shadow: inset 2px 2px 4px rgba(0,0,0,0.7);
+    }
+    .invoke-row input:focus {
+      outline: none;
+      border-color: var(--border-light) #5a4d40 #5a4d40 var(--border-light);
+      box-shadow: inset 2px 2px 4px rgba(0,0,0,0.7), 0 0 12px rgba(138, 112, 80, 0.4);
     }
     .invoke-btn {
-      background: transparent;
-      border: 2px solid var(--line);
+      background: linear-gradient(180deg, rgba(50,40,30,0.8) 0%, rgba(30,24,18,0.9) 100%);
+      border: 2px solid;
+      border-color: var(--border-light) var(--border-darker) var(--border-darker) var(--border-light);
       color: var(--text);
-      font-family: var(--mono);
+      font-family: 'Crimson Text', serif;
       font-size: 0.7rem;
-      padding: 3px 12px;
+      font-weight: 600;
+      padding: 4px 12px;
       cursor: pointer;
+      box-shadow: 2px 2px 4px rgba(0,0,0,0.6);
+      transition: all 0.2s;
+      text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+    }
+    .invoke-btn:hover {
+      background: linear-gradient(180deg, rgba(60,48,36,0.9) 0%, rgba(40,32,24,1) 100%);
+      color: var(--text-highlight);
+      border-color: #5a4d40 var(--border-dark) var(--border-dark) #5a4d40;
+    }
+    .invoke-btn:active {
+      border-color: var(--border-darker) var(--border-light) var(--border-light) var(--border-darker);
+      box-shadow: inset 2px 2px 4px rgba(0,0,0,0.8);
+      transform: translateY(1px);
     }
     .bottom-list-wrap {
       margin-top: 10px;
-      border-top: 2px solid var(--line);
+      border-top: 2px solid var(--border-dark);
       padding-top: 6px;
     }
     .invoked-title {
       text-align: center;
-      font-size: 0.65rem;
-      margin-bottom: 6px;
+      font-size: 0.7rem;
+      margin-bottom: 8px;
+      font-family: 'Cinzel', serif;
+      color: var(--text-highlight);
+      text-shadow: 2px 2px 0 #000, 0 0 8px rgba(201, 184, 150, 0.3);
     }
     .invoked-list {
       display: flex;
@@ -225,28 +305,35 @@
       gap: 5px;
     }
     .invoked-item {
-      border: 1px solid var(--line);
+      border: 2px solid var(--border-dark);
+      border-color: var(--border-light) var(--border-darker) var(--border-darker) var(--border-light);
       display: flex;
       align-items: center;
       gap: 8px;
       padding: 4px 6px;
       font-size: 0.68rem;
-      background: #050505;
+      font-family: 'Crimson Text', serif;
+      background: linear-gradient(135deg, rgba(20,10,10,0.6) 0%, rgba(10,5,5,0.8) 100%);
+      box-shadow: 2px 2px 4px rgba(0,0,0,0.7);
     }
     .invoked-thumb {
       width: 34px;
       height: 34px;
-      border: 1px solid var(--line);
+      border: 2px solid var(--border-dark);
       background: #000;
       object-fit: cover;
+      box-shadow: inset 2px 2px 4px rgba(0,0,0,0.7);
     }
     .invoked-text {
       flex: 1;
+      color: var(--text);
     }
     .mint-status {
       text-align: center;
-      font-size: 0.6rem;
+      font-size: 0.65rem;
       padding-top: 4px;
+      font-family: 'Crimson Text', serif;
+      color: var(--text);
     }
     @media (max-width: 992px) {
       .top-row {
@@ -256,9 +343,22 @@
         justify-content: flex-start;
       }
     }
-    .wallet-badge-ok   { border-color:#3fae3f !important; color:#3fae3f !important; }
-    .wallet-badge-warn { border-color:#fcb900 !important; color:#fcb900 !important; }
-    .wallet-badge-err  { border-color:#a66 !important;    color:#a66 !important; }
+    .wallet-badge-ok   { border-color:#5a8a5a !important; color:#7aa87a !important; }
+    .wallet-badge-warn { border-color:var(--text-highlight) !important; color:var(--text-highlight) !important; }
+    .wallet-badge-err  { border-color:#8a5050 !important;    color:#c97070 !important; }
+
+    /* Scrollbar gothic styles */
+    ::-webkit-scrollbar {
+      width: 8px;
+      background: #0a0a0a;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: linear-gradient(180deg, var(--border-light) 0%, var(--border-dark) 100%);
+      border: 1px solid var(--border-darker);
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: linear-gradient(180deg, #5a4d40 0%, #3a2d20 100%);
+    }
   </style>
 </head>
 <body>

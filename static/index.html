@@ -157,18 +157,31 @@ hr.emberline {
 
 .top-status-row {
     display: flex;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     justify-content: space-between;
-    gap: 20px;
-    align-items: flex-start;
+    align-items: center;
+    gap: 15px;
     color: #c9b896;
     font-family: 'Crimson Text', serif;
-    font-size: 18px;
+    font-size: 14px;
 }
 
 .top-status-row span {
     white-space: nowrap;
     text-shadow: 0 0 6px rgba(201, 184, 150, 0.3);
+    flex: 1;
+}
+
+.top-status-row span:first-child {
+    text-align: left;
+}
+
+.top-status-row span:nth-child(2) {
+    text-align: center;
+}
+
+.top-status-row span:last-child {
+    text-align: right;
 }
 
 .top-command-bar {
@@ -176,8 +189,8 @@ hr.emberline {
     border-top: 2px solid #3a3020;
     padding-top: 8px;
     display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
+    flex-wrap: nowrap;
+    gap: 4px;
     align-items: center;
 }
 
@@ -188,13 +201,13 @@ hr.emberline {
     border: 2px solid;
     border-color: #4a3d30 #1a1510 #1a1510 #4a3d30;
     font-family: 'Crimson Text', serif;
-    font-size: 16px;
+    font-size: 12px;
     font-weight: 600;
     line-height: 1.2em;
-    padding: 10px 16px;
+    padding: 6px 12px;
     cursor: pointer;
     text-transform: uppercase;
-    letter-spacing: 1px;
+    letter-spacing: 0.5px;
     box-shadow:
         inset 1px 1px 2px rgba(74,61,48,0.3),
         2px 2px 4px rgba(0,0,0,0.6);
