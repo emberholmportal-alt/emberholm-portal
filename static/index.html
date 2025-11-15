@@ -897,6 +897,173 @@ a.social-link:hover {
     box-shadow: inset 1px 1px 3px rgba(0,0,0,0.8);
     transform: translateY(0px);
 }
+
+/* ============================================
+   ATMOSPHERIC EFFECTS - FALLING ASH PARTICLES
+   ============================================ */
+
+.ash-particle {
+    position: fixed;
+    width: 2px;
+    height: 2px;
+    background: rgba(201, 184, 150, 0.2); /* Adaptado a la paleta gótico-medieval */
+    border-radius: 50%;
+    pointer-events: none; /* Las partículas no interfieren con clicks */
+    z-index: 9998; /* Por debajo de la consola (9999) */
+    animation: fall linear infinite;
+    box-shadow: 0 0 2px rgba(201, 184, 150, 0.25);
+}
+
+@keyframes fall {
+    0% {
+        transform: translateY(-10px) translateX(0);
+        opacity: 0;
+    }
+    10% {
+        opacity: 1;
+    }
+    90% {
+        opacity: 0.5;
+    }
+    100% {
+        transform: translateY(100vh) translateX(20px);
+        opacity: 0;
+    }
+}
+
+/* Variación para cenizas más grandes y lentas */
+.ash-particle.large {
+    width: 3px;
+    height: 3px;
+    background: rgba(138, 112, 80, 0.25); /* Color gótico más oscuro */
+}
+
+/* Variación para cenizas más pequeñas y rápidas */
+.ash-particle.small {
+    width: 1px;
+    height: 1px;
+    background: rgba(201, 184, 150, 0.12);
+}
+
+/* ============================================
+   REALM DISPATCH LIVE FEED
+   ============================================ */
+
+.live-feed-container {
+    max-height: 400px;
+    overflow-y: auto;
+    padding: 15px;
+    background: rgba(0, 0, 0, 0.4);
+    border: 2px solid;
+    border-color: #4a3d30 #1a1510 #1a1510 #4a3d30;
+    border-radius: 4px;
+    box-shadow: inset 0 2px 5px rgba(0,0,0,0.5), 0 0 10px rgba(0,0,0,0.3);
+}
+
+/* Scrollbar personalizado para mantener la estética gótico-medieval */
+.live-feed-container::-webkit-scrollbar {
+    width: 10px;
+}
+
+.live-feed-container::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.4);
+    border-radius: 4px;
+    border: 1px solid #2a2520;
+}
+
+.live-feed-container::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, #4a3d30 0%, #2a2520 100%);
+    border-radius: 4px;
+    border: 1px solid #1a1510;
+}
+
+.live-feed-container::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, #5a4d40 0%, #3a2d20 100%);
+}
+
+/* Items del feed */
+.feed-item {
+    background: rgba(30, 24, 18, 0.7);
+    border-left: 3px solid #8a7050;
+    padding: 12px 15px;
+    margin-bottom: 10px;
+    border-radius: 3px;
+    transition: all 0.3s ease;
+    font-family: 'Spectral', serif;
+    font-size: 14px;
+    line-height: 1.6;
+    position: relative;
+}
+
+.feed-item:hover {
+    background: rgba(50, 40, 30, 0.5);
+    border-left-color: #c9b896;
+    transform: translateX(5px);
+    box-shadow: 0 2px 8px rgba(201, 184, 150, 0.15);
+}
+
+/* Timestamp del evento */
+.feed-time {
+    color: #8a7050;
+    font-size: 12px;
+    margin-bottom: 5px;
+    display: block;
+    font-family: 'Courier New', monospace;
+    opacity: 0.9;
+}
+
+/* Contenido del evento */
+.feed-content {
+    color: #c9b896;
+}
+
+/* Highlights (guilds, nombres, números) */
+.feed-highlight {
+    color: #d4af37;
+    font-weight: 600;
+    text-shadow: 0 0 5px rgba(212, 175, 55, 0.3);
+}
+
+/* Estado de carga */
+.feed-loading {
+    text-align: center;
+    padding: 40px;
+    color: #c9b896;
+    font-family: 'Cinzel', serif;
+}
+
+/* Animación de entrada para nuevos items */
+.feed-item.new-item {
+    animation: slideInFeed 0.5s ease-out;
+}
+
+@keyframes slideInFeed {
+    from {
+        transform: translateX(-100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+/* Indicador de nuevo evento */
+.feed-item.new-item::after {
+    content: "NEW";
+    position: absolute;
+    right: 10px;
+    top: 10px;
+    background: linear-gradient(180deg, #d4af37 0%, #8a7050 100%);
+    color: #1a1510;
+    padding: 3px 8px;
+    border-radius: 3px;
+    font-size: 10px;
+    font-weight: bold;
+    font-family: 'Cinzel', serif;
+    letter-spacing: 1px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+}
 </style>
 </head>
 <body>
@@ -1191,6 +1358,22 @@ a:hover {
             <div class="mono-small-note" style="margin-top:10px;">
                 NOTE: Campaign window ~45 days. Mission board refreshes every 72h.
                 Each hero can only attempt each mission once per rotation.
+            </div>
+        </div>
+
+        <!-- REALM DISPATCH LIVE FEED -->
+        <div class="section-block" style="margin-top: 20px;">
+            <div class="section-title">📜 REALM DISPATCH // LIVE FEED</div>
+
+            <div id="realm-feed-container" class="live-feed-container">
+                <!-- Los eventos se cargarán aquí dinámicamente -->
+                <div class="feed-loading">
+                    <span class="status-flicker">LOADING TRANSMISSIONS...</span>
+                </div>
+            </div>
+
+            <div class="mono-small-note" style="margin-top:10px;">
+                FEED AUTO-UPDATES EVERY 30 SECONDS // REALM ACTIVITY MONITORED
             </div>
         </div>
     </section>
@@ -4318,6 +4501,161 @@ async function startPartyMission(missionId, missionName) {
         </div>
     </div>
 </div>
+
+<!-- ============================================
+     ATMOSPHERIC PARTICLES SYSTEM
+     ============================================ -->
+<script>
+function initializeAshParticles() {
+    const particleCount = 35; // Cantidad moderada de partículas
+    const container = document.body;
+
+    for (let i = 0; i < particleCount; i++) {
+        const ash = document.createElement('div');
+        ash.className = 'ash-particle';
+
+        // Variar tamaños aleatoriamente
+        const rand = Math.random();
+        if (rand > 0.7) {
+            ash.classList.add('large');
+        } else if (rand < 0.3) {
+            ash.classList.add('small');
+        }
+
+        // Posición horizontal aleatoria
+        ash.style.left = Math.random() * 100 + '%';
+
+        // Duración de animación aleatoria (entre 10 y 18 segundos para efecto más lento y atmosférico)
+        ash.style.animationDuration = (Math.random() * 8 + 10) + 's';
+
+        // Delay aleatorio para que no caigan todas a la vez
+        ash.style.animationDelay = Math.random() * 8 + 's';
+
+        container.appendChild(ash);
+    }
+}
+
+// Inicializar cuando cargue la página
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initializeAshParticles);
+} else {
+    initializeAshParticles();
+}
+</script>
+
+<!-- ============================================
+     REALM DISPATCH LIVE FEED SYSTEM
+     ============================================ -->
+<script>
+let lastFeedUpdate = null;
+
+async function loadRealmFeed() {
+    try {
+        const response = await fetch('/api/realm-feed');
+        const data = await response.json();
+
+        if (data.success) {
+            displayFeedItems(data.feed);
+        } else {
+            console.error('Error loading feed:', data.error);
+            showFeedError();
+        }
+    } catch (error) {
+        console.error('Failed to load realm feed:', error);
+        showFeedError();
+    }
+}
+
+function displayFeedItems(feedItems) {
+    const container = document.getElementById('realm-feed-container');
+
+    if (!feedItems || feedItems.length === 0) {
+        container.innerHTML = `
+            <div class="feed-item">
+                <div class="feed-time">[System Status]</div>
+                <div class="feed-content">
+                    <span class="feed-highlight">⚠️ No recent transmissions detected.</span><br/>
+                    The realm is quiet... perhaps too quiet. Ember Protocol monitoring for anomalies.
+                </div>
+            </div>
+        `;
+        return;
+    }
+
+    container.innerHTML = '';
+
+    feedItems.forEach((item, index) => {
+        const feedItem = document.createElement('div');
+        feedItem.className = 'feed-item';
+
+        // Si es un evento nuevo (comparar con última actualización)
+        if (index === 0 && lastFeedUpdate) {
+            feedItem.classList.add('new-item');
+        }
+
+        let content = '';
+
+        if (item.type === 'mission_complete') {
+            content = `
+                <div class="feed-time">[${item.time}]</div>
+                <div class="feed-content">
+                    <span class="feed-highlight">${item.content}</span>
+                    ${item.highlight ? `<br/>Awarded: <span class="feed-highlight">${item.highlight}</span>` : ''}
+                </div>
+            `;
+        } else if (item.type === 'guild_alert') {
+            content = `
+                <div class="feed-time">[${item.time}]</div>
+                <div class="feed-content">
+                    <span class="feed-highlight">[${item.guild}]</span> ${item.content}
+                </div>
+            `;
+        } else {
+            // Tipo genérico
+            content = `
+                <div class="feed-time">[${item.time}]</div>
+                <div class="feed-content">${item.content}</div>
+            `;
+        }
+
+        feedItem.innerHTML = content;
+        container.appendChild(feedItem);
+    });
+
+    lastFeedUpdate = Date.now();
+}
+
+function showFeedError() {
+    const container = document.getElementById('realm-feed-container');
+    container.innerHTML = `
+        <div class="feed-item" style="border-left-color: #8b0000;">
+            <div class="feed-time">[SYSTEM ERROR]</div>
+            <div class="feed-content" style="color: #ff6b6b;">
+                ⚠️ Transmission disrupted. Ember Protocol experiencing interference.<br/>
+                <span style="font-size: 12px; opacity: 0.8;">Attempting to re-establish connection...</span>
+            </div>
+        </div>
+    `;
+}
+
+// Cargar el feed cuando la página cargue
+document.addEventListener('DOMContentLoaded', function() {
+    // Solo cargar si estamos en la página principal (no en mint)
+    if (document.getElementById('realm-feed-container')) {
+        loadRealmFeed();
+
+        // Actualizar cada 30 segundos
+        setInterval(loadRealmFeed, 30000);
+    }
+});
+
+// Actualizar cuando el usuario vuelva a la pestaña
+document.addEventListener('visibilitychange', function() {
+    if (!document.hidden && document.getElementById('realm-feed-container')) {
+        loadRealmFeed();
+    }
+});
+</script>
 
 </body>
 </html>

@@ -1119,6 +1119,129 @@ def api_events():
     })
 
 # ---------------------------------
+# API: REALM DISPATCH LIVE FEED
+# ---------------------------------
+
+def get_time_ago(timestamp_str):
+    """
+    Convierte un timestamp ISO a formato "X hours ago"
+    """
+    try:
+        timestamp = datetime.fromisoformat(timestamp_str.replace('Z', '+00:00'))
+        now = datetime.utcnow()
+        delta = now - timestamp
+
+        if delta.days > 0:
+            return f"{delta.days} day{'s' if delta.days > 1 else ''} ago"
+        elif delta.seconds >= 3600:
+            hours = delta.seconds // 3600
+            return f"{hours} hour{'s' if hours > 1 else ''} ago"
+        elif delta.seconds >= 60:
+            minutes = delta.seconds // 60
+            return f"{minutes} minute{'s' if minutes > 1 else ''} ago"
+        else:
+            return "just now"
+    except:
+        return "recently"
+
+@app.route('/api/realm-feed')
+def get_realm_feed():
+    """
+    Retorna los últimos eventos del reino para el Live Feed
+    Muestra misiones completadas y alertas de las órdenes
+    """
+    try:
+        feed_items = []
+
+        # 1. Cargar datos de NFTs para obtener misiones recientes
+        nfts_data = load_nfts_database()
+
+        # Obtener misiones completadas recientemente
+        mission_events = []
+        for nft_id, nft in nfts_data.items():
+            # Verificar que tenga historial de misiones
+            if 'dynamic_state' in nft:
+                state = nft['dynamic_state']
+                # Si completó una misión recientemente, agregarlo al feed
+                if state.get('last_update'):
+                    last_mission = state.get('last_mission_name', 'Unknown Mission')
+                    xp_total = state.get('xp_total', 0)
+                    aura = state.get('aura_level', 0)
+
+                    mission_events.append({
+                        'type': 'mission_complete',
+                        'time': get_time_ago(state['last_update']),
+                        'content': f"Emissary #{nft_id} completed {last_mission}",
+                        'highlight': f"+{xp_total} XP, +{aura} Aura",
+                        'timestamp': state['last_update']
+                    })
+
+        # Ordenar por timestamp y tomar los últimos 5
+        mission_events.sort(key=lambda x: x.get('timestamp', ''), reverse=True)
+        feed_items.extend(mission_events[:5])
+
+        # 2. Eventos simulados de las órdenes (adaptados a la estética gótico-medieval)
+        guild_events = [
+            {
+                'type': 'guild_alert',
+                'guild': 'Shadow Guild',
+                'content': 'reports Voidform breach at Northern Watchtower',
+                'time': '2 hours ago'
+            },
+            {
+                'type': 'guild_alert',
+                'guild': 'Forge Legion',
+                'content': 'deployed emergency reinforcements to Eastern Front',
+                'time': '4 hours ago'
+            },
+            {
+                'type': 'guild_alert',
+                'guild': 'Circle of Mist',
+                'content': 'confirms anomalous mana readings near Veilweaver Sanctum',
+                'time': '8 hours ago'
+            },
+            {
+                'type': 'guild_alert',
+                'guild': 'Horizon Watch',
+                'content': 'detected pressure tide surge along western border',
+                'time': '10 hours ago'
+            },
+            {
+                'type': 'guild_alert',
+                'guild': 'Dawnkeepers',
+                'content': 'report Ember Core fluctuation detected',
+                'time': '12 hours ago'
+            },
+            {
+                'type': 'guild_alert',
+                'guild': 'Luminous Path',
+                'content': 'confirmed restoration rituals underway at Central Nexus',
+                'time': '16 hours ago'
+            }
+        ]
+
+        for event in guild_events:
+            feed_items.append(event)
+
+        # 3. Ordenar por timestamp (más reciente primero)
+        # Los eventos de guild no tienen timestamp, así que van después de las misiones
+        feed_items.sort(key=lambda x: x.get('timestamp', ''), reverse=True)
+
+        # Limitar a los últimos 20 eventos
+        feed_items = feed_items[:20]
+
+        return jsonify({
+            'success': True,
+            'feed': feed_items
+        })
+
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+# ---------------------------------
 # Helpers para NFTs y metadata
 # ---------------------------------
 
