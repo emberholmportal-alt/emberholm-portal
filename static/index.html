@@ -40,20 +40,6 @@ body {
     position: relative;
 }
 
-/* Ornamentos de esquina */
-.wrapper::before {
-    content: '◆';
-    position: absolute;
-    top: -10px;
-    left: -10px;
-    color: #8a7050;
-    font-size: 32px;
-    z-index: 10;
-    text-shadow:
-        0 0 10px rgba(138, 112, 80, 0.6),
-        2px 2px 4px rgba(0,0,0,0.8);
-}
-
 /* SECTION BLOCKS */
 .section-block {
     border: 2px solid #2a2520;
@@ -146,14 +132,16 @@ hr.emberline {
     top: 50%;
     transform: translateY(-50%);
     color: #8a7050;
-    font-size: 32px;
+    font-size: 24px;
+    opacity: 0.4;
     text-shadow:
-        0 0 10px rgba(138, 112, 80, 0.6),
+        0 0 8px rgba(138, 112, 80, 0.5),
         2px 2px 4px rgba(0,0,0,0.8);
+    pointer-events: none;
 }
 
-.top-header::before { left: 10px; }
-.top-header::after { right: 10px; }
+.top-header::before { left: 6px; }
+.top-header::after { right: 6px; }
 
 .top-status-row {
     display: flex;
