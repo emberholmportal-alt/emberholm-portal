@@ -1084,8 +1084,7 @@ a:hover {
             <button class="cmd-link" data-target="guilds">[STATS/GUILDS]</button>
             <button class="cmd-link" data-target="missions">[MISSIONS]</button>
             <button class="cmd-link" data-target="profile">[PROFILE]</button>
-            <button class="cmd-link" data-target="help">[HELP]</button>
-            <button class="cmd-link" data-target="tutorial">[TUTORIAL]</button>
+            <button class="cmd-link" data-target="tutorial">[HELP/TUTORIAL]</button>
             <button class="cmd-link" data-target="lore">[LORE]</button>
             <button class="cmd-link" data-target="announcements">[ANNOUNCEMENTS]</button>
             <button class="cmd-link" data-target="events">[EVENTS]</button>
@@ -1224,8 +1223,46 @@ a:hover {
     </section>
 
     <!-- HELP -->
-    <section class="screen" data-screen="help">
+
+    <!-- HELP/TUTORIAL COMBINED -->
+    <section class="screen" data-screen="tutorial">
+        <!-- INDEX -->
         <div class="section-block">
+            <div class="section-title">HELP / TUTORIAL // COMPLETE GUIDE</div>
+            <div class="mono-block" style="text-align:center;">
+                <p style="color:#c9b896; font-size:16px;"><b>⚔️ COMPREHENSIVE EMBERHOLM PORTAL GUIDE</b></p>
+                <p>Complete documentation for missions, mechanics, and strategies.</p>
+            </div>
+        </div>
+
+        <div class="section-block">
+            <div class="section-title">📋 TABLE OF CONTENTS // QUICK ACCESS</div>
+            <div class="mono-block" style="font-size:14px; line-height:1.8;">
+                <p><b style="color:#c9b896;">ESSENTIALS:</b></p>
+                <a href="#help-basics" style="color:#8a7050;">→ Basic Principles (Energy, XP, Aura)</a><br/>
+                <a href="#help-commandflow" style="color:#8a7050;">→ Command Flow (How to get started)</a><br/><br/>
+
+                <p><b style="color:#c9b896;">MISSION SYSTEM:</b></p>
+                <a href="#tut-1-overview" style="color:#8a7050;">1. Mission System Overview</a><br/>
+                <a href="#tut-2-costs" style="color:#8a7050;">2. Mission Costs & Requirements</a><br/>
+                <a href="#tut-3-rewards" style="color:#8a7050;">3. Mission Rewards (XP & Aura)</a><br/>
+                <a href="#tut-4-success" style="color:#8a7050;">4. Success Rate Calculation</a><br/>
+                <a href="#tut-5-failure" style="color:#8a7050;">5. Mission Failure & Consequences</a><br/>
+                <a href="#tut-6-death" style="color:#8a7050;">6. Death & Reinvocation System</a><br/>
+                <a href="#tut-7-flow" style="color:#8a7050;">7. Mission Flow (Step-by-Step Guide)</a><br/>
+                <a href="#tut-8-party" style="color:#8a7050;">8. Party Missions (5-Hero Operations)</a><br/>
+                <a href="#tut-9-missions" style="color:#8a7050;">9. Available Missions (Current Rotation)</a><br/>
+                <a href="#tut-10-strategy" style="color:#8a7050;">10. Strategy Tips (Maximize Efficiency)</a><br/>
+                <a href="#tut-11-technical" style="color:#8a7050;">11. Technical Details (Advanced)</a><br/><br/>
+
+                <p><b style="color:#c9b896;">REFERENCE:</b></p>
+                <a href="#tut-faq" style="color:#8a7050;">→ Frequently Asked Questions (FAQ)</a><br/>
+                <a href="#tut-examples" style="color:#8a7050;">→ Calculation Examples</a><br/>
+            </div>
+        </div>
+
+        <!-- HELP // BASIC PRINCIPLES -->
+        <div class="section-block" id="help-basics">
             <div class="section-title">HELP // BASIC PRINCIPLES</div>
 
             <div class="mono-block">
@@ -1257,7 +1294,9 @@ a:hover {
                 Each hero can only attempt each mission once per rotation.
                 Events are special cases and may ignore Guild targeting.
             </div>
+        </div>
 
+        <div class="section-block" id="help-commandflow">
             <div class="section-title">COMMAND FLOW</div>
             <div class="mono-block" style="font-size:14px;">
                 1. [PROFILE] Link / enter wallet (Base chain).<br/>
@@ -1273,18 +1312,7 @@ a:hover {
                 </span>
             </div>
         </div>
-    </section>
 
-    <!-- TUTORIAL -->
-    <section class="screen" data-screen="tutorial">
-        <div class="section-block">
-            <div class="section-title">MISSION SYSTEM // COMPLETE TUTORIAL</div>
-            <div class="mono-block">
-                <p style="color:#44ff44;"><b>⚔️ COMPREHENSIVE GUIDE TO MISSIONS IN EMBERHOLM PORTAL</b></p>
-                This tutorial covers everything you need to know about the mission system,
-                from basic mechanics to advanced strategies for maximizing your rewards.
-            </div>
-        </div>
 
         <!-- 1. MISSION SYSTEM // OVERVIEW -->
         <div class="section-block">
@@ -1311,7 +1339,7 @@ a:hover {
             </div>
         </div>
 
-        <!-- 2. MISSION COSTS & REQUIREMENTS -->
+        
         <div class="section-block">
             <div class="section-title">2. MISSION COSTS & REQUIREMENTS</div>
             <div class="mono-block">
@@ -1339,7 +1367,7 @@ a:hover {
             </div>
         </div>
 
-        <!-- 3. MISSION REWARDS // XP & AURA -->
+        <div class="section-block" id="tut-3-rewards">
         <div class="section-block">
             <div class="section-title">3. MISSION REWARDS // XP & AURA</div>
             <div class="mono-block">
@@ -1383,7 +1411,7 @@ a:hover {
             </div>
         </div>
 
-        <!-- 4. SUCCESS RATE CALCULATION -->
+        <div class="section-block" id="tut-4-success">
         <div class="section-block">
             <div class="section-title">4. SUCCESS RATE CALCULATION</div>
             <div class="mono-block">
@@ -1416,7 +1444,7 @@ a:hover {
             </div>
         </div>
 
-        <!-- 5. MISSION FAILURE // CONSEQUENCES -->
+        <div class="section-block" id="tut-5-failure">
         <div class="section-block">
             <div class="section-title">5. MISSION FAILURE // CONSEQUENCES</div>
             <div class="mono-block">
@@ -1445,7 +1473,7 @@ a:hover {
             </div>
         </div>
 
-        <!-- 6. DEATH & REINVOCATION SYSTEM -->
+        <div class="section-block" id="tut-6-death">
         <div class="section-block">
             <div class="section-title">6. DEATH & REINVOCATION SYSTEM</div>
             <div class="mono-block">
@@ -1491,7 +1519,7 @@ a:hover {
             </div>
         </div>
 
-        <!-- 7. MISSION FLOW // STEP-BY-STEP GUIDE -->
+        <div class="section-block" id="tut-7-flow">
         <div class="section-block">
             <div class="section-title">7. MISSION FLOW // STEP-BY-STEP GUIDE</div>
             <div class="mono-block">
@@ -1558,7 +1586,7 @@ a:hover {
             </div>
         </div>
 
-        <!-- 8. PARTY MISSIONS // COORDINATED OPERATIONS -->
+        <div class="section-block" id="tut-8-party">
         <div class="section-block">
             <div class="section-title">8. PARTY MISSIONS // COORDINATED OPERATIONS</div>
             <div class="mono-block">
@@ -1685,7 +1713,7 @@ a:hover {
             </div>
         </div>
 
-        <!-- 9. AVAILABLE MISSIONS // CURRENT ROTATION -->
+        <div class="section-block" id="tut-9-missions">
         <div class="section-block">
             <div class="section-title">9. AVAILABLE MISSIONS // CURRENT ROTATION</div>
             <div class="mono-block">
@@ -1697,7 +1725,7 @@ a:hover {
             </div>
         </div>
 
-        <!-- 10. STRATEGY TIPS // MAXIMIZE EFFICIENCY -->
+        <div class="section-block" id="tut-10-strategy">
         <div class="section-block">
             <div class="section-title">10. STRATEGY TIPS // MAXIMIZE EFFICIENCY</div>
             <div class="mono-block">
@@ -1765,7 +1793,7 @@ a:hover {
             </div>
         </div>
 
-        <!-- 11. TECHNICAL DETAILS // ADVANCED INFO -->
+        <div class="section-block" id="tut-11-technical">
         <div class="section-block">
             <div class="section-title">11. TECHNICAL DETAILS // ADVANCED INFO</div>
             <div class="mono-block">
@@ -1838,7 +1866,7 @@ a:hover {
             </div>
         </div>
 
-        <!-- FAQ SECTION -->
+        <div class="section-block" id="tut-faq">
         <div class="section-block">
             <div class="section-title">FREQUENTLY ASKED QUESTIONS (FAQ)</div>
             <div class="mono-block">
@@ -1897,7 +1925,7 @@ a:hover {
             </div>
         </div>
 
-        <!-- CALCULATION EXAMPLES -->
+        <div class="section-block" id="tut-examples">
         <div class="section-block">
             <div class="section-title">CALCULATION EXAMPLES</div>
             <div class="mono-block">
