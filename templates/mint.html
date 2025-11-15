@@ -946,24 +946,25 @@
   <!-- Botón para toggle de partículas -->
   <button id="particles-toggle"
           onclick="toggleAshParticles(); updateParticlesButton();"
-          style="position: fixed; bottom: 20px; right: 20px;
-                 padding: 10px 15px;
+          style="position: fixed; top: 8px; left: 260px;
+                 padding: 4px 8px;
                  background: rgba(139, 69, 19, 0.8);
-                 border: 2px solid #d4af37;
+                 border: 1px solid #d4af37;
                  color: #d4af37;
-                 border-radius: 5px;
+                 border-radius: 3px;
                  cursor: pointer;
                  font-family: 'Courier New', monospace;
-                 font-size: 0.9em;
-                 z-index: 99999;">
-      🔥 Particles: ON
+                 font-size: 0.7em;
+                 z-index: 9999;
+                 line-height: 1.2;">
+      🔥 ASH
   </button>
 
   <script>
   function updateParticlesButton() {
       const btn = document.getElementById('particles-toggle');
       const state = window.getAshParticlesState ? window.getAshParticlesState() : true;
-      btn.textContent = state ? '🔥 Particles: ON' : '❄️ Particles: OFF';
+      btn.textContent = state ? '🔥 ASH' : '❄️ ASH';
   }
 
   // Actualizar botón al cargar

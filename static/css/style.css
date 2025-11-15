@@ -9,14 +9,15 @@
 
 .ash-particle {
     position: fixed;
-    width: 2px;
-    height: 2px;
-    background: rgba(255, 140, 0, 0.3);
+    width: 4px;
+    height: 4px;
+    background: rgba(255, 140, 0, 0.6);
     border-radius: 50%;
     pointer-events: none;
     z-index: 9999;
     will-change: transform, opacity;
     animation: ashFall linear infinite;
+    box-shadow: 0 0 6px rgba(255, 140, 0, 0.4);
 }
 
 /* Animación de caída */
