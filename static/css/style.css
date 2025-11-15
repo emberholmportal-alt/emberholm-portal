@@ -7,17 +7,20 @@
    ATMOSPHERIC EFFECTS - FALLING ASH PARTICLES (SIMPLE VERSION)
    =============================================================== */
 
-/* Atmospheric particles - Ash falling effect */
+/* Atmospheric particles - Ash falling effect - EXTREME VISIBILITY FOR TESTING */
 .ash-particle {
-    position: fixed;
-    width: 5px;
-    height: 5px;
-    background: rgba(255, 140, 0, 0.6);
-    border-radius: 50%;
-    animation: fall linear infinite;
-    z-index: 9999;
-    pointer-events: none;
-    box-shadow: 0 0 8px rgba(255, 140, 0, 0.4);
+    position: fixed !important;
+    width: 15px !important;
+    height: 15px !important;
+    background: rgba(255, 140, 0, 0.9) !important;
+    border-radius: 50% !important;
+    animation: fall linear infinite !important;
+    z-index: 999999 !important;
+    pointer-events: none !important;
+    box-shadow: 0 0 20px rgba(255, 140, 0, 0.8), 0 0 40px rgba(255, 100, 0, 0.6) !important;
+    border: 2px solid rgba(255, 200, 0, 0.9) !important;
+    display: block !important;
+    visibility: visible !important;
 }
 
 @keyframes fall {

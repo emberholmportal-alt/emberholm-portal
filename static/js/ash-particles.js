@@ -78,6 +78,30 @@
         // Verificar que se crearon
         const count = document.querySelectorAll('.ash-particle').length;
         console.log('[Emberholm Ash] Verification: Found', count, 'particles in DOM');
+
+        // DIAGNÓSTICO: Inspeccionar computed styles de primera partícula
+        const firstParticle = document.querySelector('.ash-particle');
+        if (firstParticle) {
+            console.log('[Emberholm Ash] 🔬 DIAGNOSTIC - First particle computed styles:');
+            const styles = window.getComputedStyle(firstParticle);
+            console.log('  position:', styles.position);
+            console.log('  width:', styles.width);
+            console.log('  height:', styles.height);
+            console.log('  background:', styles.background);
+            console.log('  backgroundColor:', styles.backgroundColor);
+            console.log('  opacity:', styles.opacity);
+            console.log('  visibility:', styles.visibility);
+            console.log('  display:', styles.display);
+            console.log('  zIndex:', styles.zIndex);
+            console.log('  top:', styles.top);
+            console.log('  left:', styles.left);
+            console.log('  animation:', styles.animation);
+            console.log('  animationName:', styles.animationName);
+            console.log('  animationDuration:', styles.animationDuration);
+            console.log('  transform:', styles.transform);
+        } else {
+            console.error('[Emberholm Ash] ERROR: No particle found in DOM after creation!');
+        }
     }
 
     // Inicializar cuando cargue el DOM con delay de 3 segundos
