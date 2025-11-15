@@ -85,20 +85,44 @@
         document.addEventListener('DOMContentLoaded', function() {
             createToggleButton();
 
-            // Delay de 3 segundos antes de activar las partículas
-            console.log('[Emberholm Ash] Waiting 3 seconds before auto-activation...');
+            // Delay de 3 segundos antes de FORZAR activación (ignora localStorage)
+            console.log('[Emberholm Ash] Waiting 3 seconds before FORCED auto-activation...');
             setTimeout(function() {
-                console.log('[Emberholm Ash] 3 seconds elapsed, initializing particles...');
+                console.log('[Emberholm Ash] 3 seconds elapsed, FORCING activation...');
+
+                // FORZAR activación independientemente de localStorage
+                particlesEnabled = true;
+                localStorage.setItem('ashParticlesEnabled', 'true');
+
+                // Actualizar botón
+                const button = document.getElementById('ash-toggle-btn');
+                if (button) {
+                    button.innerHTML = '🔥 ASH';
+                }
+
+                // Inicializar partículas
                 initializeAshParticles();
             }, 3000);
         });
     } else {
         createToggleButton();
 
-        // Delay de 3 segundos antes de activar las partículas
-        console.log('[Emberholm Ash] Waiting 3 seconds before auto-activation...');
+        // Delay de 3 segundos antes de FORZAR activación (ignora localStorage)
+        console.log('[Emberholm Ash] Waiting 3 seconds before FORCED auto-activation...');
         setTimeout(function() {
-            console.log('[Emberholm Ash] 3 seconds elapsed, initializing particles...');
+            console.log('[Emberholm Ash] 3 seconds elapsed, FORCING activation...');
+
+            // FORZAR activación independientemente de localStorage
+            particlesEnabled = true;
+            localStorage.setItem('ashParticlesEnabled', 'true');
+
+            // Actualizar botón
+            const button = document.getElementById('ash-toggle-btn');
+            if (button) {
+                button.innerHTML = '🔥 ASH';
+            }
+
+            // Inicializar partículas
             initializeAshParticles();
         }, 3000);
     }
