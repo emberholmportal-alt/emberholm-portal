@@ -1,197 +1,81 @@
 /* ===============================================================
-   ATMOSPHERIC PARTICLES SYSTEM - GLOBAL
-   Emberholm Portal - Ash Particles Effect
-   Gothic Medieval Aesthetic
-   ===============================================================
-
-   DESCRIPCIÓN:
-   Sistema de partículas de ceniza que caen constantemente en todas
-   las páginas del portal, creando una atmósfera gótico-medieval.
-
-   CARACTERÍSTICAS:
-   - Optimizado con DocumentFragment (1 reflow vs 40)
-   - Responsive (adapta cantidad en móviles)
-   - Encapsulado con IIFE (no contamina scope global)
-   - Maneja resize con throttling
-   - Limpia partículas previas (hot-reload friendly)
-   - Paleta de colores gótico-medieval
-
+   ATMOSPHERIC PARTICLES SYSTEM - ASH FALLING EFFECT
+   Emberholm Portal - Simple version with toggle control
    =============================================================== */
 
 (function() {
     'use strict';
 
-    // =========================================
-    // CONFIGURACIÓN
-    // =========================================
-    const CONFIG = {
-        // Cantidad de partículas
-        particleCount: 40,              // Desktop/tablet
-        mobileParticleCount: 20,        // Móviles (< 768px)
+    // Estado del sistema (activado/desactivado)
+    let particlesEnabled = localStorage.getItem('ashParticlesEnabled') !== 'false';
 
-        // Velocidad de caída (segundos)
-        minDuration: 10,                // Más lento (atmosférico)
-        maxDuration: 18,                // Más rápido
+    function createToggleButton() {
+        // Verificar que no existe ya
+        if (document.getElementById('ash-toggle-btn')) return;
 
-        // Delays iniciales (segundos)
-        maxDelay: 8,                    // Delay máximo para inicio escalonado
+        const button = document.createElement('button');
+        button.id = 'ash-toggle-btn';
+        button.className = 'ash-toggle-button';
+        button.innerHTML = particlesEnabled ? '🔥 ASH: ON' : '❄️ ASH: OFF';
+        button.title = 'Toggle ash particles';
 
-        // Probabilidades de tamaños
-        largeParticleChance: 0.30,      // 30% de partículas grandes
-        smallParticleChance: 0.30,      // 30% de partículas pequeñas
+        button.addEventListener('click', function() {
+            particlesEnabled = !particlesEnabled;
+            localStorage.setItem('ashParticlesEnabled', particlesEnabled);
 
-        // Paleta de colores gótico-medieval
-        colors: {
-            normal: 'rgba(201, 184, 150, 0.2)',      // Dorado suave
-            large: 'rgba(138, 112, 80, 0.25)',       // Marrón oscuro
-            small: 'rgba(201, 184, 150, 0.12)',      // Dorado muy sutil
-            shadow: 'rgba(201, 184, 150, 0.25)'      // Sombra dorada
-        },
+            if (particlesEnabled) {
+                button.innerHTML = '🔥 ASH: ON';
+                initializeAshParticles();
+            } else {
+                button.innerHTML = '❄️ ASH: OFF';
+                removeAllParticles();
+            }
+        });
 
-        // Responsive
-        resizeThreshold: 100,           // Píxeles de cambio para re-init
-        resizeDebounce: 250             // Milisegundos de espera después de resize
-    };
-
-    // =========================================
-    // FUNCIÓN: CREAR UNA PARTÍCULA
-    // =========================================
-    function createAshParticle(index) {
-        const ash = document.createElement('div');
-        ash.className = 'ash-particle';
-
-        // Determinar el tamaño de la partícula aleatoriamente
-        const sizeRoll = Math.random();
-        if (sizeRoll < CONFIG.smallParticleChance) {
-            ash.classList.add('small');
-        } else if (sizeRoll > (1 - CONFIG.largeParticleChance)) {
-            ash.classList.add('large');
-        }
-        // Si no cumple ninguna condición, queda con tamaño normal (2px)
-
-        // Posición horizontal aleatoria en toda la pantalla
-        ash.style.left = Math.random() * 100 + '%';
-
-        // Duración de animación aleatoria
-        const duration = Math.random() *
-            (CONFIG.maxDuration - CONFIG.minDuration) +
-            CONFIG.minDuration;
-        ash.style.animationDuration = duration + 's';
-
-        // Delay inicial aleatorio para que no caigan todas a la vez
-        ash.style.animationDelay = Math.random() * CONFIG.maxDelay + 's';
-
-        return ash;
+        document.body.appendChild(button);
     }
 
-    // =========================================
-    // FUNCIÓN: CREAR PARTÍCULA DE DEBUG
-    // =========================================
-    function createDebugParticle() {
-        const debug = document.createElement('div');
-        debug.className = 'ash-particle ash-particle-debug';
-        debug.id = 'ash-debug-particle';
-        debug.textContent = 'DEBUG';
-        debug.style.cssText = `
-            position: fixed !important;
-            top: 50px !important;
-            left: 50px !important;
-            width: 40px !important;
-            height: 40px !important;
-            background: red !important;
-            border: 4px solid yellow !important;
-            border-radius: 50% !important;
-            z-index: 999999999 !important;
-            display: flex !important;
-            align-items: center !important;
-            justify-content: center !important;
-            font-size: 8px !important;
-            font-weight: bold !important;
-            color: white !important;
-            animation: none !important;
-            pointer-events: none !important;
-        `;
-        return debug;
+    function removeAllParticles() {
+        const existingParticles = document.querySelectorAll('.ash-particle');
+        existingParticles.forEach(particle => particle.remove());
     }
 
-    // =========================================
-    // FUNCIÓN: INICIALIZAR PARTÍCULAS
-    // =========================================
     function initializeAshParticles() {
-        // Verificar que el DOM esté listo
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', initializeAshParticles);
             return;
         }
 
-        // Limpiar partículas previas si existen (útil para hot-reload)
-        const existingParticles = document.querySelectorAll('.ash-particle');
-        existingParticles.forEach(particle => particle.remove());
+        // Limpiar partículas previas
+        removeAllParticles();
 
-        // Determinar cantidad según dispositivo
-        const isMobile = window.innerWidth < 768;
-        const particleCount = isMobile ? CONFIG.mobileParticleCount : CONFIG.particleCount;
-
-        // Crear y agregar nuevas partículas usando DocumentFragment (mejor performance)
-        const fragment = document.createDocumentFragment();
-
-        // 🔴 AGREGAR PARTÍCULA DE DEBUG FIJA (esquina superior izquierda)
-        const debugParticle = createDebugParticle();
-        fragment.appendChild(debugParticle);
-
-        for (let i = 0; i < particleCount; i++) {
-            const particle = createAshParticle(i);
-            fragment.appendChild(particle);
+        // Si está desactivado, no crear partículas
+        if (!particlesEnabled) {
+            console.log('[Emberholm Ash] Particles disabled by user');
+            return;
         }
 
-        document.body.appendChild(fragment);
+        // Crear 30 partículas
+        for (let i = 0; i < 30; i++) {
+            const ash = document.createElement('div');
+            ash.className = 'ash-particle';
+            ash.style.left = Math.random() * 100 + '%';
+            ash.style.animationDuration = (Math.random() * 10 + 10) + 's';
+            ash.style.animationDelay = Math.random() * 5 + 's';
+            document.body.appendChild(ash);
+        }
 
-        // Log de confirmación (útil para debugging)
-        console.log(`[Emberholm Ash Particles] ${particleCount} particles initialized (${isMobile ? 'mobile' : 'desktop'} mode)`);
-        console.log(`[Emberholm Ash Particles] 🔴 DEBUG particle created at top-left corner (50px, 50px)`);
-        console.log(`[Emberholm Ash Particles] If you see a RED circle with yellow border, the system is working!`);
+        console.log('[Emberholm Ash] 30 particles initialized');
     }
-
-    // =========================================
-    // AUTO-INICIALIZACIÓN
-    // =========================================
 
     // Inicializar cuando cargue el DOM
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initializeAshParticles);
+        document.addEventListener('DOMContentLoaded', function() {
+            createToggleButton();
+            initializeAshParticles();
+        });
     } else {
-        // Si el DOM ya está listo, inicializar inmediatamente
+        createToggleButton();
         initializeAshParticles();
     }
-
-    // =========================================
-    // RESPONSIVE: RE-INICIALIZAR EN RESIZE
-    // =========================================
-
-    let resizeTimer;
-    window.addEventListener('resize', function() {
-        clearTimeout(resizeTimer);
-        resizeTimer = setTimeout(function() {
-            // Solo re-inicializar si el ancho cambió más de CONFIG.resizeThreshold px
-            const currentWidth = window.innerWidth;
-            const lastWidth = window.lastWidth || currentWidth;
-
-            if (Math.abs(currentWidth - lastWidth) > CONFIG.resizeThreshold) {
-                initializeAshParticles();
-                window.lastWidth = currentWidth;
-                console.log('[Emberholm Ash Particles] Re-initialized after resize');
-            }
-        }, CONFIG.resizeDebounce);
-    });
-
-    // =========================================
-    // LOGGING PARA DEBUGGING
-    // =========================================
-
-    // Exportar CONFIG para debugging en consola (solo en desarrollo)
-    if (typeof window !== 'undefined') {
-        window.EmberholmAshConfig = CONFIG;
-        console.log('[Emberholm Ash Particles] System loaded. Access config via: window.EmberholmAshConfig');
-    }
-
 })();

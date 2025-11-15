@@ -4,43 +4,24 @@
    =============================================================== */
 
 /* ===============================================================
-   ATMOSPHERIC EFFECTS - FALLING ASH PARTICLES (GLOBAL)
-   Descripción: Partículas de ceniza que caen en todas las páginas
-   Paleta: Gothic Medieval (dorado #c9b896, marrón #8a7050)
+   ATMOSPHERIC EFFECTS - FALLING ASH PARTICLES (SIMPLE VERSION)
    =============================================================== */
 
+/* Atmospheric particles - Ash falling effect */
 .ash-particle {
     position: fixed;
-    width: 5px;  /* Aumentado de 2px a 5px para MÁXIMA visibilidad */
-    height: 5px;
-    background: rgba(255, 140, 0, 0.8); /* Opacidad MÁXIMA para testing - era 0.4 */
+    width: 3px;
+    height: 3px;
+    background: rgba(255, 140, 0, 0.3);
     border-radius: 50%;
-    pointer-events: none; /* Las partículas no bloquean clicks */
-    z-index: 999999; /* Z-index MUY alto para asegurar visibilidad */
-    animation: ashFall linear infinite;
-    box-shadow: 0 0 10px rgba(255, 140, 0, 0.9), 0 0 20px rgba(255, 100, 0, 0.6); /* Glow intenso */
+    animation: fall linear infinite;
+    z-index: 9999;
+    pointer-events: none;
 }
 
-/* DEBUG: Versión de prueba - partícula fija visible */
-.ash-particle-debug {
-    position: fixed !important;
-    top: 20px !important;
-    left: 20px !important;
-    width: 30px !important;
-    height: 30px !important;
-    background: red !important;
-    border: 3px solid yellow !important;
-    z-index: 999999999 !important;
-    animation: none !important;
-}
-
-/* ===============================================================
-   ANIMACIÓN DE CAÍDA
-   =============================================================== */
-
-@keyframes ashFall {
+@keyframes fall {
     0% {
-        transform: translateY(-10px) translateX(0px);
+        transform: translateY(-10px);
         opacity: 0;
     }
     10% {
@@ -50,65 +31,31 @@
         opacity: 0.5;
     }
     100% {
-        transform: translateY(100vh) translateX(20px); /* Ligero desplazamiento horizontal */
+        transform: translateY(100vh);
         opacity: 0;
     }
 }
 
-/* ===============================================================
-   VARIANTES DE TAMAÑO
-   =============================================================== */
-
-/* Variante: Cenizas grandes (más visibles) */
-.ash-particle.large {
-    width: 8px;  /* Aumentado para testing */
-    height: 8px;
-    background: rgba(255, 100, 0, 0.85); /* Naranja intenso - Muy visible */
-    box-shadow: 0 0 12px rgba(255, 100, 0, 0.8);
+/* Toggle button - Upper right corner */
+.ash-toggle-button {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: linear-gradient(180deg, #8a7050 0%, #5a4830 100%);
+    border: 2px solid #c9b896;
+    color: #c9b896;
+    padding: 8px 16px;
+    cursor: pointer;
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    border-radius: 4px;
+    z-index: 999999;
+    transition: all 0.3s;
 }
 
-/* Variante: Cenizas pequeñas (más sutiles) */
-.ash-particle.small {
-    width: 3px;  /* Aumentado de 1px a 3px */
-    height: 3px;
-    background: rgba(255, 140, 0, 0.7); /* Más visible */
-    box-shadow: 0 0 6px rgba(255, 140, 0, 0.6);
-}
-
-/* ===============================================================
-   OPTIMIZACIONES
-   =============================================================== */
-
-/* Asegurar que las partículas no interfieran con la interfaz */
-.ash-particle:hover {
-    cursor: default;
-}
-
-/* Desactivar animaciones si el usuario prefiere reducir movimiento */
-@media (prefers-reduced-motion: reduce) {
-    .ash-particle {
-        animation: none;
-        opacity: 0; /* Ocultar partículas completamente */
-    }
-}
-
-/* ===============================================================
-   RESPONSIVE - MÓVILES
-   =============================================================== */
-
-/* En móviles, hacer las partículas ligeramente más visibles */
-@media (max-width: 768px) {
-    .ash-particle {
-        background: rgba(201, 184, 150, 0.5); /* Más opacidad en móviles */
-    }
-
-    .ash-particle.large {
-        background: rgba(138, 112, 80, 0.55);
-    }
-
-    .ash-particle.small {
-        background: rgba(201, 184, 150, 0.35);
-    }
+.ash-toggle-button:hover {
+    background: linear-gradient(180deg, #aa9070 0%, #7a6850 100%);
+    box-shadow: 0 0 15px rgba(201, 184, 150, 0.5);
 }
 
 /* ===============================================================
