@@ -29,8 +29,8 @@
             </div>
             <button class="audio-btn" id="console-mute-btn">[MUTE]</button>
             <button class="audio-btn" id="console-next-btn">[NEXT]</button>
-            <div class="volume-bar" id="volume-display">VOL ▓▓▓▓▓▓▓░░░</div>
-            <input type="range" id="console-volume" min="0" max="100" value="70" style="display:none;"/>
+            <div class="volume-bar" id="volume-display" style="cursor:pointer;" title="Click to adjust volume">VOL ▓▓▓▓▓▓▓░░░</div>
+            <input type="range" id="console-volume" min="0" max="100" value="70" style="width:100px;"/>
         </div>
     </header>
 
@@ -171,17 +171,19 @@
                     <div>
                         <label>WALLET (BASE): </label>
                         <span id="wallet-display" style="color:#00ff00;font-size:14px;text-shadow: 0 0 8px rgba(0, 255, 0, 0.6);">Not connected</span>
-                        <button class="terminal-btn small-btn" id="connect-wallet-btn">[CONNECT WALLET]</button>
-                        <button class="terminal-btn small-btn" id="disconnect-wallet-btn" style="display:none;">[DISCONNECT]</button>
+                        <button class="cmd" id="connect-wallet-btn">[CONNECT WALLET]</button>
+                        <button class="cmd" id="disconnect-wallet-btn" style="display:none;">[DISCONNECT]</button>
                     </div>
 
                     <div id="wallet-summary" style="margin-top:10px;"></div>
                 </div>
 
                 <div class="profile-col-right">
-                    <div class="subheading">TOP EMISSARY</div>
-                    <div id="prime-emissary-img" class="profile-emissary-img">NO DATA</div>
-                    <div id="prime-emissary-desc" style="font-size:14px;text-align:left;"></div>
+                    <div class="data-panel" style="max-width: 350px; margin-left: auto;">
+                        <div class="panel-header" style="text-align: center;">TOP EMISSARY</div>
+                        <div id="prime-emissary-img" class="profile-emissary-img" style="text-align: center; margin: 15px 0;">NO DATA</div>
+                        <div id="prime-emissary-desc" class="terminal-text" style="font-size:13px; line-height: 1.8;"></div>
+                    </div>
                 </div>
             </div>
 
@@ -1729,18 +1731,14 @@ async function fetchGuildsAndRender(){
         let html = "";
         guilds.forEach(g=>{
             html += `
-            <div class="guild-entry">
-                <img src="${g.badge}" alt="${g.name} badge" class="guild-badge"/>
+            <div class="guild-entry" style="display:flex; align-items:center; gap:15px; margin-bottom:15px; padding:12px; background:var(--bg-panel); border:1px solid var(--border-primary); border-left:3px solid var(--gold);">
+                <img src="${g.badge}" alt="${g.name} badge" style="width:60px; height:60px; object-fit:contain; filter:drop-shadow(0 0 10px rgba(255, 204, 0, 0.3));"/>
                 <div style="flex:1">
-                    <div style="font-weight:bold;text-transform:uppercase;margin-bottom:4px;">
+                    <div style="font-weight:bold;text-transform:uppercase;margin-bottom:6px;color:var(--gold);font-family:'Alagard',serif;font-size:16px;">
                         ${g.name} – ${g.flavor}
                     </div>
-                    <div>
-                        Members: ${g.members || 0} |
-                        Total XP: ${g.total_xp || 0} |
-                        Total Aura: ${g.total_aura || 0}<br/>
-                        Avg XP: ${g.avg_xp || 0} |
-                        Avg Aura: ${g.avg_aura || 0}
+                    <div style="font-size:12px;color:var(--primary-green);font-family:'Share Tech Mono',monospace;">
+                        Members: ${g.members || 0} | Total XP: ${g.total_xp || 0} | Total Aura: ${g.total_aura || 0} | Avg XP: ${g.avg_xp || 0} | Avg Aura: ${g.avg_aura || 0}
                     </div>
                 </div>
             </div>
@@ -2116,13 +2114,13 @@ async function loadPlayerAndRender(){
             let actionButtons = "";
             if (state === "READY") {
                 actionButtons = `
-                    <button class="terminal-btn small-btn" onclick="openMissionListModal('${h.token_id}')">
+                    <button class="cmd" onclick="openMissionListModal('${h.token_id}')">
                         [SEND]
                     </button>`;
             } else if (state === "ON_MISSION") {
                 if (missionComplete) {
                     actionButtons = `
-                        <button class="terminal-btn small-btn complete-btn" data-hero="${h.token_id}" style="color:#44ff44;">
+                        <button class="cmd complete-btn" data-hero="${h.token_id}" style="color:#44ff44;">
                             [CLAIM REWARDS]
                         </button>`;
                 } else {
@@ -2141,14 +2139,14 @@ async function loadPlayerAndRender(){
                     }
 
                     actionButtons = `
-                        <button class="terminal-btn small-btn" disabled style="opacity:0.5; cursor:not-allowed;">
+                        <button class="cmd" disabled style="opacity:0.5; cursor:not-allowed;">
                             [IN PROGRESS]
                         </button>
                         ${progressHtml}`;
                 }
             } else if (state === "FALLEN") {
                 actionButtons = `
-                    <button class="terminal-btn small-btn reinvoke-btn" data-hero="${h.token_id}" style="color:#ff4444;">
+                    <button class="cmd reinvoke-btn" data-hero="${h.token_id}" style="color:#ff4444;">
                         [REINVOKE]
                     </button>`;
             }
@@ -2166,7 +2164,7 @@ async function loadPlayerAndRender(){
                         </div>
                         <div>
                             <div>${h.name || h.token_id}</div>
-                            <button class="terminal-btn" style="font-size:0.6rem; padding:2px 6px; margin-top:2px;"
+                            <button class="cmd" style="font-size:0.6rem; padding:2px 6px; margin-top:2px;"
                                     onclick="downloadNFTImage('${h.image_url}', '${h.token_id}')"
                                     title="Download NFT Image">
                                 [↓ IMG]
@@ -2182,7 +2180,7 @@ async function loadPlayerAndRender(){
                 <td style="color:${stateColor};">${stateText}${timeRemainingHtml}</td>
                 <td>${actionButtons}</td>
                 <td>
-                    <button class="terminal-btn small-btn recover-btn" data-hero="${h.token_id}">
+                    <button class="cmd recover-btn" data-hero="${h.token_id}">
                         [RECOVER]
                     </button>
                 </td>
@@ -2641,6 +2639,14 @@ function toggleMusicMute(){
 function updateMusicVolume(){
     const v = parseInt(volumeSliderEl.value,10)/100;
     audioPlayer.volume = v;
+
+    // Update visual display
+    const displayEl = document.getElementById("volume-display");
+    if (displayEl) {
+        const filled = Math.floor((v * 10));
+        const empty = 10 - filled;
+        displayEl.textContent = `VOL ${'▓'.repeat(filled)}${'░'.repeat(empty)}`;
+    }
 }
 
 // listeners
