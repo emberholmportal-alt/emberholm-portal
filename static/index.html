@@ -36,7 +36,7 @@
 
     <!-- NAVIGATION BAR -->
     <div class="menu-bar" id="nav-bar">
-        <button class="cmd" onclick="window.location.href='/mint'">MINT / INVOKE</button>
+        <button class="cmd cmd-mint" onclick="window.location.href='/mint'">🔥 MINT / INVOKE</button>
         <button class="cmd" data-target="home">[HOME]</button>
         <button class="cmd" data-target="guilds">[STATS/GUILDS]</button>
         <button class="cmd" data-target="missions">[MISSIONS]</button>
@@ -2030,7 +2030,7 @@ async function loadPlayerAndRender(){
 
             if(prime.image_url){
                 primeImgEl.innerHTML = `<img src="${prime.image_url}"
-                    style="max-width:100px;max-height:100px;image-rendering:pixelated;object-fit:contain;"
+                    style="max-width:140px;max-height:140px;image-rendering:pixelated;object-fit:contain;"
                     alt="${prime.name}"/>`;
             } else {
                 primeImgEl.textContent = prime.token_id || "NO IMG";
@@ -3303,36 +3303,42 @@ async function startPartyMission(missionId, missionName) {
 
 <!-- EMERGENCY FIELD RECOVERY MODAL -->
 <div id="recovery-modal" class="modal-overlay">
-    <div class="terminal-modal" style="max-width: 500px;">
+    <div class="terminal-modal" style="max-width: 450px;">
         <div class="terminal-modal-header">
             EMERGENCY FIELD RECOVERY
             <button class="terminal-modal-close" onclick="hideModal('recovery-modal')">×</button>
         </div>
         <div class="terminal-modal-body">
-            <div class="modal-message" style="text-align: left;">
-                <div style="margin-bottom: 15px;">
-                    <strong style="color: var(--gold);">Emissary:</strong> <span id="recovery-hero-name"></span>
+            <!-- Info Grid -->
+            <div class="recovery-info-grid">
+                <span class="recovery-label">Emissary:</span>
+                <span id="recovery-hero-name" class="recovery-value">---</span>
+
+                <span class="recovery-label">Energy:</span>
+                <span class="recovery-value"><span id="recovery-current-energy">0</span>/<span id="recovery-max-energy">100</span></span>
+
+                <span class="recovery-label">Available XP:</span>
+                <span id="recovery-available-xp" class="recovery-value">0</span>
+            </div>
+
+            <!-- Cost Info -->
+            <div class="recovery-cost-box">
+                <strong>RATE:</strong> 5 XP per 1 Energy
+            </div>
+
+            <!-- Input Row -->
+            <div class="recovery-input-row">
+                <div style="flex: 1;">
+                    <label class="recovery-input-label">ENERGY:</label>
+                    <input type="number" id="recovery-amount" min="1" max="100" value="10" class="recovery-input"/>
                 </div>
-                <div style="margin-bottom: 15px;">
-                    <strong style="color: var(--gold);">Current Energy:</strong> <span id="recovery-current-energy">0</span> / <span id="recovery-max-energy">100</span>
-                </div>
-                <div style="margin-bottom: 15px;">
-                    <strong style="color: var(--gold);">Available XP:</strong> <span id="recovery-available-xp">0</span>
-                </div>
-                <div style="margin-bottom: 15px; padding: 10px; background: rgba(255, 204, 0, 0.1); border-left: 3px solid var(--gold);">
-                    <strong style="color: var(--gold);">Cost:</strong> 5 XP per 1 Energy
-                </div>
-                <div style="margin-top: 20px;">
-                    <label style="color: var(--dim-green); font-size: 12px;">ENERGY TO RESTORE:</label><br/>
-                    <input type="number" id="recovery-amount" min="1" max="100" value="10"
-                           style="background: var(--bg-primary); border: 1px solid var(--border-primary); color: var(--primary-green); padding: 8px; width: 100%; font-family: 'Share Tech Mono', monospace; margin-top: 5px;"/>
-                    <div id="recovery-cost-display" style="margin-top: 10px; color: var(--gold); font-size: 12px;">
-                        Cost: <span id="recovery-cost-value">50</span> XP
-                    </div>
+                <div class="recovery-cost-display">
+                    COST: <strong><span id="recovery-cost-value">50</span> XP</strong>
                 </div>
             </div>
+
             <div class="modal-buttons">
-                <button class="cmd" id="recovery-confirm-btn">[CONFIRM RECOVERY]</button>
+                <button class="cmd" id="recovery-confirm-btn">[CONFIRM]</button>
                 <button class="cmd" style="border-color: var(--error-red); color: var(--error-red);" onclick="hideModal('recovery-modal')">[CANCEL]</button>
             </div>
         </div>

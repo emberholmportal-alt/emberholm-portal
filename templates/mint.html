@@ -123,9 +123,52 @@
     }
     .invoked-list {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-      gap: 10px;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 15px;
       padding: 10px 0;
+    }
+    .invoked-item {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-primary);
+      border-left: 3px solid var(--primary-green);
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      transition: all 0.2s;
+    }
+    .invoked-item:hover {
+      background: rgba(68, 170, 255, 0.08);
+      border-left-color: var(--gold);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(68, 170, 255, 0.2);
+    }
+    .invoked-thumb {
+      width: 80px;
+      height: 80px;
+      border: 2px solid var(--border-primary);
+      image-rendering: pixelated;
+      object-fit: contain;
+      background: rgba(0, 0, 0, 0.5);
+    }
+    .invoked-text {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 11px;
+      color: var(--primary-green);
+      text-align: center;
+      line-height: 1.5;
+      width: 100%;
+    }
+    .invoked-text .name {
+      color: var(--gold);
+      font-weight: 600;
+      margin-bottom: 5px;
+      display: block;
+    }
+    .invoked-text .details {
+      color: var(--primary-green);
+      font-size: 10px;
     }
     .mint-status {
       text-align: center;
@@ -581,26 +624,38 @@
           for (const nft of nftElements) {
             try {
               const metadata = await getRealNFTMetadata(nft.id);
-              
+
               // Actualizar imagen
               nft.img.src = metadata.image;
-              
-              // Actualizar texto con info real
-              let displayText = metadata.name;
-              
-              // Agregar atributos si existen
+
+              // Extraer atributos
+              let race = "Unknown";
+              let classAttr = "Unknown";
+              let guild = "Unassigned";
+
               if (metadata.attributes && metadata.attributes.length > 0) {
-                const race = metadata.attributes.find(a => a.trait_type === "Race" || a.trait_type === "race");
-                const classAttr = metadata.attributes.find(a => a.trait_type === "Class" || a.trait_type === "class");
-                
-                if (race) displayText += ` // ${race.value}`;
-                if (classAttr) displayText += ` ${classAttr.value}`;
+                const raceAttr = metadata.attributes.find(a => a.trait_type === "Race" || a.trait_type === "race");
+                const classFound = metadata.attributes.find(a => a.trait_type === "Class" || a.trait_type === "class");
+                const guildAttr = metadata.attributes.find(a => a.trait_type === "Guild" || a.trait_type === "guild");
+
+                if (raceAttr) race = raceAttr.value;
+                if (classFound) classAttr = classFound.value;
+                if (guildAttr) guild = guildAttr.value;
               }
-              
-              nft.txt.textContent = displayText;
+
+              // Actualizar con estructura HTML
+              nft.txt.innerHTML = `
+                <span class="name">${metadata.name || `Emissary #${nft.id}`}</span>
+                <span class="details">${race} ${classAttr}</span>
+                <span class="details">Guild: ${guild}</span>
+              `;
+
               pushConsole(`[OK] Loaded #${nft.id}: ${metadata.name}`);
             } catch (e) {
-              nft.txt.textContent = `#${String(nft.id).padStart(5, "0")} // Emissary (metadata unavailable)`;
+              nft.txt.innerHTML = `
+                <span class="name">Emissary #${nft.id}</span>
+                <span class="details">Metadata unavailable</span>
+              `;
               pushConsole(`[WARN] Failed to load #${nft.id}`);
             }
           }
