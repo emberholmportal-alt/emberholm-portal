@@ -2172,7 +2172,42 @@ async function loadPlayerAndRender(){
                 }
             } else if (state === "FALLEN") {
                 actionButtons = `
+                    <button class="cmd" disabled style="opacity:0.5; cursor:not-allowed;">
+                        [SEND]
+                    </button>`;
+            }
+
+            // Botón REINVOKE - solo habilitado si FALLEN
+            let reinvokeButton = "";
+            const deathCount = ds.death_count || 0;
+
+            if (state === "FALLEN") {
+                // Calcular costos escalables según death count
+                let xpCost, auraCost;
+                if (deathCount === 0) {
+                    xpCost = 500;
+                    auraCost = 100;
+                } else if (deathCount === 1) {
+                    xpCost = 1500;
+                    auraCost = 300;
+                } else if (deathCount === 2) {
+                    xpCost = 5000;
+                    auraCost = 1000;
+                } else {
+                    xpCost = 10000;
+                    auraCost = 2500;
+                }
+
+                reinvokeButton = `
                     <button class="cmd reinvoke-btn" data-hero="${h.token_id}" style="color:#ff4444;">
+                        [REINVOKE]
+                    </button>
+                    <div style="font-size:0.65rem; color:#888; margin-top:4px;">
+                        Cost: ${xpCost} XP<br/>${auraCost} Aura
+                    </div>`;
+            } else {
+                reinvokeButton = `
+                    <button class="cmd" disabled style="opacity:0.3; cursor:not-allowed;">
                         [REINVOKE]
                     </button>`;
             }
@@ -2210,6 +2245,7 @@ async function loadPlayerAndRender(){
                         [RECOVER]
                     </button>
                 </td>
+                <td>${reinvokeButton}</td>
             </tr>`;
         });
 
@@ -2226,6 +2262,7 @@ async function loadPlayerAndRender(){
                         <th>STATE</th>
                         <th>SEND</th>
                         <th>RECOVER</th>
+                        <th>REINVOKE</th>
                     </tr>
                 </thead>
                 <tbody>

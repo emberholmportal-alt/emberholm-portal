@@ -1230,6 +1230,11 @@ input[type="range"]::-moz-range-thumb:hover {
     width: 10%;
 }
 
+.roster-table th:nth-child(10),
+.roster-table td:nth-child(10) {
+    width: 12%;
+}
+
 /* Responsive */
 @media (max-width: 1200px) {
     .roster-table {
