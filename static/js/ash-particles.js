@@ -2,30 +2,22 @@
     'use strict';
 
     let particlesEnabled = true;
-    let particles = [];
 
-    function createParticles() {
-        particles.forEach(p => p.remove());
-        particles = [];
-
-        if (!particlesEnabled) {
-            console.log('[Emberholm] Ash particles: DISABLED');
+    // Toggle visibility of the pure HTML particles container (CSP compliant - no inline styles)
+    function toggleParticles() {
+        const container = document.querySelector('.ash-particles-container');
+        if (!container) {
+            console.log('[Emberholm] Ash particles container not found');
             return;
         }
 
-        for (let i = 0; i < 30; i++) {
-            const ash = document.createElement('div');
-            ash.className = 'ash-particle';
-
-            // Usar setAttribute en lugar de .style para CSP compliance
-            const leftPos = Math.floor(Math.random() * 100);
-            ash.setAttribute('data-left', leftPos);
-
-            document.body.appendChild(ash);
-            particles.push(ash);
+        if (particlesEnabled) {
+            container.classList.remove('hidden');
+            console.log('[Emberholm] Ash particles: ENABLED');
+        } else {
+            container.classList.add('hidden');
+            console.log('[Emberholm] Ash particles: DISABLED');
         }
-
-        console.log('[Emberholm] Ash particles: ENABLED (' + particles.length + ' created)');
     }
 
     // Agregar event listener al botón toggle (CSP compliant)
@@ -37,7 +29,7 @@
                 try {
                     localStorage.setItem('emberholm_particles', particlesEnabled ? 'on' : 'off');
                 } catch(e) {}
-                createParticles();
+                toggleParticles();
                 btn.textContent = particlesEnabled ? '🔥 ASH' : '❄️ ASH';
             });
         }
@@ -57,7 +49,7 @@
         } catch(e) {}
 
         initButton();
-        createParticles();
+        toggleParticles();
     }
 
     if (document.readyState === 'loading') {

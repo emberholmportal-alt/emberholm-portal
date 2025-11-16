@@ -24,107 +24,46 @@
     box-shadow: 0 0 3px rgba(255, 140, 0, 0.5);
 }
 
-/* Posicionamiento dinámico usando data attributes */
-.ash-particle[data-left="0"] { left: 0%; }
-.ash-particle[data-left="1"] { left: 1%; }
-.ash-particle[data-left="2"] { left: 2%; }
-.ash-particle[data-left="3"] { left: 3%; }
-.ash-particle[data-left="4"] { left: 4%; }
-.ash-particle[data-left="5"] { left: 5%; }
-.ash-particle[data-left="6"] { left: 6%; }
-.ash-particle[data-left="7"] { left: 7%; }
-.ash-particle[data-left="8"] { left: 8%; }
-.ash-particle[data-left="9"] { left: 9%; }
-.ash-particle[data-left="10"] { left: 10%; }
-.ash-particle[data-left="11"] { left: 11%; }
-.ash-particle[data-left="12"] { left: 12%; }
-.ash-particle[data-left="13"] { left: 13%; }
-.ash-particle[data-left="14"] { left: 14%; }
-.ash-particle[data-left="15"] { left: 15%; }
-.ash-particle[data-left="16"] { left: 16%; }
-.ash-particle[data-left="17"] { left: 17%; }
-.ash-particle[data-left="18"] { left: 18%; }
-.ash-particle[data-left="19"] { left: 19%; }
-.ash-particle[data-left="20"] { left: 20%; }
-.ash-particle[data-left="21"] { left: 21%; }
-.ash-particle[data-left="22"] { left: 22%; }
-.ash-particle[data-left="23"] { left: 23%; }
-.ash-particle[data-left="24"] { left: 24%; }
-.ash-particle[data-left="25"] { left: 25%; }
-.ash-particle[data-left="26"] { left: 26%; }
-.ash-particle[data-left="27"] { left: 27%; }
-.ash-particle[data-left="28"] { left: 28%; }
-.ash-particle[data-left="29"] { left: 29%; }
-.ash-particle[data-left="30"] { left: 30%; }
-.ash-particle[data-left="31"] { left: 31%; }
-.ash-particle[data-left="32"] { left: 32%; }
-.ash-particle[data-left="33"] { left: 33%; }
-.ash-particle[data-left="34"] { left: 34%; }
-.ash-particle[data-left="35"] { left: 35%; }
-.ash-particle[data-left="36"] { left: 36%; }
-.ash-particle[data-left="37"] { left: 37%; }
-.ash-particle[data-left="38"] { left: 38%; }
-.ash-particle[data-left="39"] { left: 39%; }
-.ash-particle[data-left="40"] { left: 40%; }
-.ash-particle[data-left="41"] { left: 41%; }
-.ash-particle[data-left="42"] { left: 42%; }
-.ash-particle[data-left="43"] { left: 43%; }
-.ash-particle[data-left="44"] { left: 44%; }
-.ash-particle[data-left="45"] { left: 45%; }
-.ash-particle[data-left="46"] { left: 46%; }
-.ash-particle[data-left="47"] { left: 47%; }
-.ash-particle[data-left="48"] { left: 48%; }
-.ash-particle[data-left="49"] { left: 49%; }
-.ash-particle[data-left="50"] { left: 50%; }
-.ash-particle[data-left="51"] { left: 51%; }
-.ash-particle[data-left="52"] { left: 52%; }
-.ash-particle[data-left="53"] { left: 53%; }
-.ash-particle[data-left="54"] { left: 54%; }
-.ash-particle[data-left="55"] { left: 55%; }
-.ash-particle[data-left="56"] { left: 56%; }
-.ash-particle[data-left="57"] { left: 57%; }
-.ash-particle[data-left="58"] { left: 58%; }
-.ash-particle[data-left="59"] { left: 59%; }
-.ash-particle[data-left="60"] { left: 60%; }
-.ash-particle[data-left="61"] { left: 61%; }
-.ash-particle[data-left="62"] { left: 62%; }
-.ash-particle[data-left="63"] { left: 63%; }
-.ash-particle[data-left="64"] { left: 64%; }
-.ash-particle[data-left="65"] { left: 65%; }
-.ash-particle[data-left="66"] { left: 66%; }
-.ash-particle[data-left="67"] { left: 67%; }
-.ash-particle[data-left="68"] { left: 68%; }
-.ash-particle[data-left="69"] { left: 69%; }
-.ash-particle[data-left="70"] { left: 70%; }
-.ash-particle[data-left="71"] { left: 71%; }
-.ash-particle[data-left="72"] { left: 72%; }
-.ash-particle[data-left="73"] { left: 73%; }
-.ash-particle[data-left="74"] { left: 74%; }
-.ash-particle[data-left="75"] { left: 75%; }
-.ash-particle[data-left="76"] { left: 76%; }
-.ash-particle[data-left="77"] { left: 77%; }
-.ash-particle[data-left="78"] { left: 78%; }
-.ash-particle[data-left="79"] { left: 79%; }
-.ash-particle[data-left="80"] { left: 80%; }
-.ash-particle[data-left="81"] { left: 81%; }
-.ash-particle[data-left="82"] { left: 82%; }
-.ash-particle[data-left="83"] { left: 83%; }
-.ash-particle[data-left="84"] { left: 84%; }
-.ash-particle[data-left="85"] { left: 85%; }
-.ash-particle[data-left="86"] { left: 86%; }
-.ash-particle[data-left="87"] { left: 87%; }
-.ash-particle[data-left="88"] { left: 88%; }
-.ash-particle[data-left="89"] { left: 89%; }
-.ash-particle[data-left="90"] { left: 90%; }
-.ash-particle[data-left="91"] { left: 91%; }
-.ash-particle[data-left="92"] { left: 92%; }
-.ash-particle[data-left="93"] { left: 93%; }
-.ash-particle[data-left="94"] { left: 94%; }
-.ash-particle[data-left="95"] { left: 95%; }
-.ash-particle[data-left="96"] { left: 96%; }
-.ash-particle[data-left="97"] { left: 97%; }
-.ash-particle[data-left="98"] { left: 98%; }
-.ash-particle[data-left="99"] { left: 99%; }
+/* Container para partículas - visibilidad controlada por clase */
+.ash-particles-container {
+    display: block;
+}
+
+.ash-particles-container.hidden {
+    display: none;
+}
+
+/* Posicionamiento de partículas usando nth-child - PURE CSS (CSP compliant) */
+.ash-particles-container .ash-particle:nth-child(1) { left: 5%; animation-delay: 0s; animation-duration: 12s; }
+.ash-particles-container .ash-particle:nth-child(2) { left: 15%; animation-delay: 2s; animation-duration: 14s; }
+.ash-particles-container .ash-particle:nth-child(3) { left: 8%; animation-delay: 4s; animation-duration: 13s; }
+.ash-particles-container .ash-particle:nth-child(4) { left: 25%; animation-delay: 1s; animation-duration: 15s; }
+.ash-particles-container .ash-particle:nth-child(5) { left: 32%; animation-delay: 3s; animation-duration: 16s; }
+.ash-particles-container .ash-particle:nth-child(6) { left: 42%; animation-delay: 5s; animation-duration: 12s; }
+.ash-particles-container .ash-particle:nth-child(7) { left: 18%; animation-delay: 0.5s; animation-duration: 14s; }
+.ash-particles-container .ash-particle:nth-child(8) { left: 55%; animation-delay: 2.5s; animation-duration: 13s; }
+.ash-particles-container .ash-particle:nth-child(9) { left: 48%; animation-delay: 4.5s; animation-duration: 15s; }
+.ash-particles-container .ash-particle:nth-child(10) { left: 62%; animation-delay: 1.5s; animation-duration: 16s; }
+.ash-particles-container .ash-particle:nth-child(11) { left: 72%; animation-delay: 3.5s; animation-duration: 12s; }
+.ash-particles-container .ash-particle:nth-child(12) { left: 38%; animation-delay: 0.8s; animation-duration: 14s; }
+.ash-particles-container .ash-particle:nth-child(13) { left: 78%; animation-delay: 2.8s; animation-duration: 13s; }
+.ash-particles-container .ash-particle:nth-child(14) { left: 12%; animation-delay: 4.2s; animation-duration: 15s; }
+.ash-particles-container .ash-particle:nth-child(15) { left: 85%; animation-delay: 1.2s; animation-duration: 16s; }
+.ash-particles-container .ash-particle:nth-child(16) { left: 92%; animation-delay: 3.2s; animation-duration: 12s; }
+.ash-particles-container .ash-particle:nth-child(17) { left: 28%; animation-delay: 0.3s; animation-duration: 14s; }
+.ash-particles-container .ash-particle:nth-child(18) { left: 65%; animation-delay: 2.3s; animation-duration: 13s; }
+.ash-particles-container .ash-particle:nth-child(19) { left: 52%; animation-delay: 4.3s; animation-duration: 15s; }
+.ash-particles-container .ash-particle:nth-child(20) { left: 3%; animation-delay: 1.8s; animation-duration: 16s; }
+.ash-particles-container .ash-particle:nth-child(21) { left: 45%; animation-delay: 3.8s; animation-duration: 12s; }
+.ash-particles-container .ash-particle:nth-child(22) { left: 75%; animation-delay: 0.6s; animation-duration: 14s; }
+.ash-particles-container .ash-particle:nth-child(23) { left: 22%; animation-delay: 2.6s; animation-duration: 13s; }
+.ash-particles-container .ash-particle:nth-child(24) { left: 88%; animation-delay: 4.6s; animation-duration: 15s; }
+.ash-particles-container .ash-particle:nth-child(25) { left: 58%; animation-delay: 1.4s; animation-duration: 16s; }
+.ash-particles-container .ash-particle:nth-child(26) { left: 35%; animation-delay: 3.4s; animation-duration: 12s; }
+.ash-particles-container .ash-particle:nth-child(27) { left: 68%; animation-delay: 0.9s; animation-duration: 14s; }
+.ash-particles-container .ash-particle:nth-child(28) { left: 95%; animation-delay: 2.9s; animation-duration: 13s; }
+.ash-particles-container .ash-particle:nth-child(29) { left: 10%; animation-delay: 4.9s; animation-duration: 15s; }
+.ash-particles-container .ash-particle:nth-child(30) { left: 82%; animation-delay: 1.7s; animation-duration: 16s; }
 
 @keyframes ashFall {
     0% {
