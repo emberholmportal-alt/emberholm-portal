@@ -16,9 +16,11 @@
         for (let i = 0; i < 30; i++) {
             const ash = document.createElement('div');
             ash.className = 'ash-particle';
-            ash.style.left = Math.random() * 100 + '%';
-            ash.style.animationDuration = (Math.random() * 10 + 10) + 's';
-            ash.style.animationDelay = Math.random() * 5 + 's';
+
+            // Usar setAttribute en lugar de .style para CSP compliance
+            const leftPos = Math.floor(Math.random() * 100);
+            ash.setAttribute('data-left', leftPos);
+
             document.body.appendChild(ash);
             particles.push(ash);
         }
@@ -26,11 +28,20 @@
         console.log('[Emberholm] Ash particles: ENABLED (' + particles.length + ' created)');
     }
 
-    window.toggleAshParticles = function() {
-        particlesEnabled = !particlesEnabled;
-        createParticles();
-        return particlesEnabled;
-    };
+    // Agregar event listener al botón toggle (CSP compliant)
+    function initButton() {
+        const btn = document.getElementById('particles-toggle');
+        if (btn) {
+            btn.addEventListener('click', function() {
+                particlesEnabled = !particlesEnabled;
+                try {
+                    localStorage.setItem('emberholm_particles', particlesEnabled ? 'on' : 'off');
+                } catch(e) {}
+                createParticles();
+                btn.textContent = particlesEnabled ? '🔥 ASH' : '❄️ ASH';
+            });
+        }
+    }
 
     function init() {
         if (document.readyState === 'loading') {
@@ -45,6 +56,7 @@
             }
         } catch(e) {}
 
+        initButton();
         createParticles();
     }
 

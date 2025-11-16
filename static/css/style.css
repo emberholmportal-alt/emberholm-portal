@@ -16,9 +16,115 @@
     border-radius: 50%;
     pointer-events: none;
     z-index: 99999;
-    animation: ashFall linear infinite;
+    animation-name: ashFall;
+    animation-timing-function: linear;
+    animation-iteration-count: infinite;
+    animation-duration: 15s;
+    animation-delay: 0s;
     box-shadow: 0 0 3px rgba(255, 140, 0, 0.5);
 }
+
+/* Posicionamiento dinámico usando data attributes */
+.ash-particle[data-left="0"] { left: 0%; }
+.ash-particle[data-left="1"] { left: 1%; }
+.ash-particle[data-left="2"] { left: 2%; }
+.ash-particle[data-left="3"] { left: 3%; }
+.ash-particle[data-left="4"] { left: 4%; }
+.ash-particle[data-left="5"] { left: 5%; }
+.ash-particle[data-left="6"] { left: 6%; }
+.ash-particle[data-left="7"] { left: 7%; }
+.ash-particle[data-left="8"] { left: 8%; }
+.ash-particle[data-left="9"] { left: 9%; }
+.ash-particle[data-left="10"] { left: 10%; }
+.ash-particle[data-left="11"] { left: 11%; }
+.ash-particle[data-left="12"] { left: 12%; }
+.ash-particle[data-left="13"] { left: 13%; }
+.ash-particle[data-left="14"] { left: 14%; }
+.ash-particle[data-left="15"] { left: 15%; }
+.ash-particle[data-left="16"] { left: 16%; }
+.ash-particle[data-left="17"] { left: 17%; }
+.ash-particle[data-left="18"] { left: 18%; }
+.ash-particle[data-left="19"] { left: 19%; }
+.ash-particle[data-left="20"] { left: 20%; }
+.ash-particle[data-left="21"] { left: 21%; }
+.ash-particle[data-left="22"] { left: 22%; }
+.ash-particle[data-left="23"] { left: 23%; }
+.ash-particle[data-left="24"] { left: 24%; }
+.ash-particle[data-left="25"] { left: 25%; }
+.ash-particle[data-left="26"] { left: 26%; }
+.ash-particle[data-left="27"] { left: 27%; }
+.ash-particle[data-left="28"] { left: 28%; }
+.ash-particle[data-left="29"] { left: 29%; }
+.ash-particle[data-left="30"] { left: 30%; }
+.ash-particle[data-left="31"] { left: 31%; }
+.ash-particle[data-left="32"] { left: 32%; }
+.ash-particle[data-left="33"] { left: 33%; }
+.ash-particle[data-left="34"] { left: 34%; }
+.ash-particle[data-left="35"] { left: 35%; }
+.ash-particle[data-left="36"] { left: 36%; }
+.ash-particle[data-left="37"] { left: 37%; }
+.ash-particle[data-left="38"] { left: 38%; }
+.ash-particle[data-left="39"] { left: 39%; }
+.ash-particle[data-left="40"] { left: 40%; }
+.ash-particle[data-left="41"] { left: 41%; }
+.ash-particle[data-left="42"] { left: 42%; }
+.ash-particle[data-left="43"] { left: 43%; }
+.ash-particle[data-left="44"] { left: 44%; }
+.ash-particle[data-left="45"] { left: 45%; }
+.ash-particle[data-left="46"] { left: 46%; }
+.ash-particle[data-left="47"] { left: 47%; }
+.ash-particle[data-left="48"] { left: 48%; }
+.ash-particle[data-left="49"] { left: 49%; }
+.ash-particle[data-left="50"] { left: 50%; }
+.ash-particle[data-left="51"] { left: 51%; }
+.ash-particle[data-left="52"] { left: 52%; }
+.ash-particle[data-left="53"] { left: 53%; }
+.ash-particle[data-left="54"] { left: 54%; }
+.ash-particle[data-left="55"] { left: 55%; }
+.ash-particle[data-left="56"] { left: 56%; }
+.ash-particle[data-left="57"] { left: 57%; }
+.ash-particle[data-left="58"] { left: 58%; }
+.ash-particle[data-left="59"] { left: 59%; }
+.ash-particle[data-left="60"] { left: 60%; }
+.ash-particle[data-left="61"] { left: 61%; }
+.ash-particle[data-left="62"] { left: 62%; }
+.ash-particle[data-left="63"] { left: 63%; }
+.ash-particle[data-left="64"] { left: 64%; }
+.ash-particle[data-left="65"] { left: 65%; }
+.ash-particle[data-left="66"] { left: 66%; }
+.ash-particle[data-left="67"] { left: 67%; }
+.ash-particle[data-left="68"] { left: 68%; }
+.ash-particle[data-left="69"] { left: 69%; }
+.ash-particle[data-left="70"] { left: 70%; }
+.ash-particle[data-left="71"] { left: 71%; }
+.ash-particle[data-left="72"] { left: 72%; }
+.ash-particle[data-left="73"] { left: 73%; }
+.ash-particle[data-left="74"] { left: 74%; }
+.ash-particle[data-left="75"] { left: 75%; }
+.ash-particle[data-left="76"] { left: 76%; }
+.ash-particle[data-left="77"] { left: 77%; }
+.ash-particle[data-left="78"] { left: 78%; }
+.ash-particle[data-left="79"] { left: 79%; }
+.ash-particle[data-left="80"] { left: 80%; }
+.ash-particle[data-left="81"] { left: 81%; }
+.ash-particle[data-left="82"] { left: 82%; }
+.ash-particle[data-left="83"] { left: 83%; }
+.ash-particle[data-left="84"] { left: 84%; }
+.ash-particle[data-left="85"] { left: 85%; }
+.ash-particle[data-left="86"] { left: 86%; }
+.ash-particle[data-left="87"] { left: 87%; }
+.ash-particle[data-left="88"] { left: 88%; }
+.ash-particle[data-left="89"] { left: 89%; }
+.ash-particle[data-left="90"] { left: 90%; }
+.ash-particle[data-left="91"] { left: 91%; }
+.ash-particle[data-left="92"] { left: 92%; }
+.ash-particle[data-left="93"] { left: 93%; }
+.ash-particle[data-left="94"] { left: 94%; }
+.ash-particle[data-left="95"] { left: 95%; }
+.ash-particle[data-left="96"] { left: 96%; }
+.ash-particle[data-left="97"] { left: 97%; }
+.ash-particle[data-left="98"] { left: 98%; }
+.ash-particle[data-left="99"] { left: 99%; }
 
 @keyframes ashFall {
     0% {
@@ -35,6 +141,23 @@
         transform: translateY(100vh) translateX(15px);
         opacity: 0;
     }
+}
+
+/* Botón toggle de partículas */
+#particles-toggle {
+    position: fixed;
+    top: 8px;
+    right: 20px;
+    padding: 4px 8px;
+    background: rgba(139, 69, 19, 0.8);
+    border: 1px solid #d4af37;
+    color: #d4af37;
+    border-radius: 3px;
+    cursor: pointer;
+    font-family: 'Courier New', monospace;
+    font-size: 0.7em;
+    z-index: 9999;
+    line-height: 1.2;
 }
 
 /* ===============================================================

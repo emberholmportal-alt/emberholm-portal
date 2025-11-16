@@ -943,21 +943,8 @@
   <!-- Atmospheric Particles System -->
   <script src="{{ url_for('static', filename='js/ash-particles.js') }}"></script>
 
-  <!-- Botón para toggle de partículas (SIN onclick inline - CSP compliant) -->
-  <button id="particles-toggle"
-          style="position: fixed; top: 8px; right: 20px;
-                 padding: 4px 8px;
-                 background: rgba(139, 69, 19, 0.8);
-                 border: 1px solid #d4af37;
-                 color: #d4af37;
-                 border-radius: 3px;
-                 cursor: pointer;
-                 font-family: 'Courier New', monospace;
-                 font-size: 0.7em;
-                 z-index: 9999;
-                 line-height: 1.2;">
-      🔥 ASH
-  </button>
+  <!-- Botón para toggle de partículas (100% CSP compliant - SIN estilos inline) -->
+  <button id="particles-toggle">🔥 ASH</button>
 
 </body>
 </html>
