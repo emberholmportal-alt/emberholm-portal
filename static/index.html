@@ -1224,7 +1224,7 @@ function switchScreen(screenName){
     });
 }
 // --- BASIC NAV with active state ---
-const navButtons = document.querySelectorAll(".cmd-link");
+const navButtons = document.querySelectorAll(".cmd, .cmd-link");
 
 function setActiveButton(btn) {
     navButtons.forEach(b => b.classList.remove("is-active"));
