@@ -181,7 +181,7 @@
                 <div class="profile-col-right">
                     <div class="data-panel" style="max-width: 350px; margin-left: auto;">
                         <div class="panel-header" style="text-align: center;">TOP EMISSARY</div>
-                        <div id="prime-emissary-img" class="profile-emissary-img" style="text-align: center; margin: 15px 0;">NO DATA</div>
+                        <div id="prime-emissary-img" class="profile-emissary-img top-emissary-image" style="text-align: center; margin: 15px 0;">NO DATA</div>
                         <div id="prime-emissary-desc" class="terminal-text" style="font-size:13px; line-height: 1.8;"></div>
                     </div>
                 </div>
@@ -1806,8 +1806,8 @@ async function fetchMissionsAndRender(){
                     </div>
                     <div style="margin-left:20px;">
                         ${connectedWallet
-                            ? `<button class="cmd-link" onclick="openMissionSendModal('${m.id}')">[SEND]</button>`
-                            : `<button class="cmd-link" style="opacity:0.5;" onclick="showInfoModal('WALLET REQUIRED', 'Please connect your wallet using the [CONNECT WALLET] button in the PROFILE section.')">[WALLET REQUIRED]</button>`
+                            ? `<button class="cmd" onclick="openMissionSendModal('${m.id}')">[SEND]</button>`
+                            : `<button class="cmd" style="opacity:0.5;" onclick="showInfoModal('WALLET REQUIRED', 'Please connect your wallet using the [CONNECT WALLET] button in the PROFILE section.')">[WALLET REQUIRED]</button>`
                         }
                     </div>
                 </div>
@@ -1880,10 +1880,10 @@ async function fetchEventsAndRender(){
                     </div>
                     <div style="margin-left:20px;">
                         ${connectedWallet && isActive
-                            ? `<button class="cmd-link" onclick="openEventSendModal('${e.id}')">[PARTICIPATE]</button>`
+                            ? `<button class="cmd" onclick="openEventSendModal('${e.id}')">[PARTICIPATE]</button>`
                             : !connectedWallet
-                            ? `<button class="cmd-link" style="opacity:0.5;" onclick="showInfoModal('WALLET REQUIRED', 'Please connect your wallet using the [CONNECT WALLET] button in the PROFILE section.')">[WALLET REQUIRED]</button>`
-                            : `<button class="cmd-link" style="opacity:0.5;">[ENDED]</button>`
+                            ? `<button class="cmd" style="opacity:0.5;" onclick="showInfoModal('WALLET REQUIRED', 'Please connect your wallet using the [CONNECT WALLET] button in the PROFILE section.')">[WALLET REQUIRED]</button>`
+                            : `<button class="cmd" style="opacity:0.5;">[ENDED]</button>`
                         }
                     </div>
                 </div>
@@ -2021,7 +2021,7 @@ async function loadPlayerAndRender(){
 
             if(prime.image_url){
                 primeImgEl.innerHTML = `<img src="${prime.image_url}"
-                    style="max-width:128px;max-height:128px;image-rendering:pixelated;object-fit:contain;"
+                    style="max-width:100px;max-height:100px;image-rendering:pixelated;object-fit:contain;"
                     alt="${prime.name}"/>`;
             } else {
                 primeImgEl.textContent = prime.token_id || "NO IMG";
@@ -2029,13 +2029,16 @@ async function loadPlayerAndRender(){
 
             const ds = prime.dynamic_state || {};
             primeDescEl.innerHTML = `
-                <div>Id: ${prime.token_id}</div>
-                <div><b>${prime.name || prime.token_id}</b></div>
-                <div>${prime.race_class || ""}</div>
-                <div>Guild: ${prime.guild || ds.current_guild || "UNKNOWN"}</div>
-                <div>XP: ${ds.xp_total || 0} | Aura: ${ds.aura_level || 0}</div>
-                <div>Energy: ${ds.energy_current || 0}/${ds.energy_max || 100}</div>
-                <div>Status: ${ds.state || "READY"}</div>
+                <div class="emissary-data-grid">
+                    <span class="label">Id:</span><span class="value">${prime.token_id}</span>
+                    <span class="label">Emissary:</span><span class="value"><b>${prime.name || prime.token_id}</b></span>
+                    <span class="label">Class:</span><span class="value">${prime.race_class || ""}</span>
+                    <span class="label">Guild:</span><span class="value">${prime.guild || ds.current_guild || "UNKNOWN"}</span>
+                    <span class="label">XP:</span><span class="value">${ds.xp_total || 0}</span>
+                    <span class="label">Aura:</span><span class="value">${ds.aura_level || 0}</span>
+                    <span class="label">Energy:</span><span class="value">${ds.energy_current || 0}/${ds.energy_max || 100}</span>
+                    <span class="label">Status:</span><span class="value">${ds.state || "READY"}</span>
+                </div>
             `;
         } else {
             primeImgEl.textContent = "NO DATA";
