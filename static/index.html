@@ -173,7 +173,7 @@ hr.emberline {
 .cmd-link {
     background:
         linear-gradient(180deg, rgba(50,40,30,0.8) 0%, rgba(30,24,18,0.9) 100%);
-    color: #8a7050;
+    color: #70706a;
     border: 2px solid;
     border-color: #4a3d30 #1a1510 #1a1510 #4a3d30;
     font-family: 'Crimson Text', serif;
@@ -937,9 +937,9 @@ a.social-link:hover {
     background: linear-gradient(180deg, #5a4d40 0%, #3a2d20 100%);
 }
 
-/* Items del feed */
+/* Items del feed - MÁS SUTILES Y NATURALES */
 .feed-item {
-    background: rgba(30, 24, 18, 0.7);
+    background: rgba(30, 24, 18, 0.3);
     border-left: 3px solid #8a7050;
     padding: 12px 15px;
     margin-bottom: 10px;
@@ -952,7 +952,7 @@ a.social-link:hover {
 }
 
 .feed-item:hover {
-    background: rgba(50, 40, 30, 0.5);
+    background: rgba(50, 40, 30, 0.4);
     border-left-color: #c9b896;
     transform: translateX(5px);
     box-shadow: 0 2px 8px rgba(201, 184, 150, 0.15);
@@ -4581,9 +4581,8 @@ document.addEventListener('visibilitychange', function() {
 <!-- Atmospheric Particles System -->
 <script src="js/ash-particles.js"></script>
 
-<!-- Botón para toggle de partículas -->
+<!-- Botón para toggle de partículas (SIN onclick inline - CSP compliant) -->
 <button id="particles-toggle"
-        onclick="toggleAshParticles(); updateParticlesButton();"
         style="position: fixed; top: 8px; right: 20px;
                padding: 4px 8px;
                background: rgba(139, 69, 19, 0.8);
@@ -4597,19 +4596,6 @@ document.addEventListener('visibilitychange', function() {
                line-height: 1.2;">
     🔥 ASH
 </button>
-
-<script>
-function updateParticlesButton() {
-    const btn = document.getElementById('particles-toggle');
-    const state = window.getAshParticlesState ? window.getAshParticlesState() : true;
-    btn.textContent = state ? '🔥 ASH' : '❄️ ASH';
-}
-
-// Actualizar botón al cargar
-document.addEventListener('DOMContentLoaded', function() {
-    setTimeout(updateParticlesButton, 100);
-});
-</script>
 
 </body>
 </html>

@@ -1,6 +1,7 @@
 /* ===============================================================
    ATMOSPHERIC PARTICLES SYSTEM - EMBERHOLM PORTAL
    Sistema de partículas de ceniza con toggle ON/OFF
+   CSP-COMPLIANT VERSION (sin onclick inline, sin eval)
    =============================================================== */
 
 (function() {
@@ -26,10 +27,12 @@
             ash.style.left = Math.random() * 100 + '%';
 
             // Duración aleatoria (10-20 segundos)
-            ash.style.animationDuration = (Math.random() * 10 + 10) + 's';
+            const duration = (Math.random() * 10 + 10);
+            ash.style.animationDuration = duration + 's';
 
             // Delay inicial aleatorio (0-5 segundos)
-            ash.style.animationDelay = Math.random() * 5 + 's';
+            const delay = Math.random() * 5;
+            ash.style.animationDelay = delay + 's';
 
             document.body.appendChild(ash);
             particles.push(ash);
@@ -39,7 +42,7 @@
     }
 
     // Función para toggle ON/OFF
-    window.toggleAshParticles = function() {
+    function toggleAshParticles() {
         particlesEnabled = !particlesEnabled;
         createParticles();
 
@@ -51,12 +54,35 @@
         }
 
         return particlesEnabled;
-    };
+    }
 
     // Función para obtener estado
-    window.getAshParticlesState = function() {
+    function getAshParticlesState() {
         return particlesEnabled;
-    };
+    }
+
+    // Actualizar texto del botón
+    function updateParticlesButton() {
+        const btn = document.getElementById('particles-toggle');
+        if (btn) {
+            btn.textContent = particlesEnabled ? '🔥 ASH' : '❄️ ASH';
+        }
+    }
+
+    // Inicialización del botón (CSP-compliant con addEventListener)
+    function initButton() {
+        const btn = document.getElementById('particles-toggle');
+        if (btn) {
+            // Agregar event listener (CSP-compliant)
+            btn.addEventListener('click', function() {
+                toggleAshParticles();
+                updateParticlesButton();
+            });
+
+            // Actualizar estado inicial del botón
+            updateParticlesButton();
+        }
+    }
 
     // Inicialización
     function init() {
@@ -75,6 +101,10 @@
             // Si localStorage no está disponible, usar valor por defecto
         }
 
+        // Inicializar botón
+        initButton();
+
+        // Crear partículas
         createParticles();
     }
 
