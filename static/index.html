@@ -1013,10 +1013,12 @@ body {
                     <div id="wallet-summary" style="margin-top:10px;"></div>
                 </div>
 
-                <div class="profile-col-right">
-                    <div class="subheading">TOP EMISSARY</div>
-                    <div id="prime-emissary-img" class="profile-emissary-img">NO DATA</div>
-                    <div id="prime-emissary-desc" style="font-size:14px;text-align:left;"></div>
+                <div class="profile-col-right" style="text-align:right;">
+                    <div class="subheading" style="margin-bottom:12px;">TOP EMISSARY</div>
+                    <div style="display:inline-block; text-align:center; border:2px solid var(--line); padding:10px; background:rgba(0,0,0,0.5);">
+                        <div id="prime-emissary-img" class="profile-emissary-img" style="margin-bottom:8px;">NO DATA</div>
+                        <div id="prime-emissary-desc" style="font-size:14px;text-align:left;line-height:1.6;"></div>
+                    </div>
                 </div>
             </div>
 
@@ -2017,6 +2019,11 @@ let connectedWallet = null;
 
 /* --------- BASIC NAV --------- */
 function switchScreen(screenName){
+    // Close all modals when switching screens
+    document.querySelectorAll(".modal-overlay").forEach(modal => {
+        modal.classList.remove("active");
+    });
+
     document.querySelectorAll(".screen").forEach(s=>{
         if(s.getAttribute("data-screen") === screenName){
             s.classList.add("active");
@@ -2525,19 +2532,15 @@ async function fetchGuildsAndRender(){
         let html = "";
         guilds.forEach(g=>{
             html += `
-            <div class="guild-entry">
-                <img src="${g.badge}" alt="${g.name} badge" class="guild-badge"/>
-                <div style="flex:1">
-                    <div style="font-weight:bold;text-transform:uppercase;margin-bottom:4px;">
-                        ${g.name} – ${g.flavor}
-                    </div>
-                    <div>
-                        Members: ${g.members || 0} |
-                        Total XP: ${g.total_xp || 0} |
-                        Total Aura: ${g.total_aura || 0}<br/>
-                        Avg XP: ${g.avg_xp || 0} |
-                        Avg Aura: ${g.avg_aura || 0}
-                    </div>
+            <div class="guild-entry" style="display:flex; align-items:center; gap:10px; margin-bottom:12px;">
+                <img src="${g.badge}" alt="${g.name} badge" style="width:32px; height:32px; object-fit:contain;"/>
+                <div style="flex:1; font-size:14px;">
+                    <span style="font-weight:bold;text-transform:uppercase;">${g.name}</span> – ${g.flavor} |
+                    Members: ${g.members || 0} |
+                    Total XP: ${g.total_xp || 0} |
+                    Total Aura: ${g.total_aura || 0} |
+                    Avg XP: ${g.avg_xp || 0} |
+                    Avg Aura: ${g.avg_aura || 0}
                 </div>
             </div>
             `;
@@ -3097,56 +3100,50 @@ async function loadPlayerAndRender(){
             btn.addEventListener("click", async ()=>{
                 const heroId = btn.getAttribute("data-hero");
 
-                const amountStr = window.prompt(
-                    "EMERGENCY FIELD RECOVERY:\n" +
-                    "How much ENERGY do you want to restore to this Emissary?\n\n" +
-                    "Cost: 5 XP per 1 Energy.\n\n" +
-                    "Enter amount (number):",
-                    "10"
-                );
-                if(!amountStr) return;
-                const energyRequest = parseInt(amountStr,10);
-                if(isNaN(energyRequest) || energyRequest <= 0){
-                    alert("Invalid amount.");
-                    return;
-                }
-
                 if (!connectedWallet) {
-                    alert("Please connect your wallet first!");
+                    showInfoModal("WALLET REQUIRED", "Please connect your wallet first!");
                     return;
                 }
 
-                try {
-                    const res = await fetch("/api/player/spend_xp_for_energy", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({
-                            wallet: connectedWallet,
-                            hero_id: heroId,
-                            energy_request: energyRequest
-                        })
-                    });
+                showConfirmModal(
+                    "EMERGENCY FIELD RECOVERY",
+                    "Restore Energy for Emissary #" + heroId + "?\n\nCost: 5 XP per 1 Energy\nDefault: 10 Energy (50 XP)\n\nThis will restore 10 Energy. Proceed?",
+                    async () => {
+                        const energyRequest = 10; // Default amount
 
-                    if(!res.ok){
-                        const errText = await res.text();
-                        alert("RECOVERY FAILED:\n" + errText);
-                        return;
+                        try {
+                            const res = await fetch("/api/player/spend_xp_for_energy", {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({
+                                    wallet: connectedWallet,
+                                    hero_id: heroId,
+                                    energy_request: energyRequest
+                                })
+                            });
+
+                            if(!res.ok){
+                                const errText = await res.text();
+                                showInfoModal("RECOVERY FAILED", errText);
+                                return;
+                            }
+
+                            const dataAfter = await res.json();
+
+                            showInfoModal("RECOVERY COMPLETE",
+                                "⚡ Energy Restored!\n\n" +
+                                "Hero: #" + dataAfter.hero_id + "\n" +
+                                "Energy Now: " + dataAfter.energy_current + "\n" +
+                                "XP Remaining: " + dataAfter.xp_total
+                            );
+
+                            loadPlayerAndRender();
+                        } catch(e){
+                            console.error(e);
+                            showInfoModal("CONNECTION ERROR", "RECOVERY ERROR: Connection issue.");
+                        }
                     }
-
-                    const dataAfter = await res.json();
-
-                    alert(
-                        "RECOVERY COMPLETE\n\n" +
-                        "Hero: #" + dataAfter.hero_id + "\n" +
-                        "Energy Now: " + dataAfter.energy_current + "\n" +
-                        "XP Remaining: " + dataAfter.xp_total
-                    );
-
-                    loadPlayerAndRender();
-                } catch(e){
-                    console.error(e);
-                    alert("RECOVERY ERROR: connection issue.");
-                }
+                );
             });
         });
 
@@ -3443,6 +3440,7 @@ function updateMusicVolume(){
 muteBtnEl.addEventListener("click", toggleMusicMute);
 nextBtnEl.addEventListener("click", nextMusicTrack);
 volumeSliderEl.addEventListener("input", updateMusicVolume);
+volumeSliderEl.addEventListener("change", updateMusicVolume); // Compatibility for some browsers
 
 // cuando termina una pista sola -> pasar a la siguiente
 audioPlayer.addEventListener("ended", ()=>{
