@@ -166,23 +166,31 @@
         <div class="section-block">
             <div class="section-title">PLAYER PROFILE // WALLET LINK</div>
 
-            <div class="player-profile-row">
-                <div class="profile-col-left">
-                    <div>
-                        <label>WALLET (BASE): </label>
-                        <span id="wallet-display" style="color:#00ff00;font-size:14px;text-shadow: 0 0 8px rgba(0, 255, 0, 0.6);">Not connected</span>
-                        <button class="cmd" id="connect-wallet-btn">[CONNECT WALLET]</button>
-                        <button class="cmd" id="disconnect-wallet-btn" style="display:none;">[DISCONNECT]</button>
+            <div class="profile-grid-2col">
+                <div class="wallet-column">
+                    <div class="data-panel">
+                        <div class="panel-header">WALLET CONNECTION</div>
+                        <div class="panel-content">
+                            <div style="margin-bottom: 15px;">
+                                <label style="color: var(--dim-green); font-size: 12px;">WALLET ADDRESS (BASE):</label><br/>
+                                <span id="wallet-display" style="color:#00ff00;font-size:14px;text-shadow: 0 0 8px rgba(0, 255, 0, 0.6);">Not connected</span>
+                            </div>
+                            <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                                <button class="cmd" id="connect-wallet-btn">[CONNECT WALLET]</button>
+                                <button class="cmd" id="disconnect-wallet-btn" style="display:none;">[DISCONNECT]</button>
+                            </div>
+                            <div id="wallet-summary"></div>
+                        </div>
                     </div>
-
-                    <div id="wallet-summary" style="margin-top:10px;"></div>
                 </div>
 
-                <div class="profile-col-right">
-                    <div class="data-panel" style="max-width: 350px; margin-left: auto;">
+                <div class="emissary-column">
+                    <div class="data-panel">
                         <div class="panel-header" style="text-align: center;">TOP EMISSARY</div>
-                        <div id="prime-emissary-img" class="profile-emissary-img top-emissary-image" style="text-align: center; margin: 15px 0;">NO DATA</div>
-                        <div id="prime-emissary-desc" class="terminal-text" style="font-size:13px; line-height: 1.8;"></div>
+                        <div class="panel-content">
+                            <div id="prime-emissary-img" class="profile-emissary-img top-emissary-image" style="text-align: center; margin: 15px 0;">NO DATA</div>
+                            <div id="prime-emissary-desc" class="terminal-text"></div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -204,7 +212,7 @@
     <!-- HELP/TUTORIAL COMBINED -->
     <section class="screen" data-screen="tutorial">
         <!-- INDEX -->
-        <div class="section-block">
+        <div class="section-block" id="toc-index">
             <div class="section-title">📋 TABLE OF CONTENTS // QUICK ACCESS</div>
             <div class="mono-block">
                 <div class="toc-grid">
@@ -245,6 +253,7 @@
         <!-- HELP // BASIC PRINCIPLES -->
         <div class="section-block" id="help-basics">
             <div class="section-title">HELP // BASIC PRINCIPLES</div>
+            <a href="#toc-index" class="cmd back-to-index">[← BACK TO INDEX]</a>
 
             <div class="mono-block">
                 <b>ENERGY:</b> Used to attempt missions. Drains on each run.
@@ -2301,57 +2310,7 @@ async function loadPlayerAndRender(){
         document.querySelectorAll(".recover-btn").forEach(btn=>{
             btn.addEventListener("click", async ()=>{
                 const heroId = btn.getAttribute("data-hero");
-
-                const amountStr = window.prompt(
-                    "EMERGENCY FIELD RECOVERY:\n" +
-                    "How much ENERGY do you want to restore to this Emissary?\n\n" +
-                    "Cost: 5 XP per 1 Energy.\n\n" +
-                    "Enter amount (number):",
-                    "10"
-                );
-                if(!amountStr) return;
-                const energyRequest = parseInt(amountStr,10);
-                if(isNaN(energyRequest) || energyRequest <= 0){
-                    alert("Invalid amount.");
-                    return;
-                }
-
-                if (!connectedWallet) {
-                    alert("Please connect your wallet first!");
-                    return;
-                }
-
-                try {
-                    const res = await fetch("/api/player/spend_xp_for_energy", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({
-                            wallet: connectedWallet,
-                            hero_id: heroId,
-                            energy_request: energyRequest
-                        })
-                    });
-
-                    if(!res.ok){
-                        const errText = await res.text();
-                        alert("RECOVERY FAILED:\n" + errText);
-                        return;
-                    }
-
-                    const dataAfter = await res.json();
-
-                    alert(
-                        "RECOVERY COMPLETE\n\n" +
-                        "Hero: #" + dataAfter.hero_id + "\n" +
-                        "Energy Now: " + dataAfter.energy_current + "\n" +
-                        "XP Remaining: " + dataAfter.xp_total
-                    );
-
-                    loadPlayerAndRender();
-                } catch(e){
-                    console.error(e);
-                    alert("RECOVERY ERROR: connection issue.");
-                }
+                openRecoveryModal(heroId);
             });
         });
 
@@ -2738,6 +2697,94 @@ function hideModal(modalId) {
     const modal = document.getElementById(modalId);
     if (modal) {
         modal.classList.remove('active');
+    }
+}
+
+// Open Recovery Modal
+async function openRecoveryModal(heroId) {
+    if (!connectedWallet) {
+        showInfoModal("WALLET REQUIRED", "Please connect your wallet first!");
+        return;
+    }
+
+    try {
+        const player = await fetchJSON(`/api/player/${encodeURIComponent(connectedWallet)}`);
+        const hero = (player.heroes || []).find(h => h.token_id === heroId);
+
+        if (!hero) {
+            showInfoModal("ERROR", "Emissary not found!");
+            return;
+        }
+
+        const ds = hero.dynamic_state || {};
+
+        // Populate modal
+        document.getElementById('recovery-hero-name').textContent = hero.name || `#${heroId}`;
+        document.getElementById('recovery-current-energy').textContent = ds.energy_current || 0;
+        document.getElementById('recovery-max-energy').textContent = ds.energy_max || 100;
+        document.getElementById('recovery-available-xp').textContent = ds.xp_total || 0;
+
+        const recoveryInput = document.getElementById('recovery-amount');
+        const costDisplay = document.getElementById('recovery-cost-value');
+
+        // Update cost display on input change
+        recoveryInput.oninput = function() {
+            const amount = parseInt(this.value) || 0;
+            const cost = amount * 5;
+            costDisplay.textContent = cost;
+        };
+
+        // Reset to default
+        recoveryInput.value = 10;
+        costDisplay.textContent = 50;
+
+        // Handle confirm button
+        document.getElementById('recovery-confirm-btn').onclick = async function() {
+            const energyRequest = parseInt(recoveryInput.value) || 0;
+
+            if (energyRequest <= 0) {
+                showInfoModal("INVALID AMOUNT", "Please enter a valid energy amount!");
+                return;
+            }
+
+            hideModal('recovery-modal');
+
+            try {
+                const res = await fetch("/api/player/spend_xp_for_energy", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        wallet: connectedWallet,
+                        hero_id: heroId,
+                        energy_request: energyRequest
+                    })
+                });
+
+                if(!res.ok){
+                    const errText = await res.text();
+                    showInfoModal("RECOVERY FAILED", errText);
+                    return;
+                }
+
+                const dataAfter = await res.json();
+
+                showInfoModal(
+                    "RECOVERY COMPLETE",
+                    `Hero: #${dataAfter.hero_id}\nEnergy Now: ${dataAfter.energy_current}\nXP Remaining: ${dataAfter.xp_total}`
+                );
+
+                loadPlayerAndRender();
+            } catch(e){
+                console.error(e);
+                showInfoModal("ERROR", "RECOVERY ERROR: connection issue.");
+            }
+        };
+
+        showModal('recovery-modal');
+
+    } catch(e) {
+        console.error(e);
+        showInfoModal("ERROR", "Failed to load emissary data!");
     }
 }
 
@@ -3231,7 +3278,7 @@ async function startPartyMission(missionId, missionName) {
         <div class="terminal-modal-body">
             <div class="modal-message" id="info-modal-message"></div>
             <div class="modal-buttons">
-                <button class="modal-btn" onclick="hideModal('info-modal')">OK</button>
+                <button class="cmd" onclick="hideModal('info-modal')">[OK]</button>
             </div>
         </div>
     </div>
@@ -3247,8 +3294,46 @@ async function startPartyMission(missionId, missionName) {
         <div class="terminal-modal-body">
             <div class="modal-message" id="confirm-modal-message"></div>
             <div class="modal-buttons">
-                <button class="modal-btn" id="confirm-yes-btn">YES</button>
-                <button class="modal-btn danger" onclick="closeConfirmModal()">NO</button>
+                <button class="cmd" id="confirm-yes-btn">[YES]</button>
+                <button class="cmd" style="border-color: var(--error-red); color: var(--error-red);" onclick="closeConfirmModal()">[NO]</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- EMERGENCY FIELD RECOVERY MODAL -->
+<div id="recovery-modal" class="modal-overlay">
+    <div class="terminal-modal" style="max-width: 500px;">
+        <div class="terminal-modal-header">
+            EMERGENCY FIELD RECOVERY
+            <button class="terminal-modal-close" onclick="hideModal('recovery-modal')">×</button>
+        </div>
+        <div class="terminal-modal-body">
+            <div class="modal-message" style="text-align: left;">
+                <div style="margin-bottom: 15px;">
+                    <strong style="color: var(--gold);">Emissary:</strong> <span id="recovery-hero-name"></span>
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <strong style="color: var(--gold);">Current Energy:</strong> <span id="recovery-current-energy">0</span> / <span id="recovery-max-energy">100</span>
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <strong style="color: var(--gold);">Available XP:</strong> <span id="recovery-available-xp">0</span>
+                </div>
+                <div style="margin-bottom: 15px; padding: 10px; background: rgba(255, 204, 0, 0.1); border-left: 3px solid var(--gold);">
+                    <strong style="color: var(--gold);">Cost:</strong> 5 XP per 1 Energy
+                </div>
+                <div style="margin-top: 20px;">
+                    <label style="color: var(--dim-green); font-size: 12px;">ENERGY TO RESTORE:</label><br/>
+                    <input type="number" id="recovery-amount" min="1" max="100" value="10"
+                           style="background: var(--bg-primary); border: 1px solid var(--border-primary); color: var(--primary-green); padding: 8px; width: 100%; font-family: 'Share Tech Mono', monospace; margin-top: 5px;"/>
+                    <div id="recovery-cost-display" style="margin-top: 10px; color: var(--gold); font-size: 12px;">
+                        Cost: <span id="recovery-cost-value">50</span> XP
+                    </div>
+                </div>
+            </div>
+            <div class="modal-buttons">
+                <button class="cmd" id="recovery-confirm-btn">[CONFIRM RECOVERY]</button>
+                <button class="cmd" style="border-color: var(--error-red); color: var(--error-red);" onclick="hideModal('recovery-modal')">[CANCEL]</button>
             </div>
         </div>
     </div>
