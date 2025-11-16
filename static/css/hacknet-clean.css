@@ -1,40 +1,49 @@
-/* ===============================================================
-   EMBERHOLM PORTAL - HACKNET CLEAN + CRT DESIGN
-   Cyan terminal aesthetic with gold accents
-   =============================================================== */
+/* ════════════════════════════════════════════════════════════════
+   EMBERHOLM PORTAL - HACKNET CLEAN STYLE + CRT EFFECTS
+   Version: 2.0 Final - Complete Redesign
+   ════════════════════════════════════════════════════════════════ */
 
-/* ===============================================================
+/* ────────────────────────────────────────
    FUENTES
-   =============================================================== */
+   ──────────────────────────────────────── */
 @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;600;700&display=swap');
 @import url('https://fonts.cdnfonts.com/css/alagard');
 
-/* ===============================================================
-   VARIABLES CSS
-   =============================================================== */
+/* ────────────────────────────────────────
+   RESET
+   ──────────────────────────────────────── */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+/* ────────────────────────────────────────
+   CSS VARIABLES (COLORES Y CONFIGS)
+   ──────────────────────────────────────── */
 :root {
     /* Hacknet Color Scheme */
-    --primary-green: #4af;              /* Azul cyan principal */
-    --bright-green: #6cf;               /* Cyan brillante */
-    --dim-green: #2a8;                  /* Cyan apagado */
-    --dark-green: #164;                 /* Cyan oscuro */
+    --primary-green: #4af;           /* Cyan principal */
+    --bright-green: #6cf;            /* Cyan brillante */
+    --dim-green: #2a8;               /* Cyan apagado */
+    --dark-green: #164;              /* Cyan oscuro */
 
     /* Emberholm Accents */
-    --gold: #fc0;                       /* Amarillo dorado */
-    --gold-bright: #fd4;                /* Dorado brillante */
-    --gold-dim: #ca0;                   /* Dorado apagado */
+    --gold: #fc0;                    /* Amarillo dorado */
+    --gold-bright: #fd4;             /* Dorado brillante */
+    --gold-dim: #ca0;                /* Dorado apagado */
 
     /* System States */
-    --error-red: #f24;                  /* Rojo error */
-    --warning-orange: #f80;             /* Naranja warning */
-    --success-green: #4f8;              /* Verde éxito */
-    --info-cyan: #4df;                  /* Cyan información */
+    --error-red: #f24;               /* Rojo error */
+    --warning-orange: #f80;          /* Naranja advertencia */
+    --success-green: #4f8;           /* Verde éxito */
+    --info-cyan: #4df;               /* Cyan información */
 
     /* Backgrounds */
-    --bg-primary: #000;                 /* Negro principal */
-    --bg-secondary: #0a0a0f;            /* Negro secundario */
-    --bg-panel: #0f0f14;                /* Paneles */
-    --bg-elevated: #14141a;             /* Elementos elevados */
+    --bg-primary: #000;              /* Negro principal */
+    --bg-secondary: #0a0a0f;         /* Negro secundario */
+    --bg-panel: #0f0f14;             /* Paneles */
+    --bg-elevated: #14141a;          /* Elementos elevados */
 
     /* Borders */
     --border-primary: rgba(68, 170, 255, 0.3);
@@ -42,118 +51,12 @@
     --border-gold: rgba(255, 204, 0, 0.4);
 }
 
-/* ===============================================================
-   RESET Y BODY BASE
-   =============================================================== */
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-}
-
-body {
-    background: var(--bg-primary);
-    background-image:
-        radial-gradient(circle at 20% 50%, rgba(68, 170, 255, 0.03) 0%, transparent 50%),
-        radial-gradient(circle at 80% 80%, rgba(255, 204, 0, 0.02) 0%, transparent 50%);
-    color: var(--primary-green);
-    font-family: 'Share Tech Mono', 'Courier New', monospace;
-    font-size: 14px;
-    line-height: 1.6;
-    min-height: 100vh;
-    overflow-x: hidden;
-}
-
-/* ===============================================================
-   EFECTOS CRT
-   =============================================================== */
-
-/* 1. SCAN BEAM - La línea que baja */
-.scan-beam {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100px;
-    background: linear-gradient(
-        to bottom,
-        transparent,
-        rgba(68, 170, 255, 0.1),
-        transparent
-    );
-    animation: scan-beam 8s linear infinite;
-    pointer-events: none;
-    z-index: 9996;
-}
-
-@keyframes scan-beam {
-    0% { transform: translateY(-100%); }
-    100% { transform: translateY(100vh); }
-}
-
-/* 2. NOISE OVERLAY */
-.noise {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMDAiIGhlaWdodD0iMzAwIj48ZmlsdGVyIGlkPSJhIj48ZmVUdXJidWxlbmNlIGJhc2VGcmVxdWVuY3k9Ii43NSIgc3RpdGNoVGlsZXM9InN0aXRjaCIgdHlwZT0iZnJhY3RhbE5vaXNlIi8+PGZlQ29sb3JNYXRyaXggdHlwZT0ic2F0dXJhdGUiIHZhbHVlcz0iMCIvPjwvZmlsdGVyPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbHRlcj0idXJsKCNhKSIgb3BhY2l0eT0iLjA1Ii8+PC9zdmc+');
-    opacity: 0.03;
-    pointer-events: none;
-    z-index: 9995;
-}
-
-/* 3. CRT CURVE (Vignette oscura en bordes) */
-.crt-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: radial-gradient(
-        ellipse at center,
-        transparent 0%,
-        transparent 60%,
-        rgba(0, 0, 0, 0.3) 85%,
-        rgba(0, 0, 0, 0.6) 95%,
-        rgba(0, 0, 0, 0.9) 100%
-    );
-    pointer-events: none;
-    z-index: 9997;
-}
-
-/* 4. SCANLINES SUTILES */
-body::before {
-    content: '';
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: repeating-linear-gradient(
-        0deg,
-        transparent 0px,
-        rgba(68, 170, 255, 0.02) 1px,
-        transparent 2px,
-        transparent 4px
-    );
-    pointer-events: none;
-    z-index: 9998;
-}
-
-/* ===============================================================
+/* ────────────────────────────────────────
    ANIMACIONES
-   =============================================================== */
+   ──────────────────────────────────────── */
 @keyframes fadeIn {
-    from {
-        opacity: 0;
-        transform: translateY(10px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
 @keyframes slideIn {
@@ -175,9 +78,110 @@ body::before {
     }
 }
 
-/* ===============================================================
+/* ANIMACIÓN SCAN BEAM - La línea que baja */
+@keyframes scan-beam {
+    0% { transform: translateY(-100%); }
+    100% { transform: translateY(100vh); }
+}
+
+/* ────────────────────────────────────────
+   BASE STYLES
+   ──────────────────────────────────────── */
+body {
+    background: var(--bg-primary);
+    background-image:
+        radial-gradient(circle at 20% 50%, rgba(68, 170, 255, 0.03) 0%, transparent 50%),
+        radial-gradient(circle at 80% 80%, rgba(255, 204, 0, 0.02) 0%, transparent 50%);
+    color: var(--primary-green);
+    font-family: 'Share Tech Mono', 'Courier New', monospace;
+    font-size: 14px;
+    line-height: 1.6;
+    min-height: 100vh;
+    overflow-x: hidden;
+}
+
+/* SCANLINES SUTILES (always on top) */
+body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: repeating-linear-gradient(
+        0deg,
+        transparent 0px,
+        rgba(68, 170, 255, 0.02) 1px,
+        transparent 2px,
+        transparent 4px
+    );
+    pointer-events: none;
+    z-index: 9999;
+}
+
+/* ════════════════════════════════════════
+   EFECTOS CRT (SCAN BEAM + NOISE + CURVE)
+   ════════════════════════════════════════ */
+
+/* ────────────────────────────────────────
+   SCAN BEAM - Línea azul que baja
+   ──────────────────────────────────────── */
+.scan-beam {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100px;
+    background: linear-gradient(
+        to bottom,
+        transparent,
+        rgba(68, 170, 255, 0.1),
+        transparent
+    );
+    animation: scan-beam 8s linear infinite;
+    pointer-events: none;
+    z-index: 9996;
+}
+
+/* ────────────────────────────────────────
+   NOISE OVERLAY - Ruido de pantalla
+   ──────────────────────────────────────── */
+.noise {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMDAiIGhlaWdodD0iMzAwIj48ZmlsdGVyIGlkPSJhIj48ZmVUdXJidWxlbmNlIGJhc2VGcmVxdWVuY3k9Ii43NSIgc3RpdGNoVGlsZXM9InN0aXRjaCIgdHlwZT0iZnJhY3RhbE5vaXNlIi8+PGZlQ29sb3JNYXRyaXggdHlwZT0ic2F0dXJhdGUiIHZhbHVlcz0iMCIvPjwvZmlsdGVyPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbHRlcj0idXJsKCNhKSIgb3BhY2l0eT0iLjA1Ii8+PC9zdmc+');
+    opacity: 0.03;
+    pointer-events: none;
+    z-index: 9995;
+}
+
+/* ────────────────────────────────────────
+   CRT CURVE - Oscurecimiento de bordes
+   ──────────────────────────────────────── */
+.crt-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(
+        ellipse at center,
+        transparent 0%,
+        transparent 60%,
+        rgba(0, 0, 0, 0.3) 85%,
+        rgba(0, 0, 0, 0.6) 95%,
+        rgba(0, 0, 0, 0.9) 100%
+    );
+    pointer-events: none;
+    z-index: 9997;
+}
+
+/* ════════════════════════════════════════
    CONTAINER PRINCIPAL
-   =============================================================== */
+   ════════════════════════════════════════ */
 .app-container,
 .wrapper {
     max-width: 1800px;
@@ -190,9 +194,9 @@ body::before {
     z-index: 1;
 }
 
-/* ===============================================================
-   TOP MENU BAR (Console Header adaptado)
-   =============================================================== */
+/* ════════════════════════════════════════
+   TOP CONSOLE HEADER
+   ════════════════════════════════════════ */
 .console-header,
 .menu-bar {
     background: linear-gradient(180deg, var(--bg-elevated) 0%, var(--bg-panel) 100%);
@@ -266,22 +270,22 @@ body::before {
     letter-spacing: 0;
 }
 
-/* ===============================================================
-   TITLE BAR (dentro del wrapper)
-   =============================================================== */
+/* ════════════════════════════════════════
+   TITLE BAR + STATUS
+   ════════════════════════════════════════ */
 .title-bar {
     background: var(--bg-elevated);
     border-bottom: 1px solid var(--border-primary);
-    padding: 12px 20px;
+    padding: 15px 20px;
 }
 
 .window-title,
 h1 {
     font-family: 'Alagard', serif;
-    font-size: 22px;
+    font-size: 24px;
     color: var(--gold);
     letter-spacing: 2px;
-    margin-bottom: 10px;
+    margin-bottom: 12px;
     text-align: center;
 }
 
@@ -291,6 +295,7 @@ h1 {
     font-size: 12px;
     font-family: 'Rajdhani', sans-serif;
     color: var(--dim-green);
+    gap: 20px;
 }
 
 .status-segment {
@@ -301,7 +306,7 @@ h1 {
 
 .status-segment::before {
     content: '●';
-    color: var(--primary-green);
+    color: var(--success-green);
     animation: pulse 2s infinite;
 }
 
@@ -315,15 +320,15 @@ h1 {
     font-weight: 600;
 }
 
-/* ===============================================================
-   COMMAND MENU - NAVIGATION
-   =============================================================== */
+/* ════════════════════════════════════════
+   NAVIGATION / COMMAND MENU
+   ════════════════════════════════════════ */
 .command-menu {
     background: var(--bg-secondary);
     border-bottom: 1px solid var(--border-primary);
-    padding: 10px 15px;
+    padding: 12px 15px;
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
     gap: 8px;
 }
 
@@ -341,6 +346,17 @@ h1 {
     letter-spacing: 1px;
     transition: all 0.2s;
     text-align: center;
+    position: relative;
+}
+
+.cmd::before,
+.nav-button::before {
+    content: '▸';
+    position: absolute;
+    left: 8px;
+    opacity: 0;
+    transition: opacity 0.2s;
+    color: var(--gold);
 }
 
 .cmd:hover,
@@ -350,6 +366,11 @@ h1 {
     color: var(--bright-green);
     transform: translateY(-2px);
     box-shadow: 0 4px 10px rgba(68, 170, 255, 0.3);
+}
+
+.cmd:hover::before,
+.nav-button:hover::before {
+    opacity: 1;
 }
 
 .cmd.active,
@@ -362,9 +383,14 @@ h1 {
     box-shadow: 0 0 15px rgba(255, 204, 0, 0.3);
 }
 
-/* ===============================================================
-   SYSTEM MESSAGE
-   =============================================================== */
+.cmd.active::before,
+.nav-button.active::before {
+    opacity: 1;
+}
+
+/* ════════════════════════════════════════
+   SYSTEM MESSAGE BAR
+   ════════════════════════════════════════ */
 .sys-msg,
 .command-hint {
     background: rgba(68, 170, 255, 0.05);
@@ -389,17 +415,19 @@ h1 {
     color: var(--primary-green);
 }
 
-/* ===============================================================
-   DIVIDER
-   =============================================================== */
+/* ════════════════════════════════════════
+   DIVIDERS
+   ════════════════════════════════════════ */
 .divider,
-.double-line {
+.double-line,
+.separator {
     height: 1px;
     background: linear-gradient(90deg, transparent, var(--border-primary), transparent);
     margin: 20px 0;
 }
 
-.divider.double {
+.divider.double,
+.double-line {
     height: 2px;
     background: repeating-linear-gradient(
         90deg,
@@ -410,9 +438,9 @@ h1 {
     );
 }
 
-/* ===============================================================
+/* ════════════════════════════════════════
    CONTENT SECTIONS
-   =============================================================== */
+   ════════════════════════════════════════ */
 .screen {
     display: none;
     padding: 20px;
@@ -423,9 +451,13 @@ h1 {
     animation: fadeIn 0.4s ease-out;
 }
 
-/* ===============================================================
-   TERMINAL BLOCKS
-   =============================================================== */
+.content-body {
+    padding: 20px;
+}
+
+/* ════════════════════════════════════════
+   TERMINAL BLOCKS / PANELS
+   ════════════════════════════════════════ */
 .terminal-block,
 .data-panel,
 .campaign-box,
@@ -437,6 +469,14 @@ h1 {
     margin-bottom: 20px;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
     animation: fadeIn 0.4s ease-out;
+    position: relative;
+}
+
+.terminal-block:hover,
+.data-panel:hover,
+.campaign-box:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(68, 170, 255, 0.2);
 }
 
 .terminal-block.gold-accent,
@@ -453,15 +493,15 @@ h1 {
     background: linear-gradient(135deg, rgba(255, 34, 68, 0.05) 0%, var(--bg-panel) 100%);
 }
 
-/* ===============================================================
+/* ════════════════════════════════════════
    BLOCK TITLES
-   =============================================================== */
+   ════════════════════════════════════════ */
 .block-title,
 .panel-header,
 .campaign-title,
 .section-title {
     font-family: 'Alagard', serif;
-    font-size: 18px;
+    font-size: 20px;
     color: var(--gold);
     margin-bottom: 15px;
     padding-bottom: 10px;
@@ -478,15 +518,37 @@ h1 {
     font-size: 14px;
 }
 
-/* ===============================================================
-   ALERT BANNER
-   =============================================================== */
+.block-content,
+.terminal-text,
+.campaign-text,
+p {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 13px;
+    color: var(--primary-green);
+    line-height: 1.8;
+    margin: 12px 0;
+}
+
+.block-content strong,
+strong {
+    color: var(--gold);
+    font-weight: 600;
+}
+
+/* ════════════════════════════════════════
+   ALERT BANNERS
+   ════════════════════════════════════════ */
 .alert-box,
-.warning-box {
+.warning-box,
+.alert-banner {
+    background: linear-gradient(135deg, rgba(255, 34, 68, 0.15) 0%, rgba(139, 0, 0, 0.05) 100%);
+    border: 1px solid var(--error-red);
+    border-left: 4px solid var(--error-red);
+    padding: 15px 20px;
+    margin: 20px 0;
     display: flex;
     align-items: flex-start;
     gap: 15px;
-    padding: 15px 20px;
 }
 
 .alert-box::before,
@@ -508,29 +570,14 @@ h1 {
     margin-bottom: 8px;
 }
 
-/* ===============================================================
-   TEXT CONTENT
-   =============================================================== */
-.terminal-text,
-.campaign-text,
-.block-content,
-p {
-    font-family: 'Share Tech Mono', monospace;
+.alert-message {
     font-size: 13px;
     color: var(--primary-green);
-    line-height: 1.8;
-    margin: 12px 0;
 }
 
-.terminal-text strong,
-strong {
-    color: var(--gold);
-    font-weight: 600;
-}
-
-/* ===============================================================
+/* ════════════════════════════════════════
    STATUS MONITOR
-   =============================================================== */
+   ════════════════════════════════════════ */
 .status-monitor,
 .status-panel,
 .realm-status {
@@ -565,11 +612,12 @@ strong {
 .critical {
     color: var(--error-red);
     font-weight: 600;
+    animation: pulse 1.5s infinite;
 }
 
-/* ===============================================================
-   LIVE FEED
-   =============================================================== */
+/* ════════════════════════════════════════
+   LIVE FEED / ACTIVITY LOG
+   ════════════════════════════════════════ */
 .activity-log,
 .live-feed,
 .dispatch-feed {
@@ -609,22 +657,41 @@ strong {
     font-size: 12px;
     color: var(--primary-green);
     margin: 10px 0;
-    padding: 8px 12px;
+    padding: 10px 12px;
     border-left: 2px solid rgba(68, 170, 255, 0.2);
     transition: all 0.2s;
     font-family: 'Share Tech Mono', monospace;
+    background: rgba(68, 170, 255, 0.02);
 }
 
 .log-entry:hover,
 .feed-entry:hover,
 .feed-item:hover {
-    background: rgba(68, 170, 255, 0.05);
+    background: rgba(68, 170, 255, 0.08);
     border-left-color: var(--gold);
+    padding-left: 16px;
 }
 
-/* ===============================================================
-   NOTICES
-   =============================================================== */
+.feed-item.new {
+    background: rgba(255, 204, 0, 0.1);
+    border-left-color: var(--gold);
+    animation: slideIn 0.3s ease-out;
+}
+
+/* ════════════════════════════════════════
+   HIGHLIGHTS & NOTICES
+   ════════════════════════════════════════ */
+.highlight-box {
+    background: rgba(255, 204, 0, 0.05);
+    border: 1px solid var(--border-gold);
+    padding: 15px;
+    margin: 20px 0;
+    text-align: center;
+    font-family: 'Alagard', serif;
+    font-size: 16px;
+    color: var(--gold);
+}
+
 .access-notice,
 .disclaimer {
     background: rgba(68, 170, 255, 0.05);
@@ -637,9 +704,9 @@ strong {
     font-style: italic;
 }
 
-/* ===============================================================
-   LOGO WRAPPER
-   =============================================================== */
+/* ════════════════════════════════════════
+   LOGO & IMAGES
+   ════════════════════════════════════════ */
 .logo-wrapper {
     text-align: center;
     margin: 20px 0;
@@ -651,9 +718,9 @@ strong {
     filter: drop-shadow(0 0 20px rgba(68, 170, 255, 0.5));
 }
 
-/* ===============================================================
-   PIXEL CORNERS (decorativos)
-   =============================================================== */
+/* ════════════════════════════════════════
+   DECORATIVE ELEMENTS
+   ════════════════════════════════════════ */
 .pixel-corner {
     position: absolute;
     width: 10px;
@@ -667,9 +734,6 @@ strong {
 .pixel-corner.bl { bottom: 8px; left: 8px; }
 .pixel-corner.br { bottom: 8px; right: 8px; }
 
-/* ===============================================================
-   CORNER MARKERS
-   =============================================================== */
 .corner-marker {
     position: absolute;
     width: 20px;
@@ -706,9 +770,9 @@ strong {
     border-top: none;
 }
 
-/* ===============================================================
+/* ════════════════════════════════════════
    SCROLLBAR PERSONALIZADO
-   =============================================================== */
+   ════════════════════════════════════════ */
 ::-webkit-scrollbar {
     width: 8px;
     height: 8px;
@@ -727,9 +791,9 @@ strong {
     background: rgba(68, 170, 255, 0.5);
 }
 
-/* ===============================================================
-   RESPONSIVE
-   =============================================================== */
+/* ════════════════════════════════════════
+   RESPONSIVE - MOBILE
+   ════════════════════════════════════════ */
 @media (max-width: 768px) {
     .console-header {
         flex-direction: column;
@@ -746,15 +810,32 @@ strong {
 
     .command-menu {
         grid-template-columns: repeat(2, 1fr);
+        gap: 6px;
     }
 
     .window-title,
     h1 {
-        font-size: 18px;
+        font-size: 20px;
     }
 
     .status-line {
         flex-direction: column;
         gap: 8px;
+        align-items: center;
+    }
+
+    .terminal-text,
+    .campaign-text,
+    p {
+        font-size: 12px;
     }
 }
+
+/* ════════════════════════════════════════
+   UTILITY CLASSES
+   ════════════════════════════════════════ */
+.text-gold { color: var(--gold); }
+.text-success { color: var(--success-green); }
+.text-error { color: var(--error-red); }
+.text-cyan { color: var(--info-cyan); }
+.text-dim { color: var(--dim-green); }
