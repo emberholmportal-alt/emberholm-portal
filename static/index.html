@@ -29,14 +29,16 @@
             </div>
             <button class="audio-btn" id="console-mute-btn">[MUTE]</button>
             <button class="audio-btn" id="console-next-btn">[NEXT]</button>
-            <div class="volume-bar" id="volume-display" style="cursor:pointer;" title="Click to adjust volume">VOL ▓▓▓▓▓▓▓░░░</div>
-            <input type="range" id="console-volume" min="0" max="100" value="70" style="width:100px;"/>
+            <div class="volume-slider-container">
+                <div class="volume-bar" id="volume-display">VOL ▓▓▓▓▓▓▓░░░</div>
+                <input type="range" id="console-volume" min="0" max="100" value="70"/>
+            </div>
         </div>
     </header>
 
     <!-- NAVIGATION BAR -->
     <div class="menu-bar" id="nav-bar">
-        <button class="cmd cmd-mint" onclick="window.location.href='/mint'">🔥 MINT / INVOKE</button>
+        <button class="cmd cmd-mint" onclick="window.location.href='/mint'">MINT / INVOKE</button>
         <button class="cmd" data-target="home">[HOME]</button>
         <button class="cmd" data-target="guilds">[STATS/GUILDS]</button>
         <button class="cmd" data-target="missions">[MISSIONS]</button>
@@ -288,6 +290,7 @@
 
         <div class="section-block" id="help-commandflow">
             <div class="section-title">COMMAND FLOW</div>
+            <a href="#toc-index" class="cmd back-to-index">[← BACK TO INDEX]</a>
             <div class="mono-block" style="font-size:14px;">
                 1. [PROFILE] Link / enter wallet (Base chain).<br/>
                 2. [MISSIONS] Choose a mission from the 72h board.<br/>
@@ -305,8 +308,9 @@
 
 
         <!-- 1. MISSION SYSTEM // OVERVIEW -->
-        <div class="section-block">
+        <div class="section-block" id="tut-1-overview">
             <div class="section-title">1. MISSION SYSTEM // OVERVIEW</div>
+            <a href="#toc-index" class="cmd back-to-index">[← BACK TO INDEX]</a>
             <div class="mono-block">
                 <p><b>What are Missions?</b></p>
                 Missions are time-based operations where you deploy your NFT Emissaries to complete tasks
@@ -329,9 +333,10 @@
             </div>
         </div>
 
-        
-        <div class="section-block">
+
+        <div class="section-block" id="tut-2-costs">
             <div class="section-title">2. MISSION COSTS & REQUIREMENTS</div>
+            <a href="#toc-index" class="cmd back-to-index">[← BACK TO INDEX]</a>
             <div class="mono-block">
                 <p><b>Energy Cost by Difficulty:</b></p>
                 • <span style="color:#44ff44;">EASY</span> missions: 10 Energy<br/>
@@ -358,8 +363,8 @@
         </div>
 
         <div class="section-block" id="tut-3-rewards">
-        <div class="section-block">
             <div class="section-title">3. MISSION REWARDS // XP & AURA</div>
+            <a href="#toc-index" class="cmd back-to-index">[← BACK TO INDEX]</a>
             <div class="mono-block">
                 <p><b>Base Rewards by Difficulty:</b></p>
                 <table style="width:100%; margin:10px 0; border-collapse:collapse;">
@@ -402,8 +407,8 @@
         </div>
 
         <div class="section-block" id="tut-4-success">
-        <div class="section-block">
             <div class="section-title">4. SUCCESS RATE CALCULATION</div>
+            <a href="#toc-index" class="cmd back-to-index">[← BACK TO INDEX]</a>
             <div class="mono-block">
                 <p><b>Base Success Rates:</b></p>
                 • <span style="color:#44ff44;">EASY</span> missions: 92% base success rate<br/>
@@ -435,8 +440,8 @@
         </div>
 
         <div class="section-block" id="tut-5-failure">
-        <div class="section-block">
             <div class="section-title">5. MISSION FAILURE // CONSEQUENCES</div>
+            <a href="#toc-index" class="cmd back-to-index">[← BACK TO INDEX]</a>
             <div class="mono-block">
                 <p><b>What Happens When You Fail?</b></p>
                 When a mission fails (based on success rate calculation):<br/><br/>
@@ -464,8 +469,8 @@
         </div>
 
         <div class="section-block" id="tut-6-death">
-        <div class="section-block">
             <div class="section-title">6. DEATH & REINVOCATION SYSTEM</div>
+            <a href="#toc-index" class="cmd back-to-index">[← BACK TO INDEX]</a>
             <div class="mono-block">
                 <p><b>Death Mechanic:</b></p>
                 When an Emissary dies (rare, only on failed MEDIUM/HARD missions):<br/>
@@ -510,8 +515,8 @@
         </div>
 
         <div class="section-block" id="tut-7-flow">
-        <div class="section-block">
             <div class="section-title">7. MISSION FLOW // STEP-BY-STEP GUIDE</div>
+            <a href="#toc-index" class="cmd back-to-index">[← BACK TO INDEX]</a>
             <div class="mono-block">
                 <p><b>Complete Mission Walkthrough:</b></p>
 
