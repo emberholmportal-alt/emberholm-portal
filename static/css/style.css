@@ -7,23 +7,19 @@
    ATMOSPHERIC PARTICLES - ASH FALLING EFFECT
    =============================================================== */
 
+/* Atmospheric particles */
 .ash-particle {
-    position: fixed !important;
-    width: 8px !important;
-    height: 8px !important;
-    background: rgba(255, 140, 0, 0.9) !important;
-    border-radius: 50% !important;
-    pointer-events: none !important;
-    z-index: 999999 !important;
-    will-change: transform, opacity;
-    animation: ashFall linear infinite !important;
-    box-shadow: 0 0 15px rgba(255, 140, 0, 0.8), 0 0 30px rgba(255, 100, 0, 0.6) !important;
-    border: 1px solid rgba(255, 200, 0, 0.9) !important;
-    display: block !important;
-    visibility: visible !important;
+    position: fixed;
+    width: 4px;
+    height: 4px;
+    background: rgba(255, 140, 0, 0.7);
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 99999;
+    animation: ashFall linear infinite;
+    box-shadow: 0 0 3px rgba(255, 140, 0, 0.5);
 }
 
-/* Animación de caída */
 @keyframes ashFall {
     0% {
         transform: translateY(-10px) translateX(0);
@@ -33,7 +29,7 @@
         opacity: 1;
     }
     90% {
-        opacity: 0.5;
+        opacity: 0.8;
     }
     100% {
         transform: translateY(100vh) translateX(15px);
