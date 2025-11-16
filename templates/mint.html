@@ -123,7 +123,7 @@
     }
     .invoked-list {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
       gap: 15px;
       padding: 10px 0;
     }
@@ -133,9 +133,10 @@
       border-left: 3px solid var(--primary-green);
       padding: 12px;
       display: flex;
-      flex-direction: column;
+      flex-direction: row;
       align-items: center;
-      gap: 10px;
+      justify-content: flex-start;
+      gap: 12px;
       transition: all 0.2s;
     }
     .invoked-item:hover {
@@ -147,6 +148,7 @@
     .invoked-thumb {
       width: 80px;
       height: 80px;
+      flex-shrink: 0;
       border: 2px solid var(--border-primary);
       image-rendering: pixelated;
       object-fit: contain;
@@ -156,9 +158,9 @@
       font-family: 'Share Tech Mono', monospace;
       font-size: 11px;
       color: var(--primary-green);
-      text-align: center;
+      text-align: left;
       line-height: 1.5;
-      width: 100%;
+      flex: 1;
     }
     .invoked-text .name {
       color: var(--gold);
@@ -645,16 +647,15 @@
 
               // Actualizar con estructura HTML
               nft.txt.innerHTML = `
-                <span class="name">${metadata.name || `Emissary #${nft.id}`}</span>
-                <span class="details">${race} ${classAttr}</span>
-                <span class="details">Guild: ${guild}</span>
+                <div class="name">${metadata.name || `Emissary #${nft.id}`}</div>
+                <div class="details">${race} ${classAttr} • ${guild}</div>
               `;
 
               pushConsole(`[OK] Loaded #${nft.id}: ${metadata.name}`);
             } catch (e) {
               nft.txt.innerHTML = `
-                <span class="name">Emissary #${nft.id}</span>
-                <span class="details">Metadata unavailable</span>
+                <div class="name">Emissary #${nft.id}</div>
+                <div class="details">Metadata unavailable</div>
               `;
               pushConsole(`[WARN] Failed to load #${nft.id}`);
             }
