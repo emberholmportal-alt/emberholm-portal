@@ -2913,7 +2913,10 @@ async function fetchStatsAndRender(){
                 </div>`;
             });
         }
-        document.getElementById("guild-ranking-list").innerHTML = htmlGR;
+        const guildRankingEl = document.getElementById("guild-ranking-list");
+        if (guildRankingEl) {
+            guildRankingEl.innerHTML = htmlGR;
+        }
 
         const lb = stats.player_leaderboard || [];
         let htmlLB = "";
@@ -2927,7 +2930,10 @@ async function fetchStatsAndRender(){
         if(!htmlLB){
             htmlLB = `<div class="mono-small-note">No ranking data yet.</div>`;
         }
-        document.getElementById("leaderboard-list").innerHTML = htmlLB;
+        const leaderboardEl = document.getElementById("leaderboard-list");
+        if (leaderboardEl) {
+            leaderboardEl.innerHTML = htmlLB;
+        }
 
     } catch(e){
         console.error(e);
@@ -4578,7 +4584,7 @@ document.addEventListener('visibilitychange', function() {
 <!-- Botón para toggle de partículas -->
 <button id="particles-toggle"
         onclick="toggleAshParticles(); updateParticlesButton();"
-        style="position: fixed; top: 8px; left: 260px;
+        style="position: fixed; top: 8px; right: 20px;
                padding: 4px 8px;
                background: rgba(139, 69, 19, 0.8);
                border: 1px solid #d4af37;
