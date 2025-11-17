@@ -603,6 +603,7 @@ strong {
     padding: 15px 20px;
     margin: 20px 0;
     display: flex;
+    flex-direction: column;
     align-items: flex-start;
     gap: 15px;
 }
