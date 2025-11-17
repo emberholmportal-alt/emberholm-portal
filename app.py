@@ -4,6 +4,7 @@ import time
 import random
 from datetime import datetime, timedelta
 from flask import Flask, jsonify, send_from_directory, request, abort, render_template
+from flask_cors import CORS
 
 # 🔥 POSTGRESQL INTEGRATION - Persistence module
 try:
@@ -997,6 +998,22 @@ app = Flask(
     static_folder="static",
     static_url_path=""  # sirve /img/... /music/... directo
 )
+
+# Configure CORS to allow requests from www.emberholmportal.xyz
+CORS(app, resources={
+    r"/api/*": {
+        "origins": [
+            "https://www.emberholmportal.xyz",
+            "https://emberholmportal.xyz",
+            "http://localhost:*",
+            "http://127.0.0.1:*"
+        ],
+        "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        "allow_headers": ["Content-Type", "Authorization"],
+        "expose_headers": ["Content-Type"],
+        "supports_credentials": True
+    }
+})
 
 # Initialize missions configuration
 MISSIONS_CONFIG = load_missions_config()
