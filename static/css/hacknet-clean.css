@@ -608,12 +608,21 @@ strong {
     gap: 15px;
 }
 
-.alert-box::before,
+/* Icon removed from alert-box container - now placed inside panel-header */
 .warning-box::before {
     content: '⚠';
     font-size: 24px;
     color: var(--error-red);
     animation: pulse 1s infinite;
+}
+
+/* Warning icon for alert-box - positioned inside panel-header for horizontal alignment */
+.alert-box .panel-header::before {
+    content: '⚠';
+    font-size: 24px;
+    color: var(--error-red);
+    animation: pulse 1s infinite;
+    margin-right: 10px;
 }
 
 .alert-title,
