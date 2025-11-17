@@ -453,32 +453,43 @@
         pushConsole(`[DEBUG] Fetching tokenURI for #${tokenId}...`);
         const ro = new ethers.providers.JsonRpcProvider("https://sepolia.base.org");
         const roContract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, ro);
-        
+
         let uri = await roContract.tokenURI(tokenId);
-        pushConsole(`[DEBUG] TokenURI: ${uri}`);
-        
+        pushConsole(`[DEBUG] TokenURI raw: ${uri}`);
+
         // Convertir IPFS a gateway HTTP si es necesario
         if (uri.startsWith('ipfs://')) {
+          const originalUri = uri;
           uri = uri.replace('ipfs://', 'https://ipfs.io/ipfs/');
+          pushConsole(`[DEBUG] Converted IPFS: ${originalUri} -> ${uri}`);
         }
-        
+
         // Fetchear metadata JSON
+        pushConsole(`[DEBUG] Fetching metadata from: ${uri}`);
         const response = await fetch(uri);
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
         const metadata = await response.json();
-        
+        pushConsole(`[DEBUG] Metadata received: ${JSON.stringify(metadata).substring(0, 200)}...`);
+
         // Convertir imagen IPFS si es necesario
         let imageUrl = metadata.image || '/img/emissary-placeholder.png';
         if (imageUrl.startsWith('ipfs://')) {
           imageUrl = imageUrl.replace('ipfs://', 'https://ipfs.io/ipfs/');
+          pushConsole(`[DEBUG] Converted image: ${metadata.image} -> ${imageUrl}`);
         }
-        
+
         return {
           name: metadata.name || `Emissary #${tokenId}`,
           image: imageUrl,
           attributes: metadata.attributes || []
         };
       } catch (e) {
-        pushConsole(`[WARN] Could not fetch metadata for #${tokenId}: ${e.message}`);
+        pushConsole(`[ERROR] getRealNFTMetadata failed for #${tokenId}: ${e.message}`);
+        console.error(`Full error details for #${tokenId}:`, e);
         // Fallback a datos fake si falla
         return {
           name: `Emissary #${tokenId}`,
@@ -627,6 +638,16 @@
             try {
               const metadata = await getRealNFTMetadata(nft.id);
 
+              // DEBUG: Log completo del metadata
+              pushConsole(`[DEBUG] Metadata for #${nft.id}:`);
+              pushConsole(`[DEBUG] - name: ${metadata.name}`);
+              pushConsole(`[DEBUG] - image: ${metadata.image}`);
+              pushConsole(`[DEBUG] - attributes count: ${metadata.attributes ? metadata.attributes.length : 0}`);
+
+              if (metadata.attributes && metadata.attributes.length > 0) {
+                pushConsole(`[DEBUG] - attributes: ${JSON.stringify(metadata.attributes)}`);
+              }
+
               // Actualizar imagen
               nft.img.src = metadata.image;
 
@@ -639,6 +660,10 @@
                 const raceAttr = metadata.attributes.find(a => a.trait_type === "Race" || a.trait_type === "race");
                 const classFound = metadata.attributes.find(a => a.trait_type === "Class" || a.trait_type === "class");
                 const guildAttr = metadata.attributes.find(a => a.trait_type === "Guild" || a.trait_type === "guild");
+
+                pushConsole(`[DEBUG] - raceAttr found: ${raceAttr ? raceAttr.value : 'NO'}`);
+                pushConsole(`[DEBUG] - classAttr found: ${classFound ? classFound.value : 'NO'}`);
+                pushConsole(`[DEBUG] - guildAttr found: ${guildAttr ? guildAttr.value : 'NO'}`);
 
                 if (raceAttr) race = raceAttr.value;
                 if (classFound) classAttr = classFound.value;
@@ -657,7 +682,8 @@
                 <div class="name">Emissary #${nft.id}</div>
                 <div class="details">Metadata unavailable</div>
               `;
-              pushConsole(`[WARN] Failed to load #${nft.id}`);
+              pushConsole(`[ERROR] Failed to load #${nft.id}: ${e.message}`);
+              console.error(`Full error for #${nft.id}:`, e);
             }
           }
 
