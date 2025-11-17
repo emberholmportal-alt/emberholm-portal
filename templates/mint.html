@@ -659,7 +659,12 @@
               if (metadata.attributes && metadata.attributes.length > 0) {
                 const raceAttr = metadata.attributes.find(a => a.trait_type === "Race" || a.trait_type === "race");
                 const classFound = metadata.attributes.find(a => a.trait_type === "Class" || a.trait_type === "class");
-                const guildAttr = metadata.attributes.find(a => a.trait_type === "Guild" || a.trait_type === "guild");
+                const guildAttr = metadata.attributes.find(a =>
+                  a.trait_type === "Starting Guild" ||
+                  a.trait_type === "Current Guild" ||
+                  a.trait_type === "Guild" ||
+                  a.trait_type === "guild"
+                );
 
                 pushConsole(`[DEBUG] - raceAttr found: ${raceAttr ? raceAttr.value : 'NO'}`);
                 pushConsole(`[DEBUG] - classAttr found: ${classFound ? classFound.value : 'NO'}`);
