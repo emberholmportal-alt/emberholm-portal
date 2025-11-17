@@ -3050,8 +3050,12 @@ async function openMissionSendModal(missionId) {
             const energyCost = mission.energy_cost || 0;
             const hasEnoughEnergy = ds.energy_current >= energyCost;
             const disabledClass = hasEnoughEnergy ? '' : 'disabled';
+
+            // Escape apostrophes in mission name to prevent syntax errors
+            const safeMissionName = mission.name.replace(/'/g, "\\'");
+
             const clickHandler = hasEnoughEnergy ?
-                `onclick="selectHero('${hero.token_id}', '${missionId}', '${mission.name}')"` :
+                `onclick="selectHero('${hero.token_id}', '${missionId}', '${safeMissionName}')"` :
                 '';
 
             modalHTML += `
@@ -3246,11 +3250,14 @@ async function openPartyMissionModal(missionId) {
             `;
         });
 
+        // Escape apostrophes in mission name for party button
+        const safeMissionName = mission.name.replace(/'/g, "\\'");
+
         modalHTML += `
             <div style="margin-top:16px; text-align:center;">
                 <button id="party-start-btn"
-                        class="terminal-btn"
-                        onclick="startPartyMission('${missionId}', '${mission.name}')"
+                        class="cmd"
+                        onclick="startPartyMission('${missionId}', '${safeMissionName}')"
                         disabled
                         style="opacity:0.5; cursor:not-allowed;">
                     [START PARTY MISSION]
