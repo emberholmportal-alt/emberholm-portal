@@ -2997,30 +2997,46 @@ function showPartyMissionWarning(missionName) {
 
 // Open Hero Selection Modal (from MISSIONS)
 async function openMissionSendModal(missionId) {
+    console.log(`[DEBUG] openMissionSendModal called with missionId: ${missionId}`);
+
     if (!connectedWallet) {
+        console.log(`[DEBUG] Wallet not connected`);
         showInfoModal("WALLET REQUIRED", "Please connect your wallet first!");
         return;
     }
 
+    console.log(`[DEBUG] Loading missions data...`);
     const missions = await loadMissionsData();
+    console.log(`[DEBUG] Missions loaded:`, missions);
+
     const mission = missions.find(m => m.id === missionId);
+    console.log(`[DEBUG] Found mission:`, mission);
+
     if (!mission) {
+        console.log(`[ERROR] Mission ${missionId} not found in missions array`);
         showInfoModal("ERROR", "⚠️ Mission not found");
         return;
     }
 
     // 🔥 PARTY MISSION DETECTION: If mission requires party_size, redirect to party modal
     if (mission.party_size && mission.party_size === 5) {
+        console.log(`[DEBUG] Mission ${missionId} is a party mission, redirecting to party modal`);
         await openPartyMissionModal(missionId);
         return;
     }
 
+    console.log(`[DEBUG] Mission ${missionId} is a solo mission, loading heroes...`);
+
     try {
         const player = await fetchJSON(`/api/player/${encodeURIComponent(connectedWallet)}`);
+        console.log(`[DEBUG] Player data loaded:`, player);
+
         const readyHeroes = (player.heroes || []).filter(h => {
             const ds = h.dynamic_state || {};
             return ds.state === "READY";
         });
+
+        console.log(`[DEBUG] Ready heroes count: ${readyHeroes.length}`);
 
         if (readyHeroes.length === 0) {
             showInfoModal("NO EMISSARIES", "⚠️ No emissaries available!\n\nAll your emissaries are either on mission or fallen.");
@@ -3058,13 +3074,14 @@ async function openMissionSendModal(missionId) {
             `;
         });
 
+        console.log(`[DEBUG] Opening hero selection modal for mission: ${mission.name}`);
         document.getElementById('hero-select-title').textContent =
             `SELECT EMISSARY FOR: ${mission.name}`;
         document.getElementById('hero-select-body').innerHTML = modalHTML;
         showModal('hero-select-modal');
 
     } catch (e) {
-        console.error(e);
+        console.error(`[ERROR] Error in openMissionSendModal:`, e);
         showInfoModal("ERROR", "❌ Error loading emissaries: " + e.message);
     }
 }
