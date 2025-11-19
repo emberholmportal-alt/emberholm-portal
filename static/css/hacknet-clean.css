@@ -646,8 +646,8 @@ strong {
    ════════════════════════════════════════ */
 .campaign-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 24px;
+    grid-template-columns: 1fr 1.2fr;
+    gap: 3rem;
     align-items: start;
 }
 
@@ -659,7 +659,7 @@ strong {
 .map-container {
     display: flex;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-end;
     padding: 1rem;
 }
 
@@ -671,7 +671,7 @@ strong {
         0 0 10px rgba(0, 255, 159, 0.3),
         inset 0 0 20px rgba(0, 255, 159, 0.1);
     position: relative;
-    max-width: 500px;
+    max-width: 600px;
     width: 100%;
 }
 
