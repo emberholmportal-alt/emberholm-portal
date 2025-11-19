@@ -642,6 +642,65 @@ strong {
 }
 
 /* ════════════════════════════════════════
+   CAMPAIGN DASHBOARD - MAP GRID
+   ════════════════════════════════════════ */
+.campaign-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    align-items: start;
+}
+
+.campaign-text {
+    display: flex;
+    flex-direction: column;
+}
+
+.map-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+}
+
+.map-frame {
+    border: 2px solid var(--primary-green);
+    padding: 12px;
+    background: rgba(0, 0, 0, 0.6);
+    box-shadow:
+        0 0 10px rgba(0, 255, 159, 0.3),
+        inset 0 0 20px rgba(0, 255, 159, 0.1);
+    position: relative;
+    max-width: 500px;
+    width: 100%;
+}
+
+.map-frame img {
+    display: block;
+    width: 100%;
+    height: auto;
+    filter: brightness(1.1) contrast(1.1);
+}
+
+.map-label {
+    color: var(--primary-green);
+    font-family: 'Courier New', monospace;
+    font-size: 0.75rem;
+    text-align: center;
+    margin-top: 8px;
+    letter-spacing: 2px;
+    opacity: 0.8;
+    text-transform: uppercase;
+}
+
+/* Responsive: en mobile las columnas se apilan verticalmente */
+@media (max-width: 768px) {
+    .campaign-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ════════════════════════════════════════
    STATUS MONITOR
    ════════════════════════════════════════ */
 .status-monitor,
