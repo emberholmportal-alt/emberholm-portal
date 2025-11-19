@@ -108,7 +108,7 @@
     },
     {
       "id": "007",
-      "name": "Dragon's Crucible",
+      "name": "Dragons Crucible",
       "difficulty": "HARD",
       "duration_hours": 12,
       "energy_cost": 25,
@@ -121,7 +121,7 @@
       "favored_class": "Warrior",
       "favored_race": "Orc",
       "description": "Face the ancient dragon that guards the legendary forge. Only the strongest survive.",
-      "lore": "Deep beneath the mountains lies the Dragon's Crucible, a forge so hot it was built around a slumbering dragon. Waking it means certain battle."
+      "lore": "Deep beneath the mountains lies the Dragons Crucible, a forge so hot it was built around a slumbering dragon. Waking it means certain battle."
     },
     {
       "id": "008",

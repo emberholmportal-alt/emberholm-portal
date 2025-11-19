@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test - Ash Particles System</title>
+
+    <!-- Atmospheric Particles - Global Styles -->
+    <link rel="stylesheet" href="css/style.css">
+
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(180deg, #0a0a0a 0%, #1a1410 100%);
+            color: #c9b896;
+            font-family: 'Courier New', monospace;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .test-container {
+            text-align: center;
+            background: rgba(0, 0, 0, 0.8);
+            border: 3px solid #8a7050;
+            padding: 40px;
+            border-radius: 10px;
+            max-width: 800px;
+            box-shadow: 0 0 30px rgba(201, 184, 150, 0.3);
+        }
+
+        h1 {
+            color: #c9b896;
+            font-size: 32px;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+        }
+
+        .status {
+            background: rgba(138, 112, 80, 0.3);
+            border-left: 4px solid #c9b896;
+            padding: 20px;
+            margin: 20px 0;
+            text-align: left;
+        }
+
+        .status-item {
+            margin: 10px 0;
+            font-size: 14px;
+        }
+
+        .status-label {
+            color: #d4af37;
+            font-weight: bold;
+        }
+
+        .status-value {
+            color: #8fff8f;
+        }
+
+        .controls {
+            margin-top: 30px;
+        }
+
+        button {
+            background: linear-gradient(180deg, #8a7050 0%, #5a4830 100%);
+            border: 2px solid #c9b896;
+            color: #c9b896;
+            padding: 12px 24px;
+            margin: 5px;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            transition: all 0.3s;
+            border-radius: 4px;
+        }
+
+        button:hover {
+            background: linear-gradient(180deg, #aa9070 0%, #7a6850 100%);
+            box-shadow: 0 0 15px rgba(201, 184, 150, 0.5);
+            transform: translateY(-2px);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .particles-info {
+            background: rgba(20, 10, 5, 0.8);
+            border: 1px solid #4a3d30;
+            padding: 15px;
+            margin-top: 20px;
+            border-radius: 5px;
+        }
+
+        .success {
+            color: #8fff8f;
+        }
+
+        .warning {
+            color: #ffaa00;
+        }
+
+        .error {
+            color: #ff6b6b;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🔥 ASH PARTICLES SYSTEM TEST</h1>
+
+        <div class="status">
+            <div class="status-item">
+                <span class="status-label">Sistema:</span>
+                <span class="status-value" id="system-status">Inicializando...</span>
+            </div>
+            <div class="status-item">
+                <span class="status-label">Partículas Activas:</span>
+                <span class="status-value" id="particle-count">0</span>
+            </div>
+            <div class="status-item">
+                <span class="status-label">Dispositivo:</span>
+                <span class="status-value" id="device-type">Detectando...</span>
+            </div>
+            <div class="status-item">
+                <span class="status-label">Ancho de Pantalla:</span>
+                <span class="status-value" id="screen-width">0px</span>
+            </div>
+        </div>
+
+        <div class="particles-info">
+            <p><strong>Instrucciones:</strong></p>
+            <p>✓ Deberías ver partículas doradas cayendo en la pantalla</p>
+            <p>✓ Las partículas tienen 3 tamaños: pequeñas, normales y grandes</p>
+            <p>✓ Caen lentamente de arriba hacia abajo con ligero movimiento horizontal</p>
+            <p>✓ No interfieren con los clicks (puedes hacer click a través de ellas)</p>
+            <p>✓ En móviles hay 20 partículas, en desktop 40</p>
+        </div>
+
+        <div class="controls">
+            <button onclick="countParticles()">🔄 Actualizar Contador</button>
+            <button onclick="showConfig()">⚙️ Ver Configuración</button>
+            <button onclick="reInitParticles()">🔥 Re-inicializar</button>
+        </div>
+
+        <div id="config-output" style="display: none; margin-top: 20px; text-align: left;"></div>
+    </div>
+
+    <!-- Atmospheric Particles System -->
+    <script src="js/ash-particles.js"></script>
+
+    <!-- Test Script -->
+    <script>
+        function countParticles() {
+            const particles = document.querySelectorAll('.ash-particle');
+            const count = particles.length;
+            document.getElementById('particle-count').textContent = count;
+
+            // Contar por tipo
+            let small = 0, normal = 0, large = 0;
+            particles.forEach(p => {
+                if (p.classList.contains('small')) small++;
+                else if (p.classList.contains('large')) large++;
+                else normal++;
+            });
+
+            console.log(`Total: ${count} | Small: ${small} | Normal: ${normal} | Large: ${large}`);
+
+            if (count > 0) {
+                document.getElementById('system-status').textContent = '✅ Funcionando';
+                document.getElementById('system-status').className = 'status-value success';
+            } else {
+                document.getElementById('system-status').textContent = '❌ No hay partículas';
+                document.getElementById('system-status').className = 'status-value error';
+            }
+        }
+
+        function showConfig() {
+            const configDiv = document.getElementById('config-output');
+            if (window.EmberholmAshConfig) {
+                configDiv.style.display = 'block';
+                configDiv.innerHTML = `
+                    <div class="status">
+                        <h3 style="color: #c9b896; margin-top: 0;">Configuración Actual:</h3>
+                        <pre style="color: #d4af37; font-size: 12px; overflow-x: auto;">${JSON.stringify(window.EmberholmAshConfig, null, 2)}</pre>
+                    </div>
+                `;
+            } else {
+                alert('⚠️ CONFIG no está disponible. Verifica que ash-particles.js se haya cargado correctamente.');
+            }
+        }
+
+        function reInitParticles() {
+            // Remover todas las partículas existentes
+            const particles = document.querySelectorAll('.ash-particle');
+            particles.forEach(p => p.remove());
+
+            // Esperar un momento y actualizar contador
+            setTimeout(() => {
+                countParticles();
+                alert('Sistema re-inicializado. Las nuevas partículas deberían aparecer automáticamente.');
+            }, 500);
+        }
+
+        function updateDeviceInfo() {
+            const width = window.innerWidth;
+            document.getElementById('screen-width').textContent = width + 'px';
+
+            if (width < 768) {
+                document.getElementById('device-type').textContent = '📱 Móvil (20 partículas)';
+            } else {
+                document.getElementById('device-type').textContent = '💻 Desktop (40 partículas)';
+            }
+        }
+
+        // Auto-actualizar al cargar
+        window.addEventListener('load', function() {
+            setTimeout(() => {
+                countParticles();
+                updateDeviceInfo();
+            }, 1000);
+        });
+
+        // Actualizar al resize
+        window.addEventListener('resize', function() {
+            updateDeviceInfo();
+            setTimeout(countParticles, 300);
+        });
+
+        // Actualizar cada 5 segundos
+        setInterval(countParticles, 5000);
+    </script>
+</body>
+</html>

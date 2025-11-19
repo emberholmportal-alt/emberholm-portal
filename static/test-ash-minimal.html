@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TEST: Ash Particles - Minimal</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #1a1a1a;
+            color: white;
+            font-family: monospace;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .debug-info {
+            position: fixed;
+            top: 100px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 20px;
+            border: 2px solid lime;
+            z-index: 999999999;
+            max-width: 400px;
+        }
+
+        /* PARTÍCULAS - COPIADO DIRECTO DEL style.css */
+        .ash-particle {
+            position: fixed;
+            width: 5px;
+            height: 5px;
+            background: rgba(255, 140, 0, 0.6);
+            border-radius: 50%;
+            animation: fall linear infinite;
+            z-index: 9999;
+            pointer-events: none;
+            box-shadow: 0 0 8px rgba(255, 140, 0, 0.4);
+        }
+
+        @keyframes fall {
+            0% {
+                transform: translateY(-10px);
+                opacity: 0;
+            }
+            10% {
+                opacity: 1;
+            }
+            90% {
+                opacity: 0.5;
+            }
+            100% {
+                transform: translateY(100vh);
+                opacity: 0;
+            }
+        }
+
+        /* BOTÓN TOGGLE - TAMAÑO REDUCIDO */
+        .ash-toggle-button {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: linear-gradient(180deg, #8a7050 0%, #5a4830 100%);
+            border: 2px solid #c9b896;
+            color: #c9b896;
+            padding: 6px 12px;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+            font-size: 10px;
+            border-radius: 4px;
+            z-index: 999999;
+            transition: all 0.3s;
+        }
+
+        .ash-toggle-button:hover {
+            background: linear-gradient(180deg, #aa9070 0%, #7a6850 100%);
+            box-shadow: 0 0 15px rgba(201, 184, 150, 0.5);
+        }
+    </style>
+</head>
+<body>
+    <div class="debug-info">
+        <h2 style="margin-top: 0; color: lime;">🔬 ASH PARTICLES DEBUG</h2>
+        <p><strong>Purpose:</strong> Minimal test page</p>
+        <p><strong>Expected:</strong> Orange particles falling</p>
+        <p><strong>CSS:</strong> Embedded in &lt;style&gt;</p>
+        <p><strong>JS:</strong> Embedded in &lt;script&gt;</p>
+        <p id="status">Status: Initializing...</p>
+        <p id="count">Particles: 0</p>
+        <hr>
+        <p style="font-size: 11px; color: #888;">
+            Si ves partículas naranjas cayendo = CSS funciona<br>
+            Si no ves nada = Problema con código/animación
+        </p>
+    </div>
+
+    <script>
+    (function() {
+        'use strict';
+
+        console.log('=== ASH PARTICLES TEST - MINIMAL VERSION ===');
+
+        let particlesEnabled = localStorage.getItem('ashParticlesEnabled') !== 'false';
+        console.log('Initial state:', particlesEnabled ? 'ENABLED' : 'DISABLED');
+
+        // Actualizar UI
+        document.getElementById('status').textContent = 'Status: ' + (particlesEnabled ? 'ENABLED' : 'DISABLED');
+
+        function createToggleButton() {
+            if (document.getElementById('ash-toggle-btn')) return;
+
+            const button = document.createElement('button');
+            button.id = 'ash-toggle-btn';
+            button.className = 'ash-toggle-button';
+            button.innerHTML = particlesEnabled ? '🔥 ON' : '❄️ OFF';
+            button.title = 'Toggle ash particles';
+
+            button.addEventListener('click', function() {
+                particlesEnabled = !particlesEnabled;
+                localStorage.setItem('ashParticlesEnabled', particlesEnabled);
+
+                console.log('Toggle clicked, new state:', particlesEnabled ? 'ON' : 'OFF');
+                document.getElementById('status').textContent = 'Status: ' + (particlesEnabled ? 'ENABLED' : 'DISABLED');
+
+                if (particlesEnabled) {
+                    button.innerHTML = '🔥 ON';
+                    initializeAshParticles();
+                } else {
+                    button.innerHTML = '❄️ OFF';
+                    removeAllParticles();
+                }
+            });
+
+            document.body.appendChild(button);
+            console.log('Toggle button created');
+        }
+
+        function removeAllParticles() {
+            const existingParticles = document.querySelectorAll('.ash-particle');
+            existingParticles.forEach(particle => particle.remove());
+            document.getElementById('count').textContent = 'Particles: 0';
+            console.log('All particles removed');
+        }
+
+        function initializeAshParticles() {
+            console.log('initializeAshParticles() called');
+
+            removeAllParticles();
+
+            if (!particlesEnabled) {
+                console.log('Particles disabled by user');
+                return;
+            }
+
+            console.log('Creating 30 particles...');
+
+            // Crear 30 partículas
+            for (let i = 0; i < 30; i++) {
+                const ash = document.createElement('div');
+                ash.className = 'ash-particle';
+                ash.style.left = Math.random() * 100 + '%';
+                ash.style.animationDuration = (Math.random() * 10 + 10) + 's';
+                ash.style.animationDelay = Math.random() * 5 + 's';
+                document.body.appendChild(ash);
+            }
+
+            const count = document.querySelectorAll('.ash-particle').length;
+            document.getElementById('count').textContent = 'Particles: ' + count;
+            console.log('✓ 30 particles created');
+            console.log('Verification: Found', count, 'particles in DOM');
+
+            // Verificación extra: inspeccionar primera partícula
+            const firstParticle = document.querySelector('.ash-particle');
+            if (firstParticle) {
+                const styles = window.getComputedStyle(firstParticle);
+                console.log('First particle computed styles:');
+                console.log('  - position:', styles.position);
+                console.log('  - width:', styles.width);
+                console.log('  - height:', styles.height);
+                console.log('  - background:', styles.background);
+                console.log('  - z-index:', styles.zIndex);
+                console.log('  - animation:', styles.animation);
+                console.log('  - animation-name:', styles.animationName);
+                console.log('  - animation-duration:', styles.animationDuration);
+            }
+        }
+
+        // Crear botón inmediatamente
+        createToggleButton();
+
+        // Delay de 3 segundos antes de activar las partículas
+        console.log('Waiting 3 seconds before auto-activation...');
+        setTimeout(function() {
+            console.log('3 seconds elapsed, initializing particles...');
+            initializeAshParticles();
+        }, 3000);
+
+    })();
+    </script>
+</body>
+</html>
