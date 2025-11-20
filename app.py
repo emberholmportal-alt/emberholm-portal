@@ -7,7 +7,16 @@ import logging
 from datetime import datetime, timedelta
 from flask import Flask, jsonify, send_from_directory, request, abort, render_template
 from flask_cors import CORS
-from flask_socketio import SocketIO, emit
+
+# 🔥 Try to import Flask-SocketIO (optional for real-time updates)
+try:
+    from flask_socketio import SocketIO, emit
+    SOCKETIO_AVAILABLE = True
+except ImportError:
+    SOCKETIO_AVAILABLE = False
+    SocketIO = None
+    emit = None
+    print("⚠️ Flask-SocketIO not available - using polling fallback")
 
 # 🔥 Configure logging
 logging.basicConfig(
@@ -1209,15 +1218,24 @@ CORS(app, resources={
     }
 })
 
-# 🔥 Initialize SocketIO for real-time updates
-socketio = SocketIO(app, cors_allowed_origins=[
-    "https://www.emberholmportal.xyz",
-    "https://emberholmportal.xyz",
-    "http://localhost:5000",
-    "http://127.0.0.1:5000"
-], async_mode='eventlet', logger=True, engineio_logger=False)
-
-print("✅ WebSocket server initialized for real-time updates")
+# 🔥 Initialize SocketIO for real-time updates (if available)
+socketio = None
+if SOCKETIO_AVAILABLE:
+    try:
+        socketio = SocketIO(app, cors_allowed_origins=[
+            "https://www.emberholmportal.xyz",
+            "https://emberholmportal.xyz",
+            "http://localhost:5000",
+            "http://127.0.0.1:5000"
+        ], async_mode='threading', logger=False, engineio_logger=False)
+        print("✅ WebSocket server initialized for real-time updates")
+    except Exception as e:
+        print(f"⚠️ WebSocket initialization failed: {e}")
+        print("⚠️ Continuing with polling fallback")
+        socketio = None
+        SOCKETIO_AVAILABLE = False
+else:
+    print("⚠️ WebSocket not available - using polling mode")
 
 # Initialize missions configuration
 MISSIONS_CONFIG = load_missions_config()
@@ -1234,22 +1252,23 @@ EVENT_SETTINGS = EVENTS_CONFIG.get("event_settings", {})
 # WebSocket Event Handlers
 # ---------------------------------
 
-@socketio.on('connect')
-def handle_connect():
-    """Handle client connection"""
-    logger.info(f"🔗 Client connected: {request.sid}")
-    emit('connection_established', {'status': 'connected', 'message': 'Real-time updates enabled'})
+if SOCKETIO_AVAILABLE and socketio:
+    @socketio.on('connect')
+    def handle_connect():
+        """Handle client connection"""
+        logger.info(f"🔗 Client connected: {request.sid}")
+        emit('connection_established', {'status': 'connected', 'message': 'Real-time updates enabled'})
 
-@socketio.on('disconnect')
-def handle_disconnect():
-    """Handle client disconnection"""
-    logger.info(f"🔌 Client disconnected: {request.sid}")
+    @socketio.on('disconnect')
+    def handle_disconnect():
+        """Handle client disconnection"""
+        logger.info(f"🔌 Client disconnected: {request.sid}")
 
-@socketio.on('subscribe_stats')
-def handle_subscribe_stats():
-    """Client subscribes to stats updates"""
-    logger.info(f"📊 Client {request.sid} subscribed to stats updates")
-    emit('subscription_confirmed', {'channel': 'stats'})
+    @socketio.on('subscribe_stats')
+    def handle_subscribe_stats():
+        """Client subscribes to stats updates"""
+        logger.info(f"📊 Client {request.sid} subscribed to stats updates")
+        emit('subscription_confirmed', {'channel': 'stats'})
 
 # ---------------------------------
 # WebSocket Broadcast Utilities
@@ -1257,6 +1276,9 @@ def handle_subscribe_stats():
 
 def broadcast_stats_update():
     """Broadcast global stats update to all connected clients"""
+    if not SOCKETIO_AVAILABLE or not socketio:
+        return  # WebSocket not available, skip broadcast
+
     try:
         stats_obj = load_json(STATS_PATH, {})
         guild_rank_list = calculate_guild_ranking()
@@ -1282,6 +1304,9 @@ def broadcast_stats_update():
 
 def broadcast_mission_complete(hero_id, wallet, outcome, details):
     """Broadcast mission completion event"""
+    if not SOCKETIO_AVAILABLE or not socketio:
+        return  # WebSocket not available, skip broadcast
+
     try:
         payload = {
             'hero_id': hero_id,
@@ -1298,6 +1323,9 @@ def broadcast_mission_complete(hero_id, wallet, outcome, details):
 
 def broadcast_guild_update(guild_name):
     """Broadcast guild stats update"""
+    if not SOCKETIO_AVAILABLE or not socketio:
+        return  # WebSocket not available, skip broadcast
+
     try:
         guild_rank_list = calculate_guild_ranking()
 
@@ -1313,6 +1341,9 @@ def broadcast_guild_update(guild_name):
 
 def broadcast_alert(alert_type, message, severity='INFO'):
     """Broadcast system alert"""
+    if not SOCKETIO_AVAILABLE or not socketio:
+        return  # WebSocket not available, skip broadcast
+
     try:
         payload = {
             'alert_type': alert_type,
@@ -4223,5 +4254,10 @@ if __name__ == "__main__":
     # 🔥 VALIDAR INTEGRIDAD AL INICIAR
     validate_database_integrity()
 
-    # 🔥 Run with SocketIO for real-time WebSocket support
-    socketio.run(app, debug=True, host='0.0.0.0', port=5000)
+    # 🔥 Run with SocketIO if available, otherwise use Flask directly
+    if SOCKETIO_AVAILABLE and socketio:
+        print("🚀 Starting with WebSocket support...")
+        socketio.run(app, debug=True, host='0.0.0.0', port=5000)
+    else:
+        print("🚀 Starting with standard Flask (polling mode)...")
+        app.run(debug=True, host='0.0.0.0', port=5000)
