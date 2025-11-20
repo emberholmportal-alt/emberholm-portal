@@ -1707,6 +1707,7 @@ def create_hero_from_metadata(token_id):
                 "last_mission": "None",
                 # 🔥 CAMPOS ADICIONALES para sistema de misiones completo
                 "total_missions_completed": 0,
+                "total_missions_failed": 0,
                 "death_count": 0,
                 "current_mission_id": None,
                 "mission_start_time": None,
@@ -1759,6 +1760,7 @@ def create_hero_from_metadata(token_id):
             "last_mission": "None",
             # 🔥 CAMPOS ADICIONALES para sistema de misiones completo
             "total_missions_completed": 0,
+            "total_missions_failed": 0,
             "death_count": 0,
             "current_mission_id": None,
             "mission_start_time": None,
