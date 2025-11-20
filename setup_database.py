@@ -117,6 +117,53 @@ CREATE OR REPLACE FUNCTION count_active_missions()
 RETURNS INTEGER AS $$
     SELECT COUNT(*)::INTEGER FROM active_missions;
 $$ LANGUAGE SQL;
+
+-- TABLA: AUDIT LOG
+CREATE TABLE IF NOT EXISTS audit_log (
+    id SERIAL PRIMARY KEY,
+    operation_type VARCHAR(50) NOT NULL,
+    entity_type VARCHAR(50) NOT NULL,
+    entity_id VARCHAR(100),
+    details JSONB DEFAULT '{}'::jsonb,
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Índices para audit_log
+CREATE INDEX IF NOT EXISTS idx_audit_log_type ON audit_log(operation_type);
+CREATE INDEX IF NOT EXISTS idx_audit_log_entity ON audit_log(entity_type);
+CREATE INDEX IF NOT EXISTS idx_audit_log_created ON audit_log(created_at DESC);
+
+-- TABLA: ERROR LOG
+CREATE TABLE IF NOT EXISTS error_log (
+    id SERIAL PRIMARY KEY,
+    error_type VARCHAR(100) NOT NULL,
+    error_message TEXT NOT NULL,
+    stack_trace TEXT,
+    context JSONB DEFAULT '{}'::jsonb,
+    severity VARCHAR(20) DEFAULT 'ERROR',
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Índices para error_log
+CREATE INDEX IF NOT EXISTS idx_error_log_type ON error_log(error_type);
+CREATE INDEX IF NOT EXISTS idx_error_log_severity ON error_log(severity);
+CREATE INDEX IF NOT EXISTS idx_error_log_created ON error_log(created_at DESC);
+
+-- TABLA: PERFORMANCE METRICS
+CREATE TABLE IF NOT EXISTS performance_metrics (
+    id SERIAL PRIMARY KEY,
+    endpoint VARCHAR(200) NOT NULL,
+    method VARCHAR(10) NOT NULL,
+    response_time_ms INTEGER NOT NULL,
+    status_code INTEGER,
+    user_wallet VARCHAR(42),
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Índices para performance_metrics
+CREATE INDEX IF NOT EXISTS idx_perf_endpoint ON performance_metrics(endpoint);
+CREATE INDEX IF NOT EXISTS idx_perf_created ON performance_metrics(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_perf_wallet ON performance_metrics(user_wallet);
 """
 
 def setup_database():

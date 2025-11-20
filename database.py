@@ -8,10 +8,14 @@ para garantizar compatibilidad con app.py sin romper nada.
 
 import os
 import json
+import logging
 import psycopg2
 from psycopg2.extras import RealDictCursor, Json
 from psycopg2.pool import SimpleConnectionPool
 from datetime import datetime
+
+# Setup logging
+logger = logging.getLogger(__name__)
 
 # =========================================================================
 # CONFIGURACIÓN
@@ -553,6 +557,159 @@ def save_json_or_db(filepath, data):
         except Exception as e:
             print(f"⚠️ Error saving {filename}: {e}")
             return False
+
+# =========================================================================
+# 🔥 ATOMIC TRANSACTIONS - ACID Compliance
+# =========================================================================
+
+class DatabaseTransaction:
+    """
+    Context manager para transacciones ACID en PostgreSQL.
+
+    Usage:
+        with DatabaseTransaction() as (conn, cur):
+            cur.execute("UPDATE ...")
+            cur.execute("INSERT ...")
+            # Auto-commit al salir sin excepciones
+            # Auto-rollback si hay excepción
+    """
+    def __init__(self):
+        self.conn = None
+        self.cursor = None
+
+    def __enter__(self):
+        if not is_postgresql_available():
+            raise RuntimeError("PostgreSQL not available")
+
+        self.conn = get_connection()
+        if not self.conn:
+            raise RuntimeError("Could not get database connection")
+
+        self.cursor = self.conn.cursor(cursor_factory=RealDictCursor)
+        return self.conn, self.cursor
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        try:
+            if exc_type is None:
+                # No exceptions - commit transaction
+                self.conn.commit()
+                logger.info("✅ Transaction committed successfully")
+            else:
+                # Exception occurred - rollback
+                self.conn.rollback()
+                logger.error(f"❌ Transaction rolled back due to: {exc_val}")
+        finally:
+            if self.cursor:
+                self.cursor.close()
+            if self.conn:
+                release_connection(self.conn)
+
+        # Don't suppress exceptions
+        return False
+
+def atomic_mission_complete(hero_id, xp_gain, aura_gain, mission_id, wallet):
+    """
+    Complete mission with ACID transaction.
+
+    This ensures:
+    - NFT dynamic_state is updated
+    - Stats are updated
+    - Active mission is removed
+    - All changes commit together or rollback together
+
+    Args:
+        hero_id: Token ID of hero
+        xp_gain: XP to add
+        aura_gain: Aura to add
+        mission_id: Mission ID
+        wallet: Player wallet address
+
+    Returns:
+        bool: Success status
+
+    Raises:
+        Exception: If transaction fails
+    """
+    if not is_postgresql_available():
+        return False
+
+    try:
+        with DatabaseTransaction() as (conn, cur):
+            # 1. Update NFT dynamic state
+            cur.execute("""
+                UPDATE nfts
+                SET dynamic_state = jsonb_set(
+                    jsonb_set(
+                        dynamic_state,
+                        '{xp_total}',
+                        (COALESCE((dynamic_state->>'xp_total')::int, 0) + %s)::text::jsonb
+                    ),
+                    '{aura_level}',
+                    (COALESCE((dynamic_state->>'aura_level')::int, 0) + %s)::text::jsonb
+                ),
+                last_update = NOW()
+                WHERE token_id = %s
+            """, (xp_gain, aura_gain, hero_id))
+
+            # 2. Update global stats
+            cur.execute("""
+                UPDATE global_stats
+                SET stats_data = jsonb_set(
+                    jsonb_set(
+                        stats_data,
+                        '{missions_completed}',
+                        (COALESCE((stats_data->>'missions_completed')::int, 0) + 1)::text::jsonb
+                    ),
+                    '{total_exp_collected}',
+                    (COALESCE((stats_data->>'total_exp_collected')::int, 0) + %s)::text::jsonb
+                ),
+                last_update = NOW()
+                WHERE id = 1
+            """, (xp_gain,))
+
+            # 3. Remove active mission
+            cur.execute("""
+                DELETE FROM active_missions
+                WHERE mission_key = %s
+            """, (f"{wallet}_{hero_id}",))
+
+            # Transaction will auto-commit here
+            return True
+
+    except Exception as e:
+        logger.error(f"❌ Atomic mission complete failed: {e}", exc_info=True)
+        raise
+
+# =========================================================================
+# 🔥 AUDIT LOG TABLE
+# =========================================================================
+
+def log_operation(operation_type, entity_type, entity_id, details=None):
+    """
+    Log an operation to audit trail.
+
+    Args:
+        operation_type: 'INSERT', 'UPDATE', 'DELETE', 'MISSION_START', 'MISSION_COMPLETE', etc.
+        entity_type: 'NFT', 'MISSION', 'PLAYER', 'STATS'
+        entity_id: ID of entity affected
+        details: Optional JSON details
+    """
+    if not is_postgresql_available():
+        return
+
+    conn = get_connection()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("""
+                INSERT INTO audit_log (operation_type, entity_type, entity_id, details)
+                VALUES (%s, %s, %s, %s)
+            """, (operation_type, entity_type, entity_id, Json(details or {})))
+        conn.commit()
+    except Exception as e:
+        logger.warning(f"Failed to log operation: {e}")
+        conn.rollback()
+    finally:
+        release_connection(conn)
 
 # =========================================================================
 # INICIALIZACIÓN
