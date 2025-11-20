@@ -1170,12 +1170,14 @@ def recalculate_global_stats_from_db():
     total_xp = 0
     total_aura = 0
     total_missions_completed = 0
+    total_missions_failed = 0
 
     for token_id, nft in db.items():
         ds = nft.get("dynamic_state", {})
         total_xp += ds.get("xp_total", 0)
         total_aura += ds.get("aura_level", 0)
         total_missions_completed += ds.get("total_missions_completed", 0)
+        total_missions_failed += ds.get("total_missions_failed", 0)
 
     # Load current stats
     stats_obj = load_json(STATS_PATH, {})
@@ -1184,11 +1186,12 @@ def recalculate_global_stats_from_db():
     stats_obj["total_exp_collected"] = total_xp
     stats_obj["total_aura_collected"] = total_aura
     stats_obj["missions_completed"] = total_missions_completed
+    stats_obj["missions_failed"] = total_missions_failed
 
     # Save updated stats
     save_json(STATS_PATH, stats_obj)
 
-    logger.info(f"✅ Stats recalculated: XP={total_xp}, Aura={total_aura}, Missions={total_missions_completed}")
+    logger.info(f"✅ Stats recalculated: XP={total_xp}, Aura={total_aura}, Completed={total_missions_completed}, Failed={total_missions_failed}")
 
     return stats_obj
 
