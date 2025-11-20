@@ -148,7 +148,13 @@
         <div class="section-block">
             <div class="section-title" style="display: flex; justify-content: space-between; align-items: center;">
                 <span>REALM STATUS // GLOBAL STATS</span>
-                <span id="stats-last-updated" style="font-size: 0.7em; color: #888; font-weight: normal;">Loading...</span>
+                <div style="display: flex; align-items: center; gap: 15px;">
+                    <!-- Botón CONNECT WALLET -->
+                    <button class="cmd" id="stats-connect-wallet-btn" style="font-size: 0.8em;">[CONNECT WALLET]</button>
+                    <button class="cmd" id="stats-disconnect-wallet-btn" style="display:none; font-size: 0.8em;">[DISCONNECT]</button>
+                    <!-- Timestamp -->
+                    <span id="stats-last-updated" style="font-size: 0.7em; color: #888; font-weight: normal;">Loading...</span>
+                </div>
             </div>
 
             <div class="stats-row">
@@ -1676,10 +1682,9 @@ function disconnectWallet() {
 
     // Update UI
     document.getElementById("wallet-display").textContent = "Not connected";
-    document.getElementById("connect-wallet-btn").style.display = "inline-block";
-    document.getElementById("connect-wallet-btn").textContent = "[CONNECT WALLET]";
-    document.getElementById("connect-wallet-btn").disabled = false;
-    document.getElementById("disconnect-wallet-btn").style.display = "none";
+
+    // Update all wallet buttons across all sections
+    updateAllWalletButtons();
 
     // Reset ACCESS LEVEL to CITIZEN
     const accessLevelEl = document.getElementById("access-level");
@@ -1700,15 +1705,36 @@ function disconnectWallet() {
 
 document.getElementById("disconnect-wallet-btn").addEventListener("click", disconnectWallet);
 
-// 🔥 Helper: Update button visibility based on connection state
-function updateWalletButtonsVisibility() {
-    if (connectedWallet) {
-        document.getElementById("connect-wallet-btn").style.display = "none";
-        document.getElementById("disconnect-wallet-btn").style.display = "inline-block";
+// 🔥 Stats section wallet buttons
+document.getElementById("stats-connect-wallet-btn").addEventListener("click", connectWallet);
+document.getElementById("stats-disconnect-wallet-btn").addEventListener("click", disconnectWallet);
+
+// 🔥 Helper: Update ALL wallet buttons across all sections
+function updateAllWalletButtons() {
+    const isConnected = !!connectedWallet;
+
+    // Botones de Profile
+    document.getElementById("connect-wallet-btn").style.display = isConnected ? "none" : "inline-block";
+    document.getElementById("disconnect-wallet-btn").style.display = isConnected ? "inline-block" : "none";
+
+    // Botones de Stats
+    document.getElementById("stats-connect-wallet-btn").style.display = isConnected ? "none" : "inline-block";
+    document.getElementById("stats-disconnect-wallet-btn").style.display = isConnected ? "inline-block" : "none";
+
+    // Actualizar texto si está conectado
+    if (isConnected) {
+        const shortAddr = connectedWallet.slice(0, 6) + "..." + connectedWallet.slice(-4);
+        document.getElementById("stats-connect-wallet-btn").textContent = `[${shortAddr}]`;
+        document.getElementById("connect-wallet-btn").textContent = "[CONNECTED ✓]";
     } else {
-        document.getElementById("connect-wallet-btn").style.display = "inline-block";
-        document.getElementById("disconnect-wallet-btn").style.display = "none";
+        document.getElementById("stats-connect-wallet-btn").textContent = "[CONNECT WALLET]";
+        document.getElementById("connect-wallet-btn").textContent = "[CONNECT WALLET]";
     }
+}
+
+// 🔥 LEGACY: Mantener para compatibilidad
+function updateWalletButtonsVisibility() {
+    updateAllWalletButtons();
 }
 
 // 🔥 Listen for network changes
