@@ -1757,23 +1757,30 @@ if (window.ethereum) {
     window.ethereum.on('accountsChanged', (accounts) => {
         console.log(`🔄 Account changed! New account: ${accounts[0] || 'none'}`);
         if (accounts.length === 0) {
-            console.log("⚠️ User disconnected wallet");
-            connectedWallet = null;
-            document.getElementById("wallet-display").textContent = "NOT CONNECTED";
-            document.getElementById("connect-wallet-btn").textContent = "[CONNECT WALLET]";
-            document.getElementById("connect-wallet-btn").disabled = false;
-
-            // 🔥 Reset ACCESS LEVEL to CITIZEN with default color
-            const accessLevelEl = document.getElementById("access-level");
-            accessLevelEl.textContent = "ACCESS LEVEL: [CITIZEN]";
-            accessLevelEl.style.color = ""; // Reset to default color
-            console.log("🔄 Access level downgraded to CITIZEN");
-
-            // Update button visibility
-            updateWalletButtonsVisibility();
+            // User disconnected wallet
+            console.log("⚠️ User disconnected wallet from MetaMask");
+            disconnectWallet();
         } else {
-            console.log("🔄 Reloading page due to account change");
-            window.location.reload();
+            // User switched to a different account
+            const newAccount = accounts[0].toLowerCase();
+            console.log(`🔄 Switched to new account: ${newAccount}`);
+
+            // Update connected wallet
+            connectedWallet = newAccount;
+
+            // Update UI
+            document.getElementById("wallet-display").textContent = newAccount.slice(0, 6) + "..." + newAccount.slice(-4);
+
+            // Update all wallet buttons
+            updateAllWalletButtons();
+
+            // Show notification
+            showInfoModal("WALLET CHANGED", `Switched to new wallet:\n${newAccount}\n\nYour profile and stats will be reloaded.`);
+
+            // Reload player data for new wallet
+            loadPlayerAndRender();
+
+            console.log("✅ Account switched successfully");
         }
     });
 }
@@ -2803,6 +2810,17 @@ window.addEventListener("DOMContentLoaded", () => {
     fetchGuildsAndRender();
     fetchMissionsAndRender();
     fetchEventsAndRender();
+
+    // 🔥 REAL-TIME POLLING: Auto-refresh stats every 30 seconds
+    setInterval(() => {
+        const activeScreen = document.querySelector('.screen.active');
+        if (activeScreen && activeScreen.dataset.screen === 'guilds') {
+            // Only refresh if user is viewing STATS/GUILDS section
+            fetchStatsAndRender();
+            fetchGuildsAndRender();
+            console.log("📊 Auto-refreshed stats (30s polling)");
+        }
+    }, 30000); // 30 seconds
 });
 
 /* ========== CUSTOM MODAL FUNCTIONS ========== */
