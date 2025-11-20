@@ -1300,146 +1300,12 @@
 <!-- 🔥 ETHERS.JS -->
 <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
 
-<!-- 🔥 SOCKET.IO CLIENT -->
-<script src="https://cdn.socket.io/4.6.0/socket.io.min.js" integrity="sha384-c79GN5VsunZvi+Q/WObgk2in0CbZsHnjEqvFxC5DxHn9lTfNce2WW6h2pH6u/kF+" crossorigin="anonymous"></script>
-
 <!-- 🔥 CONTRACT CONFIG -->
 <script src="/contract-config.js"></script>
 
 <script>
 /* --------- GLOBAL STATE --------- */
 let connectedWallet = null;
-
-/* --------- WEBSOCKET CONNECTION --------- */
-let socket = null;
-let wsConnected = false;
-
-function initializeWebSocket() {
-    try {
-        // Connect to WebSocket server
-        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const host = window.location.host || 'localhost:5000';
-
-        // Use Socket.IO which handles fallbacks automatically
-        socket = io();
-
-        socket.on('connect', () => {
-            console.log('🔗 WebSocket connected - Real-time updates enabled');
-            wsConnected = true;
-
-            // Subscribe to stats updates
-            socket.emit('subscribe_stats');
-        });
-
-        socket.on('disconnect', () => {
-            console.log('🔌 WebSocket disconnected');
-            wsConnected = false;
-        });
-
-        socket.on('connection_established', (data) => {
-            console.log('✅ Real-time connection established:', data.message);
-        });
-
-        socket.on('subscription_confirmed', (data) => {
-            console.log('📊 Subscribed to channel:', data.channel);
-        });
-
-        // Listen for stats updates
-        socket.on('stats_updated', (data) => {
-            console.log('📡 Received stats update via WebSocket');
-            updateStatsUI(data);
-        });
-
-        // Listen for mission completion events
-        socket.on('mission_completed', (data) => {
-            console.log('📡 Mission completed event:', data);
-
-            // Show notification if it's the current user's mission
-            if (connectedWallet && data.wallet === connectedWallet.toLowerCase()) {
-                const outcomeEmoji = data.outcome === 'SUCCESS' ? '🎉' : data.outcome === 'FAILURE' ? '⚠️' : '💀';
-                showInfoModal('MISSION COMPLETE', `${outcomeEmoji} ${data.outcome}: ${data.details.mission_name}`);
-            }
-
-            // Refresh stats and guilds
-            fetchStatsAndRender();
-            fetchGuildsAndRender();
-
-            // Refresh player data if it's the current user
-            if (connectedWallet && data.wallet === connectedWallet.toLowerCase()) {
-                loadPlayerAndRender();
-            }
-        });
-
-        // Listen for guild updates
-        socket.on('guild_updated', (data) => {
-            console.log('📡 Guild updated via WebSocket:', data.guild_name);
-            fetchGuildsAndRender();
-        });
-
-        // Listen for system alerts
-        socket.on('system_alert', (data) => {
-            console.log('📡 System alert:', data);
-
-            // Show critical alerts to user
-            if (data.severity === 'CRITICAL' || data.severity === 'WARNING') {
-                showInfoModal(data.alert_type, data.message);
-            }
-        });
-
-        socket.on('error', (error) => {
-            console.error('❌ WebSocket error:', error);
-        });
-
-    } catch (error) {
-        console.error('❌ Failed to initialize WebSocket:', error);
-        wsConnected = false;
-    }
-}
-
-function updateStatsUI(data) {
-    // Update the stats display in real-time
-    const statsContainer = document.getElementById('stats-container');
-    if (statsContainer && data) {
-        // Build the stats HTML
-        const statsHTML = `
-            <div class="stat-row">
-                <div class="stat-label">Total Characters:</div>
-                <div class="stat-value">${data.total_characters || 0}</div>
-            </div>
-            <div class="stat-row">
-                <div class="stat-label">Active Guilds:</div>
-                <div class="stat-value">${data.active_guilds || 6}</div>
-            </div>
-            <div class="stat-row">
-                <div class="stat-label">Missions Completed:</div>
-                <div class="stat-value">${data.missions_completed || 0}</div>
-            </div>
-            <div class="stat-row">
-                <div class="stat-label">Missions Failed:</div>
-                <div class="stat-value">${data.missions_failed || 0}</div>
-            </div>
-            <div class="stat-row">
-                <div class="stat-label">Missions In Progress:</div>
-                <div class="stat-value">${data.missions_in_progress || 0}</div>
-            </div>
-            <div class="stat-row">
-                <div class="stat-label">Total XP Collected:</div>
-                <div class="stat-value">${data.total_exp_collected || 0}</div>
-            </div>
-            <div class="stat-row">
-                <div class="stat-label">Total Aura Collected:</div>
-                <div class="stat-value">${data.total_aura_collected || 0}</div>
-            </div>
-        `;
-        statsContainer.innerHTML = statsHTML;
-
-        // Update last updated timestamp
-        const lastUpdated = document.getElementById('stats-last-updated');
-        if (lastUpdated) {
-            lastUpdated.textContent = `Updated: ${new Date().toLocaleTimeString()} (live)`;
-        }
-    }
-}
 
 /* --------- BASIC NAV --------- */
 function switchScreen(screenName){
@@ -2912,9 +2778,6 @@ setTimeout(() => {
 }, 2000);
 
 window.addEventListener("DOMContentLoaded", () => {
-    // 🔥 Initialize WebSocket for real-time updates
-    initializeWebSocket();
-
     const homeBtn = document.querySelector('[data-target="home"]');
     if (homeBtn) {
         homeBtn.classList.add("is-active");
@@ -2927,19 +2790,17 @@ window.addEventListener("DOMContentLoaded", () => {
     fetchMissionsAndRender();
     fetchEventsAndRender();
 
-    // 🔥 FALLBACK POLLING: Refresh stats every 60 seconds if WebSocket not connected
-    // WebSocket provides instant updates, polling is only a backup
+    // 🔥 POLLING: Refresh stats every 60 seconds
+    // Simple, reliable polling without WebSocket complexity
     setInterval(() => {
-        if (!wsConnected) {
-            const activeScreen = document.querySelector('.screen.active');
-            if (activeScreen && activeScreen.dataset.screen === 'guilds') {
-                // Only refresh if user is viewing STATS/GUILDS section and WS is down
-                fetchStatsAndRender();
-                fetchGuildsAndRender();
-                console.log("📊 Fallback polling refresh (WebSocket not available)");
-            }
+        const activeScreen = document.querySelector('.screen.active');
+        if (activeScreen && activeScreen.dataset.screen === 'guilds') {
+            // Only refresh if user is viewing STATS/GUILDS section
+            fetchStatsAndRender();
+            fetchGuildsAndRender();
+            console.log("📊 Polling refresh (60s interval)");
         }
-    }, 60000); // 60 seconds (longer since WebSocket handles instant updates)
+    }, 60000); // 60 seconds
 });
 
 /* ========== CUSTOM MODAL FUNCTIONS ========== */

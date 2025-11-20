@@ -8,16 +8,6 @@ from datetime import datetime, timedelta
 from flask import Flask, jsonify, send_from_directory, request, abort, render_template
 from flask_cors import CORS
 
-# 🔥 Try to import Flask-SocketIO (optional for real-time updates)
-try:
-    from flask_socketio import SocketIO, emit
-    SOCKETIO_AVAILABLE = True
-except ImportError:
-    SOCKETIO_AVAILABLE = False
-    SocketIO = None
-    emit = None
-    print("⚠️ Flask-SocketIO not available - using polling fallback")
-
 # 🔥 Configure logging
 logging.basicConfig(
     level=logging.INFO,
@@ -1228,25 +1218,6 @@ CORS(app, resources={
     }
 })
 
-# 🔥 Initialize SocketIO for real-time updates (if available)
-socketio = None
-if SOCKETIO_AVAILABLE:
-    try:
-        socketio = SocketIO(app, cors_allowed_origins=[
-            "https://www.emberholmportal.xyz",
-            "https://emberholmportal.xyz",
-            "http://localhost:5000",
-            "http://127.0.0.1:5000"
-        ], async_mode='threading', logger=False, engineio_logger=False)
-        print("✅ WebSocket server initialized for real-time updates")
-    except Exception as e:
-        print(f"⚠️ WebSocket initialization failed: {e}")
-        print("⚠️ Continuing with polling fallback")
-        socketio = None
-        SOCKETIO_AVAILABLE = False
-else:
-    print("⚠️ WebSocket not available - using polling mode")
-
 # Initialize missions configuration
 MISSIONS_CONFIG = load_missions_config()
 MISSIONS = MISSIONS_CONFIG.get("missions", [])
@@ -1259,113 +1230,24 @@ EVENTS = EVENTS_CONFIG.get("events", [])
 EVENT_SETTINGS = EVENTS_CONFIG.get("event_settings", {})
 
 # ---------------------------------
-# WebSocket Event Handlers
-# ---------------------------------
-
-if SOCKETIO_AVAILABLE and socketio:
-    @socketio.on('connect')
-    def handle_connect():
-        """Handle client connection"""
-        logger.info(f"🔗 Client connected: {request.sid}")
-        emit('connection_established', {'status': 'connected', 'message': 'Real-time updates enabled'})
-
-    @socketio.on('disconnect')
-    def handle_disconnect():
-        """Handle client disconnection"""
-        logger.info(f"🔌 Client disconnected: {request.sid}")
-
-    @socketio.on('subscribe_stats')
-    def handle_subscribe_stats():
-        """Client subscribes to stats updates"""
-        logger.info(f"📊 Client {request.sid} subscribed to stats updates")
-        emit('subscription_confirmed', {'channel': 'stats'})
-
-# ---------------------------------
-# WebSocket Broadcast Utilities
+# Broadcast Utilities (Stubs - WebSocket removed, using polling instead)
 # ---------------------------------
 
 def broadcast_stats_update():
-    """Broadcast global stats update to all connected clients"""
-    if not SOCKETIO_AVAILABLE or not socketio:
-        return  # WebSocket not available, skip broadcast
-
-    try:
-        stats_obj = load_json(STATS_PATH, {})
-        guild_rank_list = calculate_guild_ranking()
-        leaderboard = calculate_player_leaderboard()
-        missions_in_progress = count_active_missions()
-
-        payload = {
-            'total_characters': stats_obj.get('total_characters', 0),
-            'active_guilds': stats_obj.get('active_guilds', 6),
-            'missions_completed': stats_obj.get('missions_completed', 0),
-            'missions_failed': stats_obj.get('missions_failed', 0),
-            'missions_in_progress': missions_in_progress,
-            'total_exp_collected': stats_obj.get('total_exp_collected', 0),
-            'total_aura_collected': stats_obj.get('total_aura_collected', 0),
-            'guild_ranking': guild_rank_list,
-            'player_leaderboard': leaderboard
-        }
-
-        socketio.emit('stats_updated', payload, broadcast=True)
-        logger.info("📡 Broadcasted stats update to all clients")
-    except Exception as e:
-        logger.error(f"❌ Error broadcasting stats: {e}")
+    """Stub function - WebSocket removed, clients use polling instead"""
+    pass
 
 def broadcast_mission_complete(hero_id, wallet, outcome, details):
-    """Broadcast mission completion event"""
-    if not SOCKETIO_AVAILABLE or not socketio:
-        return  # WebSocket not available, skip broadcast
-
-    try:
-        payload = {
-            'hero_id': hero_id,
-            'wallet': wallet,
-            'outcome': outcome,
-            'details': details,
-            'timestamp': now_utc_str()
-        }
-
-        socketio.emit('mission_completed', payload, broadcast=True)
-        logger.info(f"📡 Broadcasted mission completion: {hero_id} - {outcome}")
-    except Exception as e:
-        logger.error(f"❌ Error broadcasting mission completion: {e}")
+    """Stub function - WebSocket removed, clients use polling instead"""
+    pass
 
 def broadcast_guild_update(guild_name):
-    """Broadcast guild stats update"""
-    if not SOCKETIO_AVAILABLE or not socketio:
-        return  # WebSocket not available, skip broadcast
-
-    try:
-        guild_rank_list = calculate_guild_ranking()
-
-        payload = {
-            'guild_name': guild_name,
-            'guild_ranking': guild_rank_list
-        }
-
-        socketio.emit('guild_updated', payload, broadcast=True)
-        logger.info(f"📡 Broadcasted guild update: {guild_name}")
-    except Exception as e:
-        logger.error(f"❌ Error broadcasting guild update: {e}")
+    """Stub function - WebSocket removed, clients use polling instead"""
+    pass
 
 def broadcast_alert(alert_type, message, severity='INFO'):
-    """Broadcast system alert"""
-    if not SOCKETIO_AVAILABLE or not socketio:
-        return  # WebSocket not available, skip broadcast
-
-    try:
-        payload = {
-            'alert_type': alert_type,
-            'message': message,
-            'severity': severity,
-            'timestamp': now_utc_str()
-        }
-
-        socketio.emit('system_alert', payload, broadcast=True)
-        logger.info(f"📡 Broadcasted alert: {alert_type} - {severity}")
-    except Exception as e:
-        logger.error(f"❌ Error broadcasting alert: {e}")
+    """Stub function - WebSocket removed, clients use polling instead"""
+    pass
 
 # ---------------------------------
 # Rutas estáticas base
@@ -1876,18 +1758,16 @@ def create_hero_from_metadata(token_id):
 
 def ensure_player(wallet):
     """
-    🔥 NUEVA VERSIÓN CON BASE DE DATOS CENTRALIZADA
+    🚀 OPTIMIZADA PARA PERFORMANCE - Carga DB UNA SOLA VEZ
 
     Devuelve el objeto del jugador para esa wallet.
 
     FUENTE DE VERDAD: nfts_database.json (atributos dinámicos)
     players.json: Solo cache de sesión para UI
 
-    Flujo:
-    1. Obtiene token_ids de la wallet
-    2. Sincroniza cada NFT a nfts_database.json
-    3. Lee atributos dinámicos desde DB (no desde players.json)
-    4. Construye objeto player para la sesión
+    OPTIMIZACIÓN CRÍTICA: Carga nfts_database.json UNA vez, no N veces
+    Antes: 10 NFTs = 10 loads (30+ segundos → TIMEOUT)
+    Ahora: 10 NFTs = 1 load (~1 segundo)
     """
     # 🔥 NORMALIZE wallet address to lowercase to avoid case sensitivity issues
     wallet = wallet.lower()
@@ -1898,14 +1778,63 @@ def ensure_player(wallet):
     expected_token_ids = get_wallet_token_ids(wallet)
     print(f"  📋 expected_token_ids from cache: {expected_token_ids}")
 
-    # 🔥 SINCRONIZAR cada NFT a la base de datos centralizada
+    if not expected_token_ids:
+        # No NFTs for this wallet
+        player_obj = {
+            "wallet": wallet,
+            "heroes": [],
+            "totals": {
+                "heroes_count": 0,
+                "xp_total_all": 0,
+                "aura_total_all": 0,
+                "energy_total_available": 0
+            }
+        }
+        players = load_json(PLAYERS_PATH, {})
+        players[wallet] = player_obj
+        save_json(PLAYERS_PATH, players)
+        return player_obj, players
+
+    # 🚀 CRITICAL OPTIMIZATION: Load DB ONCE for all NFTs
+    db = load_nfts_database()
+    db_modified = False
+
     heroes = []
     for token_id in expected_token_ids:
-        # Sincronizar NFT a DB (preserva dynamic_state si ya existe)
-        nft = sync_nft_to_database(token_id, owner_wallet=wallet)
-        heroes.append(nft)
-        ds = nft.get("dynamic_state", {})
-        print(f"    🔗 NFT {token_id} → DB (state: {ds.get('state', 'READY')}, xp: {ds.get('xp_total', 0)})")
+        token_id_padded = str(token_id).zfill(5)
+
+        # Check if NFT exists in DB
+        if token_id_padded in db:
+            # NFT exists: check if owner changed
+            nft = db[token_id_padded]
+            current_owner = nft.get("last_known_owner", "").lower()
+
+            if current_owner != wallet:
+                # Owner changed, update it
+                nft["last_known_owner"] = wallet
+                nft["last_synced"] = now_utc_str()
+                db_modified = True
+
+            heroes.append(nft)
+            ds = nft.get("dynamic_state", {})
+            print(f"    ✅ NFT {token_id} from DB (state: {ds.get('state', 'READY')}, xp: {ds.get('xp_total', 0)})")
+        else:
+            # New NFT: create from metadata
+            print(f"    🆕 NFT {token_id} not in DB, creating from metadata...")
+            hero = create_hero_from_metadata(token_id)
+            hero["last_synced"] = now_utc_str()
+            hero["last_known_owner"] = wallet
+            db[token_id_padded] = hero
+            db_modified = True
+            heroes.append(hero)
+            print(f"    ✅ NFT {token_id} created and added to DB")
+
+    # Save DB only if modified
+    if db_modified:
+        save_nfts_database(db)
+        print(f"  💾 Database updated with {len(expected_token_ids)} NFTs")
+    else:
+        print(f"  ℹ️ Database unchanged (all NFTs already synced)")
 
     # Construir objeto player para la sesión (cache temporal)
     total_xp = sum(h["dynamic_state"]["xp_total"] for h in heroes)
@@ -1928,7 +1857,7 @@ def ensure_player(wallet):
     players[wallet] = player_obj
     save_json(PLAYERS_PATH, players)
 
-    print(f"  ✅ Player synced: {len(heroes)} NFTs → DB updated, session cached")
+    print(f"  ✅ Player synced: {len(heroes)} NFTs (DB loaded ONCE, not {len(heroes)} times)")
 
     return player_obj, players
 
