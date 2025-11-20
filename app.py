@@ -1277,6 +1277,19 @@ def serve_docs(filename):
 def api_stats():
     stats_obj = load_json(STATS_PATH, {})
 
+    # 🔥 AUTO-INITIALIZATION: If stats are missing or corrupted, recalculate from DB
+    # This happens when stats.json is deleted or never created
+    needs_recalc = (
+        not stats_obj or  # Empty file
+        stats_obj.get("missions_completed", 0) == 0 and
+        stats_obj.get("total_exp_collected", 0) == 0 and
+        stats_obj.get("total_aura_collected", 0) == 0
+    )
+
+    if needs_recalc:
+        logger.info("📊 Stats missing or empty - auto-recalculating from database...")
+        stats_obj = recalculate_global_stats_from_db()
+
     # 🔥 Calcular ranking real de guilds
     guild_rank_list = calculate_guild_ranking()
 
