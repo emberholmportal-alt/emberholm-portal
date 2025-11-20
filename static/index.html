@@ -148,13 +148,8 @@
         <div class="section-block">
             <div class="section-title" style="display: flex; justify-content: space-between; align-items: center;">
                 <span>REALM STATUS // GLOBAL STATS</span>
-                <div style="display: flex; align-items: center; gap: 15px;">
-                    <!-- Botón CONNECT WALLET -->
-                    <button class="cmd" id="stats-connect-wallet-btn" style="font-size: 0.8em;">[CONNECT WALLET]</button>
-                    <button class="cmd" id="stats-disconnect-wallet-btn" style="display:none; font-size: 0.8em;">[DISCONNECT]</button>
-                    <!-- Timestamp -->
-                    <span id="stats-last-updated" style="font-size: 0.7em; color: #888; font-weight: normal;">Loading...</span>
-                </div>
+                <!-- Timestamp only - stats are public, no wallet needed -->
+                <span id="stats-last-updated" style="font-size: 0.7em; color: #888; font-weight: normal;">Loading...</span>
             </div>
 
             <div class="stats-row">
@@ -1605,9 +1600,9 @@ async function connectWallet() {
                 }
             }
 
-            // CRITICAL: Wait and verify the switch actually happened
-            console.log("⏳ Esperando 3 segundos para que el cambio se complete...");
-            await new Promise(resolve => setTimeout(resolve, 3000));
+            // Wait briefly for network switch to complete
+            console.log("⏳ Verificando cambio de red...");
+            await new Promise(resolve => setTimeout(resolve, 1000));
 
             // Verify with direct chain ID check
             const verifyChainIdHex = await window.ethereum.request({ method: 'eth_chainId' });
@@ -1645,19 +1640,6 @@ async function connectWallet() {
         document.getElementById("wallet-display").textContent = address.slice(0, 6) + "..." + address.slice(-4);
         console.log(`✅ Wallet connected: ${address}`);
 
-        // 🔥 TRIPLE CHECK: Verify we're still on Base Sepolia before querying
-        const finalChainCheck = await window.ethereum.request({ method: 'eth_chainId' });
-        const finalChainId = parseInt(finalChainCheck, 16);
-        console.log(`🔍 FINAL CHAIN CHECK before blockchain query: ${finalChainId}`);
-
-        if (finalChainId !== BASE_SEPOLIA_CHAIN_ID) {
-            console.error(`❌ ABORT: Chain ID changed to ${finalChainId}! Expected ${BASE_SEPOLIA_CHAIN_ID}`);
-            alert(`🛑 ERROR: La red cambió!\n\nEstás en Chain ID ${finalChainId} pero necesitas Base Sepolia (${BASE_SEPOLIA_CHAIN_ID}).\n\nPor favor actualiza la página e intenta de nuevo.`);
-            document.getElementById("connect-wallet-btn").textContent = "[WRONG NETWORK!]";
-            document.getElementById("connect-wallet-btn").disabled = false;
-            return null;
-        }
-
         document.getElementById("connect-wallet-btn").textContent = "[QUERYING BLOCKCHAIN...]";
 
         // 🔥 Query NFT contract on Base Sepolia to get user's NFTs
@@ -1666,7 +1648,7 @@ async function connectWallet() {
             const abi = CONTRACT_CONFIG.ABI;
 
             console.log(`📜 Contract address: ${contractAddress}`);
-            console.log(`🌐 Network confirmed: Base Sepolia (Chain ID ${finalChainId})`);
+            console.log(`🌐 Querying on Base Sepolia (Chain ID ${BASE_SEPOLIA_CHAIN_ID})`);
 
             const contract = new ethers.Contract(contractAddress, abi, provider);
 
@@ -1839,11 +1821,7 @@ function disconnectWallet() {
 
 document.getElementById("disconnect-wallet-btn").addEventListener("click", disconnectWallet);
 
-// 🔥 Stats section wallet buttons
-document.getElementById("stats-connect-wallet-btn").addEventListener("click", connectWallet);
-document.getElementById("stats-disconnect-wallet-btn").addEventListener("click", disconnectWallet);
-
-// 🔥 Helper: Update ALL wallet buttons across all sections
+// 🔥 Helper: Update wallet buttons in Profile section
 function updateAllWalletButtons() {
     const isConnected = !!connectedWallet;
 
@@ -1851,17 +1829,10 @@ function updateAllWalletButtons() {
     document.getElementById("connect-wallet-btn").style.display = isConnected ? "none" : "inline-block";
     document.getElementById("disconnect-wallet-btn").style.display = isConnected ? "inline-block" : "none";
 
-    // Botones de Stats
-    document.getElementById("stats-connect-wallet-btn").style.display = isConnected ? "none" : "inline-block";
-    document.getElementById("stats-disconnect-wallet-btn").style.display = isConnected ? "inline-block" : "none";
-
-    // Actualizar texto si está conectado
+    // Actualizar texto del botón de Profile
     if (isConnected) {
-        const shortAddr = connectedWallet.slice(0, 6) + "..." + connectedWallet.slice(-4);
-        document.getElementById("stats-connect-wallet-btn").textContent = `[${shortAddr}]`;
         document.getElementById("connect-wallet-btn").textContent = "[CONNECTED ✓]";
     } else {
-        document.getElementById("stats-connect-wallet-btn").textContent = "[CONNECT WALLET]";
         document.getElementById("connect-wallet-btn").textContent = "[CONNECT WALLET]";
     }
 }
