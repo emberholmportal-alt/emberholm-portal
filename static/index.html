@@ -1735,13 +1735,8 @@ async function connectWallet() {
                 return null;
             } else {
                 const result = await response.json();
-                console.log("✅ NFT data and contract stats registered on backend");
-                console.log(`📊 Server synced ${result.synced_to_database || 0} NFTs to database`);
-
-                // 🔥 Mostrar confirmación de sincronización al usuario
-                if (result.synced_to_database > 0) {
-                    console.log(`✨ SUCCESS: ${result.synced_to_database} NFTs synchronized to server database!`);
-                }
+                console.log("✅ Wallet data cached on server");
+                console.log(`📦 ${result.token_ids_cached || 0} NFT IDs registered`);
             }
 
             if (tokenIds.length === 0 && balance.toNumber() > 0) {
@@ -1751,8 +1746,6 @@ async function connectWallet() {
                 console.log("ℹ️ No NFTs found for this wallet on Base Sepolia");
                 alert("ℹ️ Esta wallet no tiene NFTs en Base Sepolia.\n\nSi esperabas ver NFTs, verifica que estén minteados en la red correcta.");
             }
-
-            document.getElementById("connect-wallet-btn").textContent = "[CONNECTED ✓]";
 
             // 🔥 Update ACCESS LEVEL to EMBERHOLM EMISSARY with green color
             const accessLevelEl = document.getElementById("access-level");
@@ -1771,8 +1764,14 @@ async function connectWallet() {
             return null;
         }
 
+        // 🔥 Show loading feedback before fetching profile
+        document.getElementById("connect-wallet-btn").textContent = "[LOADING PROFILE...]";
+
         // Load profile immediately after connecting
         await loadPlayerAndRender();
+
+        // Update button to final state
+        document.getElementById("connect-wallet-btn").textContent = "[CONNECTED ✓]";
 
         // Update button visibility
         updateWalletButtonsVisibility();
@@ -2209,13 +2208,22 @@ async function loadPlayerAndRender(){
         return;
     }
 
-    // 🔥 Ensure missions data is loaded before rendering profile
-    await loadMissionsData();
-
     const wallet = connectedWallet;
 
+    // 🔥 Show loading state immediately
+    document.getElementById("wallet-summary").innerHTML = `<div style="color:#ffaa00;">⏳ Loading profile...</div>`;
+    document.getElementById("prime-emissary-img").innerHTML = `<div style="color:#ffaa00; font-size:14px;">⏳ Loading...</div>`;
+    document.getElementById("prime-emissary-desc").innerHTML = "Fetching your NFTs...";
+    document.getElementById("roster-table-wrap").innerHTML = "";
+
     try {
-        const player = await fetchJSON(`/api/player/${encodeURIComponent(wallet)}`);
+        // 🔥 OPTIMIZACIÓN: Cargar missions y player en PARALELO (no bloquea UI)
+        const [missionsData, player] = await Promise.all([
+            loadMissionsData(),
+            fetchJSON(`/api/player/${encodeURIComponent(wallet)}`)
+        ]);
+
+        console.log("✅ Profile and missions data loaded in parallel");
 
         const totals = player.totals || {};
         const walletSummaryEl = document.getElementById("wallet-summary");

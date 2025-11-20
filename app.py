@@ -583,13 +583,23 @@ def sync_nft_to_database(token_id, owner_wallet=None):
     existing = get_nft_from_database(token_id_padded)
 
     if existing:
-        # Ya existe: solo actualizar owner y last_synced
-        db = load_nfts_database()
-        db[token_id_padded]["last_synced"] = now_utc_str()
+        # Ya existe: verificar si necesitamos actualizar owner
+        owner_changed = False
         if owner_wallet:
-            db[token_id_padded]["last_known_owner"] = owner_wallet.lower()
-        save_nfts_database(db)
-        return db[token_id_padded]
+            current_owner = existing.get("last_known_owner", "").lower()
+            new_owner = owner_wallet.lower()
+            owner_changed = (current_owner != new_owner)
+
+        # Solo recargar/guardar si el owner cambió
+        if owner_changed:
+            db = load_nfts_database()
+            db[token_id_padded]["last_synced"] = now_utc_str()
+            db[token_id_padded]["last_known_owner"] = new_owner
+            save_nfts_database(db)
+            return db[token_id_padded]
+        else:
+            # Owner no cambió, retornar sin I/O
+            return existing
     else:
         # Nuevo: crear desde metadata
         hero = create_hero_from_metadata(token_id)
@@ -1952,24 +1962,7 @@ def api_player(wallet):
                 save_json(WALLET_NFTS_PATH, wallet_nfts)
                 print(f"✅ Wallet {wallet[:6]}...{wallet[-4:]} registered with {len(token_ids)} NFTs: {token_ids}")
                 print(f"📂 Updated wallet_nfts keys: {list(wallet_nfts.keys())}")
-
-                # 🔥 AUTO-SINCRONIZACIÓN: Sincronizar cada NFT a la base de datos centralizada
-                print(f"🔄 AUTO-SYNC: Syncing {len(token_ids)} NFTs to database...")
-                synced_count = 0
-                for token_id in token_ids:
-                    try:
-                        # Sincronizar NFT a DB (si existe preserva estado, si es nuevo lo crea)
-                        nft = sync_nft_to_database(token_id, owner_wallet=wallet)
-                        synced_count += 1
-                        ds = nft.get("dynamic_state", {})
-                        print(f"  ✅ {token_id} → DB (xp: {ds.get('xp_total', 0)}, state: {ds.get('state', 'READY')})")
-                    except Exception as e:
-                        print(f"  ⚠️ Error syncing {token_id}: {e}")
-
-                # 🔥 AUTO-RECALCULAR STATS: Actualizar guilds.json con datos reales
-                print(f"📊 AUTO-RECALC: Updating global stats...")
-                calculate_guilds_data()
-                print(f"✅ Auto-sync complete: {synced_count}/{len(token_ids)} NFTs synced to database")
+                # ℹ️ NFT sync will happen on GET request for better performance
 
             # 🔥 Guardar total_supply real del contrato para STATS
             if total_supply is not None:
@@ -1979,8 +1972,8 @@ def api_player(wallet):
                 print(f"✅ Contract total supply updated: {total_supply} characters")
 
             print(f"{'='*60}\n")
-            # ✅ RETORNAR inmediatamente - NO llamar ensure_player() aquí
-            return jsonify({"success": True, "token_ids_cached": len(token_ids), "synced_to_database": synced_count if token_ids else 0})
+            # ✅ RETORNAR inmediatamente - NFT sync will happen on GET request
+            return jsonify({"success": True, "token_ids_cached": len(token_ids)})
 
         except Exception as e:
             print(f"❌ Error processing POST data: {e}")
@@ -2017,20 +2010,29 @@ def api_player(wallet):
     # aplicar pasivo/regen antes de mostrar
     player_obj, stats_obj = apply_passive_and_regen(player_obj, stats_obj)
 
-    # 🔥 CRITICAL: Guardar cambios de pasivo/regen de vuelta a la base de datos
+    # 🔥 CRITICAL: Guardar cambios de pasivo/regen de vuelta a la base de datos (BATCH)
     # Si no hacemos esto, los cambios se pierden al reconectar
-    for hero in player_obj.get("heroes", []):
-        token_id = hero.get("token_id")
-        ds = hero.get("dynamic_state", {})
-        if token_id:
-            # Actualizar solo los campos que apply_passive_and_regen() modifica
-            update_nft_dynamic_state(token_id, {
-                "xp_total": ds.get("xp_total"),
-                "aura_level": ds.get("aura_level"),
-                "energy_current": ds.get("energy_current"),
-                "last_update": ds.get("last_update"),
-                "last_energy_refresh": ds.get("last_energy_refresh")
-            })
+    # OPTIMIZACIÓN: Una sola carga/guardado en vez de N operaciones
+    if player_obj.get("heroes"):
+        db = load_nfts_database()
+        for hero in player_obj.get("heroes", []):
+            token_id = hero.get("token_id")
+            ds = hero.get("dynamic_state", {})
+            if token_id:
+                token_id_padded = str(token_id).zfill(5)
+                if token_id_padded in db:
+                    # Actualizar solo los campos que apply_passive_and_regen() modifica
+                    if "dynamic_state" not in db[token_id_padded]:
+                        db[token_id_padded]["dynamic_state"] = {}
+                    db[token_id_padded]["dynamic_state"].update({
+                        "xp_total": ds.get("xp_total"),
+                        "aura_level": ds.get("aura_level"),
+                        "energy_current": ds.get("energy_current"),
+                        "last_update": ds.get("last_update"),
+                        "last_energy_refresh": ds.get("last_energy_refresh")
+                    })
+        save_nfts_database(db)
+        print(f"  💾 Batch updated {len(player_obj.get('heroes', []))} NFTs (passive/regen)")
 
     # guardar cambios en cache de sesión
     players_all[wallet] = player_obj
