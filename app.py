@@ -7,6 +7,7 @@ import logging
 from datetime import datetime, timedelta
 from flask import Flask, jsonify, send_from_directory, request, abort, render_template
 from flask_cors import CORS
+from flask_socketio import SocketIO, emit
 
 # 🔥 Configure logging
 logging.basicConfig(
@@ -31,6 +32,16 @@ except Exception as e:
     print(f"⚠️ PostgreSQL module import failed: {e}")
     POSTGRESQL_AVAILABLE = False
     db = None
+
+# 🔥 MONITORING & ALERTING - Performance and error tracking
+try:
+    import monitoring
+    MONITORING_AVAILABLE = True
+    print("✅ Monitoring & alerting enabled")
+except Exception as e:
+    print(f"⚠️ Monitoring module import failed: {e}")
+    MONITORING_AVAILABLE = False
+    monitoring = None
 
 # ⚠️ Web3 temporarily disabled due to Render deployment issues
 # Will use local cache (wallet_nfts.json) for NFT data
@@ -1198,6 +1209,16 @@ CORS(app, resources={
     }
 })
 
+# 🔥 Initialize SocketIO for real-time updates
+socketio = SocketIO(app, cors_allowed_origins=[
+    "https://www.emberholmportal.xyz",
+    "https://emberholmportal.xyz",
+    "http://localhost:5000",
+    "http://127.0.0.1:5000"
+], async_mode='eventlet', logger=True, engineio_logger=False)
+
+print("✅ WebSocket server initialized for real-time updates")
+
 # Initialize missions configuration
 MISSIONS_CONFIG = load_missions_config()
 MISSIONS = MISSIONS_CONFIG.get("missions", [])
@@ -1208,6 +1229,102 @@ BONUSES = MISSIONS_CONFIG.get("bonuses", {})
 EVENTS_CONFIG = load_events_config()
 EVENTS = EVENTS_CONFIG.get("events", [])
 EVENT_SETTINGS = EVENTS_CONFIG.get("event_settings", {})
+
+# ---------------------------------
+# WebSocket Event Handlers
+# ---------------------------------
+
+@socketio.on('connect')
+def handle_connect():
+    """Handle client connection"""
+    logger.info(f"🔗 Client connected: {request.sid}")
+    emit('connection_established', {'status': 'connected', 'message': 'Real-time updates enabled'})
+
+@socketio.on('disconnect')
+def handle_disconnect():
+    """Handle client disconnection"""
+    logger.info(f"🔌 Client disconnected: {request.sid}")
+
+@socketio.on('subscribe_stats')
+def handle_subscribe_stats():
+    """Client subscribes to stats updates"""
+    logger.info(f"📊 Client {request.sid} subscribed to stats updates")
+    emit('subscription_confirmed', {'channel': 'stats'})
+
+# ---------------------------------
+# WebSocket Broadcast Utilities
+# ---------------------------------
+
+def broadcast_stats_update():
+    """Broadcast global stats update to all connected clients"""
+    try:
+        stats_obj = load_json(STATS_PATH, {})
+        guild_rank_list = calculate_guild_ranking()
+        leaderboard = calculate_player_leaderboard()
+        missions_in_progress = count_active_missions()
+
+        payload = {
+            'total_characters': stats_obj.get('total_characters', 0),
+            'active_guilds': stats_obj.get('active_guilds', 6),
+            'missions_completed': stats_obj.get('missions_completed', 0),
+            'missions_failed': stats_obj.get('missions_failed', 0),
+            'missions_in_progress': missions_in_progress,
+            'total_exp_collected': stats_obj.get('total_exp_collected', 0),
+            'total_aura_collected': stats_obj.get('total_aura_collected', 0),
+            'guild_ranking': guild_rank_list,
+            'player_leaderboard': leaderboard
+        }
+
+        socketio.emit('stats_updated', payload, broadcast=True)
+        logger.info("📡 Broadcasted stats update to all clients")
+    except Exception as e:
+        logger.error(f"❌ Error broadcasting stats: {e}")
+
+def broadcast_mission_complete(hero_id, wallet, outcome, details):
+    """Broadcast mission completion event"""
+    try:
+        payload = {
+            'hero_id': hero_id,
+            'wallet': wallet,
+            'outcome': outcome,
+            'details': details,
+            'timestamp': now_utc_str()
+        }
+
+        socketio.emit('mission_completed', payload, broadcast=True)
+        logger.info(f"📡 Broadcasted mission completion: {hero_id} - {outcome}")
+    except Exception as e:
+        logger.error(f"❌ Error broadcasting mission completion: {e}")
+
+def broadcast_guild_update(guild_name):
+    """Broadcast guild stats update"""
+    try:
+        guild_rank_list = calculate_guild_ranking()
+
+        payload = {
+            'guild_name': guild_name,
+            'guild_ranking': guild_rank_list
+        }
+
+        socketio.emit('guild_updated', payload, broadcast=True)
+        logger.info(f"📡 Broadcasted guild update: {guild_name}")
+    except Exception as e:
+        logger.error(f"❌ Error broadcasting guild update: {e}")
+
+def broadcast_alert(alert_type, message, severity='INFO'):
+    """Broadcast system alert"""
+    try:
+        payload = {
+            'alert_type': alert_type,
+            'message': message,
+            'severity': severity,
+            'timestamp': now_utc_str()
+        }
+
+        socketio.emit('system_alert', payload, broadcast=True)
+        logger.info(f"📡 Broadcasted alert: {alert_type} - {severity}")
+    except Exception as e:
+        logger.error(f"❌ Error broadcasting alert: {e}")
 
 # ---------------------------------
 # Rutas estáticas base
@@ -1343,6 +1460,88 @@ def api_events():
         "events": active_events,
         "event_settings": EVENT_SETTINGS
     })
+
+# ---------------------------------
+# API: MONITORING & DASHBOARD
+# ---------------------------------
+
+@app.route("/api/monitoring/dashboard")
+def api_monitoring_dashboard():
+    """
+    🔥 MONITORING DASHBOARD - System health metrics
+
+    Returns comprehensive system metrics including:
+    - Error rates and trends
+    - Performance metrics
+    - Active alerts
+    - Resource usage
+    """
+    try:
+        if not MONITORING_AVAILABLE or not monitoring:
+            return jsonify({"error": "Monitoring not available"}), 503
+
+        metrics = monitoring.get_dashboard_metrics()
+        return jsonify(metrics)
+
+    except Exception as e:
+        logger.error(f"Error getting dashboard metrics: {e}", exc_info=True)
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/api/monitoring/errors")
+def api_monitoring_errors():
+    """Get recent errors for monitoring"""
+    try:
+        if not MONITORING_AVAILABLE or not monitoring:
+            return jsonify({"error": "Monitoring not available"}), 503
+
+        limit = request.args.get('limit', 50, type=int)
+        errors = monitoring.get_recent_errors(limit)
+
+        return jsonify({
+            "errors": errors,
+            "total": len(errors)
+        })
+
+    except Exception as e:
+        logger.error(f"Error getting recent errors: {e}", exc_info=True)
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/api/monitoring/performance")
+def api_monitoring_performance():
+    """Get endpoint performance statistics"""
+    try:
+        if not MONITORING_AVAILABLE or not monitoring:
+            return jsonify({"error": "Monitoring not available"}), 503
+
+        hours = request.args.get('hours', 24, type=int)
+        endpoints = monitoring.get_endpoint_performance(hours)
+
+        return jsonify({
+            "endpoints": endpoints,
+            "period_hours": hours
+        })
+
+    except Exception as e:
+        logger.error(f"Error getting performance stats: {e}", exc_info=True)
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/api/monitoring/alerts")
+def api_monitoring_alerts():
+    """Get active system alerts"""
+    try:
+        if not MONITORING_AVAILABLE or not monitoring:
+            return jsonify({"error": "Monitoring not available"}), 503
+
+        alerts = monitoring.get_active_alerts()
+
+        return jsonify({
+            "alerts": alerts,
+            "alert_count": len(alerts)
+        })
+
+    except Exception as e:
+        logger.error(f"Error getting alerts: {e}", exc_info=True)
+        return jsonify({"error": str(e)}), 500
 
 # ---------------------------------
 # API: REALM DISPATCH LIVE FEED
@@ -2566,6 +2765,16 @@ def api_mission_complete():
         save_json(PLAYERS_PATH, players_all)
         save_json(STATS_PATH, stats_obj)
 
+        # 🔥 BROADCAST real-time updates via WebSocket
+        broadcast_mission_complete(hero_id, wallet, "SUCCESS", {
+            "mission_name": mission["name"],
+            "xp_gained": xp_gain,
+            "aura_gained": aura_gain,
+            "perfect_alignment": details.get("perfect_alignment", False)
+        })
+        broadcast_stats_update()
+        broadcast_guild_update(hero_guild_name)
+
         return jsonify({
             "success": True,
             "outcome": "SUCCESS",
@@ -2621,6 +2830,14 @@ def api_mission_complete():
         save_json(PLAYERS_PATH, players_all)
         save_json(STATS_PATH, stats_obj)
 
+        # 🔥 BROADCAST real-time updates via WebSocket
+        broadcast_mission_complete(hero_id, wallet, "FAILURE", {
+            "mission_name": mission["name"],
+            "xp_lost": xp_loss
+        })
+        broadcast_stats_update()
+        broadcast_guild_update(hero_guild_name)
+
         return jsonify({
             "success": True,
             "outcome": "FAILURE",
@@ -2666,6 +2883,18 @@ def api_mission_complete():
         players_all[wallet] = player_obj
         save_json(PLAYERS_PATH, players_all)
         save_json(STATS_PATH, stats_obj)
+
+        # 🔥 BROADCAST real-time updates via WebSocket
+        broadcast_mission_complete(hero_id, wallet, "DEATH", {
+            "mission_name": mission["name"],
+            "death_count": ds["death_count"],
+            "reinvocation_cost": {
+                "xp": xp_cost,
+                "aura": aura_cost
+            }
+        })
+        broadcast_stats_update()
+        broadcast_alert("HERO_FALLEN", f"Hero {hero_id} has fallen in {mission['name']}", "WARNING")
 
         return jsonify({
             "success": True,
@@ -3994,4 +4223,5 @@ if __name__ == "__main__":
     # 🔥 VALIDAR INTEGRIDAD AL INICIAR
     validate_database_integrity()
 
-    app.run(debug=True)
+    # 🔥 Run with SocketIO for real-time WebSocket support
+    socketio.run(app, debug=True, host='0.0.0.0', port=5000)
