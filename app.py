@@ -2,9 +2,22 @@ import json
 import os
 import time
 import random
+import threading
+import logging
 from datetime import datetime, timedelta
 from flask import Flask, jsonify, send_from_directory, request, abort, render_template
 from flask_cors import CORS
+
+# 🔥 Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s [%(levelname)s] %(message)s',
+    handlers=[
+        logging.FileHandler('emberholm_portal.log'),
+        logging.StreamHandler()
+    ]
+)
+logger = logging.getLogger(__name__)
 
 # 🔥 POSTGRESQL INTEGRATION - Persistence module
 try:
@@ -374,6 +387,35 @@ def get_death_cost(death_count):
     return cost["xp_cost"], cost["aura_cost"]
 
 # ---------------------------------
+# 🔥 FILE LOCKING - Prevent Race Conditions
+# ---------------------------------
+
+# Global file locks for critical JSON files
+file_locks = {
+    'stats': threading.Lock(),
+    'guilds': threading.Lock(),
+    'players': threading.Lock(),
+    'nfts_database': threading.Lock(),
+    'active_missions': threading.Lock(),
+    'general': threading.Lock()  # For other files
+}
+
+def get_lock_for_path(path):
+    """Get appropriate lock for a file path"""
+    if 'stats.json' in path:
+        return file_locks['stats']
+    elif 'guilds.json' in path:
+        return file_locks['guilds']
+    elif 'players.json' in path:
+        return file_locks['players']
+    elif 'nfts_database.json' in path:
+        return file_locks['nfts_database']
+    elif 'active_missions.json' in path:
+        return file_locks['active_missions']
+    else:
+        return file_locks['general']
+
+# ---------------------------------
 # Helpers de lectura/escritura JSON
 # ---------------------------------
 
@@ -387,17 +429,25 @@ def load_json(path, fallback):
     - players.json → PostgreSQL
     - stats.json → PostgreSQL
     - Others (guilds, missions_config) → JSON files
+
+    🔒 THREAD-SAFE: Uses file locking to prevent race conditions
     """
     if POSTGRESQL_AVAILABLE and db:
         return db.load_json_or_db(path, fallback)
 
-    # Fallback to JSON file
-    if not os.path.exists(path):
-        return fallback
-    with open(path, "r", encoding="utf-8") as f:
+    # Fallback to JSON file with file locking
+    lock = get_lock_for_path(path)
+    with lock:
+        if not os.path.exists(path):
+            return fallback
         try:
-            return json.load(f)
-        except json.JSONDecodeError:
+            with open(path, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except json.JSONDecodeError as e:
+            logger.error(f"JSON decode error in {path}: {e}")
+            return fallback
+        except Exception as e:
+            logger.error(f"Error loading {path}: {e}", exc_info=True)
             return fallback
 
 def save_json(path, obj):
@@ -410,14 +460,22 @@ def save_json(path, obj):
     - players.json → PostgreSQL
     - stats.json → PostgreSQL
     - Others (guilds, missions_config) → JSON files
+
+    🔒 THREAD-SAFE: Uses file locking to prevent race conditions
     """
     if POSTGRESQL_AVAILABLE and db:
         db.save_json_or_db(path, obj)
         return
 
-    # Fallback to JSON file
-    with open(path, "w", encoding="utf-8") as f:
-        json.dump(obj, f, indent=4)
+    # Fallback to JSON file with file locking
+    lock = get_lock_for_path(path)
+    with lock:
+        try:
+            with open(path, "w", encoding="utf-8") as f:
+                json.dump(obj, f, indent=4)
+        except Exception as e:
+            logger.error(f"Error saving {path}: {e}", exc_info=True)
+            raise
 
 # ---------------------------------
 # NFTs Database - Fuente de Verdad Centralizada
@@ -990,6 +1048,131 @@ def update_guild_stats(guild_name, xp_gain, aura_gain, stats_obj, success=True):
     return stats_obj
 
 # ---------------------------------
+# 🔥 DATA INTEGRITY VALIDATION
+# ---------------------------------
+
+def validate_xp_gain(current_xp, gain, max_per_mission=1000):
+    """
+    Validate XP gain to prevent absurd values or negative XP.
+
+    Args:
+        current_xp: Current XP value
+        gain: XP to add (can be negative for failures)
+        max_per_mission: Maximum XP gain per mission
+
+    Returns:
+        new_xp: Validated new XP value
+
+    Raises:
+        ValueError: If validation fails
+    """
+    # Validate gain
+    if gain > max_per_mission:
+        logger.warning(f"XP gain {gain} exceeds max {max_per_mission}, capping")
+        gain = max_per_mission
+
+    if gain < -max_per_mission:
+        logger.warning(f"XP loss {gain} exceeds max loss {-max_per_mission}, capping")
+        gain = -max_per_mission
+
+    # Calculate new XP
+    new_xp = current_xp + gain
+
+    # Validate total
+    if new_xp < 0:
+        logger.warning(f"XP would go negative ({new_xp}), setting to 0")
+        new_xp = 0
+
+    if new_xp > 100000:
+        logger.error(f"XP {new_xp} exceeds maximum 100,000 - possible data corruption")
+        raise ValueError(f"Invalid total XP: {new_xp}")
+
+    return new_xp
+
+def validate_aura_gain(current_aura, gain, max_per_mission=100):
+    """
+    Validate Aura gain to prevent absurd values or negative Aura.
+
+    Args:
+        current_aura: Current Aura value
+        gain: Aura to add
+        max_per_mission: Maximum Aura gain per mission
+
+    Returns:
+        new_aura: Validated new Aura value
+
+    Raises:
+        ValueError: If validation fails
+    """
+    # Validate gain
+    if gain > max_per_mission:
+        logger.warning(f"Aura gain {gain} exceeds max {max_per_mission}, capping")
+        gain = max_per_mission
+
+    if gain < 0:
+        logger.warning(f"Negative Aura gain {gain}, setting to 0")
+        gain = 0
+
+    # Calculate new Aura
+    new_aura = current_aura + gain
+
+    # Validate total
+    if new_aura < 0:
+        logger.warning(f"Aura would go negative ({new_aura}), setting to 0")
+        new_aura = 0
+
+    if new_aura > 10000:
+        logger.error(f"Aura {new_aura} exceeds maximum 10,000 - possible data corruption")
+        raise ValueError(f"Invalid total Aura: {new_aura}")
+
+    return new_aura
+
+# ---------------------------------
+# 🔥 STATS RECALCULATION FROM DATABASE
+# ---------------------------------
+
+def recalculate_global_stats_from_db():
+    """
+    Recalculate global stats from nfts_database.json (source of truth).
+
+    This function is useful for:
+    - Fixing data inconsistencies
+    - Recovering from errors
+    - Auditing stats accuracy
+
+    Returns:
+        dict: Recalculated stats
+    """
+    logger.info("🔄 Recalculating global stats from database...")
+
+    db = load_nfts_database()
+
+    total_xp = 0
+    total_aura = 0
+    total_missions_completed = 0
+
+    for token_id, nft in db.items():
+        ds = nft.get("dynamic_state", {})
+        total_xp += ds.get("xp_total", 0)
+        total_aura += ds.get("aura_level", 0)
+        total_missions_completed += ds.get("total_missions_completed", 0)
+
+    # Load current stats
+    stats_obj = load_json(STATS_PATH, {})
+
+    # Update with recalculated values
+    stats_obj["total_exp_collected"] = total_xp
+    stats_obj["total_aura_collected"] = total_aura
+    stats_obj["missions_completed"] = total_missions_completed
+
+    # Save updated stats
+    save_json(STATS_PATH, stats_obj)
+
+    logger.info(f"✅ Stats recalculated: XP={total_xp}, Aura={total_aura}, Missions={total_missions_completed}")
+
+    return stats_obj
+
+# ---------------------------------
 # Flask App
 # ---------------------------------
 
@@ -1073,6 +1256,32 @@ def api_stats():
         "last_updated":         now_utc_str()  # 🔥 Timestamp de actualización
     }
     return jsonify(resp)
+
+@app.route("/api/stats/recalculate", methods=["POST"])
+def api_stats_recalculate():
+    """
+    🔥 ADMIN ENDPOINT: Recalculate global stats from database.
+
+    This endpoint recalculates stats from the source of truth (nfts_database.json)
+    to fix any inconsistencies or data corruption.
+
+    Returns:
+        Updated stats object
+    """
+    try:
+        logger.info("📊 Admin requested stats recalculation")
+        stats_obj = recalculate_global_stats_from_db()
+        return jsonify({
+            "success": True,
+            "message": "Stats recalculated successfully",
+            "stats": stats_obj
+        })
+    except Exception as e:
+        logger.error(f"Error recalculating stats: {e}", exc_info=True)
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
 
 # ---------------------------------
 # API: GUILDS
@@ -2303,8 +2512,18 @@ def api_mission_complete():
         xp_gain = details["xp_gain"]
         aura_gain = details["aura_gain"]
 
-        ds["xp_total"] = ds.get("xp_total", 0) + xp_gain
-        ds["aura_level"] = ds.get("aura_level", 0) + aura_gain
+        # 🔥 Validate XP and Aura gains
+        try:
+            current_xp = ds.get("xp_total", 0)
+            current_aura = ds.get("aura_level", 0)
+
+            ds["xp_total"] = validate_xp_gain(current_xp, xp_gain)
+            ds["aura_level"] = validate_aura_gain(current_aura, aura_gain)
+
+            logger.info(f"✅ Mission success: Hero {hero_id} gained {xp_gain} XP, {aura_gain} Aura")
+        except ValueError as ve:
+            logger.error(f"❌ Validation error for hero {hero_id}: {ve}")
+            abort(400, f"Data validation failed: {str(ve)}")
         ds["state"] = "READY"
         ds["last_mission"] = mission["name"]
         ds["current_mission_id"] = None
@@ -2365,8 +2584,15 @@ def api_mission_complete():
         # Mission failed but hero survived
         xp_loss = details["xp_loss"]
 
-        current_xp = ds.get("xp_total", 0)
-        ds["xp_total"] = max(0, current_xp - xp_loss)
+        # 🔥 Validate XP loss
+        try:
+            current_xp = ds.get("xp_total", 0)
+            ds["xp_total"] = validate_xp_gain(current_xp, -xp_loss)  # Negative gain for loss
+
+            logger.info(f"⚠️ Mission failed: Hero {hero_id} lost {xp_loss} XP")
+        except ValueError as ve:
+            logger.error(f"❌ Validation error for hero {hero_id}: {ve}")
+            abort(400, f"Data validation failed: {str(ve)}")
         ds["state"] = "READY"
         ds["last_mission"] = f"{mission['name']} (Failed)"
         ds["current_mission_id"] = None
