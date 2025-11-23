@@ -2083,13 +2083,14 @@ async function loadPlayerAndRender(){
     document.getElementById("roster-table-wrap").innerHTML = "";
 
     try {
-        // 🔥 OPTIMIZACIÓN: Cargar missions y player en PARALELO (no bloquea UI)
-        const [missionsData, player] = await Promise.all([
+        // 🔥 OPTIMIZACIÓN: Cargar missions, events y player en PARALELO (no bloquea UI)
+        const [missionsData, eventsData, player] = await Promise.all([
             loadMissionsData(),
+            loadEventsData(),
             fetchJSON(`/api/player/${encodeURIComponent(wallet)}`)
         ]);
 
-        console.log("✅ Profile and missions data loaded in parallel");
+        console.log("✅ Profile, missions and events data loaded in parallel");
 
         const totals = player.totals || {};
         const walletSummaryEl = document.getElementById("wallet-summary");
@@ -2166,26 +2167,31 @@ async function loadPlayerAndRender(){
                 const now = new Date();
                 const elapsed = (now - startTime) / 1000 / 3600; // hours
 
-                // Find mission duration from cached missions data
+                // Find mission/event duration from cached data
+                // 🔥 Search in missions first, then in events
+                let missionData = null;
                 if (cachedMissionsData) {
-                    const missionData = cachedMissionsData.find(m => m.id === currentMission);
-                    if (missionData) {
-                        missionDuration = missionData.duration_hours;
-                        const remaining = missionDuration - elapsed;
+                    missionData = cachedMissionsData.find(m => m.id === currentMission);
+                }
+                // If not found in missions, search in events
+                if (!missionData && cachedEventsData) {
+                    missionData = cachedEventsData.find(e => e.id === currentMission);
+                }
 
-                        // 🔥 Difficulty color
-                        let diffColor = "#44ff44";
-                        if (missionData.difficulty === "MEDIUM") diffColor = "#ffaa00";
-                        if (missionData.difficulty === "HARD") diffColor = "#ff4444";
+                if (missionData) {
+                    missionDuration = missionData.duration_hours;
+                    const remaining = missionDuration - elapsed;
 
-                        if (remaining <= 0) {
-                            missionComplete = true;
-                            timeRemainingHtml = `<br/><small>Mission: [${currentMission}] ${missionData.name}<br/><span style="color:${diffColor};">● ${missionData.difficulty}</span><br/><span style="color:#44ff44;">✓ READY TO COMPLETE!</span></small>`;
-                        } else {
-                            timeRemainingHtml = `<br/><small>Mission: [${currentMission}] ${missionData.name}<br/><span style="color:${diffColor};">● ${missionData.difficulty}</span><br/>Remaining: ${remaining.toFixed(1)}h / ${missionDuration}h</small>`;
-                        }
+                    // 🔥 Difficulty color
+                    let diffColor = "#44ff44";
+                    if (missionData.difficulty === "MEDIUM") diffColor = "#ffaa00";
+                    if (missionData.difficulty === "HARD") diffColor = "#ff4444";
+
+                    if (remaining <= 0) {
+                        missionComplete = true;
+                        timeRemainingHtml = `<br/><small>Mission: [${currentMission}] ${missionData.name}<br/><span style="color:${diffColor};">● ${missionData.difficulty}</span><br/><span style="color:#44ff44;">✓ READY TO COMPLETE!</span></small>`;
                     } else {
-                        timeRemainingHtml = `<br/><small>Mission: ${currentMission}<br/>Elapsed: ${elapsed.toFixed(1)}h</small>`;
+                        timeRemainingHtml = `<br/><small>Mission: [${currentMission}] ${missionData.name}<br/><span style="color:${diffColor};">● ${missionData.difficulty}</span><br/>Remaining: ${remaining.toFixed(1)}h / ${missionDuration}h</small>`;
                     }
                 } else {
                     timeRemainingHtml = `<br/><small>Mission: ${currentMission}<br/>Elapsed: ${elapsed.toFixed(1)}h</small>`;
@@ -2197,9 +2203,16 @@ async function loadPlayerAndRender(){
             let stateText = state;
             let isPartyMission = false;
 
-            // Check if current mission is a party mission
-            if (state === "ON_MISSION" && cachedMissionsData) {
-                const missionData = cachedMissionsData.find(m => m.id === currentMission);
+            // Check if current mission/event is a party mission
+            // 🔥 Search in missions first, then in events
+            if (state === "ON_MISSION") {
+                let missionData = null;
+                if (cachedMissionsData) {
+                    missionData = cachedMissionsData.find(m => m.id === currentMission);
+                }
+                if (!missionData && cachedEventsData) {
+                    missionData = cachedEventsData.find(e => e.id === currentMission);
+                }
                 if (missionData && missionData.party_size && missionData.party_size === 5) {
                     isPartyMission = true;
                 }
@@ -2460,6 +2473,7 @@ async function loadPlayerAndRender(){
 
 // Global mission data cache
 let cachedMissionsData = null;
+let cachedEventsData = null;
 
 async function loadMissionsData() {
     if (!cachedMissionsData) {
@@ -2467,6 +2481,14 @@ async function loadMissionsData() {
         cachedMissionsData = response.missions || response;
     }
     return cachedMissionsData;
+}
+
+async function loadEventsData() {
+    if (!cachedEventsData) {
+        const response = await fetchJSON("/api/events");
+        cachedEventsData = response.events || [];
+    }
+    return cachedEventsData;
 }
 
 // Start a mission
