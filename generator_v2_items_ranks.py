@@ -797,6 +797,11 @@ def generate_nfts(total=35000):
                 "death_count": 0,
                 "fallen_time": None,
 
+                # 🔥 --- EMBER POINTS SYSTEM (Phase 1 - Off-chain currency) ---
+                "ember_points": 0,  # Virtual currency earned from missions
+                "ember_points_claimed": 0,  # Amount converted to $EMBER token (Phase 2)
+                "ember_points_lifetime": 0,  # Total earned (never decreases)
+
                 # 🔥 --- RANGOS SYSTEM ---
                 "current_rank": "INITIATE",  # INITIATE / ADEPT / VETERAN / MASTER / LEGEND
                 "rank_last_updated": timestamp_now,
