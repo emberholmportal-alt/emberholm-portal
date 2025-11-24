@@ -42,6 +42,17 @@ except Exception as e:
     MONITORING_AVAILABLE = False
     monitoring = None
 
+# 🔥 ECONOMY SYSTEM - Mock $EMBER and ASH before blockchain deployment
+try:
+    import mock_economy
+    from api.economy import economy_bp
+    ECONOMY_AVAILABLE = True
+    print("✅ Economy system enabled (mock mode)")
+except Exception as e:
+    print(f"⚠️ Economy module import failed: {e}")
+    ECONOMY_AVAILABLE = False
+    economy_bp = None
+
 # ⚠️ Web3 temporarily disabled due to Render deployment issues
 # Will use local cache (wallet_nfts.json) for NFT data
 WEB3_AVAILABLE = False
@@ -1220,6 +1231,11 @@ CORS(app, resources={
         "supports_credentials": True
     }
 })
+
+# Register economy blueprint
+if ECONOMY_AVAILABLE and economy_bp:
+    app.register_blueprint(economy_bp)
+    print("✅ Economy API endpoints registered")
 
 # Initialize missions configuration
 MISSIONS_CONFIG = load_missions_config()

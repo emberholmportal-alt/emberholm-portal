@@ -143,37 +143,144 @@
         </div>
     </section>
 
-    <!-- GUILDS -->
+    <!-- STATS/GUILDS/ECONOMY -->
     <section class="screen" data-screen="guilds">
-        <div class="section-block">
-            <div class="section-title" style="display: flex; justify-content: space-between; align-items: center;">
-                <span>REALM STATUS // GLOBAL STATS</span>
-                <!-- Timestamp only - stats are public, no wallet needed -->
-                <span id="stats-last-updated" style="font-size: 0.7em; color: #888; font-weight: normal;">Loading...</span>
-            </div>
+        <!-- TAB NAVIGATION -->
+        <div class="guilds-tabs">
+            <button class="guilds-tab active" data-tab="stats">[STATS]</button>
+            <button class="guilds-tab" data-tab="guilds-orders">[GUILDS]</button>
+            <button class="guilds-tab" data-tab="economy">[ECONOMY]</button>
+        </div>
 
-            <div class="stats-row">
-                <div class="stats-col">
-                    <div>[TOTAL EMISSARIES OF EMBERHOLM]: <span id="stat-total-emissaries">35000</span></div>
-                    <div>[MISSIONS COMPLETED]: <span id="stat-missions-done">0</span></div>
-                    <div>[TOTAL XP ACCUMULATED]: <span id="stat-total-xp">0</span></div>
-                    <div>[TOTAL AURA STABILIZED]: <span id="stat-total-aura">0</span></div>
+        <!-- TAB: STATS -->
+        <div class="guilds-tab-content active" data-tab-content="stats">
+            <div class="section-block">
+                <div class="section-title" style="display: flex; justify-content: space-between; align-items: center;">
+                    <span>REALM STATUS // GLOBAL STATS</span>
+                    <span id="stats-last-updated" style="font-size: 0.7em; color: #888; font-weight: normal;">Loading...</span>
                 </div>
-                <div class="stats-col">
-                    <div>[ACTIVE GUILDS]: <span id="stat-active-guilds">6</span></div>
-                    <div>[MISSIONS FAILED]: <span id="stat-missions-failed">0</span></div>
-                    <div>[MISSIONS IN PROGRESS]: <span id="stat-missions-in-progress">0</span></div>
-                    <div>[SEASONAL WINDOW]: ROTATING // 45 DAYS</div>
-                    <div>[MISSION ROTATION]: EVERY 72h</div>
+
+                <div class="stats-row">
+                    <div class="stats-col">
+                        <div>[TOTAL EMISSARIES OF EMBERHOLM]: <span id="stat-total-emissaries">35000</span></div>
+                        <div>[MISSIONS COMPLETED]: <span id="stat-missions-done">0</span></div>
+                        <div>[TOTAL XP ACCUMULATED]: <span id="stat-total-xp">0</span></div>
+                        <div>[TOTAL AURA STABILIZED]: <span id="stat-total-aura">0</span></div>
+                    </div>
+                    <div class="stats-col">
+                        <div>[ACTIVE GUILDS]: <span id="stat-active-guilds">6</span></div>
+                        <div>[MISSIONS FAILED]: <span id="stat-missions-failed">0</span></div>
+                        <div>[MISSIONS IN PROGRESS]: <span id="stat-missions-in-progress">0</span></div>
+                        <div>[SEASONAL WINDOW]: ROTATING // 45 DAYS</div>
+                        <div>[MISSION ROTATION]: EVERY 72h</div>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <div class="section-block">
-            <div class="section-title">ORDERS OF EMBERHOLM</div>
-            <div id="guilds-container"></div>
-            <div class="mono-small-note">
-                NOTE: Orders maintain independent doctrine. Unauthorized infiltration is not advised.
+        <!-- TAB: GUILDS -->
+        <div class="guilds-tab-content" data-tab-content="guilds-orders">
+            <div class="section-block">
+                <div class="section-title">ORDERS OF EMBERHOLM</div>
+                <div id="guilds-container"></div>
+                <div class="mono-small-note">
+                    NOTE: Orders maintain independent doctrine. Unauthorized infiltration is not advised.
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB: ECONOMY (NEW) -->
+        <div class="guilds-tab-content" data-tab-content="economy">
+            <div class="section-block">
+                <div class="section-title">EMBERHOLM ECONOMY // GLOBAL METRICS</div>
+
+                <!-- EMBER Token Stats -->
+                <div class="economy-section">
+                    <div class="economy-header">
+                        <span class="economy-icon">💰</span>
+                        <span>$EMBER TOKEN</span>
+                    </div>
+                    <div class="stats-row">
+                        <div class="stats-col">
+                            <div>[TOTAL SUPPLY]: <span id="econ-ember-supply">Loading...</span> $EMBER</div>
+                            <div>[TOTAL BURNED]: <span id="econ-ember-burned">Loading...</span> $EMBER</div>
+                            <div>[BURN RATE]: <span id="econ-burn-rate">Loading...</span>%</div>
+                        </div>
+                        <div class="stats-col">
+                            <div>[CIRCULATING]: <span id="econ-ember-circulating">Loading...</span> $EMBER</div>
+                            <div>[LOCKED (Vesting)]: <span id="econ-ember-locked">Loading...</span> $EMBER</div>
+                            <div>[PRICE]: <span id="econ-ember-price">$0.0005</span> (Mock)</div>
+                        </div>
+                    </div>
+                </div>
+
+                <hr class="emberline"/>
+
+                <!-- ASH Stats (if season active) -->
+                <div class="economy-section" id="ash-economy-section" style="display: none;">
+                    <div class="economy-header">
+                        <span class="economy-icon">💨</span>
+                        <span>ASH SYSTEM</span>
+                        <span class="season-badge">SEASON 1 ACTIVE</span>
+                    </div>
+                    <div class="stats-row">
+                        <div class="stats-col">
+                            <div>[TOTAL ASH EARNED]: <span id="econ-ash-total">Loading...</span> ASH</div>
+                            <div>[SEASON 1 ASH]: <span id="econ-ash-season">Loading...</span> ASH</div>
+                        </div>
+                        <div class="stats-col">
+                            <div>[ASH VAULT STATUS]: <span id="ash-vault-status">CLOSED</span></div>
+                            <div>[SEASON ENDS IN]: <span id="ash-season-timer">N/A</span></div>
+                        </div>
+                    </div>
+                </div>
+
+                <hr class="emberline"/>
+
+                <!-- Utility Usage Stats -->
+                <div class="economy-section">
+                    <div class="economy-header">
+                        <span class="economy-icon">⚡</span>
+                        <span>UTILITY USAGE</span>
+                    </div>
+                    <div class="stats-row">
+                        <div class="stats-col">
+                            <div>[EMBER IMPULSE USED]: <span id="econ-impulse-count">0</span> times</div>
+                            <div>[HEROES REVIVED]: <span id="econ-revive-count">0</span> times</div>
+                            <div>[ENERGY RECOVERED]: <span id="econ-energy-count">0</span> times</div>
+                        </div>
+                        <div class="stats-col">
+                            <div>[TOTAL EMBER SPENT]: <span id="econ-total-spent">0</span> $EMBER</div>
+                            <div>[TOTAL EMBER BURNED]: <span id="econ-utility-burned">0</span> $EMBER</div>
+                            <div>[AVG BURN PER TX]: <span id="econ-avg-burn">0</span> $EMBER</div>
+                        </div>
+                    </div>
+                </div>
+
+                <hr class="emberline"/>
+
+                <!-- Holder & Distribution Stats -->
+                <div class="economy-section">
+                    <div class="economy-header">
+                        <span class="economy-icon">👥</span>
+                        <span>DISTRIBUTION</span>
+                    </div>
+                    <div class="stats-row">
+                        <div class="stats-col">
+                            <div>[UNIQUE HOLDERS]: <span id="econ-holders">Loading...</span> wallets</div>
+                            <div>[NFT OWNERS]: <span id="econ-nft-owners">Loading...</span> wallets</div>
+                        </div>
+                        <div class="stats-col">
+                            <div>[TOTAL NFTs MINTED]: <span id="econ-nfts-minted">0</span> / 35,000</div>
+                            <div>[MINT PROGRESS]: <span id="econ-mint-percent">0</span>%</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mono-small-note" style="margin-top: 15px;">
+                    NOTE: Economy data updates every 60 seconds. $EMBER contract not yet deployed (mock data).
+                    <br/>ASH seasons are temporary events with exclusive rewards. Burn mechanics incentivize deflationary pressure.
+                </div>
             </div>
         </div>
     </section>
@@ -219,6 +326,73 @@
                         <div class="panel-content">
                             <div id="prime-emissary-img" class="profile-emissary-img top-emissary-image" style="text-align: center; margin: 15px 0;">NO DATA</div>
                             <div id="prime-emissary-desc" class="terminal-text"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ECONOMY BALANCES -->
+            <div class="profile-economy-section">
+                <div class="economy-balances-grid">
+                    <!-- EMBER BALANCE -->
+                    <div class="balance-card ember-card">
+                        <div class="balance-header">
+                            <span class="balance-icon">💰</span>
+                            <span class="balance-title">$EMBER</span>
+                        </div>
+                        <div class="balance-amount">
+                            <span id="profile-ember-balance">0</span>
+                            <span class="balance-label">EMBER</span>
+                        </div>
+                        <div class="balance-details">
+                            <div class="balance-detail-row">
+                                <span>Wallet:</span>
+                                <span id="profile-ember-wallet">0</span>
+                            </div>
+                            <div class="balance-detail-row">
+                                <span>Pending:</span>
+                                <span id="profile-ember-pending">0</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ASH BALANCE -->
+                    <div class="balance-card ash-card">
+                        <div class="balance-header">
+                            <span class="balance-icon">🔥</span>
+                            <span class="balance-title">ASH</span>
+                        </div>
+                        <div class="balance-amount">
+                            <span id="profile-ash-balance">0</span>
+                            <span class="balance-label">ASH</span>
+                        </div>
+                        <div class="balance-details">
+                            <div class="balance-detail-row">
+                                <span>Season:</span>
+                                <span id="profile-ash-season" class="season-status">Inactive</span>
+                            </div>
+                            <div class="balance-detail-row">
+                                <span>Lifetime:</span>
+                                <span id="profile-ash-lifetime">0</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- XP & AURA -->
+                    <div class="balance-card stats-card">
+                        <div class="balance-header">
+                            <span class="balance-icon">⚡</span>
+                            <span class="balance-title">STATS</span>
+                        </div>
+                        <div class="stats-grid">
+                            <div class="stat-item">
+                                <div class="stat-label">XP (Progression)</div>
+                                <div class="stat-value" id="profile-total-xp">0</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-label">AURA (Ranking)</div>
+                                <div class="stat-value" id="profile-total-aura">0</div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1678,6 +1852,9 @@ function disconnectWallet() {
     document.getElementById("prime-emissary-desc").innerHTML = "";
     document.getElementById("roster-table-wrap").innerHTML = "";
 
+    // Clear economy balances
+    loadProfileEconomyBalances(null);
+
     console.log("✅ Wallet disconnected");
 
     // Show info modal
@@ -2102,6 +2279,9 @@ async function loadPlayerAndRender(){
             <div>Energy Pool Available: ${totals.energy_total_available || 0}</div>
         `;
 
+        // Load economy balances for this wallet
+        loadProfileEconomyBalances(wallet);
+
         // choose top emissary by XP
         let prime = null;
         (player.heroes || []).forEach(h=>{
@@ -2257,11 +2437,23 @@ async function loadPlayerAndRender(){
                             </div>`;
                     }
 
+                    // Calculate hours remaining for EMBER IMPULSE cost
+                    const startTime = new Date(missionStartTime.replace("Z", "") + "Z");
+                    const now = new Date();
+                    const elapsed = (now - startTime) / 1000 / 3600; // hours
+                    const hoursRemaining = Math.max(0, missionDuration - elapsed);
+                    const emberCost = Math.ceil(hoursRemaining * 200); // 200 EMBER per hour
+
                     actionButtons = `
                         <button class="cmd" disabled style="opacity:0.5; cursor:not-allowed;">
                             [IN PROGRESS]
                         </button>
-                        ${progressHtml}`;
+                        ${progressHtml}
+                        ${hoursRemaining > 0.1 ? `
+                        <button class="cmd ember-impulse-btn" data-hero="${h.token_id}" data-mission="${currentMission}" data-cost="${emberCost}" style="color:#fc0; margin-top:8px; font-size:0.7rem;">
+                            [⚡ EMBER IMPULSE]<br/>
+                            <small style="color:#888;">${emberCost} $EMBER (${hoursRemaining.toFixed(1)}h)</small>
+                        </button>` : ''}`;
                 }
             } else if (state === "FALLEN") {
                 actionButtons = `
@@ -2401,10 +2593,12 @@ async function loadPlayerAndRender(){
                             if (result.outcome === "SUCCESS") {
                                 let msg = "🎉 MISSION SUCCESS!\n\n" +
                                     result.mission_name + "\n\n" +
-                                    "XP Gained: " + result.xp_gained + "\n" +
-                                    "Aura Gained: " + result.aura_gained + "\n\n" +
-                                    "Current XP: " + result.hero_xp_now + "\n" +
-                                    "Current Aura: " + result.hero_aura_now;
+                                    "💰 EMBER Gained: " + (result.ember_gained || 0) + "\n" +
+                                    "✨ Aura Gained: " + (result.aura_gained || 0) + "\n" +
+                                    "⚡ XP Gained: " + (result.xp_gained || 0) + "\n\n" +
+                                    "Current EMBER: " + (result.hero_ember_now || 0) + "\n" +
+                                    "Current Aura: " + (result.hero_aura_now || 0) + "\n" +
+                                    "Current XP: " + (result.hero_xp_now || 0);
 
                                 if (result.perfect_alignment) {
                                     msg += "\n\n⚡ PERFECT ALIGNMENT! Rewards multiplied by 1.5x!";
@@ -2418,21 +2612,28 @@ async function loadPlayerAndRender(){
                             } else if (result.outcome === "FAILURE") {
                                 showInfoModal("MISSION FAILED",
                                     "⚠️ " + result.mission_name + "\n\n" +
-                                    "XP Lost: " + result.xp_lost + "\n\n" +
-                                    "Current XP: " + result.hero_xp_now + "\n\n" +
+                                    "💰 EMBER Lost: " + (result.ember_lost || 0) + "\n" +
+                                    "⚡ XP Lost: " + (result.xp_lost || 0) + "\n\n" +
+                                    "Current EMBER: " + (result.hero_ember_now || 0) + "\n" +
+                                    "Current XP: " + (result.hero_xp_now || 0) + "\n\n" +
                                     "Better luck next time!");
                             } else if (result.outcome === "DEATH") {
                                 showInfoModal("EMISSARY FALLEN",
                                     "💀 Your emissary has fallen in " + result.mission_name + "!\n\n" +
                                     "Death Count: " + result.death_count + "\n\n" +
                                     "Reinvocation Cost:\n" +
-                                    "XP: " + result.reinvocation_cost.xp + "\n" +
-                                    "Aura: " + result.reinvocation_cost.aura + "\n\n" +
+                                    "EMBER: " + (result.reinvocation_cost.ember || result.reinvocation_cost.xp || 0) + "\n" +
+                                    "Aura: " + (result.reinvocation_cost.aura || 0) + "\n\n" +
                                     "Use [REINVOKE] button to bring them back.");
                             }
 
                             loadPlayerAndRender();
                             fetchStatsAndRender();
+
+                            // Reload economy balances after mission completion
+                            if (connectedWallet) {
+                                loadProfileEconomyBalances(connectedWallet);
+                            }
                         } catch(e){
                             console.error(e);
                             showInfoModal("CONNECTION ERROR", "MISSION COMPLETE ERROR: Connection issue.");
@@ -2455,6 +2656,16 @@ async function loadPlayerAndRender(){
             btn.addEventListener("click", async ()=>{
                 const heroId = btn.getAttribute("data-hero");
                 openRecoveryModal(heroId);
+            });
+        });
+
+        /* EMBER IMPULSE (speed up mission) */
+        document.querySelectorAll(".ember-impulse-btn").forEach(btn=>{
+            btn.addEventListener("click", async ()=>{
+                const heroId = btn.getAttribute("data-hero");
+                const missionId = btn.getAttribute("data-mission");
+                const cost = btn.getAttribute("data-cost");
+                openEmberImpulseModal(heroId, missionId, cost);
             });
         });
 
@@ -2946,6 +3157,117 @@ async function openRecoveryModal(heroId) {
         };
 
         showModal('recovery-modal');
+
+    } catch(e) {
+        console.error(e);
+        showInfoModal("ERROR", "Failed to load emissary data!");
+    }
+}
+
+/* --------- EMBER IMPULSE MODAL --------- */
+async function openEmberImpulseModal(heroId, missionId, cost) {
+    if (!connectedWallet) {
+        showInfoModal("WALLET REQUIRED", "Please connect your wallet first!");
+        return;
+    }
+
+    try {
+        const player = await fetchJSON(`/api/player/${encodeURIComponent(connectedWallet)}`);
+        const hero = (player.heroes || []).find(h => h.token_id === heroId);
+
+        if (!hero) {
+            showInfoModal("ERROR", "Emissary not found!");
+            return;
+        }
+
+        const ds = hero.dynamic_state || {};
+
+        if (ds.state !== "ON_MISSION") {
+            showInfoModal("ERROR", "Emissary is not on a mission!");
+            return;
+        }
+
+        // Find mission name
+        let missionName = missionId;
+        if (cachedMissionsData) {
+            const mission = cachedMissionsData.find(m => m.id === missionId);
+            if (mission) missionName = mission.name;
+        }
+        if (!missionName || missionName === missionId) {
+            if (cachedEventsData) {
+                const event = cachedEventsData.find(e => e.id === missionId);
+                if (event) missionName = event.name;
+            }
+        }
+
+        showConfirmModal(
+            "⚡ EMBER IMPULSE PROTOCOL",
+            `Activate EMBER IMPULSE to instantly complete mission?\n\n` +
+            `Emissary: ${hero.name || `#${heroId}`}\n` +
+            `Mission: ${missionName}\n\n` +
+            `COST: ${cost} $EMBER\n` +
+            `(20% will be burned)\n\n` +
+            `This will instantly complete the mission and claim rewards.`,
+            async () => {
+                try {
+                    const res = await fetch("/api/economy/ember-impulse", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            wallet: connectedWallet,
+                            hero_id: heroId,
+                            mission_id: missionId
+                        })
+                    });
+
+                    if(!res.ok){
+                        const errText = await res.text();
+                        showInfoModal("EMBER IMPULSE FAILED", errText);
+                        return;
+                    }
+
+                    const result = await res.json();
+
+                    // Show success message with mission results
+                    let msg = "⚡ EMBER IMPULSE ACTIVATED!\n\n" +
+                        "Mission instantly completed!\n\n" +
+                        `EMBER Spent: ${result.ember_spent}\n` +
+                        `EMBER Burned: ${result.ember_burned}\n\n` +
+                        `Mission: ${result.mission_name}\n` +
+                        `Outcome: ${result.outcome}\n\n`;
+
+                    if (result.outcome === "SUCCESS") {
+                        msg += `EMBER Gained: ${result.ember_gained}\n` +
+                               `Aura Gained: ${result.aura_gained}\n\n` +
+                               `Current EMBER: ${result.hero_ember_now}\n` +
+                               `Current Aura: ${result.hero_aura_now}`;
+
+                        if (result.perfect_alignment) {
+                            msg += "\n\n⚡ PERFECT ALIGNMENT! Rewards multiplied by 1.5x!";
+                        }
+                    } else {
+                        msg += `EMBER Lost: ${result.ember_lost}\n` +
+                               `Aura Lost: ${result.aura_lost}`;
+
+                        if (result.hero_died) {
+                            msg += "\n\n💀 YOUR EMISSARY HAS FALLEN!";
+                        }
+                    }
+
+                    showInfoModal("⚡ IMPULSE COMPLETE", msg);
+
+                    // Reload profile to show updated state
+                    loadPlayerAndRender();
+
+                    // Reload economy balances
+                    loadProfileEconomyBalances(connectedWallet);
+
+                } catch(e){
+                    console.error(e);
+                    showInfoModal("ERROR", "EMBER IMPULSE ERROR: connection issue.");
+                }
+            }
+        );
 
     } catch(e) {
         console.error(e);
@@ -3646,6 +3968,196 @@ document.addEventListener('visibilitychange', function() {
         loadRealmFeed();
     }
 });
+</script>
+
+<!-- ============================================
+     GUILDS TABS & ECONOMY SYSTEM
+     ============================================ -->
+<script>
+// Tab switching functionality
+document.addEventListener('DOMContentLoaded', function() {
+    const tabs = document.querySelectorAll('.guilds-tab');
+    const tabContents = document.querySelectorAll('.guilds-tab-content');
+
+    tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            const target = tab.dataset.tab;
+
+            // Remove active from all tabs and contents
+            tabs.forEach(t => t.classList.remove('active'));
+            tabContents.forEach(c => c.classList.remove('active'));
+
+            // Add active to clicked tab and corresponding content
+            tab.classList.add('active');
+            document.querySelector(`[data-tab-content="${target}"]`).classList.add('active');
+
+            // Load economy data if economy tab clicked
+            if (target === 'economy') {
+                loadEconomyData();
+            }
+        });
+    });
+
+    // Load economy data initially (for when user visits Economy tab)
+    // We'll only load when the tab is clicked to save resources
+});
+
+// Economy data loading
+let economyDataCache = null;
+let lastEconomyLoad = 0;
+const ECONOMY_CACHE_TIME = 60000; // 60 seconds
+
+async function loadEconomyData() {
+    const now = Date.now();
+
+    // Use cache if data is fresh
+    if (economyDataCache && (now - lastEconomyLoad) < ECONOMY_CACHE_TIME) {
+        updateEconomyUI(economyDataCache);
+        return;
+    }
+
+    try {
+        const response = await fetch('/api/economy/stats');
+        const data = await response.json();
+
+        if (data.success) {
+            economyDataCache = data;
+            lastEconomyLoad = now;
+            updateEconomyUI(data);
+        } else {
+            console.error('Error loading economy data:', data.error);
+            showEconomyError();
+        }
+    } catch (error) {
+        console.error('Failed to load economy data:', error);
+        showEconomyError();
+    }
+}
+
+function updateEconomyUI(data) {
+    // $EMBER TOKEN STATS
+    setElementText('econ-ember-supply', formatNumber(data.ember.total_supply));
+    setElementText('econ-ember-burned', formatNumber(data.ember.total_burned));
+    setElementText('econ-burn-rate', data.ember.burn_rate.toFixed(2));
+    setElementText('econ-ember-circulating', formatNumber(data.ember.circulating));
+    setElementText('econ-ember-locked', formatNumber(data.ember.locked_in_vesting));
+    setElementText('econ-ember-price', `$${data.ember.price_usd.toFixed(4)}`);
+
+    // ASH STATS (only show if season active)
+    const ashSection = document.querySelector('.economy-section:has(#econ-ash-supply)');
+    if (data.ash.season_active) {
+        ashSection.style.display = 'block';
+        setElementText('econ-ash-supply', formatNumber(data.ash.total_supply));
+        setElementText('econ-ash-burned-for-rewards', formatNumber(data.ash.burned_for_rewards));
+        setElementText('econ-ash-conversion-rate', data.ash.conversion_rate);
+        setElementText('econ-ash-season-ends', data.ash.season_end_date || 'TBA');
+    } else {
+        ashSection.style.display = 'none';
+    }
+
+    // UTILITY USAGE
+    setElementText('econ-impulse-count', formatNumber(data.utilities.ember_impulse_count));
+    setElementText('econ-revive-count', formatNumber(data.utilities.revive_count));
+    setElementText('econ-energy-count', formatNumber(data.utilities.energy_recover_count));
+    setElementText('econ-total-spent', formatNumber(data.utilities.total_ember_spent));
+    setElementText('econ-total-burned-utilities', formatNumber(data.utilities.total_ember_burned));
+
+    // DISTRIBUTION
+    setElementText('econ-holders-count', formatNumber(data.distribution.unique_holders));
+    setElementText('econ-nft-owners', formatNumber(data.distribution.nft_owners_with_ember));
+    setElementText('econ-minted-count', formatNumber(data.distribution.total_minted));
+    setElementText('econ-mint-progress', data.distribution.mint_progress.toFixed(2));
+}
+
+function setElementText(id, text) {
+    const element = document.getElementById(id);
+    if (element) {
+        element.textContent = text;
+    }
+}
+
+function formatNumber(num) {
+    if (num >= 1000000000) {
+        return (num / 1000000000).toFixed(2) + 'B';
+    } else if (num >= 1000000) {
+        return (num / 1000000).toFixed(2) + 'M';
+    } else if (num >= 1000) {
+        return (num / 1000).toFixed(2) + 'K';
+    }
+    return num.toLocaleString();
+}
+
+function showEconomyError() {
+    const errorElements = [
+        'econ-ember-supply', 'econ-ember-burned', 'econ-burn-rate',
+        'econ-ember-circulating', 'econ-ember-locked', 'econ-ember-price',
+        'econ-impulse-count', 'econ-revive-count', 'econ-energy-count',
+        'econ-total-spent', 'econ-total-burned-utilities',
+        'econ-holders-count', 'econ-nft-owners', 'econ-minted-count', 'econ-mint-progress'
+    ];
+
+    errorElements.forEach(id => {
+        setElementText(id, 'Error');
+    });
+}
+
+// Profile economy balances loading
+async function loadProfileEconomyBalances(walletAddress) {
+    if (!walletAddress) {
+        // Clear balances
+        setElementText('profile-ember-balance', '0');
+        setElementText('profile-ember-wallet', '0');
+        setElementText('profile-ember-pending', '0');
+        setElementText('profile-ash-balance', '0');
+        setElementText('profile-ash-lifetime', '0');
+        setElementText('profile-total-xp', '0');
+        setElementText('profile-total-aura', '0');
+
+        const seasonElement = document.getElementById('profile-ash-season');
+        if (seasonElement) {
+            seasonElement.textContent = 'Inactive';
+            seasonElement.classList.remove('active');
+        }
+        return;
+    }
+
+    try {
+        const response = await fetch(`/api/economy/balance/${walletAddress}`);
+        const data = await response.json();
+
+        if (data.success) {
+            // EMBER balances
+            const totalEmber = (data.ember.wallet || 0) + (data.ember.pending || 0);
+            setElementText('profile-ember-balance', formatNumber(totalEmber));
+            setElementText('profile-ember-wallet', formatNumber(data.ember.wallet || 0));
+            setElementText('profile-ember-pending', formatNumber(data.ember.pending || 0));
+
+            // ASH balances
+            setElementText('profile-ash-balance', formatNumber(data.ash.balance || 0));
+            setElementText('profile-ash-lifetime', formatNumber(data.ash.lifetime_earned || 0));
+
+            // ASH season status
+            const seasonElement = document.getElementById('profile-ash-season');
+            if (seasonElement) {
+                if (data.ash.season_active) {
+                    seasonElement.textContent = 'Active';
+                    seasonElement.classList.add('active');
+                } else {
+                    seasonElement.textContent = 'Inactive';
+                    seasonElement.classList.remove('active');
+                }
+            }
+
+            // XP and AURA (from totals)
+            setElementText('profile-total-xp', formatNumber(data.stats.total_xp || 0));
+            setElementText('profile-total-aura', formatNumber(data.stats.total_aura || 0));
+        } else {
+            console.error('Error loading profile economy balances:', data.error);
+        }
+    } catch (error) {
+        console.error('Failed to load profile economy balances:', error);
+    }
+}
 </script>
 
 <!-- HACKNET UI INTERACTIONS -->

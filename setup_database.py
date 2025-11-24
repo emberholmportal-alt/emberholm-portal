@@ -164,6 +164,91 @@ CREATE TABLE IF NOT EXISTS performance_metrics (
 CREATE INDEX IF NOT EXISTS idx_perf_endpoint ON performance_metrics(endpoint);
 CREATE INDEX IF NOT EXISTS idx_perf_created ON performance_metrics(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_perf_wallet ON performance_metrics(user_wallet);
+
+-- ============================================================================
+-- ECONOMY SYSTEM TABLES
+-- ============================================================================
+
+-- TABLA: EMBER BALANCES
+CREATE TABLE IF NOT EXISTS ember_balances (
+    wallet_address VARCHAR(42) PRIMARY KEY,
+    balance_wallet NUMERIC(20, 4) DEFAULT 0 NOT NULL,
+    balance_pending NUMERIC(20, 4) DEFAULT 0 NOT NULL,
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Índices para ember_balances
+CREATE INDEX IF NOT EXISTS idx_ember_wallet ON ember_balances(wallet_address);
+CREATE INDEX IF NOT EXISTS idx_ember_total ON ember_balances((balance_wallet + balance_pending));
+
+-- TABLA: ASH BALANCES
+CREATE TABLE IF NOT EXISTS ash_balances (
+    wallet_address VARCHAR(42) PRIMARY KEY,
+    ash_balance NUMERIC(20, 4) DEFAULT 0 NOT NULL,
+    ash_lifetime_earned NUMERIC(20, 4) DEFAULT 0 NOT NULL,
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Índices para ash_balances
+CREATE INDEX IF NOT EXISTS idx_ash_wallet ON ash_balances(wallet_address);
+
+-- TABLA: BURN HISTORY
+CREATE TABLE IF NOT EXISTS burn_history (
+    id SERIAL PRIMARY KEY,
+    wallet_address VARCHAR(42) NOT NULL,
+    token_id VARCHAR(10),
+    amount_burned NUMERIC(20, 4) NOT NULL,
+    burn_type VARCHAR(50) NOT NULL,
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Índices para burn_history
+CREATE INDEX IF NOT EXISTS idx_burn_wallet ON burn_history(wallet_address);
+CREATE INDEX IF NOT EXISTS idx_burn_type ON burn_history(burn_type);
+CREATE INDEX IF NOT EXISTS idx_burn_created ON burn_history(created_at DESC);
+
+-- TABLA: GLOBAL ECONOMY STATS
+CREATE TABLE IF NOT EXISTS global_economy_stats (
+    id INTEGER PRIMARY KEY DEFAULT 1,
+    total_ember_minted NUMERIC(20, 4) DEFAULT 0 NOT NULL,
+    total_ember_burned NUMERIC(20, 4) DEFAULT 0 NOT NULL,
+    utility_ember_spent NUMERIC(20, 4) DEFAULT 0 NOT NULL,
+    updated_at TIMESTAMP DEFAULT NOW(),
+    CONSTRAINT single_row_economy CHECK (id = 1)
+);
+
+-- Inicializar economy stats
+INSERT INTO global_economy_stats (id, total_ember_minted, total_ember_burned, utility_ember_spent)
+VALUES (1, 0, 0, 0)
+ON CONFLICT (id) DO NOTHING;
+
+-- TABLA: ASH SEASONS
+CREATE TABLE IF NOT EXISTS ash_seasons (
+    id SERIAL PRIMARY KEY,
+    season_name VARCHAR(100) NOT NULL,
+    is_active BOOLEAN DEFAULT FALSE,
+    start_date TIMESTAMP NOT NULL,
+    end_date TIMESTAMP,
+    bonus_multiplier NUMERIC(3, 2) DEFAULT 1.0,
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Índices para ash_seasons
+CREATE INDEX IF NOT EXISTS idx_ash_seasons_active ON ash_seasons(is_active);
+CREATE INDEX IF NOT EXISTS idx_ash_seasons_dates ON ash_seasons(start_date, end_date);
+
+-- TABLA: HEROES (add image_url column if not exists)
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'nfts' AND column_name = 'image_url'
+    ) THEN
+        ALTER TABLE nfts ADD COLUMN image_url TEXT DEFAULT '/img/emissary-placeholder.png';
+    END IF;
+END $$;
 """
 
 def setup_database():
