@@ -1,0 +1,67 @@
+{
+  "name": "Entara, Bearer of the Broken Economy",
+  "description": "Gith Druid of Emberholm. Rarity: Rare. Guild: Circle of Mist.",
+  "image": "ipfs://TO_BE_DEFINED/00001.png",
+  "fixed_profile": {
+    "token_id": "00001",
+    "race": "Gith",
+    "class": "Druid",
+    "rarity": "Rare",
+    "age": 62,
+    "starting_guild": "Circle of Mist",
+    "str": 11,
+    "dex": 12,
+    "con": 12,
+    "int": 15,
+    "wis": 15,
+    "cha": 11
+  },
+  "dynamic_state": {
+    "xp_total": 0,
+    "xp_level": 1,
+    "aura_level": 0,
+    "energy_current": 100,
+    "energy_max": 100,
+    "last_energy_refresh": "2025-11-24T12:00:00Z",
+    "power_current": 11,
+    "state": "READY",
+    "current_guild": "Circle of Mist",
+    "last_update": "2025-11-24T12:00:00Z",
+    "current_mission_id": null,
+    "mission_start_time": null,
+    "last_mission": "None",
+    "mission_history": {},
+    "total_missions_completed": 0,
+    "total_missions_failed": 0,
+    "death_count": 0,
+    "fallen_time": null,
+    "current_rank": "INITIATE",
+    "rank_last_updated": "2025-11-24T12:00:00Z",
+    "equipped_items": {
+      "weapon": null,
+      "armor": null,
+      "accessory": null,
+      "trinket": null
+    },
+    "inventory": [],
+    "item_bonuses": {
+      "str": 0,
+      "dex": 0,
+      "con": 0,
+      "int": 0,
+      "wis": 0,
+      "cha": 0,
+      "power": 0,
+      "success_rate": 0
+    }
+  },
+  "attributes": [
+    {"trait_type": "ID", "value": "00001"},
+    {"trait_type": "Race", "value": "Gith"},
+    {"trait_type": "Class", "value": "Druid"},
+    {"trait_type": "Rarity", "value": "Rare"},
+    {"trait_type": "Guild", "value": "Circle of Mist"},
+    {"trait_type": "Age", "value": 62},
+    {"trait_type": "Rank", "value": "INITIATE"}
+  ]
+}
