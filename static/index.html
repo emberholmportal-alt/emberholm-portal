@@ -9,1018 +9,6 @@
 <!-- Hacknet Clean Design -->
 <link rel="stylesheet" href="css/hacknet-clean.css">
 
-<style>
-/* Legacy inline compatibility */
-
-/* GLOBAL LOOK - GOTHIC MEDIEVAL STYLE */
-body {
-    background:
-        radial-gradient(ellipse at center, rgba(80, 0, 0, 0.3) 0%, transparent 70%),
-        radial-gradient(ellipse at 20% 80%, rgba(40, 0, 0, 0.2) 0%, transparent 50%),
-        #0a0a0a;
-    color: #8a7050;
-    font-family: 'VT323', monospace;
-    font-size: 20px;
-    line-height: 1.6;
-    margin: 0;
-    padding: 0;
-}
-
-.wrapper {
-    max-width: 1200px;
-    margin: 10px auto 60px auto;
-    border: 3px solid #2a2520;
-    padding: 0;
-    background:
-        linear-gradient(135deg, rgba(20,10,10,0.95) 0%, rgba(10,5,5,0.98) 100%),
-        repeating-linear-gradient(0deg, transparent 0px, rgba(0,0,0,0.3) 1px, transparent 2px, transparent 4px);
-    box-shadow:
-        0 0 0 1px #000,
-        0 0 0 6px #1a1510,
-        0 0 0 9px #4a3d30,
-        inset 0 0 40px rgba(0,0,0,0.8),
-        0 0 80px rgba(0, 0, 0, 0.9);
-    position: relative;
-}
-
-/* SECTION BLOCKS */
-.section-block {
-    border: 2px solid #2a2520;
-    padding: 20px;
-    margin-bottom: 20px;
-    background:
-        radial-gradient(ellipse at 10% 20%, rgba(60,40,30,0.1) 0%, transparent 50%),
-        linear-gradient(180deg, rgba(15,10,8,0.6) 0%, rgba(10,8,5,0.8) 100%);
-    box-shadow:
-        inset 1px 1px 2px rgba(42,37,32,0.3),
-        0 4px 8px rgba(0,0,0,0.6);
-    position: relative;
-}
-
-.section-block::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 2px;
-    background: linear-gradient(90deg,
-        transparent,
-        rgba(138, 112, 80, 0.3) 50%,
-        transparent
-    );
-}
-
-.section-title {
-    border-bottom: 2px solid #3a3020;
-    padding-bottom: 8px;
-    margin-bottom: 14px;
-    font-weight: 600;
-    text-transform: uppercase;
-    color: #c9b896;
-    font-family: 'Cinzel', serif;
-    font-size: 18px;
-    letter-spacing: 2px;
-    text-shadow:
-        2px 2px 0 #000,
-        0 0 10px rgba(201, 184, 150, 0.3);
-}
-
-.subheading {
-    font-weight: 600;
-    text-transform: uppercase;
-    margin-bottom: 10px;
-    border-bottom: 2px solid #3a3020;
-    padding-bottom: 6px;
-    font-size: 16px;
-    color: #8a7050;
-    font-family: 'Crimson Text', serif;
-    letter-spacing: 2px;
-    text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
-}
-
-hr.emberline {
-    border: none;
-    border-top: 2px solid #2a2520;
-    margin: 16px 0;
-    background: linear-gradient(90deg,
-        transparent,
-        rgba(138, 112, 80, 0.3) 50%,
-        transparent
-    );
-}
-
-/* HEADER + NAV */
-.top-header {
-    font-size: 16px;
-    line-height: 1.4em;
-    color: #8a7050;
-    display: flex;
-    flex-direction: column;
-    position: relative;
-    background:
-        linear-gradient(180deg, rgba(40,30,20,0.8) 0%, rgba(20,15,10,0.9) 100%),
-        repeating-linear-gradient(90deg, transparent 0px, rgba(106,85,64,0.1) 1px, transparent 2px);
-    border-bottom: 3px solid #2a2520;
-    padding: 24px 40px;
-    box-shadow:
-        inset 0 1px 0 rgba(106,85,64,0.2),
-        0 4px 8px rgba(0,0,0,0.6);
-}
-
-
-.top-status-row {
-    display: flex;
-    flex-wrap: nowrap;
-    justify-content: space-between;
-    align-items: center;
-    justify-content: center;
-    gap: 15px;
-    color: #c9b896;
-    font-family: 'Crimson Text', serif;
-    font-size: 14px;
-}
-
-.top-status-row span {
-    white-space: nowrap;
-    text-shadow: 0 0 6px rgba(201, 184, 150, 0.3);
-    flex: 1;
-}
-
-.top-status-row span:first-child {
-    text-align: left;
-}
-
-.top-status-row span:nth-child(2) {
-    text-align: center;
-}
-
-.top-status-row span:last-child {
-    text-align: right;
-}
-
-.top-command-bar {
-    margin-top: 10px;
-    border-top: 2px solid #3a3020;
-    padding-top: 8px;
-    display: flex;
-    flex-wrap: nowrap;
-    gap: 4px;
-    align-items: center;
-    justify-content: center;
-}
-
-.cmd-link {
-    background:
-        linear-gradient(180deg, rgba(60,60,58,0.8) 0%, rgba(40,40,38,0.9) 100%);
-    color: #c9b896;
-    border: 2px solid;
-    border-color: #4a4a48 #2a2a28 #2a2a28 #4a4a48;
-    font-family: 'Crimson Text', serif;
-    font-size: 12px;
-    font-weight: 600;
-    line-height: 1.2em;
-    padding: 6px 12px;
-    cursor: pointer;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    box-shadow:
-        inset 1px 1px 2px rgba(74,74,72,0.3),
-        2px 2px 4px rgba(0,0,0,0.6);
-    text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
-    transition: all 0.2s;
-}
-
-.cmd-link:hover {
-    background:
-        linear-gradient(180deg, rgba(70,55,40,0.8) 0%, rgba(40,32,24,0.9) 100%);
-    color: #c9b896;
-    border-color: #6a5540 #2a2520 #2a2520 #6a5540;
-    text-shadow:
-        1px 1px 2px rgba(0,0,0,0.8),
-        0 0 10px rgba(201, 184, 150, 0.3);
-}
-
-.cmd-link:active {
-    border-color: #1a1510 #4a3d30 #4a3d30 #1a1510;
-    box-shadow: inset 2px 2px 4px rgba(0,0,0,0.8);
-    transform: translateY(1px);
-}
-
-/* active state for top menu */
-.cmd-link.is-active {
-    background:
-        linear-gradient(180deg, rgba(70,55,40,0.8) 0%, rgba(40,32,24,0.9) 100%);
-    color: #c9b896;
-    border-color: #1a1510 #6a5540 #6a5540 #1a1510;
-    box-shadow: inset 2px 2px 4px rgba(0,0,0,0.8);
-    text-shadow:
-        1px 1px 2px rgba(0,0,0,0.8),
-        0 0 10px rgba(201, 184, 150, 0.4);
-}
-
-.command-hint {
-    font-size: 12px;
-    margin-top: 8px;
-    margin-bottom: 6px;
-    color: #6a5540;
-    font-family: 'Spectral', serif;
-}
-
-.double-line {
-    border-top: 2px solid #3a3020;
-    border-bottom: 2px solid #3a3020;
-    height: 4px;
-    margin-bottom: 10px;
-}
-
-/* MUSIC PLAYER UI (floating top-left OUTSIDE frame) */
-.music-player {
-    position: fixed;
-    top: 8px;
-    left: 8px;
-    width: 240px;
-    border: 2px solid #2a2520;
-    background:
-        linear-gradient(180deg, rgba(20,15,10,0.95) 0%, rgba(10,8,5,0.98) 100%);
-    padding:8px;
-    box-shadow:
-        0 0 20px rgba(0,0,0,0.9),
-        inset 0 0 30px rgba(0,0,0,0.8);
-    font-size:12px;
-    line-height:1.3em;
-    z-index: 9999;
-}
-
-.music-title {
-    font-size:12px;
-    font-weight:600;
-    text-transform:uppercase;
-    border-bottom:2px solid #3a3020;
-    padding-bottom:4px;
-    margin-bottom:6px;
-    color:#c9b896;
-    font-family: 'Cinzel', serif;
-    text-align:center;
-    letter-spacing: 2px;
-    text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
-}
-
-.track-name-display {
-    font-size:12px;
-    color:#8a7050;
-    font-family: 'Spectral', serif;
-    text-align:center;
-    min-height:16px;
-    word-break:break-word;
-    margin-bottom:6px;
-}
-
-.music-row {
-    display:flex;
-    flex-wrap:wrap;
-    gap:6px;
-    align-items:center;
-    margin-bottom:6px;
-    color:#8a7050;
-}
-
-.music-label {
-    font-size:12px;
-    min-width:40px;
-    font-family: 'Spectral', serif;
-}
-
-.music-btn {
-    background:
-        linear-gradient(180deg, rgba(50,40,30,0.8) 0%, rgba(30,24,18,0.9) 100%);
-    color: #8a7050;
-    border: 2px solid;
-    border-color: #4a3d30 #1a1510 #1a1510 #4a3d30;
-    font-family: 'Crimson Text', serif;
-    font-size: 14px;
-    font-weight: 600;
-    padding: 6px 10px;
-    line-height: 1.2em;
-    cursor: pointer;
-    text-transform: uppercase;
-    box-shadow:
-        inset 1px 1px 2px rgba(74,61,48,0.3),
-        2px 2px 4px rgba(0,0,0,0.6);
-    text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
-    transition: all 0.2s;
-}
-
-.music-btn:hover {
-    background:
-        linear-gradient(180deg, rgba(70,55,40,0.8) 0%, rgba(40,32,24,0.9) 100%);
-    color: #c9b896;
-    border-color: #6a5540 #2a2520 #2a2520 #6a5540;
-}
-
-.music-btn:active {
-    border-color: #1a1510 #4a3d30 #4a3d30 #1a1510;
-    box-shadow: inset 2px 2px 4px rgba(0,0,0,0.8);
-    transform: translate(1px, 1px);
-}
-
-/* volume slider gothic */
-.music-volume {
-    -webkit-appearance:none;
-    width:100%;
-    background:#000;
-    border:2px solid #3a3020;
-    height:6px;
-    cursor:pointer;
-}
-.music-volume::-webkit-slider-thumb {
-    -webkit-appearance:none;
-    appearance:none;
-    width:12px;
-    height:16px;
-    background:#8a7050;
-    border:2px solid #4a3d30;
-    cursor:pointer;
-}
-.music-volume::-moz-range-thumb {
-    width:12px;
-    height:16px;
-    background:#8a7050;
-    border:2px solid #4a3d30;
-    cursor:pointer;
-}
-
-/* SCREENS */
-.screen {
-    display: none;
-    color: #8a7050;
-}
-.screen.active {
-    display: block;
-}
-
-/* HOME */
-.warning-block {
-    border: 4px solid #cc0000;
-    border-color: #ff0000 #660000 #660000 #ff0000;
-    padding: 10px;
-    margin-bottom: 16px;
-    background:#0a0a0a;
-    color: #ff0000;
-    text-shadow: 0 0 8px rgba(255, 0, 0, 0.6);
-}
-
-.logo-wrapper {
-    border: 4px solid #666;
-    border-color: #888 #333 #333 #888;
-    background:#0a0a0a;
-    padding:10px;
-    text-align:center;
-    margin-bottom:10px;
-    box-shadow: inset 2px 2px 4px rgba(0,0,0,0.5);
-}
-.project-logo-img {
-    max-width: 320px;
-    image-rendering: pixelated;
-    display: block;
-    margin: 0 auto 6px auto;
-}
-
-.center-text-line {
-    text-align:center;
-    font-size:14px;
-    margin-bottom:4px;
-    color: #c9b896;
-}
-
-.status-block {
-    border:4px solid #666;
-    border-color: #888 #333 #333 #888;
-    padding:10px;
-    margin-top:16px;
-    background:#0a0a0a;
-    font-size:14px;
-}
-
-/* STATS */
-.stats-row {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: space-between;
-    font-size: 14px;
-    margin-bottom: 6px;
-    color: #c9b896;
-}
-.stats-col {
-    width: 48%;
-}
-.stats-col strong {
-    color: #888;
-    text-transform: uppercase;
-}
-@media(max-width:700px){
-    .stats-col{
-        width:100%;
-    }
-}
-
-/* GUILDS */
-.guild-entry {
-    border: 4px solid #666;
-    border-color: #888 #333 #333 #888;
-    padding: 10px;
-    margin-bottom: 10px;
-    background-color: #0a0a0a;
-    display: flex;
-    flex-wrap: nowrap;
-    align-items: flex-start;
-    gap: 10px;
-    font-size:14px;
-    box-shadow: 4px 4px 0 rgba(0,0,0,0.5);
-}
-.guild-badge {
-    width: 64px;
-    height: 64px;
-    min-width: 64px;
-    min-height: 64px;
-    border: 4px solid #888;
-    background-color: #000;
-    image-rendering: pixelated;
-    object-fit: contain;
-    box-shadow: inset 2px 2px 4px rgba(0,0,0,0.5);
-}
-
-/* PROFILE */
-.player-profile-row {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 20px;
-}
-
-.profile-col-left {
-    flex: 1 1 300px;
-    min-width: 260px;
-}
-
-.profile-col-right {
-    flex: 0 0 200px;
-    min-width: 200px;
-    max-width: 240px;
-    border: 4px solid #666;
-    border-color: #888 #333 #333 #888;
-    background-color: #0a0a0a;
-    padding: 10px;
-    align-self: flex-start;
-    text-align: center;
-    font-size:14px;
-    box-shadow: 4px 4px 0 rgba(0,0,0,0.5);
-}
-
-.profile-emissary-img {
-    width: 128px;
-    height: 128px;
-    background-color: #000;
-    border: 4px solid #888;
-    image-rendering: pixelated;
-    object-fit: contain;
-    margin: 0 auto 10px auto;
-    display:block;
-    color:#8a7050;
-    font-size:12px;
-    text-align:center;
-    line-height:128px;
-    box-shadow: inset 2px 2px 4px rgba(0,0,0,0.7);
-}
-
-.roster-table {
-    width: 100%;
-    border-collapse: collapse;
-    background-color: #000;
-    color: #8a7050;
-    margin-top: 10px;
-    font-size:14px;
-}
-.roster-table th,
-.roster-table td {
-    border: 2px solid #666;
-    padding: 6px;
-    vertical-align: top;
-    text-align: left;
-}
-.roster-table th {
-    background-color: #1a1a1a;
-    color: #c9b896;
-    font-weight: bold;
-    text-transform: uppercase;
-    font-size: 14px;
-    text-shadow: 2px 2px 0 #000, 0 0 8px rgba(201, 184, 150, 0.3);
-}
-
-.terminal-btn {
-    background:
-        linear-gradient(180deg, rgba(50,40,30,0.8) 0%, rgba(30,24,18,0.9) 100%);
-    color: #8a7050;
-    border: 2px solid;
-    border-color: #4a3d30 #1a1510 #1a1510 #4a3d30;
-    font-family: 'Crimson Text', serif;
-    font-size: 16px;
-    font-weight: 600;
-    line-height: 1.2em;
-    cursor: pointer;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    box-shadow:
-        inset 1px 1px 2px rgba(74,61,48,0.3),
-        2px 2px 4px rgba(0,0,0,0.6);
-    text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
-    transition: all 0.2s;
-}
-.terminal-btn.small-btn {
-    padding: 8px 14px;
-    display: inline-block;
-}
-.terminal-btn:hover {
-    background:
-        linear-gradient(180deg, rgba(70,55,40,0.8) 0%, rgba(40,32,24,0.9) 100%);
-    color: #c9b896;
-    border-color: #6a5540 #2a2520 #2a2520 #6a5540;
-    text-shadow:
-        1px 1px 2px rgba(0,0,0,0.8),
-        0 0 10px rgba(201, 184, 150, 0.3);
-}
-.terminal-btn:active {
-    border-color: #1a1510 #4a3d30 #4a3d30 #1a1510;
-    box-shadow: inset 2px 2px 4px rgba(0,0,0,0.8);
-    transform: translate(1px, 1px);
-}
-
-/* GENERIC BLOCKS */
-.mono-block {
-    border: 4px solid #666;
-    border-color: #888 #333 #333 #888;
-    background-color: #0a0a0a;
-    padding: 10px;
-    margin-bottom: 12px;
-    font-size:14px;
-    box-shadow: 4px 4px 0 rgba(0,0,0,0.5);
-}
-.mono-small-note {
-    font-size: 12px;
-    opacity: 0.9;
-    color: #888;
-}
-
-/* LINKS */
-a.social-link {
-    color: #8a7050;
-    text-decoration: underline;
-    text-shadow: 2px 2px 0 #000, 0 0 8px rgba(138, 112, 80, 0.4);
-}
-a.social-link:hover {
-    background:#8a7050;
-    color:#0a0a0a;
-    text-shadow: none;
-}
-
-/* CUSTOM MODAL OVERLAY */
-.modal-overlay {
-    display: none;
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.92);
-    z-index: 9999;
-    align-items: center;
-    justify-content: center;
-}
-
-.modal-overlay.active {
-    display: flex;
-}
-
-/* GOTHIC MODAL */
-.terminal-modal {
-    background:
-        linear-gradient(135deg, rgba(20,10,10,0.98) 0%, rgba(10,5,5,1) 100%);
-    border: 3px solid #2a2520;
-    box-shadow:
-        0 0 0 1px #000,
-        0 0 0 6px #1a1510,
-        inset 0 0 40px rgba(0,0,0,0.9),
-        0 0 60px rgba(0, 0, 0, 0.9);
-    max-width: 700px;
-    width: 90%;
-    max-height: 80vh;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-}
-
-.terminal-modal-header {
-    background:
-        linear-gradient(180deg, rgba(40,30,20,0.9) 0%, rgba(20,15,10,0.95) 100%);
-    color: #c9b896;
-    padding: 16px 20px;
-    font-weight: 600;
-    font-size: 18px;
-    border-bottom: 3px solid #2a2520;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    justify-content: center;
-    font-family: 'Cinzel', serif;
-    letter-spacing: 2px;
-    text-shadow: 2px 2px 0 #000, 0 0 10px rgba(201, 184, 150, 0.3);
-}
-
-.terminal-modal-close {
-    background: transparent;
-    border: none;
-    color: #c9b896;
-    font-size: 32px;
-    cursor: pointer;
-    padding: 0;
-    line-height: 1;
-    text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
-    transition: all 0.2s;
-}
-
-.terminal-modal-close:hover {
-    color: #ff4444;
-    text-shadow: 0 0 10px rgba(255, 68, 68, 0.6);
-}
-
-.terminal-modal-body {
-    padding: 20px;
-    overflow-y: auto;
-    flex: 1;
-    background:
-        linear-gradient(180deg, rgba(15,10,8,0.6) 0%, rgba(10,8,5,0.9) 100%);
-}
-
-.modal-list-item {
-    border: 2px solid #2a2520;
-    border-color: #4a3d30 #1a1510 #1a1510 #4a3d30;
-    padding: 10px;
-    margin-bottom: 8px;
-    cursor: pointer;
-    transition: all 0.2s;
-    background: linear-gradient(135deg, rgba(20,10,10,0.6) 0%, rgba(10,5,5,0.8) 100%);
-    color: #8a7050;
-    box-shadow: 2px 2px 4px rgba(0,0,0,0.7);
-}
-
-.modal-list-item:hover {
-    background: linear-gradient(135deg, rgba(40,20,15,0.7) 0%, rgba(20,10,8,0.9) 100%);
-    color: #c9b896;
-    border-color: #5a4d40 #2a2520 #2a2520 #5a4d40;
-    box-shadow: 0 0 12px rgba(138, 112, 80, 0.4), 2px 2px 6px rgba(0,0,0,0.8);
-}
-
-.modal-list-item.disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-    border-color: #444;
-}
-
-.modal-list-item.disabled:hover {
-    background: #000;
-    color: #666;
-    box-shadow: 4px 4px 0 rgba(0,0,0,0.5);
-}
-
-.modal-hero-img {
-    width: 50px;
-    height: 50px;
-    border: 2px solid #2a2520;
-    object-fit: cover;
-    margin-right: 10px;
-    box-shadow: inset 2px 2px 4px rgba(0,0,0,0.7), 0 0 8px rgba(0,0,0,0.5);
-}
-
-.modal-item-header {
-    font-size: 18px;
-    font-weight: bold;
-    margin-bottom: 4px;
-    color: #c9b896;
-    font-family: 'Crimson Text', serif;
-    text-shadow: 2px 2px 0 #000, 0 0 8px rgba(201, 184, 150, 0.3);
-}
-
-.modal-item-details {
-    font-size: 14px;
-    opacity: 0.9;
-    color: #888;
-}
-
-.modal-no-items {
-    text-align: center;
-    padding: 40px 20px;
-    opacity: 0.7;
-    color: #888;
-}
-
-/* INFO/CONFIRM MODAL STYLES */
-.modal-message {
-    font-size: 16px;
-    line-height: 1.6;
-    white-space: pre-wrap;
-    margin-bottom: 20px;
-    color: #8a7050;
-}
-
-.modal-buttons {
-    display: flex;
-    gap: 10px;
-    justify-content: center;
-    margin-top: 20px;
-}
-
-.modal-btn {
-    background: linear-gradient(180deg, rgba(50,40,30,0.8) 0%, rgba(30,24,18,0.9) 100%);
-    border: 2px solid;
-    border-color: #4a3d30 #1a1510 #1a1510 #4a3d30;
-    color: #8a7050;
-    padding: 10px 24px;
-    font-family: 'Crimson Text', serif;
-    font-size: 18px;
-    cursor: pointer;
-    transition: all 0.1s;
-    min-width: 100px;
-    box-shadow: 2px 2px 4px rgba(0,0,0,0.7);
-}
-
-.modal-btn:hover {
-    background: linear-gradient(180deg, rgba(60,48,36,0.9) 0%, rgba(40,32,24,1) 100%);
-    color: #c9b896;
-    border-color: #5a4d40 #2a2520 #2a2520 #5a4d40;
-    box-shadow: 0 0 12px rgba(138, 112, 80, 0.4), 2px 2px 6px rgba(0,0,0,0.8);
-    text-shadow: 2px 2px 0 #000, 0 0 8px rgba(201, 184, 150, 0.3);
-}
-
-.modal-btn:active {
-    border-color: #1a1510 #4a3d30 #4a3d30 #1a1510;
-    box-shadow: inset 2px 2px 4px rgba(0,0,0,0.8);
-    transform: translate(2px, 2px);
-}
-
-.modal-btn.danger {
-    border-color: #8a3030 #4a1010 #4a1010 #8a3030;
-    color: #c96060;
-    text-shadow: 2px 2px 0 #000, 0 0 8px rgba(201, 96, 96, 0.4);
-}
-
-.modal-btn.danger:hover {
-    background: linear-gradient(180deg, rgba(80, 30, 30, 0.9) 0%, rgba(50, 20, 20, 1) 100%);
-    color: #d98080;
-    border-color: #9a4040 #5a2020 #5a2020 #9a4040;
-    box-shadow: 0 0 12px rgba(138, 48, 48, 0.5), 2px 2px 6px rgba(0,0,0,0.8);
-}
-
-/* RESPONSIVE MEDIA QUERIES */
-@media (max-width: 900px) {
-    .section-title {
-        font-size: 12px;
-        letter-spacing: 1px;
-    }
-
-    .terminal-modal-header {
-        font-size: 14px;
-        letter-spacing: 1px;
-    }
-
-    .cmd-link {
-        font-size: 13px;
-        padding: 5px 8px;
-    }
-}
-
-@media (max-width: 600px) {
-    .wrapper {
-        border: 3px solid #2a2520;
-        margin: 5px;
-    }
-
-    .section-title {
-        font-size: 10px;
-        letter-spacing: 0px;
-    }
-
-    .terminal-modal-header {
-        font-size: 12px;
-        padding: 10px 12px;
-    }
-
-    .cmd-link {
-        font-size: 12px;
-        padding: 4px 6px;
-        border-width: 3px;
-    }
-
-    .terminal-btn {
-        font-size: 13px;
-        border-width: 3px;
-    }
-
-    .modal-btn {
-        font-size: 16px;
-        border-width: 3px;
-    }
-}
-
-/* Tutorial Index Links - Interactive Buttons */
-.mono-block a[href^="#"] {
-    display: inline-block;
-    padding: 6px 12px;
-    margin: 2px 0;
-    background: linear-gradient(180deg, rgba(50,40,30,0.6) 0%, rgba(30,24,18,0.8) 100%);
-    border: 2px solid;
-    border-color: #4a3d30 #1a1510 #1a1510 #4a3d30;
-    border-radius: 3px;
-    color: #c9b896 !important;
-    text-decoration: none;
-    font-family: 'Crimson Text', serif;
-    font-size: 13px;
-    transition: all 0.2s;
-    box-shadow: 1px 1px 3px rgba(0,0,0,0.5);
-    text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
-}
-
-.mono-block a[href^="#"]:hover {
-    background: linear-gradient(180deg, rgba(70,55,40,0.8) 0%, rgba(40,32,24,0.9) 100%);
-    border-color: #5a4d40 #2a2520 #2a2520 #5a4d40;
-    color: #fff !important;
-    box-shadow: 0 0 10px rgba(138, 112, 80, 0.4), 1px 1px 4px rgba(0,0,0,0.7);
-    text-shadow: 1px 1px 2px rgba(0,0,0,0.9), 0 0 8px rgba(201, 184, 150, 0.5);
-    transform: translateY(-1px);
-}
-
-.mono-block a[href^="#"]:active {
-
-/* Table of Contents Grid Layout */
-.toc-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 15px 30px;
-    margin-top: 15px;
-}
-
-.toc-section {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
-
-.toc-section-title {
-    color: #c9b896;
-    font-weight: 700;
-    font-family: 'Cinzel', serif;
-    font-size: 14px;
-    margin-bottom: 5px;
-    letter-spacing: 1px;
-    text-shadow: 2px 2px 0 #000, 0 0 8px rgba(201, 184, 150, 0.3);
-}
-
-.toc-grid .mono-block a[href^="#"] {
-    display: block;
-    width: 100%;
-    padding: 8px 14px;
-    text-align: left;
-}
-
-@media (max-width: 768px) {
-    .toc-grid {
-        grid-template-columns: 1fr;
-        gap: 12px;
-    }
-}
-    border-color: #1a1510 #4a3d30 #4a3d30 #1a1510;
-    box-shadow: inset 1px 1px 3px rgba(0,0,0,0.8);
-    transform: translateY(0px);
-}
-
-/* ============================================
-   REALM DISPATCH LIVE FEED
-   ============================================ */
-
-.live-feed-container {
-    max-height: 400px;
-    overflow-y: auto;
-    padding: 15px;
-    background: rgba(0, 0, 0, 0.4);
-    border: 2px solid;
-    border-color: #4a3d30 #1a1510 #1a1510 #4a3d30;
-    border-radius: 4px;
-    box-shadow: inset 0 2px 5px rgba(0,0,0,0.5), 0 0 10px rgba(0,0,0,0.3);
-}
-
-/* Scrollbar personalizado para mantener la estética gótico-medieval */
-.live-feed-container::-webkit-scrollbar {
-    width: 10px;
-}
-
-.live-feed-container::-webkit-scrollbar-track {
-    background: rgba(0, 0, 0, 0.4);
-    border-radius: 4px;
-    border: 1px solid #2a2520;
-}
-
-.live-feed-container::-webkit-scrollbar-thumb {
-    background: linear-gradient(180deg, #4a3d30 0%, #2a2520 100%);
-    border-radius: 4px;
-    border: 1px solid #1a1510;
-}
-
-.live-feed-container::-webkit-scrollbar-thumb:hover {
-    background: linear-gradient(180deg, #5a4d40 0%, #3a2d20 100%);
-}
-
-/* Items del feed - MÁS SUTILES Y NATURALES */
-.feed-item {
-    background: rgba(30, 24, 18, 0.3);
-    border-left: 3px solid #8a7050;
-    padding: 12px 15px;
-    margin-bottom: 10px;
-    border-radius: 3px;
-    transition: all 0.3s ease;
-    font-family: 'Spectral', serif;
-    font-size: 14px;
-    line-height: 1.6;
-    position: relative;
-}
-
-.feed-item:hover {
-    background: rgba(50, 40, 30, 0.4);
-    border-left-color: #c9b896;
-    transform: translateX(5px);
-    box-shadow: 0 2px 8px rgba(201, 184, 150, 0.15);
-}
-
-/* Timestamp del evento */
-.feed-time {
-    color: #8a7050;
-    font-size: 12px;
-    margin-bottom: 5px;
-    display: block;
-    font-family: 'Courier New', monospace;
-    opacity: 0.9;
-}
-
-/* Contenido del evento */
-.feed-content {
-    color: #c9b896;
-}
-
-/* Highlights (guilds, nombres, números) */
-.feed-highlight {
-    color: #d4af37;
-    font-weight: 600;
-    text-shadow: 0 0 5px rgba(212, 175, 55, 0.3);
-}
-
-/* Estado de carga */
-.feed-loading {
-    text-align: center;
-    padding: 40px;
-    color: #c9b896;
-    font-family: 'Cinzel', serif;
-}
-
-/* Animación de entrada para nuevos items */
-.feed-item.new-item {
-    animation: slideInFeed 0.5s ease-out;
-}
-
-@keyframes slideInFeed {
-    from {
-        transform: translateX(-100%);
-        opacity: 0;
-    }
-    to {
-        transform: translateX(0);
-        opacity: 1;
-    }
-}
-
-/* Indicador de nuevo evento */
-.feed-item.new-item::after {
-    content: "NEW";
-    position: absolute;
-    right: 10px;
-    top: 10px;
-    background: linear-gradient(180deg, #d4af37 0%, #8a7050 100%);
-    color: #1a1510;
-    padding: 3px 8px;
-    border-radius: 3px;
-    font-size: 10px;
-    font-weight: bold;
-    font-family: 'Cinzel', serif;
-    letter-spacing: 1px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.5);
-}
-</style>
 </head>
 <body>
 <!-- EFECTOS CRT - Hacknet Clean -->
@@ -1028,259 +16,47 @@ a.social-link:hover {
 <div class="noise"></div>
 <div class="crt-overlay"></div>
 
-<!-- EMBERHOLM CONSOLE // REALM AMBIENCE CHANNEL (HORIZONTAL BAR) -->
-<style>
-.ember-console-bar {
-    position: fixed;
-    top: 6px;
-    left: 6px;
-    right: 6px;
-    background:#000;
-    border:2px solid #2a2520;
-    border-color: #4a3d30 #1a1510 #1a1510 #4a3d30;
-    box-shadow:0 0 20px rgba(0,0,0,0.9), 2px 2px 4px rgba(0,0,0,0.7);
-    color:#8a7050;
-    font-family:'Spectral', serif;
-    font-size:12px;
-    line-height:1.3em;
-    padding:8px 12px;
-    display:flex;
-    flex-wrap:wrap;
-    align-items:center;
-    gap:10px;
-    z-index:9999;
-}
-
-.console-block-label {
-    font-weight:bold;
-    text-transform:uppercase;
-    border-right:2px solid #4a3d30;
-    padding-right:8px;
-    margin-right:4px;
-    white-space:nowrap;
-    font-size:12px;
-    line-height:1.3em;
-    color:#c9b896;
-    font-family:'Cinzel', serif;
-    text-shadow: 2px 2px 0 #000, 0 0 8px rgba(201, 184, 150, 0.3);
-}
-
-.console-track-now {
-    min-width:180px;
-    font-size:12px;
-    line-height:1.3em;
-    color:#c9b896;
-    white-space:nowrap;
-}
-
-.console-btn {
-    background:linear-gradient(180deg, rgba(50,40,30,0.8) 0%, rgba(30,24,18,0.9) 100%);
-    color:#8a7050;
-    border:2px solid;
-    border-color: #4a3d30 #1a1510 #1a1510 #4a3d30;
-    font-family:'Crimson Text', serif;
-    font-size:12px;
-    line-height:1.2em;
-    padding:4px 8px;
-    cursor:pointer;
-    text-transform:uppercase;
-    box-shadow: 2px 2px 0 rgba(0,0,0,0.5);
-    transition: all 0.1s;
-}
-.console-btn:hover{
-    background:linear-gradient(180deg, rgba(60,48,36,0.9) 0%, rgba(40,32,24,1) 100%);
-    color:#c9b896;
-    border-color: #5a4d40 #2a2520 #2a2520 #5a4d40;
-}
-.console-btn:active {
-    border-color: #1a1510 #4a3d30 #4a3d30 #1a1510;
-    box-shadow: inset 2px 2px 4px rgba(0,0,0,0.8);
-    transform: translate(1px, 1px);
-}
-
-.console-vol-wrap {
-    display:flex;
-    flex-wrap:nowrap;
-    align-items:center;
-    gap:6px;
-    font-size:12px;
-    line-height:1.2em;
-    white-space:nowrap;
-}
-
-.console-vol-label {
-    text-transform:uppercase;
-    font-size:12px;
-    color:#8a7050;
-}
-
-.console-volume-slider {
-    -webkit-appearance:none;
-    appearance:none;
-    width:100px;
-    max-width:120px;
-    background:#0a0a0a;
-    border:2px solid #4a3d30;
-    height:6px;
-    cursor:pointer;
-}
-.console-volume-slider::-webkit-slider-thumb {
-    -webkit-appearance:none;
-    appearance:none;
-    width:12px;
-    height:16px;
-    background:#8a7050;
-    border:2px solid #2a2520;
-    cursor:pointer;
-}
-.console-volume-slider::-moz-range-thumb {
-    width:12px;
-    height:16px;
-    background:#8a7050;
-    border:2px solid #2a2520;
-    cursor:pointer;
-}
-
-/* Empujamos el contenido real hacia abajo para que la barra no lo tape */
-body {
-    padding-top:60px; /* altura aprox de la barra */
-}
-@media(max-width:600px){
-    body { padding-top:80px; } /* un poco más en mobile */
-}
-
-/* GLOBAL GOTHIC ENHANCEMENTS */
-input[type="text"],
-input[type="number"],
-input[type="email"],
-textarea {
-    background: linear-gradient(135deg, rgba(20,10,10,0.6) 0%, rgba(10,5,5,0.8) 100%);
-    border: 2px solid #2a2520;
-    border-color: #1a1510 #4a3d30 #4a3d30 #1a1510;
-    color: #c9b896;
-    font-family: 'Spectral', serif;
-    padding: 8px 12px;
-    box-shadow: inset 2px 2px 4px rgba(0,0,0,0.7);
-}
-
-input[type="text"]:focus,
-input[type="number"]:focus,
-input[type="email"]:focus,
-textarea:focus {
-    outline: none;
-    border-color: #4a3d30 #5a4d40 #5a4d40 #4a3d30;
-    box-shadow: inset 2px 2px 4px rgba(0,0,0,0.7), 0 0 12px rgba(138, 112, 80, 0.4);
-}
-
-table {
-    border-collapse: collapse;
-    width: 100%;
-}
-
-table th,
-table td {
-    border: 2px solid #2a2520;
-    padding: 8px 12px;
-    font-family: 'Spectral', serif;
-}
-
-table th {
-    background: linear-gradient(180deg, rgba(30,20,15,0.8) 0%, rgba(20,15,10,0.9) 100%);
-    color: #c9b896;
-    font-family: 'Cinzel', serif;
-    text-shadow: 2px 2px 0 #000, 0 0 8px rgba(201, 184, 150, 0.3);
-}
-
-table td {
-    background: linear-gradient(135deg, rgba(15,10,8,0.4) 0%, rgba(10,8,5,0.6) 100%);
-    color: #8a7050;
-}
-
-a {
-    color: #8a7050;
-    text-decoration: none;
-    transition: all 0.2s;
-}
-
-a:hover {
-    color: #c9b896;
-    text-shadow: 0 0 8px rgba(201, 184, 150, 0.3);
-}
-
-::selection {
-    background: rgba(138, 112, 80, 0.4);
-    color: #c9b896;
-}
-
-::-webkit-scrollbar {
-    width: 12px;
-    background: #0a0a0a;
-}
-
-::-webkit-scrollbar-thumb {
-    background: linear-gradient(180deg, #4a3d30 0%, #2a2520 100%);
-    border: 2px solid #1a1510;
-}
-
-::-webkit-scrollbar-thumb:hover {
-    background: linear-gradient(180deg, #5a4d40 0%, #3a2d20 100%);
-}
-</style>
-
-<div class="ember-console-bar" id="ember-console">
-    <div class="console-block-label">
-        EMBERHOLM CONSOLE<br/>
-        <span style="font-size:10px;">// REALM AMBIENCE CHANNEL //</span>
-    </div>
-
-    <div class="console-track-now" id="console-trackbox">
-        Track: (loading)
-    </div>
-
-    <button class="console-btn" id="console-mute-btn">[MUTE]</button>
-    <button class="console-btn" id="console-next-btn">[NEXT]</button>
-
-    <div class="console-vol-wrap">
-        <div class="console-vol-label">VOL</div>
-        <input  type="range"
-                class="console-volume-slider"
-                id="console-volume"
-                min="0"
-                max="100"
-                value="70"/>
-    </div>
-</div>
-
 <div class="wrapper">
 
     <!-- HEADER -->
-    <header class="top-header">
-        <div class="top-status-row">
-            <span>EMBERHOLM PORTAL : NODE-Δ / REALM MONITOR</span>
-            <span id="access-level">ACCESS LEVEL: [CITIZEN]</span>
-            <span>STATUS: FLAME WEAKENING // MISSIONS REQUIRED</span>
-        </div>
+    <header class="console-header">
+        <div class="console-title">EMBERHOLM PORTAL</div>
+        <div class="console-subtitle">NODE-Δ / REALM MONITOR</div>
 
-        <div class="top-command-bar" id="nav-bar">
-            <button class="cmd-link" onclick="window.location.href='/mint'">MINT / INVOKE</button>
-            <button class="cmd-link" data-target="home">[HOME]</button>
-            <button class="cmd-link" data-target="guilds">[STATS/GUILDS]</button>
-            <button class="cmd-link" data-target="missions">[MISSIONS]</button>
-            <button class="cmd-link" data-target="profile">[PROFILE]</button>
-            <button class="cmd-link" data-target="tutorial">[HELP/TUTORIAL]</button>
-            <button class="cmd-link" data-target="lore">[LORE]</button>
-            <button class="cmd-link" data-target="announcements">[ANNOUNCEMENTS]</button>
-            <button class="cmd-link" data-target="events">[EVENTS]</button>
-            <button class="cmd-link" data-target="credits">[SOCIAL/CREDITS]</button>
-            <button class="cmd-link" data-target="whitepaper">[WHITEPAPER / CONTRACT]</button>
+        <div class="audio-controls">
+            <div class="console-track-now" id="console-trackbox">
+                Track: (loading)
+            </div>
+            <button class="audio-btn" id="console-mute-btn">[MUTE]</button>
+            <button class="audio-btn" id="console-next-btn">[NEXT]</button>
+            <div class="volume-slider-container">
+                <div class="volume-bar" id="volume-display">VOL ▓▓▓▓▓▓▓░░░</div>
+                <input type="range" id="console-volume" min="0" max="100" value="70"/>
+            </div>
         </div>
-
-        <div class="command-hint">
-            USE COMMAND KEYS TO NAVIGATE. ACCESS OUTSIDE AUTHORIZATION WILL BE LOGGED BY EMBER PROTOCOL.
-        </div>
-
-        <div class="double-line"></div>
     </header>
+
+    <!-- NAVIGATION BAR -->
+    <div class="menu-bar" id="nav-bar">
+        <button class="cmd cmd-mint" onclick="window.location.href='/mint'">MINT / INVOKE</button>
+        <button class="cmd" data-target="home">[HOME]</button>
+        <button class="cmd" data-target="guilds">[STATS/GUILDS]</button>
+        <button class="cmd" data-target="missions">[MISSIONS]</button>
+        <button class="cmd" data-target="profile">[PROFILE]</button>
+        <button class="cmd" data-target="tutorial">[HELP/TUTORIAL]</button>
+        <button class="cmd" data-target="lore">[LORE]</button>
+        <button class="cmd" data-target="announcements">[ANNOUNCEMENTS]</button>
+        <button class="cmd" data-target="events">[EVENTS]</button>
+        <button class="cmd" data-target="credits">[SOCIAL/CREDITS]</button>
+        <button class="cmd" data-target="whitepaper">[WHITEPAPER / CONTRACT]</button>
+    </div>
+
+    <!-- SYSTEM MESSAGE -->
+    <div class="sys-msg">
+        <span class="status-critical">STATUS: FLAME WEAKENING</span> //
+        <span id="access-level">ACCESS: [CITIZEN]</span> //
+        MISSIONS REQUIRED // UNAUTHORIZED ACCESS LOGGED
+    </div>
 
     <!-- HOME -->
     <section class="screen active" data-screen="home">
@@ -1288,7 +64,7 @@ a:hover {
             <div class="section-title">EMBERHOLM PORTAL // WARNING NODE</div>
 
             <div class="logo-wrapper">
-                <img src="img/logo-site.png" class="project-logo-img" alt="Emberholm Portal" />
+                <img src="img/logo-site2.png" class="project-logo-img" alt="Emberholm Portal" />
                 <div class="center-text-line" style="font-weight:bold;">
                     Emberholm Portal
                 </div>
@@ -1297,26 +73,54 @@ a:hover {
                 </div>
             </div>
 
-            <div class="warning-block">
-                <div class="subheading" style="margin-bottom:6px;">
+            <div class="alert-box">
+                <div class="panel-header">
                     CAMPAIGN: SEASON I // THE DYING FLAME
                 </div>
-                <div style="font-size:14px;">
-                    The Flame is weakening. Missions are required. The Realm is counting on you.<br/><br/>
-                    If you are not an authorized bearer of a hero-class asset, disconnect now.
+
+                <div class="campaign-grid">
+                    <!-- Columna izquierda: texto actual -->
+                    <div class="campaign-text">
+                        <div class="terminal-text">
+                            CONNECTION ESTABLISHED<br/>
+                            EMBER PROTOCOL: ACTIVE<br/>
+                            CLASSIFICATION: AUTHORIZED BEARER<br/><br/>
+
+                            <span style="color: var(--gold); font-weight: 600;">ACTIVE CAMPAIGN: SEASON I // THE DYING FLAME</span><br/><br/>
+
+                            <span style="color: var(--error-red); font-weight: 600;">CRITICAL ALERT:</span> Core stability levels are below safe threshold.<br/>
+                            Immediate deployments required. The Realm relies on your response.<br/><br/>
+
+                            <span style="color: var(--gold);">WARNING:</span> If you do not possess a registered hero-class asset,<br/>
+                            disconnect now. Unauthorized access to the Portal is strictly prohibited<br/>
+                            under the Ember Emergency Protocol.<br/><br/>
+
+                            [LOG IN] [VERIFY EMISSARIES] [VIEW ACTIVE MISSIONS]
+                        </div>
+                    </div>
+
+                    <!-- Columna derecha: mapa -->
+                    <div class="map-container">
+                        <div class="map-frame">
+                            <img src="/img/map.gif" alt="Emberholm Realm Map">
+                            <div class="map-label">REALM SCANNER // ACTIVE</div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <div class="status-block">
-                <div class="subheading" style="margin-bottom:6px;">
+            <div class="data-panel">
+                <div class="panel-header">
                     REALM-STATUS // CRITICAL
                 </div>
-                <div>EMBER CORE STABILITY: 12%</div>
-                <div>AURA DEMAND EXCEEDS SUPPLY.</div>
-                <div>EMISSARIES OF EMBERHOLM REQUIRED.</div>
+                <div class="terminal-text">
+                    EMBER CORE STABILITY: <span class="text-error">12%</span><br/>
+                    AURA DEMAND EXCEEDS SUPPLY.<br/>
+                    EMISSARIES OF EMBERHOLM REQUIRED.
+                </div>
             </div>
 
-            <div class="mono-small-note" style="margin-top:10px;">
+            <div class="terminal-text text-dim" style="margin-top:10px;">
                 NOTE: Campaign window ~45 days. Mission board refreshes every 72h.
                 Each hero can only attempt each mission once per rotation.
             </div>
@@ -1344,6 +148,7 @@ a:hover {
         <div class="section-block">
             <div class="section-title" style="display: flex; justify-content: space-between; align-items: center;">
                 <span>REALM STATUS // GLOBAL STATS</span>
+                <!-- Timestamp only - stats are public, no wallet needed -->
                 <span id="stats-last-updated" style="font-size: 0.7em; color: #888; font-weight: normal;">Loading...</span>
             </div>
 
@@ -1390,22 +195,32 @@ a:hover {
         <div class="section-block">
             <div class="section-title">PLAYER PROFILE // WALLET LINK</div>
 
-            <div class="player-profile-row">
-                <div class="profile-col-left">
-                    <div>
-                        <label>WALLET (BASE): </label>
-                        <span id="wallet-display" style="color:#00ff00;font-size:14px;text-shadow: 0 0 8px rgba(0, 255, 0, 0.6);">Not connected</span>
-                        <button class="terminal-btn small-btn" id="connect-wallet-btn">[CONNECT WALLET]</button>
-                        <button class="terminal-btn small-btn" id="disconnect-wallet-btn" style="display:none;">[DISCONNECT]</button>
+            <div class="profile-grid-2col">
+                <div class="wallet-column">
+                    <div class="data-panel">
+                        <div class="panel-header">WALLET CONNECTION</div>
+                        <div class="panel-content">
+                            <div style="margin-bottom: 15px;">
+                                <label style="color: var(--dim-green); font-size: 12px;">WALLET ADDRESS (BASE):</label><br/>
+                                <span id="wallet-display" style="color:#00ff00;font-size:14px;text-shadow: 0 0 8px rgba(0, 255, 0, 0.6);">Not connected</span>
+                            </div>
+                            <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                                <button class="cmd" id="connect-wallet-btn">[CONNECT WALLET]</button>
+                                <button class="cmd" id="disconnect-wallet-btn" style="display:none;">[DISCONNECT]</button>
+                            </div>
+                            <div id="wallet-summary"></div>
+                        </div>
                     </div>
-
-                    <div id="wallet-summary" style="margin-top:10px;"></div>
                 </div>
 
-                <div class="profile-col-right">
-                    <div class="subheading">TOP EMISSARY</div>
-                    <div id="prime-emissary-img" class="profile-emissary-img">NO DATA</div>
-                    <div id="prime-emissary-desc" style="font-size:14px;text-align:left;"></div>
+                <div class="emissary-column">
+                    <div class="data-panel">
+                        <div class="panel-header" style="text-align: center;">TOP EMISSARY</div>
+                        <div class="panel-content">
+                            <div id="prime-emissary-img" class="profile-emissary-img top-emissary-image" style="text-align: center; margin: 15px 0;">NO DATA</div>
+                            <div id="prime-emissary-desc" class="terminal-text"></div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -1426,7 +241,7 @@ a:hover {
     <!-- HELP/TUTORIAL COMBINED -->
     <section class="screen" data-screen="tutorial">
         <!-- INDEX -->
-        <div class="section-block">
+        <div class="section-block" id="toc-index">
             <div class="section-title">📋 TABLE OF CONTENTS // QUICK ACCESS</div>
             <div class="mono-block">
                 <div class="toc-grid">
@@ -1497,6 +312,8 @@ a:hover {
                 Each hero can only attempt each mission once per rotation.
                 Events are special cases and may ignore Guild targeting.
             </div>
+
+            <a href="#toc-index" class="cmd back-to-index">[← BACK TO INDEX]</a>
         </div>
 
         <div class="section-block" id="help-commandflow">
@@ -1514,11 +331,13 @@ a:hover {
                     Unauthorized interference with mission records may trigger Guild sanctions.
                 </span>
             </div>
+
+            <a href="#toc-index" class="cmd back-to-index">[← BACK TO INDEX]</a>
         </div>
 
 
         <!-- 1. MISSION SYSTEM // OVERVIEW -->
-        <div class="section-block">
+        <div class="section-block" id="tut-1-overview">
             <div class="section-title">1. MISSION SYSTEM // OVERVIEW</div>
             <div class="mono-block">
                 <p><b>What are Missions?</b></p>
@@ -1540,10 +359,12 @@ a:hover {
                 Missions don't pause! Once you deploy an Emissary, the mission timer runs continuously
                 until completion. Return to [PROFILE] to check progress and claim rewards when ready.
             </div>
+
+            <a href="#toc-index" class="cmd back-to-index">[← BACK TO INDEX]</a>
         </div>
 
-        
-        <div class="section-block">
+
+        <div class="section-block" id="tut-2-costs">
             <div class="section-title">2. MISSION COSTS & REQUIREMENTS</div>
             <div class="mono-block">
                 <p><b>Energy Cost by Difficulty:</b></p>
@@ -1568,10 +389,11 @@ a:hover {
                 ✓ Emissary in READY state (not on mission or fallen)<br/>
                 ✓ Mission not already attempted this rotation (72h cooldown per hero)
             </div>
+
+            <a href="#toc-index" class="cmd back-to-index">[← BACK TO INDEX]</a>
         </div>
 
         <div class="section-block" id="tut-3-rewards">
-        <div class="section-block">
             <div class="section-title">3. MISSION REWARDS // XP & AURA</div>
             <div class="mono-block">
                 <p><b>Base Rewards by Difficulty:</b></p>
@@ -1612,10 +434,11 @@ a:hover {
                 <b style="color:#ffaa00;">1.5x MULTIPLIER</b> on final rewards! This is the most powerful bonus
                 in the game and can dramatically increase your efficiency.
             </div>
+
+            <a href="#toc-index" class="cmd back-to-index">[← BACK TO INDEX]</a>
         </div>
 
         <div class="section-block" id="tut-4-success">
-        <div class="section-block">
             <div class="section-title">4. SUCCESS RATE CALCULATION</div>
             <div class="mono-block">
                 <p><b>Base Success Rates:</b></p>
@@ -1645,10 +468,11 @@ a:hover {
                 Check each mission's "favored" attributes in the mission details. Plan your
                 Emissary deployment accordingly to maximize success chances!
             </div>
+
+            <a href="#toc-index" class="cmd back-to-index">[← BACK TO INDEX]</a>
         </div>
 
         <div class="section-block" id="tut-5-failure">
-        <div class="section-block">
             <div class="section-title">5. MISSION FAILURE // CONSEQUENCES</div>
             <div class="mono-block">
                 <p><b>What Happens When You Fail?</b></p>
@@ -1674,10 +498,11 @@ a:hover {
                 If death occurs, your Emissary enters FALLEN state and requires reinvocation
                 (see next section for death system details).
             </div>
+
+            <a href="#toc-index" class="cmd back-to-index">[← BACK TO INDEX]</a>
         </div>
 
         <div class="section-block" id="tut-6-death">
-        <div class="section-block">
             <div class="section-title">6. DEATH & REINVOCATION SYSTEM</div>
             <div class="mono-block">
                 <p><b>Death Mechanic:</b></p>
@@ -1720,10 +545,11 @@ a:hover {
                 Death costs escalate dramatically! Protect your Emissaries by choosing missions
                 with high success rates. A 4th death requires astronomical resources to recover from.
             </div>
+
+            <a href="#toc-index" class="cmd back-to-index">[← BACK TO INDEX]</a>
         </div>
 
         <div class="section-block" id="tut-7-flow">
-        <div class="section-block">
             <div class="section-title">7. MISSION FLOW // STEP-BY-STEP GUIDE</div>
             <div class="mono-block">
                 <p><b>Complete Mission Walkthrough:</b></p>
@@ -1787,10 +613,11 @@ a:hover {
                 • Remember: Each hero can only do each mission ONCE per 72h rotation<br/>
                 • Mix and match for optimal efficiency!
             </div>
+
+            <a href="#toc-index" class="cmd back-to-index">[← BACK TO INDEX]</a>
         </div>
 
         <div class="section-block" id="tut-8-party">
-        <div class="section-block">
             <div class="section-title">8. PARTY MISSIONS // COORDINATED OPERATIONS</div>
             <div class="mono-block">
                 <p style="color:#ffaa00;"><b>🔥 PARTY MISSIONS: 5-HERO COORDINATED OPERATIONS</b></p>
@@ -1914,10 +741,11 @@ a:hover {
                 • Track progress in PROFILE with [PARTY MISSION] label<br/>
                 • Most efficient way to progress multiple heroes simultaneously!
             </div>
+
+            <a href="#toc-index" class="cmd back-to-index">[← BACK TO INDEX]</a>
         </div>
 
         <div class="section-block" id="tut-9-missions">
-        <div class="section-block">
             <div class="section-title">9. AVAILABLE MISSIONS // CURRENT ROTATION</div>
             <div class="mono-block">
                 <p><b>Mission Board (refreshes every 72h):</b></p>
@@ -1926,10 +754,11 @@ a:hover {
                     Loading mission data...
                 </div>
             </div>
+
+            <a href="#toc-index" class="cmd back-to-index">[← BACK TO INDEX]</a>
         </div>
 
         <div class="section-block" id="tut-10-strategy">
-        <div class="section-block">
             <div class="section-title">10. STRATEGY TIPS // MAXIMIZE EFFICIENCY</div>
             <div class="mono-block">
                 <p style="color:#44ff44;"><b>💡 BEGINNER STRATEGIES:</b></p>
@@ -1994,10 +823,11 @@ a:hover {
                     Result: 300% more rewards than random deployment! 🔥
                 </p>
             </div>
+
+            <a href="#toc-index" class="cmd back-to-index">[← BACK TO INDEX]</a>
         </div>
 
         <div class="section-block" id="tut-11-technical">
-        <div class="section-block">
             <div class="section-title">11. TECHNICAL DETAILS // ADVANCED INFO</div>
             <div class="mono-block">
                 <p><b>Backend Architecture:</b></p>
@@ -2067,10 +897,11 @@ a:hover {
                 • Fresh deploy: run init_data_files.py to create empty data files<br/>
                 • Backup strategy: copy data/*.json before major updates
             </div>
+
+            <a href="#toc-index" class="cmd back-to-index">[← BACK TO INDEX]</a>
         </div>
 
         <div class="section-block" id="tut-faq">
-        <div class="section-block">
             <div class="section-title">FREQUENTLY ASKED QUESTIONS (FAQ)</div>
             <div class="mono-block">
                 <p><b>Q: Can I cancel a mission once started?</b></p>
@@ -2126,10 +957,11 @@ a:hover {
                 <p><b>Q: Is there a level cap?</b></p>
                 A: No level cap. XP accumulates infinitely. Every 10 levels = +1% success rate bonus.
             </div>
+
+            <a href="#toc-index" class="cmd back-to-index">[← BACK TO INDEX]</a>
         </div>
 
         <div class="section-block" id="tut-examples">
-        <div class="section-block">
             <div class="section-title">CALCULATION EXAMPLES</div>
             <div class="mono-block">
                 <p style="color:#44ff44;"><b>EXAMPLE 1: Basic Mission (No Bonuses)</b></p>
@@ -2173,7 +1005,7 @@ a:hover {
 
                 <p style="color:#ff4444;"><b>EXAMPLE 3: Perfect Alignment (MAXIMUM REWARDS)</b></p>
                 <div style="background-color:#111; padding:10px; margin:10px 0; border-left:3px solid #ff4444;">
-                    Mission: "Dragon's Crucible" (HARD)<br/>
+                    Mission: "Dragons Crucible" (HARD)<br/>
                     Favored: Forge Legion, Warrior class, Orc race<br/>
                     Emissary: Forge Legion Warrior Orc, Level 35, 600 Aura<br/><br/>
 
@@ -2227,6 +1059,8 @@ a:hover {
                 Strategic deployment with attribute matching can give you 2-3x more rewards for the same
                 time investment. Always check mission details and match your Emissaries optimally!
             </div>
+
+            <a href="#toc-index" class="cmd back-to-index">[← BACK TO INDEX]</a>
         </div>
 
         <div class="section-block">
@@ -2243,64 +1077,100 @@ a:hover {
     <div class="section-block">
         <div class="section-title">LORE // REALM DOSSIER</div>
 
-        <div class="mono-block">
-            Emberholm is not on your world.
+        <div class="mono-block" style="border-left: 3px solid var(--error-red); padding-left: 15px; background: rgba(255, 68, 68, 0.05);">
+            <p style="color: var(--error-red); font-weight: 600; margin-bottom: 10px;">INTERCEPTED TRANSMISSION: ORIGIN UNKNOWN</p>
 
-            It is a sealed frontier realm built around the Ember Core — a burning heart of living fire that held back the dark pressure outside the borders. For generations, that Flame kept reality stable. The rivers stayed where they belonged. The dead stayed dead. Time obeyed.
+            We do not know how you found this terminal. We do not know if it was luck, fate, or something worse. What we do know is this: the signal you are receiving does not come from your world.<br/><br/>
 
-            Now the Ember Core is failing.
+            <b>Emberholm does not exist in your plane of reality.</b><br/><br/>
 
-            The Flame is collapsing faster than the Orders predicted. Breaches are opening along the edges of the realm. Voidforms are sighted in places that were once safe roads. Entire watchtowers fade, reappear twisted, and then go silent. Reality is thinning.
+            It is a sealed border-realm, constructed around the Ember Core — a living heart of fire that, for generations, kept the pressure of darkness from breaching our borders. That Flame upheld the laws of our existence: rivers flowed where they should, the dead remained dead, and time obeyed.<br/><br/>
 
-            No one agrees on why. The Circle of Mist claims the Core is starving and demands more aura to feed it. The Forge Legion swears this is sabotage — that something intelligent is drilling into the heart of Emberholm from beyond. Horizon Watch reports “pressure tides” from somewhere outside the plane entirely.
+            Now, the Core is failing.
         </div>
 
         <div class="mono-block">
-            Emberholm is defended by six Orders, each sworn to protect the Core in their own way:
+            <p style="color: var(--gold); font-weight: 600; font-size: 14px; margin-bottom: 10px;">THE COLLAPSE</p>
 
-            • Forge Legion – iron oathkeepers, front-line steel, sworn weaponsmiths of the realm.  
-            • Circle of Mist – alchemists, mana-binders, forbidden knowledge and controlled heresy.  
-            • Shadow Guild – sanctioned spies, information brokers, invisible knives in the dark.  
-            • Horizon Watch – scouts and tideborn outriders stationed at the world’s thinning edges.  
-            • Dawnkeepers – clerics and oathbound paladins who swear directly to the Ember Core.  
-            • Echoes of the Veil – necromancers and spectral binders who negotiate with the dead instead of burying them.
+            The Flame is fading faster than the Orders predicted. Breaches multiply along the edges of the realm. Entities of the Void have been sighted on paths that were once safe. Entire watchtowers vanish, reappear twisted, then fall silent.<br/><br/>
 
-            These are not peaceful alliances. They don’t trust each other — but they are forced to cooperate, because if the Core dies, they all die with it.
+            <b>Reality is thinning.</b><br/><br/>
+
+            No authority agrees on the cause:<br/>
+            • <b>The Circle of Mist</b> claims the Core is starving and requires more Aura to feed.<br/>
+            • <b>The Forge Legion</b> swears this is sabotage — that something intelligent is drilling into Emberholm's heart from beyond.<br/>
+            • <b>The Horizon Watch</b> reports "pressure tides" coming from somewhere entirely outside the plane.<br/><br/>
+
+            The only point of consensus: if we do not act now, Emberholm will fall in <span style="color: var(--error-red);">weeks, not years</span>.
         </div>
 
         <div class="mono-block">
-            Every hero bound to a wallet in your world is registered in Emberholm as an Emissary.
+            <p style="color: var(--gold); font-weight: 600; font-size: 14px; margin-bottom: 10px;">THE SIX ORDERS</p>
 
-            An Emissary is not a spectator. An Emissary is deployed.
+            Emberholm is defended by six Orders, each sworn to protect the Core in their own way:<br/><br/>
 
-            When you link your wallet, the Portal recognizes your Emissaries and assigns them to one of the Orders above. That Order treats them as operative assets — and sends them into the field.
+            <b style="color: var(--primary-green);">FORGE LEGION</b> – Front-line steel guardians. Smiths of sworn weaponry. They believe in iron, honor, and overwhelming strength.<br/><br/>
 
-            Missions are not decoration. Every mission run by an Emissary gathers XP (field experience), stabilizes Aura (the Core’s lifeblood), clears threats, and delays collapse.
+            <b style="color: var(--primary-green);">CIRCLE OF MIST</b> – Alchemists, mana-binders, keepers of forbidden knowledge. They trade in controlled heresy to keep the Core alive.<br/><br/>
 
-            XP is proof-of-action. Aura is survival fuel.
+            <b style="color: var(--primary-green);">SHADOW GUILD</b> – Sanctioned spies and information runners; unseen knives in the dark. They operate where others cannot — or will not.<br/><br/>
+
+            <b style="color: var(--primary-green);">HORIZON WATCH</b> – Riders and scouts born of the tide, stationed on the thinning edges of the world. They see what comes before anyone else.<br/><br/>
+
+            <b style="color: var(--primary-green);">ORDER OF DAWN</b> – Clerics and paladins sworn directly to the Ember Core. Fanatics who would rather die than let the Flame be extinguished.<br/><br/>
+
+            <b style="color: var(--primary-green);">VOID ECHOES</b> – Necromancers and spectral binders who bargain with the dead rather than bury them. Controversial — but necessary.<br/><br/>
+
+            This is not a peaceful alliance. They do not trust one another — but they are forced to cooperate, for if the Core dies, they all die with it.
         </div>
 
         <div class="mono-block">
-            The Ember Core is dying, and something out there wants it dead.
+            <p style="color: var(--gold); font-weight: 600; font-size: 14px; margin-bottom: 10px;">YOU: THE BEARER</p>
 
-            Emberholm does not have enough agents left within its own borders to hold the line. So the Orders authorized something desperate — the Portal.
+            Every hero bound to a wallet in your world is registered in Emberholm as an <b>Emissary</b>.<br/><br/>
 
-            This Portal is a live bridge between our realm and yours. Through it, off-realm holders (you) can deploy Emissaries into Emberholm. You choose which heroes respond to which missions. You spend their Energy. You risk their safety. You stabilize our world.
+            An Emissary is not a spectator. <b>An Emissary is deployed.</b><br/><br/>
 
-            In return, their XP and Aura grow — and your standing inside the Realm is logged permanently.
+            When you connect your wallet, the Portal identifies your Emissaries and assigns them to one of the Orders. That Order treats them as operational assets — and sends them into the field.<br/><br/>
+
+            Missions are not decorative. Each mission executed by an Emissary:<br/>
+            • Generates <b>XP</b> (field experience)<br/>
+            • Stabilizes <b>Aura</b> (the Core's lifeblood)<br/>
+            • Eliminates threats<br/>
+            • Delays the collapse<br/><br/>
+
+            <span style="color: var(--gold);">XP is proof of action. Aura is fuel for survival.</span>
         </div>
 
         <div class="mono-block">
-            Understand this clearly:
+            <p style="color: var(--gold); font-weight: 600; font-size: 14px; margin-bottom: 10px;">THE PORTAL: A DESPERATE ACT</p>
 
-            • The Flame is weakening.  
-            • The realm cannot last without continuous missions.  
-            • Aura demand already exceeds supply.  
-            • If the Ember Core drops past critical, Emberholm will fracture — and whatever is pushing in from the outside will not stop at this world.
+            The Ember Core is dying, and something out there wants it dead.<br/><br/>
 
-            You are not just “playing.” You are supplying force to a failing reality.
+            Emberholm no longer has enough agents within its own borders to hold the line. So the Orders authorized something desperate — <b>the Portal</b>.<br/><br/>
 
-            The Realm is counting on you.
+            This Portal is an active bridge between our realm and yours.<br/><br/>
+
+            Through it, extra-planar bearers (you) can deploy Emissaries into Emberholm. You decide which heroes respond to which missions. You spend their Energy. You risk their safety. You stabilize our world.<br/><br/>
+
+            In return, their XP and Aura grow — and your status within the Realm becomes permanently recorded.
+        </div>
+
+        <div class="mono-block" style="border-left: 3px solid var(--error-red); padding-left: 15px; background: rgba(255, 68, 68, 0.05);">
+            <p style="color: var(--error-red); font-weight: 600; font-size: 14px; margin-bottom: 10px;">FINAL WARNING</p>
+
+            Understand this clearly:<br/><br/>
+
+            • The Flame is weakening.<br/>
+            • The realm cannot endure without continuous missions.<br/>
+            • The demand for Aura already exceeds supply.<br/><br/>
+
+            If the Ember Core drops below critical level, Emberholm will fracture — and whatever is pushing from outside <b>will not stop with this world</b>.<br/><br/>
+
+            <span style="color: var(--gold); font-weight: 600;">You are not "playing."</span><br/>
+            You are supplying strength to a collapsing reality.<br/><br/>
+
+            <b>The Realm is counting on you.</b>
         </div>
 
         <div class="mono-small-note">
@@ -2448,7 +1318,7 @@ function switchScreen(screenName){
     });
 }
 // --- BASIC NAV with active state ---
-const navButtons = document.querySelectorAll(".cmd-link");
+const navButtons = document.querySelectorAll(".cmd, .cmd-link");
 
 function setActiveButton(btn) {
     navButtons.forEach(b => b.classList.remove("is-active"));
@@ -2596,9 +1466,9 @@ async function connectWallet() {
                 }
             }
 
-            // CRITICAL: Wait and verify the switch actually happened
-            console.log("⏳ Esperando 3 segundos para que el cambio se complete...");
-            await new Promise(resolve => setTimeout(resolve, 3000));
+            // Wait briefly for network switch to complete
+            console.log("⏳ Verificando cambio de red...");
+            await new Promise(resolve => setTimeout(resolve, 1000));
 
             // Verify with direct chain ID check
             const verifyChainIdHex = await window.ethereum.request({ method: 'eth_chainId' });
@@ -2636,19 +1506,6 @@ async function connectWallet() {
         document.getElementById("wallet-display").textContent = address.slice(0, 6) + "..." + address.slice(-4);
         console.log(`✅ Wallet connected: ${address}`);
 
-        // 🔥 TRIPLE CHECK: Verify we're still on Base Sepolia before querying
-        const finalChainCheck = await window.ethereum.request({ method: 'eth_chainId' });
-        const finalChainId = parseInt(finalChainCheck, 16);
-        console.log(`🔍 FINAL CHAIN CHECK before blockchain query: ${finalChainId}`);
-
-        if (finalChainId !== BASE_SEPOLIA_CHAIN_ID) {
-            console.error(`❌ ABORT: Chain ID changed to ${finalChainId}! Expected ${BASE_SEPOLIA_CHAIN_ID}`);
-            alert(`🛑 ERROR: La red cambió!\n\nEstás en Chain ID ${finalChainId} pero necesitas Base Sepolia (${BASE_SEPOLIA_CHAIN_ID}).\n\nPor favor actualiza la página e intenta de nuevo.`);
-            document.getElementById("connect-wallet-btn").textContent = "[WRONG NETWORK!]";
-            document.getElementById("connect-wallet-btn").disabled = false;
-            return null;
-        }
-
         document.getElementById("connect-wallet-btn").textContent = "[QUERYING BLOCKCHAIN...]";
 
         // 🔥 Query NFT contract on Base Sepolia to get user's NFTs
@@ -2657,7 +1514,7 @@ async function connectWallet() {
             const abi = CONTRACT_CONFIG.ABI;
 
             console.log(`📜 Contract address: ${contractAddress}`);
-            console.log(`🌐 Network confirmed: Base Sepolia (Chain ID ${finalChainId})`);
+            console.log(`🌐 Querying on Base Sepolia (Chain ID ${BASE_SEPOLIA_CHAIN_ID})`);
 
             const contract = new ethers.Contract(contractAddress, abi, provider);
 
@@ -2744,13 +1601,8 @@ async function connectWallet() {
                 return null;
             } else {
                 const result = await response.json();
-                console.log("✅ NFT data and contract stats registered on backend");
-                console.log(`📊 Server synced ${result.synced_to_database || 0} NFTs to database`);
-
-                // 🔥 Mostrar confirmación de sincronización al usuario
-                if (result.synced_to_database > 0) {
-                    console.log(`✨ SUCCESS: ${result.synced_to_database} NFTs synchronized to server database!`);
-                }
+                console.log("✅ Wallet data cached on server");
+                console.log(`📦 ${result.token_ids_cached || 0} NFT IDs registered`);
             }
 
             if (tokenIds.length === 0 && balance.toNumber() > 0) {
@@ -2760,8 +1612,6 @@ async function connectWallet() {
                 console.log("ℹ️ No NFTs found for this wallet on Base Sepolia");
                 alert("ℹ️ Esta wallet no tiene NFTs en Base Sepolia.\n\nSi esperabas ver NFTs, verifica que estén minteados en la red correcta.");
             }
-
-            document.getElementById("connect-wallet-btn").textContent = "[CONNECTED ✓]";
 
             // 🔥 Update ACCESS LEVEL to EMBERHOLM EMISSARY with green color
             const accessLevelEl = document.getElementById("access-level");
@@ -2780,8 +1630,14 @@ async function connectWallet() {
             return null;
         }
 
+        // 🔥 Show loading feedback before fetching profile
+        document.getElementById("connect-wallet-btn").textContent = "[LOADING PROFILE...]";
+
         // Load profile immediately after connecting
         await loadPlayerAndRender();
+
+        // Update button to final state
+        document.getElementById("connect-wallet-btn").textContent = "[CONNECTED ✓]";
 
         // Update button visibility
         updateWalletButtonsVisibility();
@@ -2807,10 +1663,9 @@ function disconnectWallet() {
 
     // Update UI
     document.getElementById("wallet-display").textContent = "Not connected";
-    document.getElementById("connect-wallet-btn").style.display = "inline-block";
-    document.getElementById("connect-wallet-btn").textContent = "[CONNECT WALLET]";
-    document.getElementById("connect-wallet-btn").disabled = false;
-    document.getElementById("disconnect-wallet-btn").style.display = "none";
+
+    // Update all wallet buttons across all sections
+    updateAllWalletButtons();
 
     // Reset ACCESS LEVEL to CITIZEN
     const accessLevelEl = document.getElementById("access-level");
@@ -2831,15 +1686,25 @@ function disconnectWallet() {
 
 document.getElementById("disconnect-wallet-btn").addEventListener("click", disconnectWallet);
 
-// 🔥 Helper: Update button visibility based on connection state
-function updateWalletButtonsVisibility() {
-    if (connectedWallet) {
-        document.getElementById("connect-wallet-btn").style.display = "none";
-        document.getElementById("disconnect-wallet-btn").style.display = "inline-block";
+// 🔥 Helper: Update wallet buttons in Profile section
+function updateAllWalletButtons() {
+    const isConnected = !!connectedWallet;
+
+    // Botones de Profile
+    document.getElementById("connect-wallet-btn").style.display = isConnected ? "none" : "inline-block";
+    document.getElementById("disconnect-wallet-btn").style.display = isConnected ? "inline-block" : "none";
+
+    // Actualizar texto del botón de Profile
+    if (isConnected) {
+        document.getElementById("connect-wallet-btn").textContent = "[CONNECTED ✓]";
     } else {
-        document.getElementById("connect-wallet-btn").style.display = "inline-block";
-        document.getElementById("disconnect-wallet-btn").style.display = "none";
+        document.getElementById("connect-wallet-btn").textContent = "[CONNECT WALLET]";
     }
+}
+
+// 🔥 LEGACY: Mantener para compatibilidad
+function updateWalletButtonsVisibility() {
+    updateAllWalletButtons();
 }
 
 // 🔥 Listen for network changes
@@ -2862,23 +1727,30 @@ if (window.ethereum) {
     window.ethereum.on('accountsChanged', (accounts) => {
         console.log(`🔄 Account changed! New account: ${accounts[0] || 'none'}`);
         if (accounts.length === 0) {
-            console.log("⚠️ User disconnected wallet");
-            connectedWallet = null;
-            document.getElementById("wallet-display").textContent = "NOT CONNECTED";
-            document.getElementById("connect-wallet-btn").textContent = "[CONNECT WALLET]";
-            document.getElementById("connect-wallet-btn").disabled = false;
-
-            // 🔥 Reset ACCESS LEVEL to CITIZEN with default color
-            const accessLevelEl = document.getElementById("access-level");
-            accessLevelEl.textContent = "ACCESS LEVEL: [CITIZEN]";
-            accessLevelEl.style.color = ""; // Reset to default color
-            console.log("🔄 Access level downgraded to CITIZEN");
-
-            // Update button visibility
-            updateWalletButtonsVisibility();
+            // User disconnected wallet
+            console.log("⚠️ User disconnected wallet from MetaMask");
+            disconnectWallet();
         } else {
-            console.log("🔄 Reloading page due to account change");
-            window.location.reload();
+            // User switched to a different account
+            const newAccount = accounts[0].toLowerCase();
+            console.log(`🔄 Switched to new account: ${newAccount}`);
+
+            // Update connected wallet
+            connectedWallet = newAccount;
+
+            // Update UI
+            document.getElementById("wallet-display").textContent = newAccount.slice(0, 6) + "..." + newAccount.slice(-4);
+
+            // Update all wallet buttons
+            updateAllWalletButtons();
+
+            // Show notification
+            showInfoModal("WALLET CHANGED", `Switched to new wallet:\n${newAccount}\n\nYour profile and stats will be reloaded.`);
+
+            // Reload player data for new wallet
+            loadPlayerAndRender();
+
+            console.log("✅ Account switched successfully");
         }
     });
 }
@@ -2953,18 +1825,14 @@ async function fetchGuildsAndRender(){
         let html = "";
         guilds.forEach(g=>{
             html += `
-            <div class="guild-entry">
-                <img src="${g.badge}" alt="${g.name} badge" class="guild-badge"/>
+            <div class="guild-entry" style="display:flex; align-items:center; gap:15px; margin-bottom:15px; padding:12px; background:var(--bg-panel); border:1px solid var(--border-primary); border-left:3px solid var(--gold);">
+                <img src="${g.badge}" alt="${g.name} badge" style="width:60px; height:60px; object-fit:contain; filter:drop-shadow(0 0 10px rgba(255, 204, 0, 0.3));"/>
                 <div style="flex:1">
-                    <div style="font-weight:bold;text-transform:uppercase;margin-bottom:4px;">
+                    <div style="font-weight:bold;text-transform:uppercase;margin-bottom:6px;color:var(--gold);font-family:'Alagard',serif;font-size:16px;">
                         ${g.name} – ${g.flavor}
                     </div>
-                    <div>
-                        Members: ${g.members || 0} |
-                        Total XP: ${g.total_xp || 0} |
-                        Total Aura: ${g.total_aura || 0}<br/>
-                        Avg XP: ${g.avg_xp || 0} |
-                        Avg Aura: ${g.avg_aura || 0}
+                    <div style="font-size:12px;color:var(--primary-green);font-family:'Share Tech Mono',monospace;">
+                        Members: ${g.members || 0} | Total XP: ${g.total_xp || 0} | Total Aura: ${g.total_aura || 0} | Avg XP: ${g.avg_xp || 0} | Avg Aura: ${g.avg_aura || 0}
                     </div>
                 </div>
             </div>
@@ -3032,8 +1900,8 @@ async function fetchMissionsAndRender(){
                     </div>
                     <div style="margin-left:20px;">
                         ${connectedWallet
-                            ? `<button class="cmd-link" onclick="openMissionSendModal('${m.id}')">[SEND]</button>`
-                            : `<button class="cmd-link" style="opacity:0.5;" onclick="showInfoModal('WALLET REQUIRED', 'Please connect your wallet using the [CONNECT WALLET] button in the PROFILE section.')">[WALLET REQUIRED]</button>`
+                            ? `<button class="cmd" onclick="openMissionSendModal('${m.id}')">[SEND]</button>`
+                            : `<button class="cmd" style="opacity:0.5;" onclick="showInfoModal('WALLET REQUIRED', 'Please connect your wallet using the [CONNECT WALLET] button in the PROFILE section.')">[WALLET REQUIRED]</button>`
                         }
                     </div>
                 </div>
@@ -3106,10 +1974,10 @@ async function fetchEventsAndRender(){
                     </div>
                     <div style="margin-left:20px;">
                         ${connectedWallet && isActive
-                            ? `<button class="cmd-link" onclick="openEventSendModal('${e.id}')">[PARTICIPATE]</button>`
+                            ? `<button class="cmd" onclick="openEventSendModal('${e.id}')">[PARTICIPATE]</button>`
                             : !connectedWallet
-                            ? `<button class="cmd-link" style="opacity:0.5;" onclick="showInfoModal('WALLET REQUIRED', 'Please connect your wallet using the [CONNECT WALLET] button in the PROFILE section.')">[WALLET REQUIRED]</button>`
-                            : `<button class="cmd-link" style="opacity:0.5;">[ENDED]</button>`
+                            ? `<button class="cmd" style="opacity:0.5;" onclick="showInfoModal('WALLET REQUIRED', 'Please connect your wallet using the [CONNECT WALLET] button in the PROFILE section.')">[WALLET REQUIRED]</button>`
+                            : `<button class="cmd" style="opacity:0.5;">[ENDED]</button>`
                         }
                     </div>
                 </div>
@@ -3206,13 +2074,22 @@ async function loadPlayerAndRender(){
         return;
     }
 
-    // 🔥 Ensure missions data is loaded before rendering profile
-    await loadMissionsData();
-
     const wallet = connectedWallet;
 
+    // 🔥 Show loading state immediately
+    document.getElementById("wallet-summary").innerHTML = `<div style="color:#ffaa00;">⏳ Loading profile...</div>`;
+    document.getElementById("prime-emissary-img").innerHTML = `<div style="color:#ffaa00; font-size:14px;">⏳ Loading...</div>`;
+    document.getElementById("prime-emissary-desc").innerHTML = "Fetching your NFTs...";
+    document.getElementById("roster-table-wrap").innerHTML = "";
+
     try {
-        const player = await fetchJSON(`/api/player/${encodeURIComponent(wallet)}`);
+        // 🔥 OPTIMIZACIÓN: Cargar missions y player en PARALELO (no bloquea UI)
+        const [missionsData, player] = await Promise.all([
+            loadMissionsData(),
+            fetchJSON(`/api/player/${encodeURIComponent(wallet)}`)
+        ]);
+
+        console.log("✅ Profile and missions data loaded in parallel");
 
         const totals = player.totals || {};
         const walletSummaryEl = document.getElementById("wallet-summary");
@@ -3247,7 +2124,7 @@ async function loadPlayerAndRender(){
 
             if(prime.image_url){
                 primeImgEl.innerHTML = `<img src="${prime.image_url}"
-                    style="max-width:128px;max-height:128px;image-rendering:pixelated;object-fit:contain;"
+                    style="max-width:140px;max-height:140px;image-rendering:pixelated;object-fit:contain;"
                     alt="${prime.name}"/>`;
             } else {
                 primeImgEl.textContent = prime.token_id || "NO IMG";
@@ -3255,13 +2132,16 @@ async function loadPlayerAndRender(){
 
             const ds = prime.dynamic_state || {};
             primeDescEl.innerHTML = `
-                <div>Id: ${prime.token_id}</div>
-                <div><b>${prime.name || prime.token_id}</b></div>
-                <div>${prime.race_class || ""}</div>
-                <div>Guild: ${prime.guild || ds.current_guild || "UNKNOWN"}</div>
-                <div>XP: ${ds.xp_total || 0} | Aura: ${ds.aura_level || 0}</div>
-                <div>Energy: ${ds.energy_current || 0}/${ds.energy_max || 100}</div>
-                <div>Status: ${ds.state || "READY"}</div>
+                <div class="emissary-data-grid">
+                    <span class="label">Id:</span><span class="value">${prime.token_id}</span>
+                    <span class="label">Emissary:</span><span class="value"><b>${prime.name || prime.token_id}</b></span>
+                    <span class="label">Class:</span><span class="value">${prime.race_class || ""}</span>
+                    <span class="label">Guild:</span><span class="value">${prime.guild || ds.current_guild || "UNKNOWN"}</span>
+                    <span class="label">XP:</span><span class="value">${ds.xp_total || 0}</span>
+                    <span class="label">Aura:</span><span class="value">${ds.aura_level || 0}</span>
+                    <span class="label">Energy:</span><span class="value">${ds.energy_current || 0}/${ds.energy_max || 100}</span>
+                    <span class="label">Status:</span><span class="value">${ds.state || "READY"}</span>
+                </div>
             `;
         } else {
             primeImgEl.textContent = "NO DATA";
@@ -3340,13 +2220,13 @@ async function loadPlayerAndRender(){
             let actionButtons = "";
             if (state === "READY") {
                 actionButtons = `
-                    <button class="terminal-btn small-btn" onclick="openMissionListModal('${h.token_id}')">
+                    <button class="cmd" onclick="openMissionListModal('${h.token_id}')">
                         [SEND]
                     </button>`;
             } else if (state === "ON_MISSION") {
                 if (missionComplete) {
                     actionButtons = `
-                        <button class="terminal-btn small-btn complete-btn" data-hero="${h.token_id}" style="color:#44ff44;">
+                        <button class="cmd complete-btn" data-hero="${h.token_id}" style="color:#44ff44;">
                             [CLAIM REWARDS]
                         </button>`;
                 } else {
@@ -3365,14 +2245,49 @@ async function loadPlayerAndRender(){
                     }
 
                     actionButtons = `
-                        <button class="terminal-btn small-btn" disabled style="opacity:0.5; cursor:not-allowed;">
+                        <button class="cmd" disabled style="opacity:0.5; cursor:not-allowed;">
                             [IN PROGRESS]
                         </button>
                         ${progressHtml}`;
                 }
             } else if (state === "FALLEN") {
                 actionButtons = `
-                    <button class="terminal-btn small-btn reinvoke-btn" data-hero="${h.token_id}" style="color:#ff4444;">
+                    <button class="cmd" disabled style="opacity:0.5; cursor:not-allowed;">
+                        [SEND]
+                    </button>`;
+            }
+
+            // Botón REINVOKE - solo habilitado si FALLEN
+            let reinvokeButton = "";
+            const deathCount = ds.death_count || 0;
+
+            if (state === "FALLEN") {
+                // Calcular costos escalables según death count
+                let xpCost, auraCost;
+                if (deathCount === 0) {
+                    xpCost = 500;
+                    auraCost = 100;
+                } else if (deathCount === 1) {
+                    xpCost = 1500;
+                    auraCost = 300;
+                } else if (deathCount === 2) {
+                    xpCost = 5000;
+                    auraCost = 1000;
+                } else {
+                    xpCost = 10000;
+                    auraCost = 2500;
+                }
+
+                reinvokeButton = `
+                    <button class="cmd reinvoke-btn" data-hero="${h.token_id}" style="color:#ff4444;">
+                        [REINVOKE]
+                    </button>
+                    <div style="font-size:0.65rem; color:#888; margin-top:4px;">
+                        Cost: ${xpCost} XP<br/>${auraCost} Aura
+                    </div>`;
+            } else {
+                reinvokeButton = `
+                    <button class="cmd" disabled style="opacity:0.3; cursor:not-allowed;">
                         [REINVOKE]
                     </button>`;
             }
@@ -3390,7 +2305,7 @@ async function loadPlayerAndRender(){
                         </div>
                         <div>
                             <div>${h.name || h.token_id}</div>
-                            <button class="terminal-btn" style="font-size:0.6rem; padding:2px 6px; margin-top:2px;"
+                            <button class="cmd" style="font-size:0.6rem; padding:2px 6px; margin-top:2px;"
                                     onclick="downloadNFTImage('${h.image_url}', '${h.token_id}')"
                                     title="Download NFT Image">
                                 [↓ IMG]
@@ -3406,10 +2321,11 @@ async function loadPlayerAndRender(){
                 <td style="color:${stateColor};">${stateText}${timeRemainingHtml}</td>
                 <td>${actionButtons}</td>
                 <td>
-                    <button class="terminal-btn small-btn recover-btn" data-hero="${h.token_id}">
+                    <button class="cmd recover-btn" data-hero="${h.token_id}">
                         [RECOVER]
                     </button>
                 </td>
+                <td>${reinvokeButton}</td>
             </tr>`;
         });
 
@@ -3426,6 +2342,7 @@ async function loadPlayerAndRender(){
                         <th>STATE</th>
                         <th>SEND</th>
                         <th>RECOVER</th>
+                        <th>REINVOKE</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -3524,57 +2441,7 @@ async function loadPlayerAndRender(){
         document.querySelectorAll(".recover-btn").forEach(btn=>{
             btn.addEventListener("click", async ()=>{
                 const heroId = btn.getAttribute("data-hero");
-
-                const amountStr = window.prompt(
-                    "EMERGENCY FIELD RECOVERY:\n" +
-                    "How much ENERGY do you want to restore to this Emissary?\n\n" +
-                    "Cost: 5 XP per 1 Energy.\n\n" +
-                    "Enter amount (number):",
-                    "10"
-                );
-                if(!amountStr) return;
-                const energyRequest = parseInt(amountStr,10);
-                if(isNaN(energyRequest) || energyRequest <= 0){
-                    alert("Invalid amount.");
-                    return;
-                }
-
-                if (!connectedWallet) {
-                    alert("Please connect your wallet first!");
-                    return;
-                }
-
-                try {
-                    const res = await fetch("/api/player/spend_xp_for_energy", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({
-                            wallet: connectedWallet,
-                            hero_id: heroId,
-                            energy_request: energyRequest
-                        })
-                    });
-
-                    if(!res.ok){
-                        const errText = await res.text();
-                        alert("RECOVERY FAILED:\n" + errText);
-                        return;
-                    }
-
-                    const dataAfter = await res.json();
-
-                    alert(
-                        "RECOVERY COMPLETE\n\n" +
-                        "Hero: #" + dataAfter.hero_id + "\n" +
-                        "Energy Now: " + dataAfter.energy_current + "\n" +
-                        "XP Remaining: " + dataAfter.xp_total
-                    );
-
-                    loadPlayerAndRender();
-                } catch(e){
-                    console.error(e);
-                    alert("RECOVERY ERROR: connection issue.");
-                }
+                openRecoveryModal(heroId);
             });
         });
 
@@ -3865,6 +2732,14 @@ function toggleMusicMute(){
 function updateMusicVolume(){
     const v = parseInt(volumeSliderEl.value,10)/100;
     audioPlayer.volume = v;
+
+    // Update visual display
+    const displayEl = document.getElementById("volume-display");
+    if (displayEl) {
+        const filled = Math.floor((v * 10));
+        const empty = 10 - filled;
+        displayEl.textContent = `VOL ${'▓'.repeat(filled)}${'░'.repeat(empty)}`;
+    }
 }
 
 // listeners
@@ -3903,7 +2778,7 @@ setTimeout(() => {
 }, 2000);
 
 window.addEventListener("DOMContentLoaded", () => {
-    const homeBtn = document.querySelector('.cmd-link[data-target="home"]');
+    const homeBtn = document.querySelector('[data-target="home"]');
     if (homeBtn) {
         homeBtn.classList.add("is-active");
     }
@@ -3914,6 +2789,18 @@ window.addEventListener("DOMContentLoaded", () => {
     fetchGuildsAndRender();
     fetchMissionsAndRender();
     fetchEventsAndRender();
+
+    // 🔥 POLLING: Refresh stats every 60 seconds
+    // Simple, reliable polling without WebSocket complexity
+    setInterval(() => {
+        const activeScreen = document.querySelector('.screen.active');
+        if (activeScreen && activeScreen.dataset.screen === 'guilds') {
+            // Only refresh if user is viewing STATS/GUILDS section
+            fetchStatsAndRender();
+            fetchGuildsAndRender();
+            console.log("📊 Polling refresh (60s interval)");
+        }
+    }, 60000); // 60 seconds
 });
 
 /* ========== CUSTOM MODAL FUNCTIONS ========== */
@@ -3953,6 +2840,94 @@ function hideModal(modalId) {
     const modal = document.getElementById(modalId);
     if (modal) {
         modal.classList.remove('active');
+    }
+}
+
+// Open Recovery Modal
+async function openRecoveryModal(heroId) {
+    if (!connectedWallet) {
+        showInfoModal("WALLET REQUIRED", "Please connect your wallet first!");
+        return;
+    }
+
+    try {
+        const player = await fetchJSON(`/api/player/${encodeURIComponent(connectedWallet)}`);
+        const hero = (player.heroes || []).find(h => h.token_id === heroId);
+
+        if (!hero) {
+            showInfoModal("ERROR", "Emissary not found!");
+            return;
+        }
+
+        const ds = hero.dynamic_state || {};
+
+        // Populate modal
+        document.getElementById('recovery-hero-name').textContent = hero.name || `#${heroId}`;
+        document.getElementById('recovery-current-energy').textContent = ds.energy_current || 0;
+        document.getElementById('recovery-max-energy').textContent = ds.energy_max || 100;
+        document.getElementById('recovery-available-xp').textContent = ds.xp_total || 0;
+
+        const recoveryInput = document.getElementById('recovery-amount');
+        const costDisplay = document.getElementById('recovery-cost-value');
+
+        // Update cost display on input change
+        recoveryInput.oninput = function() {
+            const amount = parseInt(this.value) || 0;
+            const cost = amount * 5;
+            costDisplay.textContent = cost;
+        };
+
+        // Reset to default
+        recoveryInput.value = 10;
+        costDisplay.textContent = 50;
+
+        // Handle confirm button
+        document.getElementById('recovery-confirm-btn').onclick = async function() {
+            const energyRequest = parseInt(recoveryInput.value) || 0;
+
+            if (energyRequest <= 0) {
+                showInfoModal("INVALID AMOUNT", "Please enter a valid energy amount!");
+                return;
+            }
+
+            hideModal('recovery-modal');
+
+            try {
+                const res = await fetch("/api/player/spend_xp_for_energy", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        wallet: connectedWallet,
+                        hero_id: heroId,
+                        energy_request: energyRequest
+                    })
+                });
+
+                if(!res.ok){
+                    const errText = await res.text();
+                    showInfoModal("RECOVERY FAILED", errText);
+                    return;
+                }
+
+                const dataAfter = await res.json();
+
+                showInfoModal(
+                    "RECOVERY COMPLETE",
+                    `Hero: #${dataAfter.hero_id}\nEnergy Now: ${dataAfter.energy_current}\nXP Remaining: ${dataAfter.xp_total}`
+                );
+
+                loadPlayerAndRender();
+            } catch(e){
+                console.error(e);
+                showInfoModal("ERROR", "RECOVERY ERROR: connection issue.");
+            }
+        };
+
+        showModal('recovery-modal');
+
+    } catch(e) {
+        console.error(e);
+        showInfoModal("ERROR", "Failed to load emissary data!");
     }
 }
 
@@ -4060,30 +3035,46 @@ function showPartyMissionWarning(missionName) {
 
 // Open Hero Selection Modal (from MISSIONS)
 async function openMissionSendModal(missionId) {
+    console.log(`[DEBUG] openMissionSendModal called with missionId: ${missionId}`);
+
     if (!connectedWallet) {
+        console.log(`[DEBUG] Wallet not connected`);
         showInfoModal("WALLET REQUIRED", "Please connect your wallet first!");
         return;
     }
 
+    console.log(`[DEBUG] Loading missions data...`);
     const missions = await loadMissionsData();
+    console.log(`[DEBUG] Missions loaded:`, missions);
+
     const mission = missions.find(m => m.id === missionId);
+    console.log(`[DEBUG] Found mission:`, mission);
+
     if (!mission) {
+        console.log(`[ERROR] Mission ${missionId} not found in missions array`);
         showInfoModal("ERROR", "⚠️ Mission not found");
         return;
     }
 
     // 🔥 PARTY MISSION DETECTION: If mission requires party_size, redirect to party modal
     if (mission.party_size && mission.party_size === 5) {
+        console.log(`[DEBUG] Mission ${missionId} is a party mission, redirecting to party modal`);
         await openPartyMissionModal(missionId);
         return;
     }
 
+    console.log(`[DEBUG] Mission ${missionId} is a solo mission, loading heroes...`);
+
     try {
         const player = await fetchJSON(`/api/player/${encodeURIComponent(connectedWallet)}`);
+        console.log(`[DEBUG] Player data loaded:`, player);
+
         const readyHeroes = (player.heroes || []).filter(h => {
             const ds = h.dynamic_state || {};
             return ds.state === "READY";
         });
+
+        console.log(`[DEBUG] Ready heroes count: ${readyHeroes.length}`);
 
         if (readyHeroes.length === 0) {
             showInfoModal("NO EMISSARIES", "⚠️ No emissaries available!\n\nAll your emissaries are either on mission or fallen.");
@@ -4097,8 +3088,12 @@ async function openMissionSendModal(missionId) {
             const energyCost = mission.energy_cost || 0;
             const hasEnoughEnergy = ds.energy_current >= energyCost;
             const disabledClass = hasEnoughEnergy ? '' : 'disabled';
+
+            // Escape apostrophes in mission name to prevent syntax errors
+            const safeMissionName = mission.name.replace(/'/g, "\\'");
+
             const clickHandler = hasEnoughEnergy ?
-                `onclick="selectHero('${hero.token_id}', '${missionId}', '${mission.name}')"` :
+                `onclick="selectHero('${hero.token_id}', '${missionId}', '${safeMissionName}')"` :
                 '';
 
             modalHTML += `
@@ -4121,13 +3116,14 @@ async function openMissionSendModal(missionId) {
             `;
         });
 
+        console.log(`[DEBUG] Opening hero selection modal for mission: ${mission.name}`);
         document.getElementById('hero-select-title').textContent =
             `SELECT EMISSARY FOR: ${mission.name}`;
         document.getElementById('hero-select-body').innerHTML = modalHTML;
         showModal('hero-select-modal');
 
     } catch (e) {
-        console.error(e);
+        console.error(`[ERROR] Error in openMissionSendModal:`, e);
         showInfoModal("ERROR", "❌ Error loading emissaries: " + e.message);
     }
 }
@@ -4292,11 +3288,14 @@ async function openPartyMissionModal(missionId) {
             `;
         });
 
+        // Escape apostrophes in mission name for party button
+        const safeMissionName = mission.name.replace(/'/g, "\\'");
+
         modalHTML += `
             <div style="margin-top:16px; text-align:center;">
                 <button id="party-start-btn"
-                        class="terminal-btn"
-                        onclick="startPartyMission('${missionId}', '${mission.name}')"
+                        class="cmd"
+                        onclick="startPartyMission('${missionId}', '${safeMissionName}')"
                         disabled
                         style="opacity:0.5; cursor:not-allowed;">
                     [START PARTY MISSION]
@@ -4446,7 +3445,7 @@ async function startPartyMission(missionId, missionName) {
         <div class="terminal-modal-body">
             <div class="modal-message" id="info-modal-message"></div>
             <div class="modal-buttons">
-                <button class="modal-btn" onclick="hideModal('info-modal')">OK</button>
+                <button class="cmd" onclick="hideModal('info-modal')">[OK]</button>
             </div>
         </div>
     </div>
@@ -4462,8 +3461,52 @@ async function startPartyMission(missionId, missionName) {
         <div class="terminal-modal-body">
             <div class="modal-message" id="confirm-modal-message"></div>
             <div class="modal-buttons">
-                <button class="modal-btn" id="confirm-yes-btn">YES</button>
-                <button class="modal-btn danger" onclick="closeConfirmModal()">NO</button>
+                <button class="cmd" id="confirm-yes-btn">[YES]</button>
+                <button class="cmd" style="border-color: var(--error-red); color: var(--error-red);" onclick="closeConfirmModal()">[NO]</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- EMERGENCY FIELD RECOVERY MODAL -->
+<div id="recovery-modal" class="modal-overlay">
+    <div class="terminal-modal" style="max-width: 450px;">
+        <div class="terminal-modal-header">
+            EMERGENCY FIELD RECOVERY
+            <button class="terminal-modal-close" onclick="hideModal('recovery-modal')">×</button>
+        </div>
+        <div class="terminal-modal-body">
+            <!-- Info Grid -->
+            <div class="recovery-info-grid">
+                <span class="recovery-label">Emissary:</span>
+                <span id="recovery-hero-name" class="recovery-value">---</span>
+
+                <span class="recovery-label">Energy:</span>
+                <span class="recovery-value"><span id="recovery-current-energy">0</span>/<span id="recovery-max-energy">100</span></span>
+
+                <span class="recovery-label">Available XP:</span>
+                <span id="recovery-available-xp" class="recovery-value">0</span>
+            </div>
+
+            <!-- Cost Info -->
+            <div class="recovery-cost-box">
+                <strong>RATE:</strong> 5 XP per 1 Energy
+            </div>
+
+            <!-- Input Row -->
+            <div class="recovery-input-row">
+                <div style="flex: 1;">
+                    <label class="recovery-input-label">ENERGY:</label>
+                    <input type="number" id="recovery-amount" min="1" max="100" value="10" class="recovery-input"/>
+                </div>
+                <div class="recovery-cost-display">
+                    COST: <strong><span id="recovery-cost-value">50</span> XP</strong>
+                </div>
+            </div>
+
+            <div class="modal-buttons">
+                <button class="cmd" id="recovery-confirm-btn">[CONFIRM]</button>
+                <button class="cmd" style="border-color: var(--error-red); color: var(--error-red);" onclick="hideModal('recovery-modal')">[CANCEL]</button>
             </div>
         </div>
     </div>
