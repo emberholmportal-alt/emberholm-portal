@@ -4,9 +4,10 @@
    =============================================================== */
 
 /* ===============================================================
-   FUENTES - Terminal CRT Style 1975
+   FUENTES
    =============================================================== */
-@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=VT323&family=Courier+Prime:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;600;700&display=swap');
+@import url('https://fonts.cdnfonts.com/css/alagard');
 
 /* ===============================================================
    VARIABLES CSS
@@ -39,13 +40,6 @@
     --border-primary: rgba(68, 170, 255, 0.3);
     --border-bright: rgba(68, 170, 255, 0.6);
     --border-gold: rgba(255, 204, 0, 0.4);
-
-    /* Text Glow Effects - CRT Terminal 1975 */
-    --glow-green: #33ff33;          /* Verde CRT fosforescente */
-    --glow-cyan: #00ffff;           /* Cyan brillante */
-    --glow-yellow: #ffff00;         /* Amarillo puro */
-    --glow-red: #ff0000;            /* Rojo puro */
-    --glow-magenta: #ff00ff;        /* Magenta brillante */
 }
 
 /* ===============================================================
@@ -63,7 +57,7 @@ body {
         radial-gradient(circle at 20% 50%, rgba(68, 170, 255, 0.03) 0%, transparent 50%),
         radial-gradient(circle at 80% 80%, rgba(255, 204, 0, 0.02) 0%, transparent 50%);
     color: var(--primary-green);
-    font-family: 'IBM Plex Mono', 'Courier New', monospace;
+    font-family: 'Share Tech Mono', 'Courier New', monospace;
     font-size: 14px;
     line-height: 1.6;
     min-height: 100vh;
@@ -181,59 +175,6 @@ body::before {
     }
 }
 
-@keyframes blink {
-    0%, 50% { opacity: 1; }
-    51%, 100% { opacity: 0; }
-}
-
-/* ===============================================================
-   EFECTOS DE TEXTO - Terminal CRT Glow
-   =============================================================== */
-
-/* Glow Verde Terminal CRT */
-.console-title,
-.window-title,
-h1,
-.block-title,
-.panel-header,
-.campaign-title,
-.section-title {
-    text-shadow: 0 0 10px var(--glow-yellow);
-}
-
-/* Glow Cyan para elementos hover y activos */
-.terminal-button:hover,
-.audio-btn:hover,
-.cmd:hover,
-.nav-button:hover {
-    text-shadow: 0 0 10px var(--glow-cyan);
-}
-
-/* Glow Rojo para elementos críticos */
-.critical-status,
-.alert-title,
-.warning-title,
-.monitor-title,
-.status-panel-title,
-.critical {
-    text-shadow: 0 0 8px var(--glow-red);
-}
-
-/* Animaciones de texto */
-.blink {
-    animation: blink 1s infinite;
-}
-
-.pulse-text {
-    animation: pulse 2s infinite;
-}
-
-/* Cursor terminal */
-.cursor::after {
-    content: '█';
-    animation: blink 1s infinite;
-}
-
 /* ===============================================================
    CONTAINER PRINCIPAL
    =============================================================== */
@@ -266,7 +207,7 @@ h1,
 }
 
 .console-title {
-    font-family: 'VT323', serif;
+    font-family: 'Alagard', serif;
     font-size: 16px;
     color: var(--gold);
     letter-spacing: 2px;
@@ -274,7 +215,7 @@ h1,
 }
 
 .console-subtitle {
-    font-family: 'IBM Plex Mono', sans-serif;
+    font-family: 'Rajdhani', sans-serif;
     font-size: 11px;
     color: var(--dim-green);
     text-transform: uppercase;
@@ -303,7 +244,7 @@ h1,
     border: 1px solid var(--border-primary);
     color: var(--primary-green);
     padding: 5px 12px;
-    font-family: 'IBM Plex Mono', sans-serif;
+    font-family: 'Rajdhani', sans-serif;
     font-size: 11px;
     font-weight: 600;
     cursor: pointer;
@@ -336,7 +277,7 @@ h1,
 
 .window-title,
 h1 {
-    font-family: 'VT323', serif;
+    font-family: 'Alagard', serif;
     font-size: 22px;
     color: var(--gold);
     letter-spacing: 2px;
@@ -348,7 +289,7 @@ h1 {
     display: flex;
     justify-content: space-around;
     font-size: 12px;
-    font-family: 'IBM Plex Mono', sans-serif;
+    font-family: 'Rajdhani', sans-serif;
     color: var(--dim-green);
 }
 
@@ -392,7 +333,7 @@ h1 {
     border: 1px solid var(--border-primary);
     color: var(--primary-green);
     padding: 10px 15px;
-    font-family: 'IBM Plex Mono', sans-serif;
+    font-family: 'Rajdhani', sans-serif;
     font-size: 11px;
     font-weight: 600;
     cursor: pointer;
@@ -433,7 +374,7 @@ h1 {
     text-align: center;
     font-size: 11px;
     color: var(--dim-green);
-    font-family: 'IBM Plex Mono', sans-serif;
+    font-family: 'Rajdhani', sans-serif;
     text-transform: uppercase;
     letter-spacing: 1.5px;
 }
@@ -519,7 +460,7 @@ h1 {
 .panel-header,
 .campaign-title,
 .section-title {
-    font-family: 'VT323', serif;
+    font-family: 'Alagard', serif;
     font-size: 18px;
     color: var(--gold);
     margin-bottom: 15px;
@@ -558,7 +499,7 @@ h1 {
 
 .alert-title,
 .warning-title {
-    font-family: 'IBM Plex Mono', sans-serif;
+    font-family: 'Rajdhani', sans-serif;
     font-size: 12px;
     font-weight: 700;
     text-transform: uppercase;
@@ -574,7 +515,7 @@ h1 {
 .campaign-text,
 .block-content,
 p {
-    font-family: 'IBM Plex Mono', monospace;
+    font-family: 'Share Tech Mono', monospace;
     font-size: 13px;
     color: var(--primary-green);
     line-height: 1.8;
@@ -602,7 +543,7 @@ strong {
 
 .monitor-title,
 .status-panel-title {
-    font-family: 'IBM Plex Mono', sans-serif;
+    font-family: 'Rajdhani', sans-serif;
     font-size: 14px;
     font-weight: 700;
     text-transform: uppercase;
@@ -617,7 +558,7 @@ strong {
     font-size: 12px;
     color: var(--primary-green);
     margin: 8px 0;
-    font-family: 'IBM Plex Mono', monospace;
+    font-family: 'Share Tech Mono', monospace;
 }
 
 .monitor-line .critical,
@@ -643,7 +584,7 @@ strong {
 
 .log-header,
 .feed-title {
-    font-family: 'IBM Plex Mono', sans-serif;
+    font-family: 'Rajdhani', sans-serif;
     font-size: 14px;
     font-weight: 700;
     text-transform: uppercase;
@@ -671,7 +612,7 @@ strong {
     padding: 8px 12px;
     border-left: 2px solid rgba(68, 170, 255, 0.2);
     transition: all 0.2s;
-    font-family: 'IBM Plex Mono', monospace;
+    font-family: 'Share Tech Mono', monospace;
 }
 
 .log-entry:hover,
