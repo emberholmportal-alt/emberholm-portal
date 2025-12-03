@@ -32,10 +32,10 @@
     --info-cyan: #4df;                  /* Cyan información */
 
     /* Backgrounds */
-    --bg-primary: #000;                 /* Negro principal */
-    --bg-secondary: #0a0a0f;            /* Negro secundario */
-    --bg-panel: #0f0f14;                /* Paneles */
-    --bg-elevated: #14141a;             /* Elementos elevados */
+    --bg-primary: #1a100a;              /* Marrón oscuro principal */
+    --bg-secondary: #2a1510;            /* Marrón oscuro secundario */
+    --bg-panel: #0f0a08;                /* Paneles marrón */
+    --bg-elevated: #25180f;             /* Elementos elevados marrón */
 
     /* Borders */
     --border-primary: rgba(201, 162, 39, 0.3);
