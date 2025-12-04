@@ -1,11 +1,12 @@
 /* ===============================================================
    EMBERHOLM PORTAL - HACKNET CLEAN + CRT DESIGN
-   Cyan terminal aesthetic with gold accents
+   Orange/Amber terminal aesthetic - Retro 80s style
    =============================================================== */
 
 /* ===============================================================
    FUENTES
    =============================================================== */
+@import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;600;700&display=swap');
 @import url('https://fonts.cdnfonts.com/css/alagard');
 @import url('https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;500;600;700&display=swap');
@@ -14,33 +15,33 @@
    VARIABLES CSS
    =============================================================== */
 :root {
-    /* Hacknet Color Scheme */
-    --primary-green: #4af;              /* Azul cyan principal */
-    --bright-green: #6cf;               /* Cyan brillante */
-    --dim-green: #2a8;                  /* Cyan apagado */
-    --dark-green: #164;                 /* Cyan oscuro */
+    /* Orange/Amber Color Scheme */
+    --primary-green: #ff8800;           /* Naranja brillante principal */
+    --bright-green: #ffaa00;            /* Ámbar brillante */
+    --dim-green: #884400;               /* Naranja apagado */
+    --dark-green: #442200;              /* Marrón oscuro */
 
     /* Emberholm Accents */
-    --gold: #fc0;                       /* Amarillo dorado */
-    --gold-bright: #fd4;                /* Dorado brillante */
-    --gold-dim: #ca0;                   /* Dorado apagado */
+    --gold: #ffaa00;                    /* Ámbar dorado */
+    --gold-bright: #ffcc00;             /* Ámbar muy brillante */
+    --gold-dim: #cc8800;                /* Ámbar apagado */
 
     /* System States */
     --error-red: #f24;                  /* Rojo error */
-    --warning-orange: #f80;             /* Naranja warning */
-    --success-green: #4f8;              /* Verde éxito */
-    --info-cyan: #4df;                  /* Cyan información */
+    --warning-orange: #ff8800;          /* Naranja warning */
+    --success-green: #ffaa00;           /* Ámbar éxito */
+    --info-cyan: #ff8800;               /* Naranja información */
 
     /* Backgrounds */
-    --bg-primary: #000;                 /* Negro principal */
-    --bg-secondary: #0a0a0f;            /* Negro secundario */
-    --bg-panel: #0f0f14;                /* Paneles */
-    --bg-elevated: #14141a;             /* Elementos elevados */
+    --bg-primary: #000;                 /* Negro absoluto */
+    --bg-secondary: #0a0500;            /* Negro con tinte naranja */
+    --bg-panel: #0f0a05;                /* Panel oscuro */
+    --bg-elevated: #14100a;             /* Elementos elevados */
 
     /* Borders */
-    --border-primary: rgba(201, 162, 39, 0.3);
-    --border-bright: rgba(201, 162, 39, 0.6);
-    --border-gold: rgba(201, 162, 39, 0.4);
+    --border-primary: rgba(255, 136, 0, 0.3);
+    --border-bright: rgba(255, 136, 0, 0.6);
+    --border-gold: rgba(255, 170, 0, 0.4);
 }
 
 /* ===============================================================
@@ -54,15 +55,14 @@
 
 body {
     background: var(--bg-primary);
-    background-image:
-        radial-gradient(circle at 20% 50%, rgba(68, 170, 255, 0.03) 0%, transparent 50%),
-        radial-gradient(circle at 80% 80%, rgba(255, 204, 0, 0.02) 0%, transparent 50%);
+    background-image: radial-gradient(ellipse at center, #1a0a00 0%, #000000 100%);
     color: var(--primary-green);
-    font-family: 'EB Garamond', Georgia, serif;
+    font-family: 'VT323', 'EB Garamond', Georgia, monospace;
     font-size: 14px;
     line-height: 1.6;
     min-height: 100vh;
     overflow-x: hidden;
+    text-shadow: 0 0 5px rgba(255, 136, 0, 0.5);
 }
 
 /* ===============================================================
@@ -79,7 +79,7 @@ body {
     background: linear-gradient(
         to bottom,
         transparent,
-        rgba(68, 170, 255, 0.1),
+        rgba(255, 136, 0, 0.15),
         transparent
     );
     animation: scan-beam 8s linear infinite;
@@ -135,7 +135,7 @@ body::before {
     background: repeating-linear-gradient(
         0deg,
         transparent 0px,
-        rgba(68, 170, 255, 0.02) 1px,
+        rgba(255, 136, 0, 0.03) 1px,
         transparent 2px,
         transparent 4px
     );
@@ -213,6 +213,7 @@ body::before {
     color: var(--gold);
     letter-spacing: 2px;
     margin-right: 30px;
+    text-shadow: 0 0 10px rgba(255, 170, 0, 0.8);
 }
 
 .console-subtitle {
@@ -256,9 +257,10 @@ body::before {
 
 .terminal-button:hover,
 .audio-btn:hover {
-    background: rgba(68, 170, 255, 0.1);
+    background: rgba(255, 136, 0, 0.1);
     border-color: var(--bright-green);
     color: var(--bright-green);
+    text-shadow: 0 0 10px rgba(255, 136, 0, 0.8);
 }
 
 .volume-bar {
@@ -284,6 +286,7 @@ h1 {
     letter-spacing: 2px;
     margin-bottom: 10px;
     text-align: center;
+    text-shadow: 0 0 15px rgba(255, 170, 0, 1), 0 0 25px rgba(255, 170, 0, 0.5);
 }
 
 .status-line {
@@ -346,11 +349,12 @@ h1 {
 
 .cmd:hover,
 .nav-button:hover {
-    background: rgba(68, 170, 255, 0.1);
+    background: rgba(255, 136, 0, 0.1);
     border-color: var(--bright-green);
     color: var(--bright-green);
     transform: translateY(-2px);
-    box-shadow: 0 4px 10px rgba(68, 170, 255, 0.3);
+    box-shadow: 0 4px 10px rgba(255, 136, 0, 0.5);
+    text-shadow: 0 0 10px rgba(255, 136, 0, 0.8);
 }
 
 .cmd.active,
@@ -368,7 +372,7 @@ h1 {
    =============================================================== */
 .sys-msg,
 .command-hint {
-    background: rgba(68, 170, 255, 0.05);
+    background: rgba(255, 136, 0, 0.05);
     border-top: 1px solid var(--border-primary);
     border-bottom: 1px solid var(--border-primary);
     padding: 10px 20px;
@@ -470,6 +474,17 @@ h1 {
     display: flex;
     align-items: center;
     gap: 12px;
+    text-shadow: 0 0 10px rgba(255, 170, 0, 0.8), 0 0 20px rgba(255, 170, 0, 0.4);
+    animation: title-glow 3s ease-in-out infinite;
+}
+
+@keyframes title-glow {
+    0%, 100% {
+        text-shadow: 0 0 10px rgba(255, 170, 0, 0.8), 0 0 20px rgba(255, 170, 0, 0.4);
+    }
+    50% {
+        text-shadow: 0 0 15px rgba(255, 170, 0, 1), 0 0 30px rgba(255, 170, 0, 0.6), 0 0 40px rgba(255, 136, 0, 0.3);
+    }
 }
 
 .block-title::before,
@@ -611,7 +626,7 @@ strong {
     color: var(--primary-green);
     margin: 10px 0;
     padding: 8px 12px;
-    border-left: 2px solid rgba(68, 170, 255, 0.2);
+    border-left: 2px solid rgba(255, 136, 0, 0.2);
     transition: all 0.2s;
     font-family: 'EB Garamond', Georgia, serif;
 }
@@ -619,8 +634,9 @@ strong {
 .log-entry:hover,
 .feed-entry:hover,
 .feed-item:hover {
-    background: rgba(68, 170, 255, 0.05);
+    background: rgba(255, 136, 0, 0.05);
     border-left-color: var(--gold);
+    text-shadow: 0 0 8px rgba(255, 136, 0, 0.6);
 }
 
 /* ===============================================================
@@ -628,7 +644,7 @@ strong {
    =============================================================== */
 .access-notice,
 .disclaimer {
-    background: rgba(68, 170, 255, 0.05);
+    background: rgba(255, 136, 0, 0.05);
     border: 1px solid var(--border-primary);
     padding: 12px;
     text-align: center;
@@ -649,7 +665,7 @@ strong {
 .project-logo-img {
     max-width: 200px;
     height: auto;
-    filter: drop-shadow(0 0 20px rgba(68, 170, 255, 0.5));
+    filter: drop-shadow(0 0 20px rgba(255, 136, 0, 0.6));
 }
 
 /* ===============================================================
@@ -720,12 +736,12 @@ strong {
 }
 
 ::-webkit-scrollbar-thumb {
-    background: rgba(68, 170, 255, 0.3);
+    background: rgba(255, 136, 0, 0.3);
     border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    background: rgba(68, 170, 255, 0.5);
+    background: rgba(255, 136, 0, 0.5);
 }
 
 /* ===============================================================

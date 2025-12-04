@@ -9,10 +9,10 @@
     // BOOT SEQUENCE EN CONSOLA
     // ===============================================================
     console.clear();
-    console.log('%c╔══════════════════════════════════════════════════════╗', 'color: #4af; font-family: monospace;');
-    console.log('%c║           EMBERHOLM PORTAL SYSTEM v2.1.4          ║', 'color: #4af; font-family: monospace;');
-    console.log('%c║              Hacknet Clean Interface              ║', 'color: #4af; font-family: monospace;');
-    console.log('%c╚══════════════════════════════════════════════════════╝', 'color: #4af; font-family: monospace;');
+    console.log('%c╔══════════════════════════════════════════════════════╗', 'color: #ff8800; font-family: monospace;');
+    console.log('%c║           EMBERHOLM PORTAL SYSTEM v2.1.4          ║', 'color: #ff8800; font-family: monospace;');
+    console.log('%c║              Hacknet Clean Interface              ║', 'color: #ff8800; font-family: monospace;');
+    console.log('%c╚══════════════════════════════════════════════════════╝', 'color: #ff8800; font-family: monospace;');
     console.log('');
     console.log('%c[✓] System initialized', 'color: #4f8; font-weight: bold;');
     console.log('%c[✓] CRT effects loaded', 'color: #4f8;');
@@ -47,7 +47,7 @@
 
                 // Log en consola
                 const buttonText = this.textContent.trim();
-                console.log(`%c> NAV: ${buttonText}`, 'color: #4af; font-family: monospace;');
+                console.log(`%c> NAV: ${buttonText}`, 'color: #ff8800; font-family: monospace;');
             });
         });
     }
@@ -169,7 +169,7 @@
                         // Simular respuesta
                         setTimeout(() => {
                             if (command.toLowerCase() === 'help') {
-                                console.log('%cAvailable commands: status, missions, guilds, help', 'color: #4af;');
+                                console.log('%cAvailable commands: status, missions, guilds, help', 'color: #ff8800;');
                             } else {
                                 console.log(`%c[!] Unknown command: ${command}`, 'color: #f24;');
                             }
@@ -186,7 +186,7 @@
     // INICIALIZACIÓN
     // ===============================================================
     function init() {
-        console.log('%c[HACKNET UI] Initializing interface...', 'color: #4af; font-family: monospace;');
+        console.log('%c[HACKNET UI] Initializing interface...', 'color: #ff8800; font-family: monospace;');
 
         initNavigation();
         initVolumeBar();
