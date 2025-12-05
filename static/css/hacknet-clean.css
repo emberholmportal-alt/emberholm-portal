@@ -9,27 +9,37 @@
 @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;600;700&display=swap');
 @import url('https://fonts.cdnfonts.com/css/alagard');
 @import url('https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&display=swap');
+@import url('https://fonts.cdnfonts.com/css/classic-console-neue');
 
 /* ===============================================================
    VARIABLES CSS
    =============================================================== */
 :root {
-    /* Hacknet Color Scheme */
-    --primary-green: #4af;              /* Azul cyan principal */
-    --bright-green: #6cf;               /* Cyan brillante */
-    --dim-green: #2a8;                  /* Cyan apagado */
-    --dark-green: #164;                 /* Cyan oscuro */
+    /* Retro Terminal Orange Scheme - MÁS BRILLANTE */
+    --primary-green: #ff9900;              /* Naranja retro principal */
+    --bright-green: #ffbb00;               /* Naranja brillante */
+    --dim-green: #dd7700;                  /* Naranja apagado */
+    --dark-green: #994400;                 /* Naranja oscuro */
 
-    /* Emberholm Accents */
-    --gold: #fc0;                       /* Amarillo dorado */
-    --gold-bright: #fd4;                /* Dorado brillante */
-    --gold-dim: #ca0;                   /* Dorado apagado */
+    /* Extended Orange/Yellow Palette - MÁS VIBRANTE */
+    --orange-dark: #aa5500;                /* Naranja muy oscuro */
+    --orange-medium: #dd7700;              /* Naranja medio */
+    --orange-light: #ff9900;               /* Naranja claro */
+    --yellow-dark: #ddaa00;                /* Amarillo oscuro */
+    --yellow-medium: #ffdd00;              /* Amarillo medio */
+    --yellow-light: #ffee44;               /* Amarillo claro */
 
-    /* System States */
-    --error-red: #f24;                  /* Rojo error */
-    --warning-orange: #f80;             /* Naranja warning */
-    --success-green: #4f8;              /* Verde éxito */
-    --info-cyan: #4df;                  /* Cyan información */
+    /* Emberholm Accents - MÁS SATURADOS */
+    --gold: #ffcc00;                    /* Amarillo dorado */
+    --gold-bright: #ffdd44;             /* Dorado brillante */
+    --gold-dim: #ddaa00;                /* Dorado apagado */
+
+    /* System States - MÁS VIBRANTES */
+    --error-red: #ff3344;               /* Rojo error */
+    --warning-orange: #ff8800;          /* Naranja warning */
+    --success-green: #44ff88;           /* Verde éxito */
+    --info-cyan: #00ffff;               /* Cyan información */
 
     /* Backgrounds */
     --bg-primary: #000;                 /* Negro principal */
@@ -37,10 +47,10 @@
     --bg-panel: #0f0f14;                /* Paneles */
     --bg-elevated: #14141a;             /* Elementos elevados */
 
-    /* Borders */
-    --border-primary: rgba(201, 162, 39, 0.3);
-    --border-bright: rgba(201, 162, 39, 0.6);
-    --border-gold: rgba(201, 162, 39, 0.4);
+    /* Borders - MÁS BRILLANTES */
+    --border-primary: rgba(255, 153, 0, 0.4);
+    --border-bright: rgba(255, 187, 0, 0.7);
+    --border-gold: rgba(255, 204, 0, 0.5);
 }
 
 /* ===============================================================
@@ -53,16 +63,22 @@
 }
 
 body {
-    background: var(--bg-primary);
+    background: #000;
     background-image:
-        radial-gradient(circle at 20% 50%, rgba(68, 170, 255, 0.03) 0%, transparent 50%),
+        radial-gradient(circle at 20% 50%, rgba(255, 136, 0, 0.03) 0%, transparent 50%),
         radial-gradient(circle at 80% 80%, rgba(255, 204, 0, 0.02) 0%, transparent 50%);
     color: var(--primary-green);
-    font-family: 'EB Garamond', Georgia, serif;
-    font-size: 14px;
+    font-family: 'Classic Console Neue', 'IBM Plex Mono', 'Share Tech Mono', monospace;
+    font-size: 13px;
     line-height: 1.6;
     min-height: 100vh;
     overflow-x: hidden;
+    letter-spacing: 0.5px;
+    font-weight: normal;
+    /* GLOW EFFECT REDUCIDO - ESTILO CRT RETRO */
+    text-shadow:
+        0 0 3px currentColor,
+        0 0 6px currentColor;
 }
 
 /* ===============================================================
@@ -79,7 +95,7 @@ body {
     background: linear-gradient(
         to bottom,
         transparent,
-        rgba(68, 170, 255, 0.1),
+        rgba(255, 136, 0, 0.1),
         transparent
     );
     animation: scan-beam 8s linear infinite;
@@ -92,7 +108,7 @@ body {
     100% { transform: translateY(100vh); }
 }
 
-/* 2. NOISE OVERLAY */
+/* 2. NOISE OVERLAY INTENSO */
 .noise {
     position: fixed;
     top: 0;
@@ -100,12 +116,19 @@ body {
     width: 100%;
     height: 100%;
     background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMDAiIGhlaWdodD0iMzAwIj48ZmlsdGVyIGlkPSJhIj48ZmVUdXJidWxlbmNlIGJhc2VGcmVxdWVuY3k9Ii43NSIgc3RpdGNoVGlsZXM9InN0aXRjaCIgdHlwZT0iZnJhY3RhbE5vaXNlIi8+PGZlQ29sb3JNYXRyaXggdHlwZT0ic2F0dXJhdGUiIHZhbHVlcz0iMCIvPjwvZmlsdGVyPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbHRlcj0idXJsKCNhKSIgb3BhY2l0eT0iLjA1Ii8+PC9zdmc+');
-    opacity: 0.03;
+    opacity: 0.08;
     pointer-events: none;
     z-index: 9995;
+    animation: noiseFlicker 0.2s infinite;
 }
 
-/* 3. CRT CURVE (Vignette oscura en bordes) */
+@keyframes noiseFlicker {
+    0% { opacity: 0.08; }
+    50% { opacity: 0.06; }
+    100% { opacity: 0.08; }
+}
+
+/* 3. CRT CURVE (Vignette SUAVE en bordes) */
 .crt-overlay {
     position: fixed;
     top: 0;
@@ -116,15 +139,17 @@ body {
         ellipse at center,
         transparent 0%,
         transparent 60%,
-        rgba(0, 0, 0, 0.3) 85%,
-        rgba(0, 0, 0, 0.6) 95%,
-        rgba(0, 0, 0, 0.9) 100%
+        rgba(0, 0, 0, 0.15) 80%,
+        rgba(0, 0, 0, 0.35) 92%,
+        rgba(0, 0, 0, 0.55) 100%
     );
+    border-radius: 15px;
+    box-shadow: inset 0 0 80px rgba(0, 0, 0, 0.4);
     pointer-events: none;
     z-index: 9997;
 }
 
-/* 4. SCANLINES SUTILES */
+/* 4. SCANLINES INTENSAS - ESTILO CRT RETRO */
 body::before {
     content: '';
     position: fixed;
@@ -134,10 +159,10 @@ body::before {
     height: 100%;
     background: repeating-linear-gradient(
         0deg,
-        transparent 0px,
-        rgba(68, 170, 255, 0.02) 1px,
-        transparent 2px,
-        transparent 4px
+        rgba(0, 0, 0, 0.15) 0px,
+        rgba(255, 136, 0, 0.05) 1px,
+        rgba(0, 0, 0, 0.15) 2px,
+        transparent 3px
     );
     pointer-events: none;
     z-index: 9998;
@@ -162,9 +187,30 @@ body::before {
     to { transform: translateX(0); }
 }
 
+/* BLINK - Parpadeo ON/OFF para warnings críticos */
+@keyframes blink {
+    0%, 50% { opacity: 1; }
+    51%, 100% { opacity: 0; }
+}
+
+.blink {
+    animation: blink 1s infinite;
+}
+
+/* PULSE - Pulsación suave para elementos destacados */
 @keyframes pulse {
     0%, 100% { opacity: 1; }
-    50% { opacity: 0.5; }
+    50% { opacity: 0.7; }
+}
+
+.pulse {
+    animation: pulse 2s infinite;
+}
+
+/* CURSOR - Terminal cursor parpadeante */
+.cursor::after {
+    content: '█';
+    animation: blink 1s infinite;
 }
 
 @keyframes glow {
@@ -174,6 +220,80 @@ body::before {
     50% {
         box-shadow: 0 0 10px var(--primary-green), 0 0 20px var(--primary-green), 0 0 30px var(--primary-green);
     }
+}
+
+/* ===============================================================
+   TEXT EFFECTS - CRT GLOW
+   =============================================================== */
+
+/* Verde Terminal - Fosforescente CRT MODERADO */
+.glow-green {
+    color: #33ff33;
+    text-shadow:
+        0 0 3px #33ff33,
+        0 0 8px #33ff33,
+        0 0 15px #33ff33;
+}
+
+/* Cyan - Highlights importantes MODERADO */
+.glow-cyan {
+    color: #00ffff;
+    text-shadow:
+        0 0 3px #00ffff,
+        0 0 8px #00ffff,
+        0 0 15px #00ffff;
+}
+
+/* Amarillo - Stats, XP, Rewards MODERADO */
+.glow-yellow {
+    color: #ffff00;
+    text-shadow:
+        0 0 3px #ffff00,
+        0 0 8px #ffff00,
+        0 0 15px #ffff00;
+}
+
+/* Rojo - Warnings, Danger MODERADO */
+.glow-red {
+    color: #ff0000;
+    text-shadow:
+        0 0 3px #ff0000,
+        0 0 8px #ff0000,
+        0 0 15px #ff0000;
+}
+
+/* Magenta - Special Features MODERADO */
+.glow-magenta {
+    color: #ff00ff;
+    text-shadow:
+        0 0 3px #ff00ff,
+        0 0 8px #ff00ff,
+        0 0 15px #ff00ff;
+}
+
+/* Naranja - Tema principal MODERADO */
+.glow-orange {
+    text-shadow:
+        0 0 3px var(--primary-green),
+        0 0 8px var(--primary-green),
+        0 0 15px var(--primary-green);
+}
+
+/* Letter Spacing Presets */
+.ls-tight {
+    letter-spacing: 0.5px;    /* Body text */
+}
+
+.ls-normal {
+    letter-spacing: 1px;      /* Buttons */
+}
+
+.ls-wide {
+    letter-spacing: 2px;      /* Headers */
+}
+
+.ls-ultra {
+    letter-spacing: 3px;      /* Subtítulos pequeños */
 }
 
 /* ===============================================================
@@ -216,7 +336,7 @@ body::before {
 }
 
 .console-subtitle {
-    font-family: 'EB Garamond', Georgia, serif;
+    font-family: 'Classic Console Neue', 'IBM Plex Mono', 'Share Tech Mono', monospace;
     font-size: 11px;
     color: var(--dim-green);
     text-transform: uppercase;
@@ -245,7 +365,7 @@ body::before {
     border: 1px solid var(--border-primary);
     color: var(--primary-green);
     padding: 5px 12px;
-    font-family: 'EB Garamond', Georgia, serif;
+    font-family: 'Classic Console Neue', 'IBM Plex Mono', 'Share Tech Mono', monospace;
     font-size: 11px;
     font-weight: 600;
     cursor: pointer;
@@ -256,7 +376,7 @@ body::before {
 
 .terminal-button:hover,
 .audio-btn:hover {
-    background: rgba(68, 170, 255, 0.1);
+    background: rgba(255, 136, 0, 0.1);
     border-color: var(--bright-green);
     color: var(--bright-green);
 }
@@ -290,7 +410,7 @@ h1 {
     display: flex;
     justify-content: space-around;
     font-size: 12px;
-    font-family: 'EB Garamond', Georgia, serif;
+    font-family: 'Classic Console Neue', 'IBM Plex Mono', 'Share Tech Mono', monospace;
     color: var(--dim-green);
 }
 
@@ -334,7 +454,7 @@ h1 {
     border: 1px solid var(--border-primary);
     color: var(--primary-green);
     padding: 10px 15px;
-    font-family: 'EB Garamond', Georgia, serif;
+    font-family: 'Classic Console Neue', 'IBM Plex Mono', 'Share Tech Mono', monospace;
     font-size: 11px;
     font-weight: 600;
     cursor: pointer;
@@ -346,11 +466,11 @@ h1 {
 
 .cmd:hover,
 .nav-button:hover {
-    background: rgba(68, 170, 255, 0.1);
+    background: rgba(255, 136, 0, 0.1);
     border-color: var(--bright-green);
     color: var(--bright-green);
     transform: translateY(-2px);
-    box-shadow: 0 4px 10px rgba(68, 170, 255, 0.3);
+    box-shadow: 0 4px 10px rgba(255, 136, 0, 0.3);
 }
 
 .cmd.active,
@@ -368,16 +488,17 @@ h1 {
    =============================================================== */
 .sys-msg,
 .command-hint {
-    background: rgba(68, 170, 255, 0.05);
+    background: rgba(255, 136, 0, 0.05);
     border-top: 1px solid var(--border-primary);
     border-bottom: 1px solid var(--border-primary);
-    padding: 10px 20px;
+    padding: 6px 20px;  /* Reducido de 10px a 6px */
     text-align: center;
     font-size: 11px;
     color: var(--dim-green);
-    font-family: 'EB Garamond', Georgia, serif;
+    font-family: 'Classic Console Neue', 'IBM Plex Mono', 'Share Tech Mono', monospace;
     text-transform: uppercase;
     letter-spacing: 1.5px;
+    margin: 0;  /* Sin margen para eliminar espacio */
 }
 
 .sys-msg::before {
@@ -470,6 +591,14 @@ h1 {
     display: flex;
     align-items: center;
     gap: 12px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    font-weight: bold;
+    /* GLOW MODERADO PARA TÍTULOS */
+    text-shadow:
+        0 0 3px var(--gold),
+        0 0 8px var(--gold),
+        0 0 15px var(--gold);
 }
 
 .block-title::before,
@@ -500,7 +629,7 @@ h1 {
 
 .alert-title,
 .warning-title {
-    font-family: 'EB Garamond', Georgia, serif;
+    font-family: 'Classic Console Neue', 'IBM Plex Mono', 'Share Tech Mono', monospace;
     font-size: 12px;
     font-weight: 700;
     text-transform: uppercase;
@@ -516,7 +645,7 @@ h1 {
 .campaign-text,
 .block-content,
 p {
-    font-family: 'EB Garamond', Georgia, serif;
+    font-family: 'Classic Console Neue', 'IBM Plex Mono', 'Share Tech Mono', monospace;
     font-size: 13px;
     color: var(--primary-green);
     line-height: 1.8;
@@ -544,7 +673,7 @@ strong {
 
 .monitor-title,
 .status-panel-title {
-    font-family: 'EB Garamond', Georgia, serif;
+    font-family: 'Classic Console Neue', 'IBM Plex Mono', 'Share Tech Mono', monospace;
     font-size: 14px;
     font-weight: 700;
     text-transform: uppercase;
@@ -559,7 +688,7 @@ strong {
     font-size: 12px;
     color: var(--primary-green);
     margin: 8px 0;
-    font-family: 'EB Garamond', Georgia, serif;
+    font-family: 'Classic Console Neue', 'IBM Plex Mono', 'Share Tech Mono', monospace;
 }
 
 .monitor-line .critical,
@@ -585,7 +714,7 @@ strong {
 
 .log-header,
 .feed-title {
-    font-family: 'EB Garamond', Georgia, serif;
+    font-family: 'Classic Console Neue', 'IBM Plex Mono', 'Share Tech Mono', monospace;
     font-size: 14px;
     font-weight: 700;
     text-transform: uppercase;
@@ -611,15 +740,15 @@ strong {
     color: var(--primary-green);
     margin: 10px 0;
     padding: 8px 12px;
-    border-left: 2px solid rgba(68, 170, 255, 0.2);
+    border-left: 2px solid rgba(255, 136, 0, 0.2);
     transition: all 0.2s;
-    font-family: 'EB Garamond', Georgia, serif;
+    font-family: 'Classic Console Neue', 'IBM Plex Mono', 'Share Tech Mono', monospace;
 }
 
 .log-entry:hover,
 .feed-entry:hover,
 .feed-item:hover {
-    background: rgba(68, 170, 255, 0.05);
+    background: rgba(255, 136, 0, 0.05);
     border-left-color: var(--gold);
 }
 
@@ -628,7 +757,7 @@ strong {
    =============================================================== */
 .access-notice,
 .disclaimer {
-    background: rgba(68, 170, 255, 0.05);
+    background: rgba(255, 136, 0, 0.05);
     border: 1px solid var(--border-primary);
     padding: 12px;
     text-align: center;
@@ -647,9 +776,23 @@ strong {
 }
 
 .project-logo-img {
-    max-width: 200px;
+    max-width: 280px;
     height: auto;
-    filter: drop-shadow(0 0 20px rgba(68, 170, 255, 0.5));
+    filter: drop-shadow(0 0 20px rgba(255, 136, 0, 0.5));
+}
+
+/* REALM MAP */
+.realm-map-container {
+    margin-top: 15px;
+    padding: 10px 15px;
+}
+
+.realm-map-img {
+    max-width: 500px;
+    width: 100%;
+    height: auto;
+    border: 2px solid var(--border-primary);
+    box-shadow: 0 0 20px rgba(255, 136, 0, 0.2);
 }
 
 /* ===============================================================
@@ -720,12 +863,12 @@ strong {
 }
 
 ::-webkit-scrollbar-thumb {
-    background: rgba(68, 170, 255, 0.3);
+    background: rgba(255, 136, 0, 0.3);
     border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    background: rgba(68, 170, 255, 0.5);
+    background: rgba(255, 136, 0, 0.5);
 }
 
 /* ===============================================================
@@ -757,5 +900,816 @@ strong {
     .status-line {
         flex-direction: column;
         gap: 8px;
+    }
+}
+
+/* ===============================================================
+   EXTENDED COMPONENTS - HACKNET CLEAN STYLE
+   =============================================================== */
+
+/* TOP HEADER */
+.top-header {
+    background: linear-gradient(180deg, var(--bg-elevated) 0%, var(--bg-panel) 100%);
+    border-bottom: 1px solid var(--border-primary);
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.top-status-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 15px;
+    font-family: 'Classic Console Neue', 'IBM Plex Mono', 'Share Tech Mono', monospace;
+    font-size: 13px;
+    color: var(--primary-green);
+    flex-wrap: wrap;
+}
+
+.top-command-bar {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 4px;
+    justify-content: center;
+    padding: 15px 60px;  /* Más padding lateral para mejor centrado */
+    border-top: 1px solid var(--border-primary);
+    overflow-x: auto;
+}
+
+/* COMMAND LINKS - RETRO TERMINAL STYLE CON GLOW */
+.cmd-link {
+    /* Fondo naranja con texto negro - ESTILO IMAGEN */
+    background: var(--orange-light);        /* Fondo naranja */
+    border: none;                           /* Sin borde */
+    color: #000;                            /* Texto NEGRO */
+    padding: 6px 10px;                      /* Más compactos */
+    font-family: 'Classic Console Neue', 'IBM Plex Mono', 'Share Tech Mono', monospace;
+    font-size: 10px;                        /* Más pequeño */
+    font-weight: 800;                       /* Extra bold para terminal */
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    transition: all 0.2s;
+    white-space: nowrap;
+    flex-shrink: 0;
+    /* GLOW + BLUR EN BOTONES */
+    box-shadow: 0 0 10px rgba(255, 153, 0, 0.5);
+    filter: blur(0.3px);                    /* Blur sutil para efecto CRT */
+}
+
+.cmd-link:hover {
+    /* Más brillante al hover */
+    background: var(--bright-green);
+    color: #000;
+    transform: translateY(-1px);
+    /* GLOW MÁS INTENSO AL HOVER */
+    box-shadow: 0 0 20px rgba(255, 187, 0, 0.7);
+    filter: blur(0.3px);
+}
+
+.cmd-link.is-active,
+.cmd-link.active {
+    /* Amarillo más brillante para estado activo */
+    background: var(--yellow-light);
+    color: #000;
+    font-weight: 900;
+    /* GLOW INTENSO PARA ACTIVO */
+    box-shadow: 0 0 20px rgba(255, 221, 0, 0.7);
+    filter: blur(0.3px);
+}
+
+/* MINT BUTTON - Destacado en rojo BRILLANTE con estilo retro */
+.cmd-link-mint {
+    /* Fondo rojo con texto negro */
+    background: var(--error-red);
+    color: #000;
+    font-weight: 900;                     /* Extra bold */
+    /* GLOW ROJO INTENSO + BLUR */
+    box-shadow: 0 0 15px rgba(255, 51, 68, 0.7);
+    filter: blur(0.3px);
+}
+
+.cmd-link-mint:hover {
+    /* Rojo más brillante al hover */
+    background: #ff5555;
+    color: #000;
+    /* GLOW MÁS INTENSO */
+    box-shadow: 0 0 25px rgba(255, 51, 68, 0.9);
+    filter: blur(0.3px);
+}
+
+/* NAV PROGRESS BAR - ESTILO RETRO BLOCKY */
+.nav-progress-bar {
+    width: calc(100% - 80px);             /* No tocar bordes */
+    margin: 12px auto 0;                  /* Centrada */
+    height: 8px;                          /* Más gruesa - estilo retro */
+    background: #222;                     /* Fondo oscuro */
+    border: 2px solid var(--orange-medium); /* Borde naranja */
+    position: relative;
+    overflow: hidden;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.nav-progress-fill {
+    height: 100%;
+    /* Patrón blocky pixelado MÁS VIBRANTE */
+    background: repeating-linear-gradient(
+        90deg,
+        var(--orange-light) 0px,
+        var(--orange-light) 6px,
+        var(--yellow-medium) 6px,
+        var(--yellow-medium) 12px
+    );
+    width: 0%;
+    animation: loadingBarRetro 2.5s steps(20) infinite;  /* Stepped = pixelado */
+    /* GLOW INTENSO EN BARRA */
+    box-shadow:
+        0 0 10px var(--orange-light),
+        0 0 20px var(--orange-light),
+        0 0 30px rgba(255, 153, 0, 0.5);
+}
+
+@keyframes loadingBarRetro {
+    0% {
+        width: 0%;
+        opacity: 0.8;
+    }
+    100% {
+        width: 100%;
+        opacity: 1;
+    }
+}
+
+/* TERMINAL BUTTONS */
+.terminal-btn {
+    background: var(--bg-panel);
+    border: 1px solid var(--border-primary);
+    color: var(--primary-green);
+    padding: 10px 20px;
+    font-family: 'Classic Console Neue', 'IBM Plex Mono', 'Share Tech Mono', monospace;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    transition: all 0.2s;
+}
+
+.terminal-btn:hover {
+    background: rgba(255, 136, 0, 0.1);
+    border-color: var(--bright-green);
+    color: var(--bright-green);
+    box-shadow: 0 4px 10px rgba(255, 136, 0, 0.3);
+}
+
+.terminal-btn.small-btn {
+    padding: 6px 12px;
+    font-size: 12px;
+}
+
+/* CONTENT BLOCKS */
+.mono-block {
+    background: var(--bg-panel);
+    border: 1px solid var(--border-primary);
+    border-left: 3px solid var(--primary-green);
+    padding: 15px;
+    margin-bottom: 15px;
+    font-family: 'Classic Console Neue', 'IBM Plex Mono', 'Share Tech Mono', monospace;
+    font-size: 13px;
+    color: var(--primary-green);
+}
+
+.mono-small-note {
+    font-size: 11px;
+    color: var(--dim-green);
+    font-family: 'Classic Console Neue', 'IBM Plex Mono', 'Share Tech Mono', monospace;
+}
+
+.center-text-line {
+    text-align: center;
+    font-family: 'Classic Console Neue', 'IBM Plex Mono', 'Share Tech Mono', monospace;
+    font-size: 13px;
+    color: var(--primary-green);
+    margin: 8px 0;
+}
+
+.subheading {
+    font-family: 'Alagard', serif;
+    font-size: 16px;
+    color: var(--gold);
+    text-transform: uppercase;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border-gold);
+    letter-spacing: 2px;
+    font-weight: bold;
+    /* GLOW MODERADO */
+    text-shadow:
+        0 0 3px var(--gold),
+        0 0 8px var(--gold),
+        0 0 15px var(--gold);
+}
+
+/* STATUS BLOCKS */
+.warning-block {
+    background: rgba(255, 34, 68, 0.05);
+    border: 1px solid var(--error-red);
+    border-left: 3px solid var(--error-red);
+    padding: 15px;
+    margin-bottom: 15px;
+    color: var(--error-red);
+    font-family: 'Classic Console Neue', 'IBM Plex Mono', 'Share Tech Mono', monospace;
+}
+
+.status-block {
+    background: var(--bg-panel);
+    border: 1px solid var(--border-primary);
+    border-left: 3px solid var(--primary-green);
+    padding: 15px;
+    margin-top: 15px;
+    font-family: 'Classic Console Neue', 'IBM Plex Mono', 'Share Tech Mono', monospace;
+    color: var(--primary-green);
+}
+
+/* GUILDS */
+.guild-entry {
+    background: var(--bg-panel);
+    border: 1px solid var(--border-primary);
+    border-left: 3px solid var(--gold);
+    padding: 15px;
+    margin-bottom: 15px;
+    display: flex;
+    gap: 15px;
+    align-items: flex-start;
+    transition: all 0.2s;
+}
+
+.guild-entry:hover {
+    background: rgba(255, 136, 0, 0.05);
+    border-left-color: var(--bright-green);
+    transform: translateX(3px);
+}
+
+.guild-badge {
+    width: 64px;
+    height: 64px;
+    min-width: 64px;
+    min-height: 64px;
+    border: 2px solid var(--border-primary);
+    background: var(--bg-primary);
+    image-rendering: pixelated;
+    object-fit: contain;
+}
+
+/* STATS */
+.stats-row {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 10px;
+    font-family: 'Classic Console Neue', 'IBM Plex Mono', 'Share Tech Mono', monospace;
+    color: var(--primary-green);
+}
+
+.stats-col {
+    flex: 1;
+    min-width: 200px;
+}
+
+.stats-col strong {
+    color: var(--gold);
+    font-weight: 600;
+}
+
+@media (max-width: 700px) {
+    .stats-col {
+        width: 100%;
+        min-width: 100%;
+    }
+}
+
+/* PROFILE */
+.player-profile-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+}
+
+.profile-col-left {
+    flex: 1 1 300px;
+    min-width: 260px;
+}
+
+/* TOP EMISSARY - 2 COLUMNAS CON TONO AMARILLO */
+.profile-col-right {
+    flex: 0 0 200px;
+    min-width: 200px;
+    max-width: 100%;
+    background: rgba(255, 204, 0, 0.08);  /* Tono amarillo suave */
+    border: 1px solid var(--border-gold);
+    border-left: 3px solid var(--gold);
+    padding: 15px;
+    text-align: center;
+}
+
+.profile-col-right .subheading {
+    color: var(--gold);
+    text-shadow:
+        0 0 5px var(--gold),
+        0 0 10px var(--gold);
+}
+
+/* Grid 2 columnas para TOP EMISSARY */
+.top-emissary-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    margin-top: 15px;
+}
+
+@media (max-width: 768px) {
+    .top-emissary-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.profile-emissary-img {
+    width: 128px;
+    height: 128px;
+    background: var(--bg-primary);
+    border: 2px solid var(--border-primary);
+    image-rendering: pixelated;
+    object-fit: contain;
+    margin: 0 auto 15px auto;
+    display: block;
+    color: var(--dim-green);
+    font-size: 12px;
+    text-align: center;
+    line-height: 128px;
+}
+
+/* TABLES */
+.roster-table,
+table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--bg-primary);
+    margin: 15px 0;
+    font-family: 'Classic Console Neue', 'IBM Plex Mono', 'Share Tech Mono', monospace;
+}
+
+.roster-table th,
+.roster-table td,
+table th,
+table td {
+    border: 1px solid var(--border-primary);
+    padding: 10px;
+    text-align: left;
+    color: var(--primary-green);
+}
+
+.roster-table th,
+table th {
+    background: var(--bg-elevated);
+    color: var(--gold);
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 12px;
+    letter-spacing: 1px;
+}
+
+/* MODALS */
+.modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.92);
+    z-index: 9999;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-overlay.active {
+    display: flex;
+}
+
+.terminal-modal {
+    background: var(--bg-panel);
+    border: 2px solid var(--border-primary);
+    box-shadow: 0 0 40px rgba(255, 136, 0, 0.3);
+    max-width: 700px;
+    width: 90%;
+    max-height: 80vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.terminal-modal-header {
+    background: var(--bg-elevated);
+    color: var(--gold);
+    padding: 15px 20px;
+    font-weight: 600;
+    font-size: 16px;
+    border-bottom: 1px solid var(--border-primary);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-family: 'Alagard', serif;
+    letter-spacing: 2px;
+}
+
+.terminal-modal-close {
+    background: transparent;
+    border: none;
+    color: var(--primary-green);
+    font-size: 28px;
+    cursor: pointer;
+    padding: 0;
+    line-height: 1;
+    transition: all 0.2s;
+}
+
+.terminal-modal-close:hover {
+    color: var(--error-red);
+}
+
+.terminal-modal-body {
+    padding: 20px;
+    overflow-y: auto;
+    flex: 1;
+    background: var(--bg-panel);
+}
+
+.modal-list-item {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-primary);
+    border-left: 3px solid var(--primary-green);
+    padding: 12px;
+    margin-bottom: 10px;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: var(--primary-green);
+}
+
+.modal-list-item:hover {
+    background: rgba(255, 136, 0, 0.1);
+    border-left-color: var(--gold);
+    transform: translateX(3px);
+}
+
+.modal-list-item.disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    border-left-color: var(--dim-green);
+}
+
+.modal-list-item.disabled:hover {
+    background: var(--bg-secondary);
+    transform: none;
+}
+
+.modal-hero-img {
+    width: 50px;
+    height: 50px;
+    border: 2px solid var(--border-primary);
+    object-fit: cover;
+    margin-right: 10px;
+    image-rendering: pixelated;
+}
+
+.modal-item-header {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 6px;
+    color: var(--gold);
+    font-family: 'Classic Console Neue', 'IBM Plex Mono', 'Share Tech Mono', monospace;
+}
+
+.modal-item-details {
+    font-size: 13px;
+    color: var(--dim-green);
+    font-family: 'Classic Console Neue', 'IBM Plex Mono', 'Share Tech Mono', monospace;
+}
+
+.modal-no-items {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--dim-green);
+    font-family: 'Classic Console Neue', 'IBM Plex Mono', 'Share Tech Mono', monospace;
+}
+
+.modal-message {
+    font-size: 14px;
+    line-height: 1.8;
+    white-space: pre-wrap;
+    margin-bottom: 20px;
+    color: var(--primary-green);
+    font-family: 'Classic Console Neue', 'IBM Plex Mono', 'Share Tech Mono', monospace;
+}
+
+.modal-buttons {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    margin-top: 20px;
+}
+
+.modal-btn {
+    background: var(--bg-panel);
+    border: 1px solid var(--border-primary);
+    color: var(--primary-green);
+    padding: 10px 24px;
+    font-family: 'Classic Console Neue', 'IBM Plex Mono', 'Share Tech Mono', monospace;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    min-width: 100px;
+    text-transform: uppercase;
+}
+
+.modal-btn:hover {
+    background: rgba(255, 136, 0, 0.1);
+    border-color: var(--bright-green);
+    color: var(--bright-green);
+    box-shadow: 0 4px 10px rgba(255, 136, 0, 0.3);
+}
+
+.modal-btn.danger {
+    border-color: var(--error-red);
+    color: var(--error-red);
+}
+
+.modal-btn.danger:hover {
+    background: rgba(255, 34, 68, 0.1);
+    box-shadow: 0 4px 10px rgba(255, 34, 68, 0.3);
+}
+
+/* FORMS */
+input[type="text"],
+input[type="number"],
+input[type="email"],
+textarea {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-primary);
+    color: var(--primary-green);
+    font-family: 'Classic Console Neue', 'IBM Plex Mono', 'Share Tech Mono', monospace;
+    padding: 10px 12px;
+    font-size: 13px;
+}
+
+input[type="text"]:focus,
+input[type="number"]:focus,
+input[type="email"]:focus,
+textarea:focus {
+    outline: none;
+    border-color: var(--bright-green);
+    box-shadow: 0 0 10px rgba(255, 136, 0, 0.3);
+}
+
+/* LINKS */
+a {
+    color: var(--primary-green);
+    text-decoration: none;
+    transition: all 0.2s;
+}
+
+a:hover {
+    color: var(--gold);
+}
+
+a.social-link {
+    color: var(--primary-green);
+    text-decoration: underline;
+}
+
+a.social-link:hover {
+    color: var(--gold);
+    background: rgba(255, 204, 0, 0.1);
+    text-decoration: none;
+}
+
+/* EMBER CONSOLE BAR (Top floating bar) - CONTROLES A LA DERECHA */
+.ember-console-bar {
+    position: fixed;
+    top: 6px;
+    left: 6px;
+    right: 6px;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-primary);
+    border-left: 3px solid var(--gold);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.8);
+    padding: 10px 15px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+    z-index: 9999;
+    font-family: 'Classic Console Neue', 'IBM Plex Mono', 'Share Tech Mono', monospace;
+    justify-content: space-between;  /* Distribuir espacio */
+}
+
+.console-block-label {
+    font-weight: 600;
+    text-transform: uppercase;
+    border-right: 1px solid var(--border-primary);
+    padding-right: 12px;
+    margin-right: 8px;
+    white-space: nowrap;
+    font-size: 12px;
+    color: var(--gold);
+    font-family: 'Alagard', serif;
+    letter-spacing: 1px;
+    flex-shrink: 0;
+}
+
+.console-track-now {
+    min-width: 180px;
+    font-size: 12px;
+    color: var(--primary-green);
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+/* Grupo de controles a la derecha */
+.console-btn,
+.console-vol-wrap {
+    margin-left: auto;  /* Empujar a la derecha */
+}
+
+.console-btn {
+    background: var(--bg-panel);
+    border: 1px solid var(--border-primary);
+    color: var(--primary-green);
+    font-family: 'Classic Console Neue', 'IBM Plex Mono', 'Share Tech Mono', monospace;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 5px 10px;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: all 0.2s;
+}
+
+.console-btn:hover {
+    background: rgba(255, 136, 0, 0.1);
+    border-color: var(--bright-green);
+    color: var(--bright-green);
+}
+
+.console-vol-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    white-space: nowrap;
+}
+
+.console-vol-label {
+    text-transform: uppercase;
+    font-size: 11px;
+    color: var(--primary-green);
+    font-weight: 600;
+}
+
+.console-volume-slider {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100px;
+    max-width: 120px;
+    background: var(--bg-primary);
+    border: 1px solid var(--border-primary);
+    height: 6px;
+    cursor: pointer;
+}
+
+.console-volume-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 12px;
+    height: 16px;
+    background: var(--primary-green);
+    border: 1px solid var(--bright-green);
+    cursor: pointer;
+}
+
+.console-volume-slider::-moz-range-thumb {
+    width: 12px;
+    height: 16px;
+    background: var(--primary-green);
+    border: 1px solid var(--bright-green);
+    cursor: pointer;
+}
+
+/* Push body content down for console bar */
+body {
+    padding-top: 60px;
+}
+
+@media (max-width: 600px) {
+    body {
+        padding-top: 80px;
+    }
+
+    .ember-console-bar {
+        font-size: 11px;
+        padding: 8px 10px;
+    }
+}
+
+/* TUTORIAL / TOC LINKS */
+.mono-block a[href^="#"] {
+    display: inline-block;
+    padding: 6px 12px;
+    margin: 3px;
+    background: var(--bg-panel);
+    border: 1px solid var(--border-primary);
+    color: var(--primary-green);
+    text-decoration: none;
+    font-family: 'Classic Console Neue', 'IBM Plex Mono', 'Share Tech Mono', monospace;
+    font-size: 12px;
+    transition: all 0.2s;
+}
+
+.mono-block a[href^="#"]:hover {
+    background: rgba(255, 136, 0, 0.1);
+    border-color: var(--bright-green);
+    color: var(--gold);
+    transform: translateY(-1px);
+}
+
+.toc-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 15px;
+    margin-top: 15px;
+}
+
+.toc-section {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.toc-section-title {
+    color: var(--gold);
+    font-weight: bold;
+    font-family: 'Alagard', serif;
+    font-size: 14px;
+    margin-bottom: 8px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    /* GLOW MODERADO */
+    text-shadow:
+        0 0 3px var(--gold),
+        0 0 8px var(--gold),
+        0 0 15px var(--gold);
+}
+
+/* BACK TO TOP BUTTON - TUTORIAL SECTIONS */
+.back-to-top-btn {
+    display: inline-block;
+    background: var(--bg-panel);
+    border: 1px solid var(--border-primary);
+    color: var(--primary-green);
+    padding: 8px 16px;
+    margin-top: 20px;
+    margin-bottom: 10px;
+    font-family: 'Classic Console Neue', 'IBM Plex Mono', 'Share Tech Mono', monospace;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: center;
+}
+
+.back-to-top-btn:hover {
+    background: rgba(255, 136, 0, 0.1);
+    border-color: var(--bright-green);
+    color: var(--gold);
+    transform: translateY(-2px);
+}
+
+.back-to-top-btn::before {
+    content: '↑ ';
+    color: var(--gold);
+}
+
+@media (max-width: 768px) {
+    .toc-grid {
+        grid-template-columns: 1fr;
+    }
+
+    /* Mapa responsive - una columna en móvil */
+    .realm-map-container > div[style*="grid"] {
+        grid-template-columns: 1fr !important;
     }
 }
