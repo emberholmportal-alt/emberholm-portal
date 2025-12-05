@@ -53,7 +53,7 @@
 }
 
 body {
-    background: var(--bg-primary);
+    background: #1a0f0a;
     background-image:
         radial-gradient(circle at 20% 50%, rgba(68, 170, 255, 0.03) 0%, transparent 50%),
         radial-gradient(circle at 80% 80%, rgba(255, 204, 0, 0.02) 0%, transparent 50%);
@@ -787,11 +787,12 @@ strong {
 
 .top-command-bar {
     display: flex;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     gap: 8px;
     justify-content: center;
     padding-top: 15px;
     border-top: 1px solid var(--border-primary);
+    overflow-x: auto;
 }
 
 /* COMMAND LINKS */
@@ -799,14 +800,16 @@ strong {
     background: var(--bg-panel);
     border: 1px solid var(--border-primary);
     color: var(--primary-green);
-    padding: 8px 14px;
+    padding: 8px 12px;
     font-family: 'EB Garamond', Georgia, serif;
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 600;
     cursor: pointer;
     text-transform: uppercase;
-    letter-spacing: 1px;
+    letter-spacing: 0.5px;
     transition: all 0.2s;
+    white-space: nowrap;
+    flex-shrink: 0;
 }
 
 .cmd-link:hover {
