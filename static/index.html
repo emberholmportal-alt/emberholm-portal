@@ -1375,7 +1375,7 @@ a:hover {
             </div>
 
             <div class="mono-small-note" style="margin-top:10px;">
-                FEED AUTO-UPDATES EVERY 30 SECONDS // REALM ACTIVITY MONITORED
+                FEED AUTO-UPDATES EVERY 20 SECONDS // REALM ACTIVITY MONITORED
             </div>
         </div>
     </section>
@@ -4536,6 +4536,35 @@ async function loadRealmFeed() {
 function displayFeedItems(feedItems) {
     const container = document.getElementById('realm-feed-container');
 
+    // Colores temáticos por tipo de evento (respetando el lore gótico-medieval)
+    const eventColors = {
+        'mission_complete': { badge: '#4a7c2f', border: '#4a7c2f', text: '#8bc34a' },
+        'mission_started': { badge: '#5b7c99', border: '#5b7c99', text: '#7fa3c3' },
+        'mission_failed': { badge: '#8b1a1a', border: '#8b1a1a', text: '#cd5c5c' },
+        'mission_in_progress': { badge: '#4a7b7c', border: '#4a7b7c', text: '#6fb3b8' },
+        'emissary_death': { badge: '#2d0f0f', border: '#4a0000', text: '#8b0000' },
+        'party_formed': { badge: '#2d5016', border: '#3d6b1f', text: '#6b9b4f' },
+        'level_up': { badge: '#b8860b', border: '#daa520', text: '#ffd700' },
+        'realm_alert': { badge: '#bf6900', border: '#cc7722', text: '#ff9933' },
+        'merchant_arrival': { badge: '#8b7500', border: '#b8960c', text: '#daa520' },
+        'weather_event': { badge: '#4a5f7c', border: '#5f7a9e', text: '#87a7c7' },
+        'ritual_completion': { badge: '#6a3d7c', border: '#7d4e9b', text: '#9370db' },
+        'resource_discovery': { badge: '#1e5631', border: '#2d7a47', text: '#3fa05a' },
+        'creature_sighting': { badge: '#8b1a1a', border: '#b82e24', text: '#dc143c' },
+        'portal_activity': { badge: '#4a1f7c', border: '#6a2fab', text: '#8a52c8' },
+        'celebration': { badge: '#b8860b', border: '#d4af37', text: '#ffd700' }
+    };
+
+    // Colores por gremio (respetando su identidad temática)
+    const guildColors = {
+        'Circle of Mist': { badge: '#5d3a7c', border: '#6f4a94', text: '#9370db' },
+        'Order of Dawn': { badge: '#b8860b', border: '#d4af37', text: '#ffd700' },
+        'Shadow Guild': { badge: '#2f2f3f', border: '#4a4a5a', text: '#7a7a8a' },
+        'Forge Legion': { badge: '#8b3a00', border: '#b8510a', text: '#ff6b1a' },
+        'Void Echoes': { badge: '#2d1a3f', border: '#4a2761', text: '#6a3d8a' },
+        'Horizon Watch': { badge: '#1f4a5f', border: '#2a6580', text: '#4a8aaf' }
+    };
+
     if (!feedItems || feedItems.length === 0) {
         container.innerHTML = `
             <div class="feed-item">
@@ -4555,10 +4584,15 @@ function displayFeedItems(feedItems) {
         const feedItem = document.createElement('div');
         feedItem.className = 'feed-item';
 
-        // Agregar clase de severidad
-        if (item.severity) {
-            feedItem.classList.add(`feed-${item.severity}`);
+        // Determinar colores según el tipo o gremio
+        let colors = eventColors[item.type] || { badge: '#8a7050', border: '#8a7050', text: '#c9b896' };
+
+        if (item.type === 'guild_alert' && item.guild && guildColors[item.guild]) {
+            colors = guildColors[item.guild];
         }
+
+        // Aplicar color de borde
+        feedItem.style.borderLeftColor = colors.border;
 
         // Si es un evento nuevo (comparar con última actualización)
         if (index === 0 && lastFeedUpdate) {
@@ -4572,8 +4606,8 @@ function displayFeedItems(feedItems) {
                 content = `
                     <div class="feed-time">[${item.time}]</div>
                     <div class="feed-content">
-                        <span class="feed-highlight">${item.content}</span>
-                        ${item.highlight ? `<br/>Awarded: <span class="feed-highlight">${item.highlight}</span>` : ''}
+                        <span style="color: ${colors.text}; font-weight: 600;">[MISSION COMPLETE]</span> ${item.content}
+                        ${item.highlight ? `<br/>Awarded: <span style="color: #d4af37;">${item.highlight}</span>` : ''}
                     </div>
                 `;
                 break;
@@ -4582,7 +4616,7 @@ function displayFeedItems(feedItems) {
                 content = `
                     <div class="feed-time">[${item.time}]</div>
                     <div class="feed-content">
-                        <span style="color: #87ceeb;">[MISSION START]</span> ${item.content}
+                        <span style="color: ${colors.text}; font-weight: 600;">[MISSION START]</span> ${item.content}
                     </div>
                 `;
                 break;
@@ -4591,8 +4625,8 @@ function displayFeedItems(feedItems) {
                 content = `
                     <div class="feed-time">[${item.time}]</div>
                     <div class="feed-content">
-                        <span style="color: #ff6b6b;">[MISSION FAILED]</span> ${item.content}
-                        ${item.highlight ? `<br/><span style="color: #ff6b6b;">Lost: ${item.highlight}</span>` : ''}
+                        <span style="color: ${colors.text}; font-weight: 600;">[MISSION FAILED]</span> ${item.content}
+                        ${item.highlight ? `<br/><span style="color: ${colors.text};">Lost: ${item.highlight}</span>` : ''}
                     </div>
                 `;
                 break;
@@ -4601,8 +4635,8 @@ function displayFeedItems(feedItems) {
                 content = `
                     <div class="feed-time">[${item.time}]</div>
                     <div class="feed-content">
-                        <span style="color: #98d8c8;">[IN PROGRESS]</span> ${item.content}
-                        ${item.highlight ? `<br/><span style="opacity: 0.7;">${item.highlight}</span>` : ''}
+                        <span style="color: ${colors.text}; font-weight: 600;">[IN PROGRESS]</span> ${item.content}
+                        ${item.highlight ? `<br/><span style="opacity: 0.7; color: ${colors.text};">${item.highlight}</span>` : ''}
                     </div>
                 `;
                 break;
@@ -4611,8 +4645,8 @@ function displayFeedItems(feedItems) {
                 content = `
                     <div class="feed-time">[${item.time}]</div>
                     <div class="feed-content">
-                        <span style="color: #8b0000;">[CASUALTY]</span> ${item.content}
-                        ${item.highlight ? `<br/><span style="color: #a9a9a9;">${item.highlight}</span>` : ''}
+                        <span style="color: ${colors.text}; font-weight: 600;">[CASUALTY]</span> ${item.content}
+                        ${item.highlight ? `<br/><span style="color: #808080;">${item.highlight}</span>` : ''}
                     </div>
                 `;
                 break;
@@ -4621,8 +4655,8 @@ function displayFeedItems(feedItems) {
                 content = `
                     <div class="feed-time">[${item.time}]</div>
                     <div class="feed-content">
-                        <span style="color: #90ee90;">[PARTY FORMED]</span> ${item.content}
-                        ${item.highlight ? `<br/><span class="feed-highlight">${item.highlight}</span>` : ''}
+                        <span style="color: ${colors.text}; font-weight: 600;">[PARTY FORMED]</span> ${item.content}
+                        ${item.highlight ? `<br/><span style="color: ${colors.text};">${item.highlight}</span>` : ''}
                     </div>
                 `;
                 break;
@@ -4631,7 +4665,7 @@ function displayFeedItems(feedItems) {
                 content = `
                     <div class="feed-time">[${item.time}]</div>
                     <div class="feed-content">
-                        <span style="color: #ffd700;">[LEVEL UP]</span> ${item.content}
+                        <span style="color: ${colors.text}; font-weight: 600;">[LEVEL UP]</span> ${item.content}
                         ${item.highlight ? `<br/><span style="color: #c9b896;">${item.highlight}</span>` : ''}
                     </div>
                 `;
@@ -4641,7 +4675,7 @@ function displayFeedItems(feedItems) {
                 content = `
                     <div class="feed-time">[${item.time}]</div>
                     <div class="feed-content">
-                        <span class="feed-highlight">[${item.guild}]</span> ${item.content}
+                        <span style="color: ${colors.text}; font-weight: 600;">[${item.guild}]</span> ${item.content}
                     </div>
                 `;
                 break;
@@ -4650,7 +4684,7 @@ function displayFeedItems(feedItems) {
                 content = `
                     <div class="feed-time">[${item.time}]</div>
                     <div class="feed-content">
-                        <span style="color: #ffa500;">[REALM ALERT]</span> ${item.content}
+                        <span style="color: ${colors.text}; font-weight: 600;">[REALM ALERT]</span> ${item.content}
                     </div>
                 `;
                 break;
@@ -4659,7 +4693,7 @@ function displayFeedItems(feedItems) {
                 content = `
                     <div class="feed-time">[${item.time}]</div>
                     <div class="feed-content">
-                        <span style="color: #daa520;">[MERCHANT]</span> ${item.content}
+                        <span style="color: ${colors.text}; font-weight: 600;">[MERCHANT]</span> ${item.content}
                     </div>
                 `;
                 break;
@@ -4668,7 +4702,7 @@ function displayFeedItems(feedItems) {
                 content = `
                     <div class="feed-time">[${item.time}]</div>
                     <div class="feed-content">
-                        <span style="color: #87ceeb;">[WEATHER]</span> ${item.content}
+                        <span style="color: ${colors.text}; font-weight: 600;">[WEATHER]</span> ${item.content}
                     </div>
                 `;
                 break;
@@ -4677,7 +4711,7 @@ function displayFeedItems(feedItems) {
                 content = `
                     <div class="feed-time">[${item.time}]</div>
                     <div class="feed-content">
-                        <span style="color: #9370db;">[RITUAL]</span> ${item.content}
+                        <span style="color: ${colors.text}; font-weight: 600;">[RITUAL]</span> ${item.content}
                     </div>
                 `;
                 break;
@@ -4686,7 +4720,7 @@ function displayFeedItems(feedItems) {
                 content = `
                     <div class="feed-time">[${item.time}]</div>
                     <div class="feed-content">
-                        <span style="color: #32cd32;">[DISCOVERY]</span> ${item.content}
+                        <span style="color: ${colors.text}; font-weight: 600;">[DISCOVERY]</span> ${item.content}
                     </div>
                 `;
                 break;
@@ -4695,7 +4729,7 @@ function displayFeedItems(feedItems) {
                 content = `
                     <div class="feed-time">[${item.time}]</div>
                     <div class="feed-content">
-                        <span style="color: #dc143c;">[SIGHTING]</span> ${item.content}
+                        <span style="color: ${colors.text}; font-weight: 600;">[SIGHTING]</span> ${item.content}
                     </div>
                 `;
                 break;
@@ -4704,7 +4738,7 @@ function displayFeedItems(feedItems) {
                 content = `
                     <div class="feed-time">[${item.time}]</div>
                     <div class="feed-content">
-                        <span style="color: #9932cc;">[PORTAL]</span> ${item.content}
+                        <span style="color: ${colors.text}; font-weight: 600;">[PORTAL]</span> ${item.content}
                     </div>
                 `;
                 break;
@@ -4713,7 +4747,7 @@ function displayFeedItems(feedItems) {
                 content = `
                     <div class="feed-time">[${item.time}]</div>
                     <div class="feed-content">
-                        <span style="color: #ffd700;">[CELEBRATION]</span> ${item.content}
+                        <span style="color: ${colors.text}; font-weight: 600;">[CELEBRATION]</span> ${item.content}
                     </div>
                 `;
                 break;
@@ -4739,7 +4773,7 @@ function showFeedError() {
         <div class="feed-item" style="border-left-color: #8b0000;">
             <div class="feed-time">[SYSTEM ERROR]</div>
             <div class="feed-content" style="color: #ff6b6b;">
-                ⚠️ Transmission disrupted. Ember Protocol experiencing interference.<br/>
+                Transmission disrupted. Ember Protocol experiencing interference.<br/>
                 <span style="font-size: 12px; opacity: 0.8;">Attempting to re-establish connection...</span>
             </div>
         </div>
@@ -4752,8 +4786,8 @@ document.addEventListener('DOMContentLoaded', function() {
     if (document.getElementById('realm-feed-container')) {
         loadRealmFeed();
 
-        // Actualizar cada 30 segundos
-        setInterval(loadRealmFeed, 30000);
+        // Actualizar cada 20 segundos
+        setInterval(loadRealmFeed, 20000);
     }
 });
 
