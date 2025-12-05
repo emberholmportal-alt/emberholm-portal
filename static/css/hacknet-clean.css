@@ -9,6 +9,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;600;700&display=swap');
 @import url('https://fonts.cdnfonts.com/css/alagard');
 @import url('https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&display=swap');
 
 /* ===============================================================
    VARIABLES CSS
@@ -58,8 +59,8 @@ body {
         radial-gradient(circle at 20% 50%, rgba(255, 136, 0, 0.03) 0%, transparent 50%),
         radial-gradient(circle at 80% 80%, rgba(255, 204, 0, 0.02) 0%, transparent 50%);
     color: var(--primary-green);
-    font-family: 'EB Garamond', Georgia, serif;
-    font-size: 14px;
+    font-family: 'IBM Plex Mono', 'Share Tech Mono', monospace;
+    font-size: 13px;
     line-height: 1.6;
     min-height: 100vh;
     overflow-x: hidden;
@@ -162,9 +163,30 @@ body::before {
     to { transform: translateX(0); }
 }
 
+/* BLINK - Parpadeo ON/OFF para warnings críticos */
+@keyframes blink {
+    0%, 50% { opacity: 1; }
+    51%, 100% { opacity: 0; }
+}
+
+.blink {
+    animation: blink 1s infinite;
+}
+
+/* PULSE - Pulsación suave para elementos destacados */
 @keyframes pulse {
     0%, 100% { opacity: 1; }
-    50% { opacity: 0.5; }
+    50% { opacity: 0.7; }
+}
+
+.pulse {
+    animation: pulse 2s infinite;
+}
+
+/* CURSOR - Terminal cursor parpadeante */
+.cursor::after {
+    content: '█';
+    animation: blink 1s infinite;
 }
 
 @keyframes glow {
@@ -216,7 +238,7 @@ body::before {
 }
 
 .console-subtitle {
-    font-family: 'EB Garamond', Georgia, serif;
+    font-family: 'IBM Plex Mono', 'Share Tech Mono', monospace;
     font-size: 11px;
     color: var(--dim-green);
     text-transform: uppercase;
@@ -245,7 +267,7 @@ body::before {
     border: 1px solid var(--border-primary);
     color: var(--primary-green);
     padding: 5px 12px;
-    font-family: 'EB Garamond', Georgia, serif;
+    font-family: 'IBM Plex Mono', 'Share Tech Mono', monospace;
     font-size: 11px;
     font-weight: 600;
     cursor: pointer;
@@ -290,7 +312,7 @@ h1 {
     display: flex;
     justify-content: space-around;
     font-size: 12px;
-    font-family: 'EB Garamond', Georgia, serif;
+    font-family: 'IBM Plex Mono', 'Share Tech Mono', monospace;
     color: var(--dim-green);
 }
 
@@ -334,7 +356,7 @@ h1 {
     border: 1px solid var(--border-primary);
     color: var(--primary-green);
     padding: 10px 15px;
-    font-family: 'EB Garamond', Georgia, serif;
+    font-family: 'IBM Plex Mono', 'Share Tech Mono', monospace;
     font-size: 11px;
     font-weight: 600;
     cursor: pointer;
@@ -375,7 +397,7 @@ h1 {
     text-align: center;
     font-size: 11px;
     color: var(--dim-green);
-    font-family: 'EB Garamond', Georgia, serif;
+    font-family: 'IBM Plex Mono', 'Share Tech Mono', monospace;
     text-transform: uppercase;
     letter-spacing: 1.5px;
 }
@@ -500,7 +522,7 @@ h1 {
 
 .alert-title,
 .warning-title {
-    font-family: 'EB Garamond', Georgia, serif;
+    font-family: 'IBM Plex Mono', 'Share Tech Mono', monospace;
     font-size: 12px;
     font-weight: 700;
     text-transform: uppercase;
@@ -516,7 +538,7 @@ h1 {
 .campaign-text,
 .block-content,
 p {
-    font-family: 'EB Garamond', Georgia, serif;
+    font-family: 'IBM Plex Mono', 'Share Tech Mono', monospace;
     font-size: 13px;
     color: var(--primary-green);
     line-height: 1.8;
@@ -544,7 +566,7 @@ strong {
 
 .monitor-title,
 .status-panel-title {
-    font-family: 'EB Garamond', Georgia, serif;
+    font-family: 'IBM Plex Mono', 'Share Tech Mono', monospace;
     font-size: 14px;
     font-weight: 700;
     text-transform: uppercase;
@@ -559,7 +581,7 @@ strong {
     font-size: 12px;
     color: var(--primary-green);
     margin: 8px 0;
-    font-family: 'EB Garamond', Georgia, serif;
+    font-family: 'IBM Plex Mono', 'Share Tech Mono', monospace;
 }
 
 .monitor-line .critical,
@@ -585,7 +607,7 @@ strong {
 
 .log-header,
 .feed-title {
-    font-family: 'EB Garamond', Georgia, serif;
+    font-family: 'IBM Plex Mono', 'Share Tech Mono', monospace;
     font-size: 14px;
     font-weight: 700;
     text-transform: uppercase;
@@ -613,7 +635,7 @@ strong {
     padding: 8px 12px;
     border-left: 2px solid rgba(68, 170, 255, 0.2);
     transition: all 0.2s;
-    font-family: 'EB Garamond', Georgia, serif;
+    font-family: 'IBM Plex Mono', 'Share Tech Mono', monospace;
 }
 
 .log-entry:hover,
@@ -793,7 +815,7 @@ strong {
     justify-content: space-between;
     align-items: center;
     gap: 15px;
-    font-family: 'EB Garamond', Georgia, serif;
+    font-family: 'IBM Plex Mono', 'Share Tech Mono', monospace;
     font-size: 13px;
     color: var(--primary-green);
     flex-wrap: wrap;
@@ -815,7 +837,7 @@ strong {
     border: 1px solid var(--border-primary);
     color: var(--primary-green);
     padding: 8px 12px;
-    font-family: 'EB Garamond', Georgia, serif;
+    font-family: 'IBM Plex Mono', 'Share Tech Mono', monospace;
     font-size: 11px;
     font-weight: 600;
     cursor: pointer;
@@ -848,7 +870,7 @@ strong {
     border: 1px solid var(--border-primary);
     color: var(--primary-green);
     padding: 10px 20px;
-    font-family: 'EB Garamond', Georgia, serif;
+    font-family: 'IBM Plex Mono', 'Share Tech Mono', monospace;
     font-size: 14px;
     font-weight: 600;
     cursor: pointer;
@@ -876,7 +898,7 @@ strong {
     border-left: 3px solid var(--primary-green);
     padding: 15px;
     margin-bottom: 15px;
-    font-family: 'EB Garamond', Georgia, serif;
+    font-family: 'IBM Plex Mono', 'Share Tech Mono', monospace;
     font-size: 13px;
     color: var(--primary-green);
 }
@@ -884,12 +906,12 @@ strong {
 .mono-small-note {
     font-size: 11px;
     color: var(--dim-green);
-    font-family: 'EB Garamond', Georgia, serif;
+    font-family: 'IBM Plex Mono', 'Share Tech Mono', monospace;
 }
 
 .center-text-line {
     text-align: center;
-    font-family: 'EB Garamond', Georgia, serif;
+    font-family: 'IBM Plex Mono', 'Share Tech Mono', monospace;
     font-size: 13px;
     color: var(--primary-green);
     margin: 8px 0;
@@ -913,7 +935,7 @@ strong {
     padding: 15px;
     margin-bottom: 15px;
     color: var(--error-red);
-    font-family: 'EB Garamond', Georgia, serif;
+    font-family: 'IBM Plex Mono', 'Share Tech Mono', monospace;
 }
 
 .status-block {
@@ -922,7 +944,7 @@ strong {
     border-left: 3px solid var(--primary-green);
     padding: 15px;
     margin-top: 15px;
-    font-family: 'EB Garamond', Georgia, serif;
+    font-family: 'IBM Plex Mono', 'Share Tech Mono', monospace;
     color: var(--primary-green);
 }
 
@@ -963,7 +985,7 @@ strong {
     justify-content: space-between;
     gap: 10px;
     margin-bottom: 10px;
-    font-family: 'EB Garamond', Georgia, serif;
+    font-family: 'IBM Plex Mono', 'Share Tech Mono', monospace;
     color: var(--primary-green);
 }
 
@@ -1029,7 +1051,7 @@ table {
     border-collapse: collapse;
     background: var(--bg-primary);
     margin: 15px 0;
-    font-family: 'EB Garamond', Georgia, serif;
+    font-family: 'IBM Plex Mono', 'Share Tech Mono', monospace;
 }
 
 .roster-table th,
@@ -1160,20 +1182,20 @@ table th {
     font-weight: 600;
     margin-bottom: 6px;
     color: var(--gold);
-    font-family: 'EB Garamond', Georgia, serif;
+    font-family: 'IBM Plex Mono', 'Share Tech Mono', monospace;
 }
 
 .modal-item-details {
     font-size: 13px;
     color: var(--dim-green);
-    font-family: 'EB Garamond', Georgia, serif;
+    font-family: 'IBM Plex Mono', 'Share Tech Mono', monospace;
 }
 
 .modal-no-items {
     text-align: center;
     padding: 40px 20px;
     color: var(--dim-green);
-    font-family: 'EB Garamond', Georgia, serif;
+    font-family: 'IBM Plex Mono', 'Share Tech Mono', monospace;
 }
 
 .modal-message {
@@ -1182,7 +1204,7 @@ table th {
     white-space: pre-wrap;
     margin-bottom: 20px;
     color: var(--primary-green);
-    font-family: 'EB Garamond', Georgia, serif;
+    font-family: 'IBM Plex Mono', 'Share Tech Mono', monospace;
 }
 
 .modal-buttons {
@@ -1197,7 +1219,7 @@ table th {
     border: 1px solid var(--border-primary);
     color: var(--primary-green);
     padding: 10px 24px;
-    font-family: 'EB Garamond', Georgia, serif;
+    font-family: 'IBM Plex Mono', 'Share Tech Mono', monospace;
     font-size: 14px;
     font-weight: 600;
     cursor: pointer;
@@ -1231,7 +1253,7 @@ textarea {
     background: var(--bg-secondary);
     border: 1px solid var(--border-primary);
     color: var(--primary-green);
-    font-family: 'EB Garamond', Georgia, serif;
+    font-family: 'IBM Plex Mono', 'Share Tech Mono', monospace;
     padding: 10px 12px;
     font-size: 13px;
 }
@@ -1283,7 +1305,7 @@ a.social-link:hover {
     align-items: center;
     gap: 12px;
     z-index: 9999;
-    font-family: 'EB Garamond', Georgia, serif;
+    font-family: 'IBM Plex Mono', 'Share Tech Mono', monospace;
 }
 
 .console-block-label {
@@ -1310,7 +1332,7 @@ a.social-link:hover {
     background: var(--bg-panel);
     border: 1px solid var(--border-primary);
     color: var(--primary-green);
-    font-family: 'EB Garamond', Georgia, serif;
+    font-family: 'IBM Plex Mono', 'Share Tech Mono', monospace;
     font-size: 11px;
     font-weight: 600;
     padding: 5px 10px;
@@ -1394,7 +1416,7 @@ body {
     border: 1px solid var(--border-primary);
     color: var(--primary-green);
     text-decoration: none;
-    font-family: 'EB Garamond', Georgia, serif;
+    font-family: 'IBM Plex Mono', 'Share Tech Mono', monospace;
     font-size: 12px;
     transition: all 0.2s;
 }
