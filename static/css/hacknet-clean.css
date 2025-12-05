@@ -14,11 +14,11 @@
    VARIABLES CSS
    =============================================================== */
 :root {
-    /* Hacknet Color Scheme */
-    --primary-green: #4af;              /* Azul cyan principal */
-    --bright-green: #6cf;               /* Cyan brillante */
-    --dim-green: #2a8;                  /* Cyan apagado */
-    --dark-green: #164;                 /* Cyan oscuro */
+    /* Retro Terminal Orange Scheme */
+    --primary-green: #ff8800;              /* Naranja retro principal */
+    --bright-green: #ffaa00;               /* Naranja brillante */
+    --dim-green: #cc6600;                  /* Naranja apagado */
+    --dark-green: #883300;                 /* Naranja oscuro */
 
     /* Emberholm Accents */
     --gold: #fc0;                       /* Amarillo dorado */
@@ -29,7 +29,7 @@
     --error-red: #f24;                  /* Rojo error */
     --warning-orange: #f80;             /* Naranja warning */
     --success-green: #4f8;              /* Verde éxito */
-    --info-cyan: #4df;                  /* Cyan información */
+    --info-cyan: #ff8800;               /* Naranja información */
 
     /* Backgrounds */
     --bg-primary: #000;                 /* Negro principal */
@@ -38,8 +38,8 @@
     --bg-elevated: #14141a;             /* Elementos elevados */
 
     /* Borders */
-    --border-primary: rgba(201, 162, 39, 0.3);
-    --border-bright: rgba(201, 162, 39, 0.6);
+    --border-primary: rgba(255, 136, 0, 0.3);
+    --border-bright: rgba(255, 136, 0, 0.6);
     --border-gold: rgba(201, 162, 39, 0.4);
 }
 
@@ -53,9 +53,9 @@
 }
 
 body {
-    background: #1a0f0a;
+    background: #000;
     background-image:
-        radial-gradient(circle at 20% 50%, rgba(68, 170, 255, 0.03) 0%, transparent 50%),
+        radial-gradient(circle at 20% 50%, rgba(255, 136, 0, 0.03) 0%, transparent 50%),
         radial-gradient(circle at 80% 80%, rgba(255, 204, 0, 0.02) 0%, transparent 50%);
     color: var(--primary-green);
     font-family: 'EB Garamond', Georgia, serif;
@@ -79,7 +79,7 @@ body {
     background: linear-gradient(
         to bottom,
         transparent,
-        rgba(68, 170, 255, 0.1),
+        rgba(255, 136, 0, 0.1),
         transparent
     );
     animation: scan-beam 8s linear infinite;
@@ -135,7 +135,7 @@ body::before {
     background: repeating-linear-gradient(
         0deg,
         transparent 0px,
-        rgba(68, 170, 255, 0.02) 1px,
+        rgba(255, 136, 0, 0.02) 1px,
         transparent 2px,
         transparent 4px
     );
@@ -647,9 +647,23 @@ strong {
 }
 
 .project-logo-img {
-    max-width: 200px;
+    max-width: 280px;
     height: auto;
-    filter: drop-shadow(0 0 20px rgba(68, 170, 255, 0.5));
+    filter: drop-shadow(0 0 20px rgba(255, 136, 0, 0.5));
+}
+
+/* REALM MAP */
+.realm-map-container {
+    margin-top: 15px;
+    padding: 10px 15px;
+}
+
+.realm-map-img {
+    max-width: 500px;
+    width: 100%;
+    height: auto;
+    border: 2px solid var(--border-primary);
+    box-shadow: 0 0 20px rgba(255, 136, 0, 0.2);
 }
 
 /* ===============================================================
