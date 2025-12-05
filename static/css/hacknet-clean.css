@@ -64,6 +64,8 @@ body {
     line-height: 1.6;
     min-height: 100vh;
     overflow-x: hidden;
+    letter-spacing: 0.5px;
+    font-weight: normal;
 }
 
 /* ===============================================================
@@ -196,6 +198,57 @@ body::before {
     50% {
         box-shadow: 0 0 10px var(--primary-green), 0 0 20px var(--primary-green), 0 0 30px var(--primary-green);
     }
+}
+
+/* ===============================================================
+   TEXT EFFECTS - CRT GLOW
+   =============================================================== */
+
+/* Verde Terminal - Fosforescente CRT */
+.glow-green {
+    text-shadow: 0 0 10px #33ff33;
+}
+
+/* Cyan - Highlights importantes */
+.glow-cyan {
+    text-shadow: 0 0 10px #00ffff;
+}
+
+/* Amarillo - Stats, XP, Rewards */
+.glow-yellow {
+    text-shadow: 0 0 10px #ffff00;
+}
+
+/* Rojo - Warnings, Danger */
+.glow-red {
+    text-shadow: 0 0 8px #ff0000;
+}
+
+/* Magenta - Special Features */
+.glow-magenta {
+    text-shadow: 0 0 10px #ff00ff;
+}
+
+/* Naranja - Tema principal */
+.glow-orange {
+    text-shadow: 0 0 10px var(--primary-green);
+}
+
+/* Letter Spacing Presets */
+.ls-tight {
+    letter-spacing: 0.5px;    /* Body text */
+}
+
+.ls-normal {
+    letter-spacing: 1px;      /* Buttons */
+}
+
+.ls-wide {
+    letter-spacing: 2px;      /* Headers */
+}
+
+.ls-ultra {
+    letter-spacing: 3px;      /* Subtítulos pequeños */
 }
 
 /* ===============================================================
@@ -492,6 +545,10 @@ h1 {
     display: flex;
     align-items: center;
     gap: 12px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    font-weight: bold;
+    text-shadow: 0 0 10px var(--gold);
 }
 
 .block-title::before,
@@ -925,6 +982,9 @@ strong {
     margin-bottom: 12px;
     padding-bottom: 8px;
     border-bottom: 1px solid var(--border-gold);
+    letter-spacing: 2px;
+    font-weight: bold;
+    text-shadow: 0 0 10px var(--gold);
 }
 
 /* STATUS BLOCKS */
@@ -1443,11 +1503,13 @@ body {
 
 .toc-section-title {
     color: var(--gold);
-    font-weight: 600;
+    font-weight: bold;
     font-family: 'Alagard', serif;
     font-size: 14px;
     margin-bottom: 8px;
-    letter-spacing: 1px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    text-shadow: 0 0 8px var(--gold);
 }
 
 @media (max-width: 768px) {
