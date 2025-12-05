@@ -21,6 +21,14 @@
     --dim-green: #cc6600;                  /* Naranja apagado */
     --dark-green: #883300;                 /* Naranja oscuro */
 
+    /* Extended Orange/Yellow Palette */
+    --orange-dark: #994400;                /* Naranja muy oscuro */
+    --orange-medium: #cc6600;              /* Naranja medio */
+    --orange-light: #ff8800;               /* Naranja claro */
+    --yellow-dark: #cc9900;                /* Amarillo oscuro */
+    --yellow-medium: #ffcc00;              /* Amarillo medio */
+    --yellow-light: #ffdd33;               /* Amarillo claro */
+
     /* Emberholm Accents */
     --gold: #fc0;                       /* Amarillo dorado */
     --gold-bright: #fd4;                /* Dorado brillante */
@@ -881,97 +889,96 @@ strong {
 .top-command-bar {
     display: flex;
     flex-wrap: nowrap;
-    gap: 8px;
+    gap: 10px;
     justify-content: center;
-    padding-top: 15px;
+    padding: 15px 40px;  /* Más padding lateral para mejor centrado */
     border-top: 1px solid var(--border-primary);
     overflow-x: auto;
 }
 
-/* COMMAND LINKS */
+/* COMMAND LINKS - RETRO TERMINAL STYLE */
 .cmd-link {
-    background: var(--bg-panel);
-    border: 1px solid var(--border-primary);
-    color: var(--primary-green);
-    padding: 8px 12px;
+    background: var(--orange-medium);     /* Naranja oscuro */
+    border: 2px solid #000;               /* Borde negro */
+    color: #000;                          /* Texto NEGRO - estilo terminal retro */
+    padding: 10px 16px;                   /* Más padding para look retro */
     font-family: 'IBM Plex Mono', 'Share Tech Mono', monospace;
-    font-size: 11px;
-    font-weight: 600;
+    font-size: 12px;
+    font-weight: 700;                     /* Bold para terminal */
     cursor: pointer;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
-    transition: all 0.2s;
+    letter-spacing: 1px;
+    transition: all 0.15s;
     white-space: nowrap;
     flex-shrink: 0;
+    box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.6);  /* Sombra blocky retro */
 }
 
 .cmd-link:hover {
-    background: rgba(255, 136, 0, 0.1);
-    border-color: var(--bright-green);
-    color: var(--bright-green);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 10px rgba(255, 136, 0, 0.3);
+    background: var(--orange-light);      /* Naranja más brillante al hover */
+    transform: translate(-1px, -1px);     /* Efecto de elevación retro */
+    box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.7);
 }
 
 .cmd-link.is-active,
 .cmd-link.active {
-    background: rgba(255, 204, 0, 0.1);
-    border-color: var(--border-gold);
-    color: var(--gold);
-    box-shadow: 0 0 15px rgba(255, 204, 0, 0.3);
+    background: var(--yellow-medium);     /* Amarillo para estado activo */
+    border-color: #000;
+    color: #000;
+    box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.8), 0 0 15px rgba(255, 204, 0, 0.5);
+    font-weight: 900;
 }
 
-/* MINT BUTTON - Destacado en rojo */
+/* MINT BUTTON - Destacado en rojo con estilo retro */
 .cmd-link-mint {
-    background: rgba(255, 0, 0, 0.15);
-    border-color: #ff0000;
-    color: #ff4444;
-    text-shadow: 0 0 8px #ff0000;
-    box-shadow: 0 0 10px rgba(255, 0, 0, 0.3);
+    background: #cc0000;                  /* Rojo oscuro */
+    border-color: #000;
+    color: #000;                          /* Texto negro */
+    font-weight: 900;                     /* Extra bold */
+    box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.7), 0 0 15px rgba(255, 0, 0, 0.6);
 }
 
 .cmd-link-mint:hover {
-    background: rgba(255, 0, 0, 0.25);
-    border-color: #ff4444;
-    color: #ff6666;
-    text-shadow: 0 0 12px #ff0000;
-    box-shadow: 0 0 20px rgba(255, 0, 0, 0.5);
+    background: #ff0000;                  /* Rojo brillante */
+    transform: translate(-1px, -1px);
+    box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.8), 0 0 20px rgba(255, 0, 0, 0.8);
 }
 
-/* NAV PROGRESS BAR */
+/* NAV PROGRESS BAR - ESTILO RETRO BLOCKY */
 .nav-progress-bar {
-    width: 100%;
-    height: 3px;
-    background: rgba(255, 136, 0, 0.1);
-    margin-top: 12px;
+    width: calc(100% - 80px);             /* No tocar bordes */
+    margin: 12px auto 0;                  /* Centrada */
+    height: 8px;                          /* Más gruesa - estilo retro */
+    background: #222;                     /* Fondo oscuro */
+    border: 2px solid var(--orange-medium); /* Borde naranja */
     position: relative;
     overflow: hidden;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.5);
 }
 
 .nav-progress-fill {
     height: 100%;
-    background: linear-gradient(90deg,
-        transparent 0%,
-        var(--primary-green) 50%,
-        var(--bright-green) 100%
+    /* Patrón blocky pixelado */
+    background: repeating-linear-gradient(
+        90deg,
+        var(--orange-light) 0px,
+        var(--orange-light) 6px,
+        var(--yellow-medium) 6px,
+        var(--yellow-medium) 12px
     );
     width: 0%;
-    animation: loadingBar 3s ease-in-out infinite;
-    box-shadow: 0 0 10px var(--primary-green);
+    animation: loadingBarRetro 2.5s steps(20) infinite;  /* Stepped = pixelado */
+    box-shadow: 0 0 10px var(--orange-light);
 }
 
-@keyframes loadingBar {
+@keyframes loadingBarRetro {
     0% {
         width: 0%;
-        opacity: 0.5;
-    }
-    50% {
-        width: 100%;
-        opacity: 1;
+        opacity: 0.8;
     }
     100% {
         width: 100%;
-        opacity: 0.3;
+        opacity: 1;
     }
 }
 
