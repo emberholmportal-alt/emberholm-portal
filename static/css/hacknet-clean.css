@@ -309,6 +309,7 @@ body::before {
     flex-direction: column;
     position: relative;
     z-index: 1;
+    overflow-x: hidden;  /* Prevenir scroll horizontal */
 }
 
 /* ===============================================================
@@ -915,6 +916,7 @@ strong {
     display: flex;
     flex-direction: column;
     gap: 15px;
+    overflow-x: hidden;  /* Prevenir scroll horizontal */
 }
 
 .top-status-row {
@@ -1199,15 +1201,14 @@ strong {
 }
 
 .profile-col-left {
-    flex: 1 1 300px;
-    min-width: 260px;
+    flex: 1;  /* 50% del espacio */
+    min-width: 300px;
 }
 
-/* TOP EMISSARY - 2 COLUMNAS CON TONO AMARILLO */
+/* TOP EMISSARY - 2 COLUMNAS CON TONO AMARILLO - 50% ANCHO */
 .profile-col-right {
-    flex: 0 0 200px;
-    min-width: 200px;
-    max-width: 100%;
+    flex: 1;  /* 50% del espacio - igual que col-left */
+    min-width: 300px;
     background: rgba(255, 204, 0, 0.08);  /* Tono amarillo suave */
     border: 1px solid var(--border-gold);
     border-left: 3px solid var(--gold);
@@ -1538,18 +1539,19 @@ a.social-link:hover {
     flex-shrink: 0;
 }
 
-/* Grupo de controles a la derecha - CON FONDO AMARILLO */
+/* Grupo de controles a la derecha - CON FONDO AMARILLO MÁS VISIBLE */
 .console-btn {
-    background: rgba(255, 204, 0, 0.15);  /* Fondo amarillo suave */
-    border: 1px solid rgba(255, 204, 0, 0.4);
-    color: var(--primary-green);
+    background: rgba(255, 204, 0, 0.25);  /* Fondo amarillo más visible */
+    border: 1px solid rgba(255, 204, 0, 0.6);  /* Borde amarillo más fuerte */
+    color: var(--gold);
     font-family: 'Classic Console Neue', 'IBM Plex Mono', 'Share Tech Mono', monospace;
     font-size: 11px;
     font-weight: 600;
-    padding: 6px 12px;
+    padding: 8px 14px;
     cursor: pointer;
     text-transform: uppercase;
     transition: all 0.2s;
+    text-shadow: 0 0 5px rgba(255, 204, 0, 0.5);
 }
 
 .console-btn:first-of-type {
@@ -1557,15 +1559,16 @@ a.social-link:hover {
 }
 
 .console-btn:hover {
-    background: rgba(255, 204, 0, 0.25);
+    background: rgba(255, 204, 0, 0.4);
     border-color: var(--gold);
-    color: var(--gold);
+    color: var(--bright-green);
+    text-shadow: 0 0 8px var(--gold);
 }
 
 .console-vol-wrap {
-    background: rgba(255, 204, 0, 0.15);  /* Fondo amarillo suave */
-    border: 1px solid rgba(255, 204, 0, 0.4);
-    padding: 6px 12px;
+    background: rgba(255, 204, 0, 0.25);  /* Fondo amarillo más visible */
+    border: 1px solid rgba(255, 204, 0, 0.6);  /* Borde amarillo más fuerte */
+    padding: 8px 14px;
     border-radius: 2px;
     display: flex;
     align-items: center;
