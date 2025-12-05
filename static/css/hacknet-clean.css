@@ -947,14 +947,14 @@ strong {
 
 /* COMMAND LINKS - RETRO TERMINAL STYLE CON GLOW */
 .cmd-link {
-    /* Degradado retro naranja vibrante */
-    background: linear-gradient(180deg, rgba(255, 153, 0, 0.8) 0%, rgba(221, 119, 0, 0.8) 100%);
-    border: none;                         /* Sin borde */
-    color: #000;                          /* Texto NEGRO - estilo terminal retro */
-    padding: 6px 10px;                    /* Más compactos */
+    /* Fondo transparente con borde naranja */
+    background: transparent;
+    border: 2px solid var(--orange-light);  /* Borde naranja brillante */
+    color: var(--orange-light);             /* Texto naranja */
+    padding: 6px 10px;                      /* Más compactos */
     font-family: 'Classic Console Neue', 'IBM Plex Mono', 'Share Tech Mono', monospace;
-    font-size: 10px;                      /* Más pequeño */
-    font-weight: 800;                     /* Extra bold para terminal */
+    font-size: 10px;                        /* Más pequeño */
+    font-weight: 800;                       /* Extra bold para terminal */
     cursor: pointer;
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -966,17 +966,20 @@ strong {
 }
 
 .cmd-link:hover {
-    /* Degradado más brillante al hover */
-    background: linear-gradient(180deg, rgba(255, 187, 0, 0.9) 0%, rgba(255, 153, 0, 0.9) 100%);
-    transform: translateY(-1px);          /* Sutil elevación */
+    /* Relleno naranja al hover */
+    background: var(--orange-light);
+    border-color: var(--bright-green);
+    color: #000;                            /* Texto negro al hover */
+    transform: translateY(-1px);            /* Sutil elevación */
     /* GLOW MÁS INTENSO AL HOVER */
     box-shadow: 0 0 20px rgba(255, 187, 0, 0.6);
 }
 
 .cmd-link.is-active,
 .cmd-link.active {
-    /* Degradado amarillo vibrante para estado activo */
-    background: linear-gradient(180deg, rgba(255, 238, 68, 0.9) 0%, rgba(255, 221, 0, 0.9) 100%);
+    /* Relleno amarillo vibrante para estado activo */
+    background: var(--yellow-medium);
+    border-color: var(--yellow-light);
     color: #000;
     font-weight: 900;
     /* GLOW INTENSO PARA ACTIVO */
@@ -985,17 +988,20 @@ strong {
 
 /* MINT BUTTON - Destacado en rojo BRILLANTE con estilo retro */
 .cmd-link-mint {
-    /* Degradado rojo vibrante */
-    background: linear-gradient(180deg, rgba(255, 51, 68, 0.85) 0%, rgba(221, 0, 0, 0.85) 100%);
-    color: #000;                          /* Texto negro */
+    /* Borde rojo vibrante */
+    background: transparent;
+    border-color: var(--error-red);
+    color: var(--error-red);              /* Texto rojo */
     font-weight: 900;                     /* Extra bold */
     /* GLOW ROJO INTENSO */
     box-shadow: 0 0 15px rgba(255, 51, 68, 0.6);
 }
 
 .cmd-link-mint:hover {
-    /* Degradado rojo super brillante */
-    background: linear-gradient(180deg, rgba(255, 85, 85, 0.95) 0%, rgba(255, 51, 68, 0.95) 100%);
+    /* Relleno rojo al hover */
+    background: var(--error-red);
+    border-color: #ff5555;
+    color: #000;                          /* Texto negro al hover */
     /* GLOW MÁS INTENSO */
     box-shadow: 0 0 25px rgba(255, 51, 68, 0.8);
 }
