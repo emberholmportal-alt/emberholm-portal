@@ -930,12 +930,12 @@ strong {
 
 .top-command-bar {
     display: flex;
-    flex-wrap: nowrap;
+    flex-wrap: wrap;  /* Permitir que los botones se envuelvan */
     gap: 4px;
     justify-content: center;
     padding: 15px 60px;  /* Más padding lateral para mejor centrado */
     border-top: 1px solid var(--border-primary);
-    overflow-x: auto;
+    overflow-x: hidden;  /* Eliminar barra de deslizamiento */
 }
 
 /* COMMAND LINKS - RETRO TERMINAL STYLE CON GLOW */
@@ -1538,32 +1538,35 @@ a.social-link:hover {
     flex-shrink: 0;
 }
 
-/* Grupo de controles a la derecha */
-.console-btn,
-.console-vol-wrap {
-    margin-left: auto;  /* Empujar a la derecha */
-}
-
+/* Grupo de controles a la derecha - CON FONDO AMARILLO */
 .console-btn {
-    background: var(--bg-panel);
-    border: 1px solid var(--border-primary);
+    background: rgba(255, 204, 0, 0.15);  /* Fondo amarillo suave */
+    border: 1px solid rgba(255, 204, 0, 0.4);
     color: var(--primary-green);
     font-family: 'Classic Console Neue', 'IBM Plex Mono', 'Share Tech Mono', monospace;
     font-size: 11px;
     font-weight: 600;
-    padding: 5px 10px;
+    padding: 6px 12px;
     cursor: pointer;
     text-transform: uppercase;
     transition: all 0.2s;
 }
 
+.console-btn:first-of-type {
+    margin-left: auto;  /* Empujar todo el grupo a la derecha */
+}
+
 .console-btn:hover {
-    background: rgba(255, 136, 0, 0.1);
-    border-color: var(--bright-green);
-    color: var(--bright-green);
+    background: rgba(255, 204, 0, 0.25);
+    border-color: var(--gold);
+    color: var(--gold);
 }
 
 .console-vol-wrap {
+    background: rgba(255, 204, 0, 0.15);  /* Fondo amarillo suave */
+    border: 1px solid rgba(255, 204, 0, 0.4);
+    padding: 6px 12px;
+    border-radius: 2px;
     display: flex;
     align-items: center;
     gap: 8px;
