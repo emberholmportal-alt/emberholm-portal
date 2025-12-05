@@ -16,30 +16,30 @@
    VARIABLES CSS
    =============================================================== */
 :root {
-    /* Retro Terminal Orange Scheme */
-    --primary-green: #ff8800;              /* Naranja retro principal */
-    --bright-green: #ffaa00;               /* Naranja brillante */
-    --dim-green: #cc6600;                  /* Naranja apagado */
-    --dark-green: #883300;                 /* Naranja oscuro */
+    /* Retro Terminal Orange Scheme - MÁS BRILLANTE */
+    --primary-green: #ff9900;              /* Naranja retro principal */
+    --bright-green: #ffbb00;               /* Naranja brillante */
+    --dim-green: #dd7700;                  /* Naranja apagado */
+    --dark-green: #994400;                 /* Naranja oscuro */
 
-    /* Extended Orange/Yellow Palette */
-    --orange-dark: #994400;                /* Naranja muy oscuro */
-    --orange-medium: #cc6600;              /* Naranja medio */
-    --orange-light: #ff8800;               /* Naranja claro */
-    --yellow-dark: #cc9900;                /* Amarillo oscuro */
-    --yellow-medium: #ffcc00;              /* Amarillo medio */
-    --yellow-light: #ffdd33;               /* Amarillo claro */
+    /* Extended Orange/Yellow Palette - MÁS VIBRANTE */
+    --orange-dark: #aa5500;                /* Naranja muy oscuro */
+    --orange-medium: #dd7700;              /* Naranja medio */
+    --orange-light: #ff9900;               /* Naranja claro */
+    --yellow-dark: #ddaa00;                /* Amarillo oscuro */
+    --yellow-medium: #ffdd00;              /* Amarillo medio */
+    --yellow-light: #ffee44;               /* Amarillo claro */
 
-    /* Emberholm Accents */
-    --gold: #fc0;                       /* Amarillo dorado */
-    --gold-bright: #fd4;                /* Dorado brillante */
-    --gold-dim: #ca0;                   /* Dorado apagado */
+    /* Emberholm Accents - MÁS SATURADOS */
+    --gold: #ffcc00;                    /* Amarillo dorado */
+    --gold-bright: #ffdd44;             /* Dorado brillante */
+    --gold-dim: #ddaa00;                /* Dorado apagado */
 
-    /* System States */
-    --error-red: #f24;                  /* Rojo error */
-    --warning-orange: #f80;             /* Naranja warning */
-    --success-green: #4f8;              /* Verde éxito */
-    --info-cyan: #ff8800;               /* Naranja información */
+    /* System States - MÁS VIBRANTES */
+    --error-red: #ff3344;               /* Rojo error */
+    --warning-orange: #ff8800;          /* Naranja warning */
+    --success-green: #44ff88;           /* Verde éxito */
+    --info-cyan: #00ffff;               /* Cyan información */
 
     /* Backgrounds */
     --bg-primary: #000;                 /* Negro principal */
@@ -47,10 +47,10 @@
     --bg-panel: #0f0f14;                /* Paneles */
     --bg-elevated: #14141a;             /* Elementos elevados */
 
-    /* Borders */
-    --border-primary: rgba(255, 136, 0, 0.3);
-    --border-bright: rgba(255, 136, 0, 0.6);
-    --border-gold: rgba(201, 162, 39, 0.4);
+    /* Borders - MÁS BRILLANTES */
+    --border-primary: rgba(255, 153, 0, 0.4);
+    --border-bright: rgba(255, 187, 0, 0.7);
+    --border-gold: rgba(255, 204, 0, 0.5);
 }
 
 /* ===============================================================
@@ -75,6 +75,12 @@ body {
     overflow-x: hidden;
     letter-spacing: 0.5px;
     font-weight: normal;
+    /* GLOW EFFECT INTENSO + BLUR SUTIL - ESTILO CRT RETRO */
+    text-shadow:
+        0 0 5px currentColor,
+        0 0 10px currentColor,
+        0 0 20px currentColor;
+    filter: blur(0.3px);  /* Blur muy sutil para efecto phosphor */
 }
 
 /* ===============================================================
@@ -104,7 +110,7 @@ body {
     100% { transform: translateY(100vh); }
 }
 
-/* 2. NOISE OVERLAY */
+/* 2. NOISE OVERLAY INTENSO */
 .noise {
     position: fixed;
     top: 0;
@@ -112,12 +118,19 @@ body {
     width: 100%;
     height: 100%;
     background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMDAiIGhlaWdodD0iMzAwIj48ZmlsdGVyIGlkPSJhIj48ZmVUdXJidWxlbmNlIGJhc2VGcmVxdWVuY3k9Ii43NSIgc3RpdGNoVGlsZXM9InN0aXRjaCIgdHlwZT0iZnJhY3RhbE5vaXNlIi8+PGZlQ29sb3JNYXRyaXggdHlwZT0ic2F0dXJhdGUiIHZhbHVlcz0iMCIvPjwvZmlsdGVyPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbHRlcj0idXJsKCNhKSIgb3BhY2l0eT0iLjA1Ii8+PC9zdmc+');
-    opacity: 0.03;
+    opacity: 0.08;
     pointer-events: none;
     z-index: 9995;
+    animation: noiseFlicker 0.2s infinite;
 }
 
-/* 3. CRT CURVE (Vignette oscura en bordes) */
+@keyframes noiseFlicker {
+    0% { opacity: 0.08; }
+    50% { opacity: 0.06; }
+    100% { opacity: 0.08; }
+}
+
+/* 3. CRT CURVE (Vignette INTENSA en bordes) */
 .crt-overlay {
     position: fixed;
     top: 0;
@@ -127,16 +140,18 @@ body {
     background: radial-gradient(
         ellipse at center,
         transparent 0%,
-        transparent 60%,
-        rgba(0, 0, 0, 0.3) 85%,
-        rgba(0, 0, 0, 0.6) 95%,
-        rgba(0, 0, 0, 0.9) 100%
+        transparent 50%,
+        rgba(0, 0, 0, 0.5) 75%,
+        rgba(0, 0, 0, 0.85) 90%,
+        rgba(0, 0, 0, 0.95) 100%
     );
+    border-radius: 15px;
+    box-shadow: inset 0 0 150px rgba(0, 0, 0, 0.9);
     pointer-events: none;
     z-index: 9997;
 }
 
-/* 4. SCANLINES SUTILES */
+/* 4. SCANLINES INTENSAS - ESTILO CRT RETRO */
 body::before {
     content: '';
     position: fixed;
@@ -146,10 +161,10 @@ body::before {
     height: 100%;
     background: repeating-linear-gradient(
         0deg,
-        transparent 0px,
-        rgba(255, 136, 0, 0.02) 1px,
-        transparent 2px,
-        transparent 4px
+        rgba(0, 0, 0, 0.15) 0px,
+        rgba(255, 136, 0, 0.05) 1px,
+        rgba(0, 0, 0, 0.15) 2px,
+        transparent 3px
     );
     pointer-events: none;
     z-index: 9998;
@@ -213,34 +228,63 @@ body::before {
    TEXT EFFECTS - CRT GLOW
    =============================================================== */
 
-/* Verde Terminal - Fosforescente CRT */
+/* Verde Terminal - Fosforescente CRT INTENSO */
 .glow-green {
-    text-shadow: 0 0 10px #33ff33;
+    color: #33ff33;
+    text-shadow:
+        0 0 5px #33ff33,
+        0 0 10px #33ff33,
+        0 0 20px #33ff33,
+        0 0 40px #33ff33;
 }
 
-/* Cyan - Highlights importantes */
+/* Cyan - Highlights importantes INTENSO */
 .glow-cyan {
-    text-shadow: 0 0 10px #00ffff;
+    color: #00ffff;
+    text-shadow:
+        0 0 5px #00ffff,
+        0 0 10px #00ffff,
+        0 0 20px #00ffff,
+        0 0 40px #00ffff;
 }
 
-/* Amarillo - Stats, XP, Rewards */
+/* Amarillo - Stats, XP, Rewards INTENSO */
 .glow-yellow {
-    text-shadow: 0 0 10px #ffff00;
+    color: #ffff00;
+    text-shadow:
+        0 0 5px #ffff00,
+        0 0 10px #ffff00,
+        0 0 20px #ffff00,
+        0 0 40px #ffff00;
 }
 
-/* Rojo - Warnings, Danger */
+/* Rojo - Warnings, Danger INTENSO */
 .glow-red {
-    text-shadow: 0 0 8px #ff0000;
+    color: #ff0000;
+    text-shadow:
+        0 0 5px #ff0000,
+        0 0 10px #ff0000,
+        0 0 20px #ff0000,
+        0 0 40px #ff0000;
 }
 
-/* Magenta - Special Features */
+/* Magenta - Special Features INTENSO */
 .glow-magenta {
-    text-shadow: 0 0 10px #ff00ff;
+    color: #ff00ff;
+    text-shadow:
+        0 0 5px #ff00ff,
+        0 0 10px #ff00ff,
+        0 0 20px #ff00ff,
+        0 0 40px #ff00ff;
 }
 
-/* Naranja - Tema principal */
+/* Naranja - Tema principal INTENSO */
 .glow-orange {
-    text-shadow: 0 0 10px var(--primary-green);
+    text-shadow:
+        0 0 5px var(--primary-green),
+        0 0 10px var(--primary-green),
+        0 0 20px var(--primary-green),
+        0 0 40px var(--primary-green);
 }
 
 /* Letter Spacing Presets */
@@ -557,7 +601,12 @@ h1 {
     text-transform: uppercase;
     letter-spacing: 2px;
     font-weight: bold;
-    text-shadow: 0 0 10px var(--gold);
+    /* GLOW INTENSO PARA TÍTULOS */
+    text-shadow:
+        0 0 5px var(--gold),
+        0 0 10px var(--gold),
+        0 0 20px var(--gold),
+        0 0 40px var(--gold);
 }
 
 .block-title::before,
@@ -897,50 +946,59 @@ strong {
     overflow-x: auto;
 }
 
-/* COMMAND LINKS - RETRO TERMINAL STYLE */
+/* COMMAND LINKS - RETRO TERMINAL STYLE CON GLOW */
 .cmd-link {
-    /* Degradado retro naranja suave */
-    background: linear-gradient(180deg, rgba(255, 136, 0, 0.7) 0%, rgba(204, 102, 0, 0.7) 100%);
+    /* Degradado retro naranja vibrante */
+    background: linear-gradient(180deg, rgba(255, 153, 0, 0.8) 0%, rgba(221, 119, 0, 0.8) 100%);
     border: none;                         /* Sin borde */
     color: #000;                          /* Texto NEGRO - estilo terminal retro */
     padding: 6px 10px;                    /* Más compactos */
     font-family: 'Classic Console Neue', 'IBM Plex Mono', 'Share Tech Mono', monospace;
     font-size: 10px;                      /* Más pequeño */
-    font-weight: 700;                     /* Bold para terminal */
+    font-weight: 800;                     /* Extra bold para terminal */
     cursor: pointer;
     text-transform: uppercase;
     letter-spacing: 0.5px;
     transition: all 0.2s;
     white-space: nowrap;
     flex-shrink: 0;
-    box-shadow: none;                     /* Sin sombra */
+    /* GLOW SUTIL EN BOTONES */
+    box-shadow: 0 0 10px rgba(255, 153, 0, 0.3);
 }
 
 .cmd-link:hover {
     /* Degradado más brillante al hover */
-    background: linear-gradient(180deg, rgba(255, 170, 0, 0.85) 0%, rgba(255, 136, 0, 0.85) 100%);
+    background: linear-gradient(180deg, rgba(255, 187, 0, 0.9) 0%, rgba(255, 153, 0, 0.9) 100%);
     transform: translateY(-1px);          /* Sutil elevación */
+    /* GLOW MÁS INTENSO AL HOVER */
+    box-shadow: 0 0 20px rgba(255, 187, 0, 0.6);
 }
 
 .cmd-link.is-active,
 .cmd-link.active {
-    /* Degradado amarillo suave para estado activo */
-    background: linear-gradient(180deg, rgba(255, 221, 51, 0.8) 0%, rgba(255, 204, 0, 0.8) 100%);
+    /* Degradado amarillo vibrante para estado activo */
+    background: linear-gradient(180deg, rgba(255, 238, 68, 0.9) 0%, rgba(255, 221, 0, 0.9) 100%);
     color: #000;
     font-weight: 900;
+    /* GLOW INTENSO PARA ACTIVO */
+    box-shadow: 0 0 20px rgba(255, 221, 0, 0.7);
 }
 
-/* MINT BUTTON - Destacado en rojo con estilo retro */
+/* MINT BUTTON - Destacado en rojo BRILLANTE con estilo retro */
 .cmd-link-mint {
-    /* Degradado rojo suave */
-    background: linear-gradient(180deg, rgba(255, 0, 0, 0.75) 0%, rgba(204, 0, 0, 0.75) 100%);
+    /* Degradado rojo vibrante */
+    background: linear-gradient(180deg, rgba(255, 51, 68, 0.85) 0%, rgba(221, 0, 0, 0.85) 100%);
     color: #000;                          /* Texto negro */
     font-weight: 900;                     /* Extra bold */
+    /* GLOW ROJO INTENSO */
+    box-shadow: 0 0 15px rgba(255, 51, 68, 0.6);
 }
 
 .cmd-link-mint:hover {
-    /* Degradado rojo brillante */
-    background: linear-gradient(180deg, rgba(255, 51, 51, 0.9) 0%, rgba(255, 0, 0, 0.9) 100%);
+    /* Degradado rojo super brillante */
+    background: linear-gradient(180deg, rgba(255, 85, 85, 0.95) 0%, rgba(255, 51, 68, 0.95) 100%);
+    /* GLOW MÁS INTENSO */
+    box-shadow: 0 0 25px rgba(255, 51, 68, 0.8);
 }
 
 /* NAV PROGRESS BAR - ESTILO RETRO BLOCKY */
@@ -957,7 +1015,7 @@ strong {
 
 .nav-progress-fill {
     height: 100%;
-    /* Patrón blocky pixelado */
+    /* Patrón blocky pixelado MÁS VIBRANTE */
     background: repeating-linear-gradient(
         90deg,
         var(--orange-light) 0px,
@@ -967,7 +1025,11 @@ strong {
     );
     width: 0%;
     animation: loadingBarRetro 2.5s steps(20) infinite;  /* Stepped = pixelado */
-    box-shadow: 0 0 10px var(--orange-light);
+    /* GLOW INTENSO EN BARRA */
+    box-shadow:
+        0 0 10px var(--orange-light),
+        0 0 20px var(--orange-light),
+        0 0 30px rgba(255, 153, 0, 0.5);
 }
 
 @keyframes loadingBarRetro {
@@ -1044,7 +1106,12 @@ strong {
     border-bottom: 1px solid var(--border-gold);
     letter-spacing: 2px;
     font-weight: bold;
-    text-shadow: 0 0 10px var(--gold);
+    /* GLOW INTENSO */
+    text-shadow:
+        0 0 5px var(--gold),
+        0 0 10px var(--gold),
+        0 0 20px var(--gold),
+        0 0 40px var(--gold);
 }
 
 /* STATUS BLOCKS */
@@ -1569,7 +1636,11 @@ body {
     margin-bottom: 8px;
     letter-spacing: 2px;
     text-transform: uppercase;
-    text-shadow: 0 0 8px var(--gold);
+    /* GLOW INTENSO */
+    text-shadow:
+        0 0 5px var(--gold),
+        0 0 10px var(--gold),
+        0 0 20px var(--gold);
 }
 
 @media (max-width: 768px) {
