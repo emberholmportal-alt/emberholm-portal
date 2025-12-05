@@ -759,3 +759,660 @@ strong {
         gap: 8px;
     }
 }
+
+/* ===============================================================
+   EXTENDED COMPONENTS - HACKNET CLEAN STYLE
+   =============================================================== */
+
+/* TOP HEADER */
+.top-header {
+    background: linear-gradient(180deg, var(--bg-elevated) 0%, var(--bg-panel) 100%);
+    border-bottom: 1px solid var(--border-primary);
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.top-status-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 15px;
+    font-family: 'EB Garamond', Georgia, serif;
+    font-size: 13px;
+    color: var(--primary-green);
+    flex-wrap: wrap;
+}
+
+.top-command-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+    padding-top: 15px;
+    border-top: 1px solid var(--border-primary);
+}
+
+/* COMMAND LINKS */
+.cmd-link {
+    background: var(--bg-panel);
+    border: 1px solid var(--border-primary);
+    color: var(--primary-green);
+    padding: 8px 14px;
+    font-family: 'EB Garamond', Georgia, serif;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    transition: all 0.2s;
+}
+
+.cmd-link:hover {
+    background: rgba(68, 170, 255, 0.1);
+    border-color: var(--bright-green);
+    color: var(--bright-green);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(68, 170, 255, 0.3);
+}
+
+.cmd-link.is-active,
+.cmd-link.active {
+    background: rgba(255, 204, 0, 0.1);
+    border-color: var(--border-gold);
+    color: var(--gold);
+    box-shadow: 0 0 15px rgba(255, 204, 0, 0.3);
+}
+
+/* TERMINAL BUTTONS */
+.terminal-btn {
+    background: var(--bg-panel);
+    border: 1px solid var(--border-primary);
+    color: var(--primary-green);
+    padding: 10px 20px;
+    font-family: 'EB Garamond', Georgia, serif;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    transition: all 0.2s;
+}
+
+.terminal-btn:hover {
+    background: rgba(68, 170, 255, 0.1);
+    border-color: var(--bright-green);
+    color: var(--bright-green);
+    box-shadow: 0 4px 10px rgba(68, 170, 255, 0.3);
+}
+
+.terminal-btn.small-btn {
+    padding: 6px 12px;
+    font-size: 12px;
+}
+
+/* CONTENT BLOCKS */
+.mono-block {
+    background: var(--bg-panel);
+    border: 1px solid var(--border-primary);
+    border-left: 3px solid var(--primary-green);
+    padding: 15px;
+    margin-bottom: 15px;
+    font-family: 'EB Garamond', Georgia, serif;
+    font-size: 13px;
+    color: var(--primary-green);
+}
+
+.mono-small-note {
+    font-size: 11px;
+    color: var(--dim-green);
+    font-family: 'EB Garamond', Georgia, serif;
+}
+
+.center-text-line {
+    text-align: center;
+    font-family: 'EB Garamond', Georgia, serif;
+    font-size: 13px;
+    color: var(--primary-green);
+    margin: 8px 0;
+}
+
+.subheading {
+    font-family: 'Alagard', serif;
+    font-size: 16px;
+    color: var(--gold);
+    text-transform: uppercase;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border-gold);
+}
+
+/* STATUS BLOCKS */
+.warning-block {
+    background: rgba(255, 34, 68, 0.05);
+    border: 1px solid var(--error-red);
+    border-left: 3px solid var(--error-red);
+    padding: 15px;
+    margin-bottom: 15px;
+    color: var(--error-red);
+    font-family: 'EB Garamond', Georgia, serif;
+}
+
+.status-block {
+    background: var(--bg-panel);
+    border: 1px solid var(--border-primary);
+    border-left: 3px solid var(--primary-green);
+    padding: 15px;
+    margin-top: 15px;
+    font-family: 'EB Garamond', Georgia, serif;
+    color: var(--primary-green);
+}
+
+/* GUILDS */
+.guild-entry {
+    background: var(--bg-panel);
+    border: 1px solid var(--border-primary);
+    border-left: 3px solid var(--gold);
+    padding: 15px;
+    margin-bottom: 15px;
+    display: flex;
+    gap: 15px;
+    align-items: flex-start;
+    transition: all 0.2s;
+}
+
+.guild-entry:hover {
+    background: rgba(68, 170, 255, 0.05);
+    border-left-color: var(--bright-green);
+    transform: translateX(3px);
+}
+
+.guild-badge {
+    width: 64px;
+    height: 64px;
+    min-width: 64px;
+    min-height: 64px;
+    border: 2px solid var(--border-primary);
+    background: var(--bg-primary);
+    image-rendering: pixelated;
+    object-fit: contain;
+}
+
+/* STATS */
+.stats-row {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 10px;
+    font-family: 'EB Garamond', Georgia, serif;
+    color: var(--primary-green);
+}
+
+.stats-col {
+    flex: 1;
+    min-width: 200px;
+}
+
+.stats-col strong {
+    color: var(--gold);
+    font-weight: 600;
+}
+
+@media (max-width: 700px) {
+    .stats-col {
+        width: 100%;
+        min-width: 100%;
+    }
+}
+
+/* PROFILE */
+.player-profile-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+}
+
+.profile-col-left {
+    flex: 1 1 300px;
+    min-width: 260px;
+}
+
+.profile-col-right {
+    flex: 0 0 200px;
+    min-width: 200px;
+    max-width: 240px;
+    background: var(--bg-panel);
+    border: 1px solid var(--border-primary);
+    border-left: 3px solid var(--gold);
+    padding: 15px;
+    text-align: center;
+}
+
+.profile-emissary-img {
+    width: 128px;
+    height: 128px;
+    background: var(--bg-primary);
+    border: 2px solid var(--border-primary);
+    image-rendering: pixelated;
+    object-fit: contain;
+    margin: 0 auto 15px auto;
+    display: block;
+    color: var(--dim-green);
+    font-size: 12px;
+    text-align: center;
+    line-height: 128px;
+}
+
+/* TABLES */
+.roster-table,
+table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--bg-primary);
+    margin: 15px 0;
+    font-family: 'EB Garamond', Georgia, serif;
+}
+
+.roster-table th,
+.roster-table td,
+table th,
+table td {
+    border: 1px solid var(--border-primary);
+    padding: 10px;
+    text-align: left;
+    color: var(--primary-green);
+}
+
+.roster-table th,
+table th {
+    background: var(--bg-elevated);
+    color: var(--gold);
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 12px;
+    letter-spacing: 1px;
+}
+
+/* MODALS */
+.modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.92);
+    z-index: 9999;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-overlay.active {
+    display: flex;
+}
+
+.terminal-modal {
+    background: var(--bg-panel);
+    border: 2px solid var(--border-primary);
+    box-shadow: 0 0 40px rgba(68, 170, 255, 0.3);
+    max-width: 700px;
+    width: 90%;
+    max-height: 80vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.terminal-modal-header {
+    background: var(--bg-elevated);
+    color: var(--gold);
+    padding: 15px 20px;
+    font-weight: 600;
+    font-size: 16px;
+    border-bottom: 1px solid var(--border-primary);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-family: 'Alagard', serif;
+    letter-spacing: 2px;
+}
+
+.terminal-modal-close {
+    background: transparent;
+    border: none;
+    color: var(--primary-green);
+    font-size: 28px;
+    cursor: pointer;
+    padding: 0;
+    line-height: 1;
+    transition: all 0.2s;
+}
+
+.terminal-modal-close:hover {
+    color: var(--error-red);
+}
+
+.terminal-modal-body {
+    padding: 20px;
+    overflow-y: auto;
+    flex: 1;
+    background: var(--bg-panel);
+}
+
+.modal-list-item {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-primary);
+    border-left: 3px solid var(--primary-green);
+    padding: 12px;
+    margin-bottom: 10px;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: var(--primary-green);
+}
+
+.modal-list-item:hover {
+    background: rgba(68, 170, 255, 0.1);
+    border-left-color: var(--gold);
+    transform: translateX(3px);
+}
+
+.modal-list-item.disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    border-left-color: var(--dim-green);
+}
+
+.modal-list-item.disabled:hover {
+    background: var(--bg-secondary);
+    transform: none;
+}
+
+.modal-hero-img {
+    width: 50px;
+    height: 50px;
+    border: 2px solid var(--border-primary);
+    object-fit: cover;
+    margin-right: 10px;
+    image-rendering: pixelated;
+}
+
+.modal-item-header {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 6px;
+    color: var(--gold);
+    font-family: 'EB Garamond', Georgia, serif;
+}
+
+.modal-item-details {
+    font-size: 13px;
+    color: var(--dim-green);
+    font-family: 'EB Garamond', Georgia, serif;
+}
+
+.modal-no-items {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--dim-green);
+    font-family: 'EB Garamond', Georgia, serif;
+}
+
+.modal-message {
+    font-size: 14px;
+    line-height: 1.8;
+    white-space: pre-wrap;
+    margin-bottom: 20px;
+    color: var(--primary-green);
+    font-family: 'EB Garamond', Georgia, serif;
+}
+
+.modal-buttons {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    margin-top: 20px;
+}
+
+.modal-btn {
+    background: var(--bg-panel);
+    border: 1px solid var(--border-primary);
+    color: var(--primary-green);
+    padding: 10px 24px;
+    font-family: 'EB Garamond', Georgia, serif;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    min-width: 100px;
+    text-transform: uppercase;
+}
+
+.modal-btn:hover {
+    background: rgba(68, 170, 255, 0.1);
+    border-color: var(--bright-green);
+    color: var(--bright-green);
+    box-shadow: 0 4px 10px rgba(68, 170, 255, 0.3);
+}
+
+.modal-btn.danger {
+    border-color: var(--error-red);
+    color: var(--error-red);
+}
+
+.modal-btn.danger:hover {
+    background: rgba(255, 34, 68, 0.1);
+    box-shadow: 0 4px 10px rgba(255, 34, 68, 0.3);
+}
+
+/* FORMS */
+input[type="text"],
+input[type="number"],
+input[type="email"],
+textarea {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-primary);
+    color: var(--primary-green);
+    font-family: 'EB Garamond', Georgia, serif;
+    padding: 10px 12px;
+    font-size: 13px;
+}
+
+input[type="text"]:focus,
+input[type="number"]:focus,
+input[type="email"]:focus,
+textarea:focus {
+    outline: none;
+    border-color: var(--bright-green);
+    box-shadow: 0 0 10px rgba(68, 170, 255, 0.3);
+}
+
+/* LINKS */
+a {
+    color: var(--primary-green);
+    text-decoration: none;
+    transition: all 0.2s;
+}
+
+a:hover {
+    color: var(--gold);
+}
+
+a.social-link {
+    color: var(--primary-green);
+    text-decoration: underline;
+}
+
+a.social-link:hover {
+    color: var(--gold);
+    background: rgba(255, 204, 0, 0.1);
+    text-decoration: none;
+}
+
+/* EMBER CONSOLE BAR (Top floating bar) */
+.ember-console-bar {
+    position: fixed;
+    top: 6px;
+    left: 6px;
+    right: 6px;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-primary);
+    border-left: 3px solid var(--gold);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.8);
+    padding: 10px 15px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+    z-index: 9999;
+    font-family: 'EB Garamond', Georgia, serif;
+}
+
+.console-block-label {
+    font-weight: 600;
+    text-transform: uppercase;
+    border-right: 1px solid var(--border-primary);
+    padding-right: 12px;
+    margin-right: 8px;
+    white-space: nowrap;
+    font-size: 12px;
+    color: var(--gold);
+    font-family: 'Alagard', serif;
+    letter-spacing: 1px;
+}
+
+.console-track-now {
+    min-width: 180px;
+    font-size: 12px;
+    color: var(--primary-green);
+    white-space: nowrap;
+}
+
+.console-btn {
+    background: var(--bg-panel);
+    border: 1px solid var(--border-primary);
+    color: var(--primary-green);
+    font-family: 'EB Garamond', Georgia, serif;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 5px 10px;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: all 0.2s;
+}
+
+.console-btn:hover {
+    background: rgba(68, 170, 255, 0.1);
+    border-color: var(--bright-green);
+    color: var(--bright-green);
+}
+
+.console-vol-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    white-space: nowrap;
+}
+
+.console-vol-label {
+    text-transform: uppercase;
+    font-size: 11px;
+    color: var(--primary-green);
+    font-weight: 600;
+}
+
+.console-volume-slider {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100px;
+    max-width: 120px;
+    background: var(--bg-primary);
+    border: 1px solid var(--border-primary);
+    height: 6px;
+    cursor: pointer;
+}
+
+.console-volume-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 12px;
+    height: 16px;
+    background: var(--primary-green);
+    border: 1px solid var(--bright-green);
+    cursor: pointer;
+}
+
+.console-volume-slider::-moz-range-thumb {
+    width: 12px;
+    height: 16px;
+    background: var(--primary-green);
+    border: 1px solid var(--bright-green);
+    cursor: pointer;
+}
+
+/* Push body content down for console bar */
+body {
+    padding-top: 60px;
+}
+
+@media (max-width: 600px) {
+    body {
+        padding-top: 80px;
+    }
+
+    .ember-console-bar {
+        font-size: 11px;
+        padding: 8px 10px;
+    }
+}
+
+/* TUTORIAL / TOC LINKS */
+.mono-block a[href^="#"] {
+    display: inline-block;
+    padding: 6px 12px;
+    margin: 3px;
+    background: var(--bg-panel);
+    border: 1px solid var(--border-primary);
+    color: var(--primary-green);
+    text-decoration: none;
+    font-family: 'EB Garamond', Georgia, serif;
+    font-size: 12px;
+    transition: all 0.2s;
+}
+
+.mono-block a[href^="#"]:hover {
+    background: rgba(68, 170, 255, 0.1);
+    border-color: var(--bright-green);
+    color: var(--gold);
+    transform: translateY(-1px);
+}
+
+.toc-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 15px;
+    margin-top: 15px;
+}
+
+.toc-section {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.toc-section-title {
+    color: var(--gold);
+    font-weight: 600;
+    font-family: 'Alagard', serif;
+    font-size: 14px;
+    margin-bottom: 8px;
+    letter-spacing: 1px;
+}
+
+@media (max-width: 768px) {
+    .toc-grid {
+        grid-template-columns: 1fr;
+    }
+}
