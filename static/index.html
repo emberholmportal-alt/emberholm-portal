@@ -249,17 +249,49 @@
             <!-- REALM MAP -->
             <div class="section-block realm-map-container">
                 <div class="section-title">REALM MAP // EMBERHOLM TERRITORIES</div>
-                <div class="mono-small-note" style="margin-bottom: 12px;">
-                    CARTOGRAPHIC DATA v3.7.2 // SIX GUILD DOMINIONS MAPPED<br/>
-                    SACRED FLAME COORDINATES: [CLASSIFIED] // AURA LEYLINES: ACTIVE
-                </div>
-                <div style="text-align: center;">
-                    <img src="img/map.gif" alt="Emberholm Realm Map" class="realm-map-img" />
-                </div>
-                <div class="mono-small-note" style="margin-top: 12px;">
-                    The Six Guilds maintain territorial sovereignty across Emberholm. Ancient leylines channel Aura
-                    from the Ember Core to outer territories. Mission zones overlap guild boundaries - diplomatic
-                    incidents are inevitable. Navigate carefully<span class="cursor"></span>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px; align-items: start;">
+                    <!-- Columna izquierda: Texto terminal -->
+                    <div>
+                        <div class="mono-block" style="margin-bottom: 15px;">
+                            <span class="glow-green">&gt;</span> ACCESSING REALM CARTOGRAPHY...<br/>
+                            <span class="glow-green">&gt;</span> AUTHORIZATION: <span class="glow-yellow">CONFIRMED</span>
+                        </div>
+
+                        <div class="mono-block" style="margin-bottom: 15px;">
+                            <div style="color: var(--gold); font-weight: 700; margin-bottom: 10px;">MAP SYSTEM // EMBERHOLM TERRITORIAL OVERVIEW</div>
+
+                            <div style="margin-bottom: 12px;">
+                                <span class="glow-yellow">WARNING:</span> This map represents Emberholm as it existed 72 hours ago.
+                                Border stability is NOT guaranteed. Voidform breach zones update in real-time.
+                            </div>
+
+                            <div style="margin-bottom: 12px;">
+                                The Six Orders maintain operational zones across the realm:<br/>
+                                <span class="glow-red">•</span> Red zones indicate active Voidform incursions<br/>
+                                <span class="glow-yellow">•</span> Amber zones show unstable reality pockets<br/>
+                                <span class="glow-green">•</span> Green zones are currently defended (but not safe)
+                            </div>
+
+                            <div style="margin-bottom: 12px;">
+                                Your Emissaries can be deployed to any accessible mission point.
+                                Choose carefully. <span class="glow-red">Not all who enter a red zone return.</span>
+                            </div>
+
+                            <div style="color: var(--info-cyan); margin-top: 15px;">
+                                <span class="glow-cyan">&gt;</span> SELECT REGION TO VIEW ACTIVE MISSIONS
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Columna derecha: Mapa -->
+                    <div style="text-align: center;">
+                        <img src="img/map.gif" alt="Emberholm Realm Map" class="realm-map-img" style="max-width: 100%;" />
+                        <div class="mono-small-note" style="margin-top: 12px;">
+                            CARTOGRAPHIC DATA v3.7.2 // SIX ORDERS MAPPED<br/>
+                            LAST UPDATE: 72H AGO // REAL-TIME SYNC: <span class="glow-red">OFFLINE</span>
+                        </div>
+                    </div>
                 </div>
             </div>
 

@@ -75,11 +75,10 @@ body {
     overflow-x: hidden;
     letter-spacing: 0.5px;
     font-weight: normal;
-    /* GLOW EFFECT INTENSO - ESTILO CRT RETRO */
+    /* GLOW EFFECT REDUCIDO - ESTILO CRT RETRO */
     text-shadow:
-        0 0 5px currentColor,
-        0 0 10px currentColor,
-        0 0 20px currentColor;
+        0 0 3px currentColor,
+        0 0 6px currentColor;
 }
 
 /* ===============================================================
@@ -227,63 +226,57 @@ body::before {
    TEXT EFFECTS - CRT GLOW
    =============================================================== */
 
-/* Verde Terminal - Fosforescente CRT INTENSO */
+/* Verde Terminal - Fosforescente CRT MODERADO */
 .glow-green {
     color: #33ff33;
     text-shadow:
-        0 0 5px #33ff33,
-        0 0 10px #33ff33,
-        0 0 20px #33ff33,
-        0 0 40px #33ff33;
+        0 0 3px #33ff33,
+        0 0 8px #33ff33,
+        0 0 15px #33ff33;
 }
 
-/* Cyan - Highlights importantes INTENSO */
+/* Cyan - Highlights importantes MODERADO */
 .glow-cyan {
     color: #00ffff;
     text-shadow:
-        0 0 5px #00ffff,
-        0 0 10px #00ffff,
-        0 0 20px #00ffff,
-        0 0 40px #00ffff;
+        0 0 3px #00ffff,
+        0 0 8px #00ffff,
+        0 0 15px #00ffff;
 }
 
-/* Amarillo - Stats, XP, Rewards INTENSO */
+/* Amarillo - Stats, XP, Rewards MODERADO */
 .glow-yellow {
     color: #ffff00;
     text-shadow:
-        0 0 5px #ffff00,
-        0 0 10px #ffff00,
-        0 0 20px #ffff00,
-        0 0 40px #ffff00;
+        0 0 3px #ffff00,
+        0 0 8px #ffff00,
+        0 0 15px #ffff00;
 }
 
-/* Rojo - Warnings, Danger INTENSO */
+/* Rojo - Warnings, Danger MODERADO */
 .glow-red {
     color: #ff0000;
     text-shadow:
-        0 0 5px #ff0000,
-        0 0 10px #ff0000,
-        0 0 20px #ff0000,
-        0 0 40px #ff0000;
+        0 0 3px #ff0000,
+        0 0 8px #ff0000,
+        0 0 15px #ff0000;
 }
 
-/* Magenta - Special Features INTENSO */
+/* Magenta - Special Features MODERADO */
 .glow-magenta {
     color: #ff00ff;
     text-shadow:
-        0 0 5px #ff00ff,
-        0 0 10px #ff00ff,
-        0 0 20px #ff00ff,
-        0 0 40px #ff00ff;
+        0 0 3px #ff00ff,
+        0 0 8px #ff00ff,
+        0 0 15px #ff00ff;
 }
 
-/* Naranja - Tema principal INTENSO */
+/* Naranja - Tema principal MODERADO */
 .glow-orange {
     text-shadow:
-        0 0 5px var(--primary-green),
-        0 0 10px var(--primary-green),
-        0 0 20px var(--primary-green),
-        0 0 40px var(--primary-green);
+        0 0 3px var(--primary-green),
+        0 0 8px var(--primary-green),
+        0 0 15px var(--primary-green);
 }
 
 /* Letter Spacing Presets */
@@ -600,12 +593,11 @@ h1 {
     text-transform: uppercase;
     letter-spacing: 2px;
     font-weight: bold;
-    /* GLOW INTENSO PARA TÍTULOS */
+    /* GLOW MODERADO PARA TÍTULOS */
     text-shadow:
-        0 0 5px var(--gold),
-        0 0 10px var(--gold),
-        0 0 20px var(--gold),
-        0 0 40px var(--gold);
+        0 0 3px var(--gold),
+        0 0 8px var(--gold),
+        0 0 15px var(--gold);
 }
 
 .block-title::before,
@@ -947,10 +939,10 @@ strong {
 
 /* COMMAND LINKS - RETRO TERMINAL STYLE CON GLOW */
 .cmd-link {
-    /* Fondo transparente con borde naranja */
-    background: transparent;
-    border: 2px solid var(--orange-light);  /* Borde naranja brillante */
-    color: var(--orange-light);             /* Texto naranja */
+    /* Fondo naranja con texto negro - ESTILO IMAGEN */
+    background: var(--orange-light);        /* Fondo naranja */
+    border: none;                           /* Sin borde */
+    color: #000;                            /* Texto NEGRO */
     padding: 6px 10px;                      /* Más compactos */
     font-family: 'Classic Console Neue', 'IBM Plex Mono', 'Share Tech Mono', monospace;
     font-size: 10px;                        /* Más pequeño */
@@ -961,49 +953,50 @@ strong {
     transition: all 0.2s;
     white-space: nowrap;
     flex-shrink: 0;
-    /* GLOW SUTIL EN BOTONES */
-    box-shadow: 0 0 10px rgba(255, 153, 0, 0.3);
+    /* GLOW + BLUR EN BOTONES */
+    box-shadow: 0 0 10px rgba(255, 153, 0, 0.5);
+    filter: blur(0.3px);                    /* Blur sutil para efecto CRT */
 }
 
 .cmd-link:hover {
-    /* Relleno naranja al hover */
-    background: var(--orange-light);
-    border-color: var(--bright-green);
-    color: #000;                            /* Texto negro al hover */
-    transform: translateY(-1px);            /* Sutil elevación */
+    /* Más brillante al hover */
+    background: var(--bright-green);
+    color: #000;
+    transform: translateY(-1px);
     /* GLOW MÁS INTENSO AL HOVER */
-    box-shadow: 0 0 20px rgba(255, 187, 0, 0.6);
+    box-shadow: 0 0 20px rgba(255, 187, 0, 0.7);
+    filter: blur(0.3px);
 }
 
 .cmd-link.is-active,
 .cmd-link.active {
-    /* Relleno amarillo vibrante para estado activo */
-    background: var(--yellow-medium);
-    border-color: var(--yellow-light);
+    /* Amarillo más brillante para estado activo */
+    background: var(--yellow-light);
     color: #000;
     font-weight: 900;
     /* GLOW INTENSO PARA ACTIVO */
     box-shadow: 0 0 20px rgba(255, 221, 0, 0.7);
+    filter: blur(0.3px);
 }
 
 /* MINT BUTTON - Destacado en rojo BRILLANTE con estilo retro */
 .cmd-link-mint {
-    /* Borde rojo vibrante */
-    background: transparent;
-    border-color: var(--error-red);
-    color: var(--error-red);              /* Texto rojo */
+    /* Fondo rojo con texto negro */
+    background: var(--error-red);
+    color: #000;
     font-weight: 900;                     /* Extra bold */
-    /* GLOW ROJO INTENSO */
-    box-shadow: 0 0 15px rgba(255, 51, 68, 0.6);
+    /* GLOW ROJO INTENSO + BLUR */
+    box-shadow: 0 0 15px rgba(255, 51, 68, 0.7);
+    filter: blur(0.3px);
 }
 
 .cmd-link-mint:hover {
-    /* Relleno rojo al hover */
-    background: var(--error-red);
-    border-color: #ff5555;
-    color: #000;                          /* Texto negro al hover */
+    /* Rojo más brillante al hover */
+    background: #ff5555;
+    color: #000;
     /* GLOW MÁS INTENSO */
-    box-shadow: 0 0 25px rgba(255, 51, 68, 0.8);
+    box-shadow: 0 0 25px rgba(255, 51, 68, 0.9);
+    filter: blur(0.3px);
 }
 
 /* NAV PROGRESS BAR - ESTILO RETRO BLOCKY */
@@ -1111,12 +1104,11 @@ strong {
     border-bottom: 1px solid var(--border-gold);
     letter-spacing: 2px;
     font-weight: bold;
-    /* GLOW INTENSO */
+    /* GLOW MODERADO */
     text-shadow:
-        0 0 5px var(--gold),
-        0 0 10px var(--gold),
-        0 0 20px var(--gold),
-        0 0 40px var(--gold);
+        0 0 3px var(--gold),
+        0 0 8px var(--gold),
+        0 0 15px var(--gold);
 }
 
 /* STATUS BLOCKS */
@@ -1641,15 +1633,20 @@ body {
     margin-bottom: 8px;
     letter-spacing: 2px;
     text-transform: uppercase;
-    /* GLOW INTENSO */
+    /* GLOW MODERADO */
     text-shadow:
-        0 0 5px var(--gold),
-        0 0 10px var(--gold),
-        0 0 20px var(--gold);
+        0 0 3px var(--gold),
+        0 0 8px var(--gold),
+        0 0 15px var(--gold);
 }
 
 @media (max-width: 768px) {
     .toc-grid {
         grid-template-columns: 1fr;
+    }
+
+    /* Mapa responsive - una columna en móvil */
+    .realm-map-container > div[style*="grid"] {
+        grid-template-columns: 1fr !important;
     }
 }
