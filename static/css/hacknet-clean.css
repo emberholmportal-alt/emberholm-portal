@@ -491,13 +491,14 @@ h1 {
     background: rgba(255, 136, 0, 0.05);
     border-top: 1px solid var(--border-primary);
     border-bottom: 1px solid var(--border-primary);
-    padding: 10px 20px;
+    padding: 6px 20px;  /* Reducido de 10px a 6px */
     text-align: center;
     font-size: 11px;
     color: var(--dim-green);
     font-family: 'Classic Console Neue', 'IBM Plex Mono', 'Share Tech Mono', monospace;
     text-transform: uppercase;
     letter-spacing: 1.5px;
+    margin: 0;  /* Sin margen para eliminar espacio */
 }
 
 .sys-msg::before {
@@ -1202,15 +1203,37 @@ strong {
     min-width: 260px;
 }
 
+/* TOP EMISSARY - 2 COLUMNAS CON TONO AMARILLO */
 .profile-col-right {
     flex: 0 0 200px;
     min-width: 200px;
-    max-width: 240px;
-    background: var(--bg-panel);
-    border: 1px solid var(--border-primary);
+    max-width: 100%;
+    background: rgba(255, 204, 0, 0.08);  /* Tono amarillo suave */
+    border: 1px solid var(--border-gold);
     border-left: 3px solid var(--gold);
     padding: 15px;
     text-align: center;
+}
+
+.profile-col-right .subheading {
+    color: var(--gold);
+    text-shadow:
+        0 0 5px var(--gold),
+        0 0 10px var(--gold);
+}
+
+/* Grid 2 columnas para TOP EMISSARY */
+.top-emissary-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    margin-top: 15px;
+}
+
+@media (max-width: 768px) {
+    .top-emissary-grid {
+        grid-template-columns: 1fr;
+    }
 }
 
 .profile-emissary-img {
@@ -1473,7 +1496,7 @@ a.social-link:hover {
     text-decoration: none;
 }
 
-/* EMBER CONSOLE BAR (Top floating bar) */
+/* EMBER CONSOLE BAR (Top floating bar) - CONTROLES A LA DERECHA */
 .ember-console-bar {
     position: fixed;
     top: 6px;
@@ -1490,6 +1513,7 @@ a.social-link:hover {
     gap: 12px;
     z-index: 9999;
     font-family: 'Classic Console Neue', 'IBM Plex Mono', 'Share Tech Mono', monospace;
+    justify-content: space-between;  /* Distribuir espacio */
 }
 
 .console-block-label {
@@ -1503,6 +1527,7 @@ a.social-link:hover {
     color: var(--gold);
     font-family: 'Alagard', serif;
     letter-spacing: 1px;
+    flex-shrink: 0;
 }
 
 .console-track-now {
@@ -1510,6 +1535,13 @@ a.social-link:hover {
     font-size: 12px;
     color: var(--primary-green);
     white-space: nowrap;
+    flex-shrink: 0;
+}
+
+/* Grupo de controles a la derecha */
+.console-btn,
+.console-vol-wrap {
+    margin-left: auto;  /* Empujar a la derecha */
 }
 
 .console-btn {
@@ -1638,6 +1670,37 @@ body {
         0 0 3px var(--gold),
         0 0 8px var(--gold),
         0 0 15px var(--gold);
+}
+
+/* BACK TO TOP BUTTON - TUTORIAL SECTIONS */
+.back-to-top-btn {
+    display: inline-block;
+    background: var(--bg-panel);
+    border: 1px solid var(--border-primary);
+    color: var(--primary-green);
+    padding: 8px 16px;
+    margin-top: 20px;
+    margin-bottom: 10px;
+    font-family: 'Classic Console Neue', 'IBM Plex Mono', 'Share Tech Mono', monospace;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: center;
+}
+
+.back-to-top-btn:hover {
+    background: rgba(255, 136, 0, 0.1);
+    border-color: var(--bright-green);
+    color: var(--gold);
+    transform: translateY(-2px);
+}
+
+.back-to-top-btn::before {
+    content: '↑ ';
+    color: var(--gold);
 }
 
 @media (max-width: 768px) {
