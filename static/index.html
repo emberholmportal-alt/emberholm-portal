@@ -4536,33 +4536,33 @@ async function loadRealmFeed() {
 function displayFeedItems(feedItems) {
     const container = document.getElementById('realm-feed-container');
 
-    // Colores temáticos por tipo de evento (respetando el lore gótico-medieval)
+    // Colores Hacknet Clean por tipo de evento (cyan, dorado, modernos)
     const eventColors = {
-        'mission_complete': { badge: '#4a7c2f', border: '#4a7c2f', text: '#8bc34a' },
-        'mission_started': { badge: '#5b7c99', border: '#5b7c99', text: '#7fa3c3' },
-        'mission_failed': { badge: '#8b1a1a', border: '#8b1a1a', text: '#cd5c5c' },
-        'mission_in_progress': { badge: '#4a7b7c', border: '#4a7b7c', text: '#6fb3b8' },
-        'emissary_death': { badge: '#2d0f0f', border: '#4a0000', text: '#8b0000' },
-        'party_formed': { badge: '#2d5016', border: '#3d6b1f', text: '#6b9b4f' },
-        'level_up': { badge: '#b8860b', border: '#daa520', text: '#ffd700' },
-        'realm_alert': { badge: '#bf6900', border: '#cc7722', text: '#ff9933' },
-        'merchant_arrival': { badge: '#8b7500', border: '#b8960c', text: '#daa520' },
-        'weather_event': { badge: '#4a5f7c', border: '#5f7a9e', text: '#87a7c7' },
-        'ritual_completion': { badge: '#6a3d7c', border: '#7d4e9b', text: '#9370db' },
-        'resource_discovery': { badge: '#1e5631', border: '#2d7a47', text: '#3fa05a' },
-        'creature_sighting': { badge: '#8b1a1a', border: '#b82e24', text: '#dc143c' },
-        'portal_activity': { badge: '#4a1f7c', border: '#6a2fab', text: '#8a52c8' },
-        'celebration': { badge: '#b8860b', border: '#d4af37', text: '#ffd700' }
+        'mission_complete': { border: '#4f8', text: '#4f8' },        // Verde éxito
+        'mission_started': { border: '#4df', text: '#4df' },         // Cyan info
+        'mission_failed': { border: '#f24', text: '#f24' },          // Rojo error
+        'mission_in_progress': { border: '#4af', text: '#4af' },     // Cyan principal
+        'emissary_death': { border: '#c12', text: '#c12' },          // Rojo oscuro
+        'party_formed': { border: '#4f8', text: '#4f8' },            // Verde éxito
+        'level_up': { border: '#fc0', text: '#fc0' },                // Dorado
+        'realm_alert': { border: '#f80', text: '#f80' },             // Naranja warning
+        'merchant_arrival': { border: '#ca0', text: '#ca0' },        // Dorado apagado
+        'weather_event': { border: '#6cf', text: '#6cf' },           // Cyan brillante
+        'ritual_completion': { border: '#a6f', text: '#a6f' },       // Púrpura tech
+        'resource_discovery': { border: '#4f8', text: '#4f8' },      // Verde éxito
+        'creature_sighting': { border: '#f24', text: '#f24' },       // Rojo error
+        'portal_activity': { border: '#b5f', text: '#b5f' },         // Púrpura claro
+        'celebration': { border: '#fd4', text: '#fd4' }              // Dorado brillante
     };
 
-    // Colores por gremio (respetando su identidad temática)
+    // Colores por gremio (paleta Hacknet Clean)
     const guildColors = {
-        'Circle of Mist': { badge: '#5d3a7c', border: '#6f4a94', text: '#9370db' },
-        'Order of Dawn': { badge: '#b8860b', border: '#d4af37', text: '#ffd700' },
-        'Shadow Guild': { badge: '#2f2f3f', border: '#4a4a5a', text: '#7a7a8a' },
-        'Forge Legion': { badge: '#8b3a00', border: '#b8510a', text: '#ff6b1a' },
-        'Void Echoes': { badge: '#2d1a3f', border: '#4a2761', text: '#6a3d8a' },
-        'Horizon Watch': { badge: '#1f4a5f', border: '#2a6580', text: '#4a8aaf' }
+        'Circle of Mist': { border: '#a6f', text: '#a6f' },          // Púrpura místico
+        'Order of Dawn': { border: '#fc0', text: '#fc0' },           // Dorado luz
+        'Shadow Guild': { border: '#6cf', text: '#6cf' },            // Cyan sombra
+        'Forge Legion': { border: '#f80', text: '#f80' },            // Naranja forja
+        'Void Echoes': { border: '#b5f', text: '#b5f' },             // Púrpura void
+        'Horizon Watch': { border: '#4df', text: '#4df' }            // Cyan horizonte
     };
 
     if (!feedItems || feedItems.length === 0) {
@@ -4585,7 +4585,7 @@ function displayFeedItems(feedItems) {
         feedItem.className = 'feed-item';
 
         // Determinar colores según el tipo o gremio
-        let colors = eventColors[item.type] || { badge: '#8a7050', border: '#8a7050', text: '#c9b896' };
+        let colors = eventColors[item.type] || { border: '#4af', text: '#4af' };
 
         if (item.type === 'guild_alert' && item.guild && guildColors[item.guild]) {
             colors = guildColors[item.guild];
@@ -4594,7 +4594,7 @@ function displayFeedItems(feedItems) {
         // Aplicar color de borde
         feedItem.style.borderLeftColor = colors.border;
 
-        // Si es un evento nuevo (comparar con última actualización)
+        // Si es un evento nuevo
         if (index === 0 && lastFeedUpdate) {
             feedItem.classList.add('new-item');
         }
@@ -4607,7 +4607,7 @@ function displayFeedItems(feedItems) {
                     <div class="feed-time">[${item.time}]</div>
                     <div class="feed-content">
                         <span style="color: ${colors.text}; font-weight: 600;">[MISSION COMPLETE]</span> ${item.content}
-                        ${item.highlight ? `<br/>Awarded: <span style="color: #d4af37;">${item.highlight}</span>` : ''}
+                        ${item.highlight ? `<br/>Awarded: <span style="color: #fc0;">${item.highlight}</span>` : ''}
                     </div>
                 `;
                 break;
@@ -4646,7 +4646,7 @@ function displayFeedItems(feedItems) {
                     <div class="feed-time">[${item.time}]</div>
                     <div class="feed-content">
                         <span style="color: ${colors.text}; font-weight: 600;">[CASUALTY]</span> ${item.content}
-                        ${item.highlight ? `<br/><span style="color: #808080;">${item.highlight}</span>` : ''}
+                        ${item.highlight ? `<br/><span style="color: #888;">${item.highlight}</span>` : ''}
                     </div>
                 `;
                 break;
@@ -4666,7 +4666,7 @@ function displayFeedItems(feedItems) {
                     <div class="feed-time">[${item.time}]</div>
                     <div class="feed-content">
                         <span style="color: ${colors.text}; font-weight: 600;">[LEVEL UP]</span> ${item.content}
-                        ${item.highlight ? `<br/><span style="color: #c9b896;">${item.highlight}</span>` : ''}
+                        ${item.highlight ? `<br/><span style="color: #6cf;">${item.highlight}</span>` : ''}
                     </div>
                 `;
                 break;
