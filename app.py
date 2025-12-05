@@ -1138,6 +1138,105 @@ def api_events():
 # ---------------------------------
 # API: REALM DISPATCH LIVE FEED
 # ---------------------------------
+# REALM FEED EVENT POOLS
+# ---------------------------------
+
+# Pool de eventos de gremios (48 eventos variados)
+GUILD_EVENTS_POOL = {
+    'Circle of Mist': [
+        'performing arcane node stabilization ritual at Crystal Spire',
+        'containing mana overflow in the Western Sanctum',
+        'discovered forbidden tome in Ancient Library ruins',
+        'repairing reality fracture near Veilweaver Sanctum',
+        'achieved major alchemical breakthrough - new elixir formula',
+        'emergency response to portal experiment malfunction',
+        'investigating temporal anomaly at Chronokeep Tower',
+        'confirms successful transmutation of Void Essence'
+    ],
+    'Order of Dawn': [
+        'conducting dawn blessing ceremony for new recruits',
+        'reinforcing Ember Core protection barriers',
+        'hosting sacred oath renewal at Cathedral of Light',
+        'opening new healing sanctuary in Southern Quarter',
+        'completing Light barrier reinforcement around city walls',
+        'leading corruption cleansing operation in Blighted Woods',
+        'witnessing paladin vow ceremony - 12 new paladins sworn',
+        'report successful consecration of new temple grounds'
+    ],
+    'Shadow Guild': [
+        'expanded intelligence network into Northern Territories',
+        'completed covert operation - target eliminated cleanly',
+        'negotiating black market trade agreement with outlanders',
+        'extracted high-value informant from enemy compound',
+        'assassination contract executed - no witnesses',
+        'discovered new smuggling route through Undercity',
+        'upgraded surveillance system - 47 new monitoring points',
+        'intercepted enemy communications - intel gathered'
+    ],
+    'Forge Legion': [
+        'master weaponsmith forged legendary blade - Dragon\'s Fang',
+        'completed defense fortification of Eastern Battlements',
+        'conducting battle formation drills - 200 warriors training',
+        'war council assembled - strategy session in progress',
+        'restored ancient armor set from First Age',
+        'deployed siege engines to Northern Front',
+        'warrior oath ceremony - 30 new legionnaires sworn',
+        'reports successful stress test of new fortress design'
+    ],
+    'Void Echoes': [
+        'sealed major Veil breach at coordinates [X:334, Y:891]',
+        'negotiating with spectral entity - treaty terms discussed',
+        'death-right contract signed with House Mournveil',
+        'performing forbidden necromantic ritual at Bone Crypts',
+        'completed soul binding ceremony - 5 spectrals bound',
+        'contained dangerous Void entity attempting incursion',
+        'resurrection rite completed - subject returned from beyond',
+        'reports successful communion with ancient death god'
+    ],
+    'Horizon Watch': [
+        'mapped uncharted territory - 40 square miles surveyed',
+        'detected border incursion at Western Frontier',
+        'observing unusual tide patterns near Coastal Cliffs',
+        'tracking wild beast migration through Thunder Plains',
+        'issued storm warning - severe conditions approaching',
+        'discovered new settlement ruins in Deep Wilderness',
+        'established trade route to remote village of Thornhaven',
+        'reports sighting of rare creatures near Mistwood Forest'
+    ]
+}
+
+# Pool de eventos generales del reino (20 eventos)
+REALM_EVENTS_POOL = [
+    {'type': 'realm_alert', 'content': 'ALERT: Ember Core fluctuation detected - Realm stability at 78%', 'severity': 'high'},
+    {'type': 'realm_alert', 'content': 'ALERT: Ember Core fluctuation detected - Realm stability at 85%', 'severity': 'medium'},
+    {'type': 'realm_alert', 'content': 'ALERT: Void Storm approaching from Northern territories', 'severity': 'high'},
+    {'type': 'merchant_arrival', 'content': 'Wandering Merchant arrived at Central Plaza with rare artifacts', 'severity': 'info'},
+    {'type': 'merchant_arrival', 'content': 'Traveling Alchemist selling exotic potions at Market Square', 'severity': 'info'},
+    {'type': 'weather_event', 'content': 'Ash Storm detected - visibility reduced across Eastern District', 'severity': 'medium'},
+    {'type': 'weather_event', 'content': 'Blood Moon rising tonight - magical energies amplified', 'severity': 'info'},
+    {'type': 'ritual_completion', 'content': 'Grand Eclipse Ritual completed - Realm blessed with protection for 7 days', 'severity': 'success'},
+    {'type': 'ritual_completion', 'content': 'Consecration Ceremony concluded - all shrines restored', 'severity': 'success'},
+    {'type': 'resource_discovery', 'content': 'Rich Aether Vein discovered near Forgotten Mines', 'severity': 'success'},
+    {'type': 'resource_discovery', 'content': 'Ancient Mana Well located in Deep Caverns', 'severity': 'success'},
+    {'type': 'creature_sighting', 'content': 'Ancient Dragon spotted circling Eastern Mountains', 'severity': 'high'},
+    {'type': 'creature_sighting', 'content': 'Void Beast tracks found near village outskirts', 'severity': 'medium'},
+    {'type': 'portal_activity', 'content': 'Unstable portal opened at coordinates [X:245, Y:892]', 'severity': 'high'},
+    {'type': 'portal_activity', 'content': 'Rift stabilized at Old Battlefield site', 'severity': 'medium'},
+    {'type': 'celebration', 'content': 'Festival of Embers begins - XP bonus active realm-wide', 'severity': 'success'},
+    {'type': 'celebration', 'content': 'Harvest Moon Festival declared - markets overflow with goods', 'severity': 'success'},
+    {'type': 'realm_alert', 'content': 'SYSTEM: Mana network operating at optimal capacity', 'severity': 'info'},
+    {'type': 'realm_alert', 'content': 'WARNING: Anomalous energy signature detected in Void Quarter', 'severity': 'medium'},
+    {'type': 'realm_alert', 'content': 'NOTICE: Realm defenses reinforced - threat level reduced', 'severity': 'info'}
+]
+
+# Nombres de misiones para eventos simulados
+MISSION_NAMES = [
+    'The Lost Forge', 'Circle Interference Node', 'Dawn Patrol', 'Shadow Infiltration',
+    'Horizon Survey', 'Veil Breach Containment', 'Dragons Crucible', 'Void Descent',
+    'Eclipse Ritual'
+]
+
+# ---------------------------------
 
 def get_time_ago(timestamp_str):
     """
@@ -1165,21 +1264,18 @@ def get_time_ago(timestamp_str):
 def get_realm_feed():
     """
     Retorna los últimos eventos del reino para el Live Feed
-    Muestra misiones completadas y alertas de las órdenes
+    Incluye: misiones reales, eventos simulados de emisarios, alertas de gremios, eventos del reino
     """
     try:
         feed_items = []
+        now = datetime.utcnow()
 
-        # 1. Cargar datos de NFTs para obtener misiones recientes
+        # 1. EVENTOS REALES - Cargar datos de NFTs para obtener misiones recientes (20% del feed)
         nfts_data = load_nfts_database()
-
-        # Obtener misiones completadas recientemente
         mission_events = []
         for nft_id, nft in nfts_data.items():
-            # Verificar que tenga historial de misiones
             if 'dynamic_state' in nft:
                 state = nft['dynamic_state']
-                # Si completó una misión recientemente, agregarlo al feed
                 if state.get('last_update'):
                     last_mission = state.get('last_mission_name', 'Unknown Mission')
                     xp_total = state.get('xp_total', 0)
@@ -1190,62 +1286,124 @@ def get_realm_feed():
                         'time': get_time_ago(state['last_update']),
                         'content': f"Emissary #{nft_id} completed {last_mission}",
                         'highlight': f"+{xp_total} XP, +{aura} Aura",
-                        'timestamp': state['last_update']
+                        'timestamp': state['last_update'],
+                        'severity': 'success'
                     })
 
-        # Ordenar por timestamp y tomar los últimos 5
         mission_events.sort(key=lambda x: x.get('timestamp', ''), reverse=True)
-        feed_items.extend(mission_events[:5])
+        feed_items.extend(mission_events[:2])  # Solo 2 eventos reales
 
-        # 2. Eventos simulados de las órdenes (adaptados a la estética gótico-medieval)
-        guild_events = [
-            {
-                'type': 'guild_alert',
-                'guild': 'Shadow Guild',
-                'content': 'reports Voidform breach at Northern Watchtower',
-                'time': '2 hours ago'
-            },
-            {
-                'type': 'guild_alert',
-                'guild': 'Forge Legion',
-                'content': 'deployed emergency reinforcements to Eastern Front',
-                'time': '4 hours ago'
-            },
-            {
-                'type': 'guild_alert',
-                'guild': 'Circle of Mist',
-                'content': 'confirms anomalous mana readings near Veilweaver Sanctum',
-                'time': '8 hours ago'
-            },
-            {
-                'type': 'guild_alert',
-                'guild': 'Horizon Watch',
-                'content': 'detected pressure tide surge along western border',
-                'time': '10 hours ago'
-            },
-            {
-                'type': 'guild_alert',
-                'guild': 'Dawnkeepers',
-                'content': 'report Ember Core fluctuation detected',
-                'time': '12 hours ago'
-            },
-            {
-                'type': 'guild_alert',
-                'guild': 'Luminous Path',
-                'content': 'confirmed restoration rituals underway at Central Nexus',
-                'time': '16 hours ago'
-            }
-        ]
+        # 2. EVENTOS SIMULADOS DE EMISARIOS (50% del feed - más variedad)
+        emissary_events = []
 
-        for event in guild_events:
-            feed_items.append(event)
+        # Generar 10 eventos simulados de emisarios
+        for i in range(10):
+            event_type = random.choice(['mission_started', 'mission_failed', 'mission_in_progress',
+                                       'emissary_death', 'party_formed', 'level_up'])
+            emissary_id = f"{random.randint(100, 999):05d}"
+            mission = random.choice(MISSION_NAMES)
+            hours_ago = random.randint(1, 48)
+            time_ago = f"{hours_ago} hour{'s' if hours_ago > 1 else ''} ago"
 
-        # 3. Ordenar por timestamp (más reciente primero)
-        # Los eventos de guild no tienen timestamp, así que van después de las misiones
-        feed_items.sort(key=lambda x: x.get('timestamp', ''), reverse=True)
+            if event_type == 'mission_started':
+                emissary_events.append({
+                    'type': 'mission_started',
+                    'content': f"Emissary #{emissary_id} embarked on {mission}",
+                    'time': time_ago,
+                    'severity': 'info'
+                })
 
-        # Limitar a los últimos 20 eventos
-        feed_items = feed_items[:20]
+            elif event_type == 'mission_failed':
+                xp_loss = random.randint(50, 200)
+                aura_loss = random.randint(10, 50)
+                emissary_events.append({
+                    'type': 'mission_failed',
+                    'content': f"Emissary #{emissary_id} failed {mission}",
+                    'highlight': f"-{xp_loss} XP, -{aura_loss} Aura",
+                    'time': time_ago,
+                    'severity': 'danger'
+                })
+
+            elif event_type == 'mission_in_progress':
+                hours_remain = random.randint(1, 12)
+                emissary_events.append({
+                    'type': 'mission_in_progress',
+                    'content': f"Emissary #{emissary_id} undertaking {mission}",
+                    'highlight': f"{hours_remain}h remaining",
+                    'time': time_ago,
+                    'severity': 'info'
+                })
+
+            elif event_type == 'emissary_death':
+                death_num = random.randint(1, 3)
+                emissary_events.append({
+                    'type': 'emissary_death',
+                    'content': f"FALLEN: Emissary #{emissary_id} perished in {mission}",
+                    'highlight': f"Death #{death_num}",
+                    'time': time_ago,
+                    'severity': 'danger'
+                })
+
+            elif event_type == 'party_formed':
+                leader_id = f"{random.randint(100, 999):05d}"
+                emissary_events.append({
+                    'type': 'party_formed',
+                    'content': f"Party of 5 assembled for {mission}",
+                    'highlight': f"Leader: #{leader_id}",
+                    'time': time_ago,
+                    'severity': 'success'
+                })
+
+            elif event_type == 'level_up':
+                new_level = random.randint(5, 30)
+                guild = random.choice(list(GUILD_EVENTS_POOL.keys()))
+                emissary_events.append({
+                    'type': 'level_up',
+                    'content': f"Emissary #{emissary_id} ascended to Level {new_level}",
+                    'highlight': f"Guild: {guild}",
+                    'time': time_ago,
+                    'severity': 'success'
+                })
+
+        feed_items.extend(emissary_events)
+
+        # 3. EVENTOS DE GREMIOS (20% del feed)
+        guild_events = []
+        for _ in range(4):
+            guild = random.choice(list(GUILD_EVENTS_POOL.keys()))
+            activity = random.choice(GUILD_EVENTS_POOL[guild])
+            hours_ago = random.randint(1, 72)
+            time_ago = f"{hours_ago} hour{'s' if hours_ago > 1 else ''} ago"
+
+            guild_events.append({
+                'type': 'guild_alert',
+                'guild': guild,
+                'content': activity,
+                'time': time_ago,
+                'severity': 'info'
+            })
+
+        feed_items.extend(guild_events)
+
+        # 4. EVENTOS GENERALES DEL REINO (10% del feed)
+        realm_events = []
+        for _ in range(2):
+            event = random.choice(REALM_EVENTS_POOL)
+            hours_ago = random.randint(1, 96)
+            time_ago = f"{hours_ago} hour{'s' if hours_ago > 1 else ''} ago"
+
+            realm_events.append({
+                'type': event['type'],
+                'content': event['content'],
+                'time': time_ago,
+                'severity': event['severity']
+            })
+
+        feed_items.extend(realm_events)
+
+        # 5. Mezclar y limitar
+        random.shuffle(feed_items)
+        feed_items = feed_items[:25]  # Aumentado a 25 eventos para más variedad
 
         return jsonify({
             'success': True,

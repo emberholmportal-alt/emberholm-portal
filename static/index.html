@@ -958,6 +958,47 @@ a.social-link:hover {
     box-shadow: 0 2px 8px rgba(201, 184, 150, 0.15);
 }
 
+/* Estilos de severidad para eventos */
+.feed-item.feed-danger {
+    border-left-color: #8b0000;
+    background: rgba(139, 0, 0, 0.05);
+}
+
+.feed-item.feed-danger:hover {
+    border-left-color: #dc143c;
+    box-shadow: 0 2px 8px rgba(220, 20, 60, 0.2);
+}
+
+.feed-item.feed-success {
+    border-left-color: #2d5016;
+    background: rgba(45, 80, 22, 0.05);
+}
+
+.feed-item.feed-success:hover {
+    border-left-color: #4a7c2f;
+    box-shadow: 0 2px 8px rgba(74, 124, 47, 0.2);
+}
+
+.feed-item.feed-high {
+    border-left-color: #b8860b;
+    background: rgba(184, 134, 11, 0.05);
+}
+
+.feed-item.feed-high:hover {
+    border-left-color: #daa520;
+    box-shadow: 0 2px 8px rgba(218, 165, 32, 0.2);
+}
+
+.feed-item.feed-medium {
+    border-left-color: #8b6914;
+    background: rgba(139, 105, 20, 0.03);
+}
+
+.feed-item.feed-info {
+    border-left-color: #4a6b7c;
+    background: rgba(74, 107, 124, 0.05);
+}
+
 /* Timestamp del evento */
 .feed-time {
     color: #8a7050;
@@ -4500,7 +4541,7 @@ function displayFeedItems(feedItems) {
             <div class="feed-item">
                 <div class="feed-time">[System Status]</div>
                 <div class="feed-content">
-                    <span class="feed-highlight">⚠️ No recent transmissions detected.</span><br/>
+                    <span class="feed-highlight">No recent transmissions detected.</span><br/>
                     The realm is quiet... perhaps too quiet. Ember Protocol monitoring for anomalies.
                 </div>
             </div>
@@ -4514,6 +4555,11 @@ function displayFeedItems(feedItems) {
         const feedItem = document.createElement('div');
         feedItem.className = 'feed-item';
 
+        // Agregar clase de severidad
+        if (item.severity) {
+            feedItem.classList.add(`feed-${item.severity}`);
+        }
+
         // Si es un evento nuevo (comparar con última actualización)
         if (index === 0 && lastFeedUpdate) {
             feedItem.classList.add('new-item');
@@ -4521,27 +4567,163 @@ function displayFeedItems(feedItems) {
 
         let content = '';
 
-        if (item.type === 'mission_complete') {
-            content = `
-                <div class="feed-time">[${item.time}]</div>
-                <div class="feed-content">
-                    <span class="feed-highlight">${item.content}</span>
-                    ${item.highlight ? `<br/>Awarded: <span class="feed-highlight">${item.highlight}</span>` : ''}
-                </div>
-            `;
-        } else if (item.type === 'guild_alert') {
-            content = `
-                <div class="feed-time">[${item.time}]</div>
-                <div class="feed-content">
-                    <span class="feed-highlight">[${item.guild}]</span> ${item.content}
-                </div>
-            `;
-        } else {
-            // Tipo genérico
-            content = `
-                <div class="feed-time">[${item.time}]</div>
-                <div class="feed-content">${item.content}</div>
-            `;
+        switch(item.type) {
+            case 'mission_complete':
+                content = `
+                    <div class="feed-time">[${item.time}]</div>
+                    <div class="feed-content">
+                        <span class="feed-highlight">${item.content}</span>
+                        ${item.highlight ? `<br/>Awarded: <span class="feed-highlight">${item.highlight}</span>` : ''}
+                    </div>
+                `;
+                break;
+
+            case 'mission_started':
+                content = `
+                    <div class="feed-time">[${item.time}]</div>
+                    <div class="feed-content">
+                        <span style="color: #87ceeb;">[MISSION START]</span> ${item.content}
+                    </div>
+                `;
+                break;
+
+            case 'mission_failed':
+                content = `
+                    <div class="feed-time">[${item.time}]</div>
+                    <div class="feed-content">
+                        <span style="color: #ff6b6b;">[MISSION FAILED]</span> ${item.content}
+                        ${item.highlight ? `<br/><span style="color: #ff6b6b;">Lost: ${item.highlight}</span>` : ''}
+                    </div>
+                `;
+                break;
+
+            case 'mission_in_progress':
+                content = `
+                    <div class="feed-time">[${item.time}]</div>
+                    <div class="feed-content">
+                        <span style="color: #98d8c8;">[IN PROGRESS]</span> ${item.content}
+                        ${item.highlight ? `<br/><span style="opacity: 0.7;">${item.highlight}</span>` : ''}
+                    </div>
+                `;
+                break;
+
+            case 'emissary_death':
+                content = `
+                    <div class="feed-time">[${item.time}]</div>
+                    <div class="feed-content">
+                        <span style="color: #8b0000;">[CASUALTY]</span> ${item.content}
+                        ${item.highlight ? `<br/><span style="color: #a9a9a9;">${item.highlight}</span>` : ''}
+                    </div>
+                `;
+                break;
+
+            case 'party_formed':
+                content = `
+                    <div class="feed-time">[${item.time}]</div>
+                    <div class="feed-content">
+                        <span style="color: #90ee90;">[PARTY FORMED]</span> ${item.content}
+                        ${item.highlight ? `<br/><span class="feed-highlight">${item.highlight}</span>` : ''}
+                    </div>
+                `;
+                break;
+
+            case 'level_up':
+                content = `
+                    <div class="feed-time">[${item.time}]</div>
+                    <div class="feed-content">
+                        <span style="color: #ffd700;">[LEVEL UP]</span> ${item.content}
+                        ${item.highlight ? `<br/><span style="color: #c9b896;">${item.highlight}</span>` : ''}
+                    </div>
+                `;
+                break;
+
+            case 'guild_alert':
+                content = `
+                    <div class="feed-time">[${item.time}]</div>
+                    <div class="feed-content">
+                        <span class="feed-highlight">[${item.guild}]</span> ${item.content}
+                    </div>
+                `;
+                break;
+
+            case 'realm_alert':
+                content = `
+                    <div class="feed-time">[${item.time}]</div>
+                    <div class="feed-content">
+                        <span style="color: #ffa500;">[REALM ALERT]</span> ${item.content}
+                    </div>
+                `;
+                break;
+
+            case 'merchant_arrival':
+                content = `
+                    <div class="feed-time">[${item.time}]</div>
+                    <div class="feed-content">
+                        <span style="color: #daa520;">[MERCHANT]</span> ${item.content}
+                    </div>
+                `;
+                break;
+
+            case 'weather_event':
+                content = `
+                    <div class="feed-time">[${item.time}]</div>
+                    <div class="feed-content">
+                        <span style="color: #87ceeb;">[WEATHER]</span> ${item.content}
+                    </div>
+                `;
+                break;
+
+            case 'ritual_completion':
+                content = `
+                    <div class="feed-time">[${item.time}]</div>
+                    <div class="feed-content">
+                        <span style="color: #9370db;">[RITUAL]</span> ${item.content}
+                    </div>
+                `;
+                break;
+
+            case 'resource_discovery':
+                content = `
+                    <div class="feed-time">[${item.time}]</div>
+                    <div class="feed-content">
+                        <span style="color: #32cd32;">[DISCOVERY]</span> ${item.content}
+                    </div>
+                `;
+                break;
+
+            case 'creature_sighting':
+                content = `
+                    <div class="feed-time">[${item.time}]</div>
+                    <div class="feed-content">
+                        <span style="color: #dc143c;">[SIGHTING]</span> ${item.content}
+                    </div>
+                `;
+                break;
+
+            case 'portal_activity':
+                content = `
+                    <div class="feed-time">[${item.time}]</div>
+                    <div class="feed-content">
+                        <span style="color: #9932cc;">[PORTAL]</span> ${item.content}
+                    </div>
+                `;
+                break;
+
+            case 'celebration':
+                content = `
+                    <div class="feed-time">[${item.time}]</div>
+                    <div class="feed-content">
+                        <span style="color: #ffd700;">[CELEBRATION]</span> ${item.content}
+                    </div>
+                `;
+                break;
+
+            default:
+                // Tipo genérico
+                content = `
+                    <div class="feed-time">[${item.time}]</div>
+                    <div class="feed-content">${item.content}</div>
+                `;
         }
 
         feedItem.innerHTML = content;
