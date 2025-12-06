@@ -932,12 +932,12 @@ strong {
 
 .top-command-bar {
     display: flex;
-    flex-wrap: wrap;  /* Permitir que los botones se envuelvan */
-    gap: 4px;
+    flex-wrap: nowrap;  /* Una sola fila */
+    gap: 3px;  /* Gap reducido */
     justify-content: center;
-    padding: 15px 60px;  /* Más padding lateral para mejor centrado */
+    padding: 15px 20px;  /* Menos padding lateral */
     border-top: 1px solid var(--border-primary);
-    overflow-x: hidden;  /* Eliminar barra de deslizamiento */
+    overflow-x: hidden;
 }
 
 /* COMMAND LINKS - RETRO TERMINAL STYLE CON GLOW */
@@ -946,16 +946,16 @@ strong {
     background: var(--orange-light);        /* Fondo naranja */
     border: none;                           /* Sin borde */
     color: #000;                            /* Texto NEGRO */
-    padding: 6px 10px;                      /* Más compactos */
+    padding: 5px 7px;                       /* Más compactos para caber en una línea */
     font-family: 'Classic Console Neue', 'IBM Plex Mono', 'Share Tech Mono', monospace;
-    font-size: 10px;                        /* Más pequeño */
+    font-size: 9px;                         /* Más pequeño para caber todos */
     font-weight: 800;                       /* Extra bold para terminal */
     cursor: pointer;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.3px;
     transition: all 0.2s;
     white-space: nowrap;
-    flex-shrink: 0;
+    flex-shrink: 1;                         /* Permitir que se encojan si es necesario */
     /* GLOW + BLUR EN BOTONES */
     box-shadow: 0 0 10px rgba(255, 153, 0, 0.5);
     filter: blur(0.3px);                    /* Blur sutil para efecto CRT */
