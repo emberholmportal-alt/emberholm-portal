@@ -4569,8 +4569,14 @@ def gambit_status():
     if not wallet:
         return jsonify({"error": "Wallet required"}), 400
 
+    # Return defaults if DB not available
     if not POSTGRESQL_AVAILABLE:
-        return jsonify({"rolls_remaining": 5, "next_reset": None})
+        return jsonify({
+            "rolls_today": 0,
+            "rolls_max": 5,
+            "rolls_remaining": 5,
+            "next_reset": None
+        })
 
     try:
         conn = db.get_connection()
@@ -4586,10 +4592,16 @@ def gambit_status():
         db.release_connection(conn)
 
         if not row:
-            return jsonify({"rolls_remaining": 5, "next_reset": None})
+            # User not in database yet - return defaults
+            return jsonify({
+                "rolls_today": 0,
+                "rolls_max": 5,
+                "rolls_remaining": 5,
+                "next_reset": None
+            })
 
-        rolls_used = row[0]
-        rolls_max = row[1]
+        rolls_used = row[0] or 0
+        rolls_max = row[1] or 5
         next_reset = row[2]
 
         # Check if reset needed
@@ -4597,13 +4609,21 @@ def gambit_status():
             rolls_used = 0
 
         return jsonify({
+            "rolls_today": rolls_used,
+            "rolls_max": rolls_max,
             "rolls_remaining": max(0, rolls_max - rolls_used),
             "next_reset": next_reset.isoformat() if next_reset else None
         })
 
     except Exception as e:
         print(f"Error getting gambit status: {e}")
-        return jsonify({"error": str(e)}), 500
+        # Return defaults instead of error
+        return jsonify({
+            "rolls_today": 0,
+            "rolls_max": 5,
+            "rolls_remaining": 5,
+            "next_reset": None
+        })
 
 @app.route('/api/gambit/roll', methods=['POST'])
 def gambit_roll():

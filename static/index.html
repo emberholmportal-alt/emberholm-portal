@@ -2682,6 +2682,14 @@ async function loadPlayerAndRender(){
                 stateText = "✓ READY";
             }
 
+            // Check for active gambit effect
+            const gambitEffect = window.getGambitEffect ? window.getGambitEffect(currentWallet, h.token_id) : null;
+            const effectBadge = gambitEffect ? `
+                <div style="font-size:9px; text-align:center; color:${gambitEffect.color}; margin-top:2px; line-height:1.2;">
+                    ${gambitEffect.type === 'buff' ? '✨' : '⚠'} ${gambitEffect.desc}
+                </div>
+            ` : '';
+
             // Action buttons based on state
             let actionButtons = "";
             if (state === "READY") {
@@ -2690,9 +2698,12 @@ async function loadPlayerAndRender(){
                         <button class="action-btn inventory" onclick="showInventoryModal('${h.token_id}')" title="Manage Equipment">
                             [INVENTORY]
                         </button>
-                        <button class="action-btn ember-roll" onclick="showGambitModal('${h.token_id}')" title="Roll D20 for mission bonuses">
-                            [EMBER ROLL]
-                        </button>
+                        <div style="display:flex; flex-direction:column;">
+                            <button class="action-btn ember-roll" onclick="showGambitModal('${h.token_id}')" title="Roll D20 for mission bonuses">
+                                [EMBER ROLL]
+                            </button>
+                            ${effectBadge}
+                        </div>
                         <button class="action-btn send" onclick="openMissionListModal('${h.token_id}')">
                             [SEND]
                         </button>
@@ -2707,9 +2718,12 @@ async function loadPlayerAndRender(){
                             <button class="action-btn inventory" onclick="showInventoryModal('${h.token_id}')">
                                 [INVENTORY]
                             </button>
-                            <button class="action-btn ember-roll" onclick="showGambitModal('${h.token_id}')">
-                                [EMBER ROLL]
-                            </button>
+                            <div style="display:flex; flex-direction:column;">
+                                <button class="action-btn ember-roll" onclick="showGambitModal('${h.token_id}')">
+                                    [EMBER ROLL]
+                                </button>
+                                ${effectBadge}
+                            </div>
                             <button class="action-btn claim complete-btn" data-hero="${h.token_id}">
                                 [CLAIM]
                             </button>

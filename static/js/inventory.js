@@ -962,6 +962,38 @@
     }
 
     // ===============================================================
+    // GAMBIT D20 - BUFF/DEBUFF TRACKING
+    // ===============================================================
+
+    function saveGambitEffect(wallet, emissaryId, effect) {
+        const key = `gambit_effect_${wallet}_${emissaryId}`;
+        localStorage.setItem(key, JSON.stringify({
+            effect: effect,
+            timestamp: Date.now()
+        }));
+    }
+
+    function getGambitEffect(wallet, emissaryId) {
+        const key = `gambit_effect_${wallet}_${emissaryId}`;
+        const stored = localStorage.getItem(key);
+
+        if (!stored) return null;
+
+        try {
+            const data = JSON.parse(stored);
+            return data.effect;
+        } catch (e) {
+            localStorage.removeItem(key);
+            return null;
+        }
+    }
+
+    function clearGambitEffect(wallet, emissaryId) {
+        const key = `gambit_effect_${wallet}_${emissaryId}`;
+        localStorage.removeItem(key);
+    }
+
+    // ===============================================================
     // GAMBIT D20
     // ===============================================================
 
@@ -1176,6 +1208,7 @@
         let diceStyle = '';
         let outcomeText = '';
         let rewardsHtml = '';
+        let effect = null;
 
         // Determine outcome based on roll
         if (roll === 1) {
@@ -1183,11 +1216,13 @@
             diceStyle = 'color:#ef4444; animation: shake 0.5s;';
             outcomeText = 'CRITICAL FAIL';
             rewardsHtml = `<div style="color:#ef4444; font-size:16px;">⚠ Debuff Applied: -50% EMBER next mission</div>`;
+            effect = { type: 'debuff', name: 'Critical Fail', desc: '-50% EMBER', color: '#ef4444' };
         } else if (roll >= 2 && roll <= 3) {
             title = '✗ FUMBLE ✗';
             diceStyle = 'color:#f87171;';
             outcomeText = 'FUMBLE';
             rewardsHtml = `<div style="color:#f87171; font-size:16px;">⚠ Debuff Applied: -25% EMBER next mission</div>`;
+            effect = { type: 'debuff', name: 'Fumble', desc: '-25% EMBER', color: '#f87171' };
         } else if (roll >= 4 && roll <= 5) {
             title = 'MISS';
             diceStyle = 'color:#666;';
@@ -1221,6 +1256,7 @@
                 <div style="color:#4ade80; font-size:18px;">+500 $EMBER</div>
                 <div style="color:#3b82f6; font-size:14px; margin-top:10px;">✨ Buff Applied: +10% XP next mission</div>
             `;
+            effect = { type: 'buff', name: 'Critical Range', desc: '+10% XP', color: '#3b82f6' };
         } else if (roll === 19) {
             title = '⭐ SUPERIOR!';
             diceStyle = 'color:#a855f7; animation: pulse 1s infinite;';
@@ -1238,6 +1274,12 @@
                 <div style="color:#a855f7; font-size:14px; margin-top:10px;">📦 Item Granted: ${result.item_name || 'Rare/Epic Item'}</div>
                 <div style="color:#a855f7; font-size:14px; margin-top:10px;">✨ Buff Applied: +25% EMBER next mission</div>
             `;
+            effect = { type: 'buff', name: 'Natural 20!', desc: '+25% EMBER', color: '#a855f7' };
+        }
+
+        // Save effect if there is one
+        if (effect && currentWallet) {
+            saveGambitEffect(currentWallet, emissaryId, effect);
         }
 
         const content = `
