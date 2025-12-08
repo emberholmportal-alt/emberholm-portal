@@ -181,6 +181,21 @@
         Track: (loading)
     </div>
 
+    <!-- Balance Display -->
+    <div class="balance-display" style="margin-left:20px;">
+        <span class="balance-ember">
+            [E] <span id="ember-balance">0</span> $EMBER
+        </span>
+        <span id="ash-balance-display" class="balance-ash" style="display:none; margin-left:15px;">
+            [A] <span id="ash-balance">0</span> $ASH
+        </span>
+    </div>
+
+    <!-- Gambit Button -->
+    <button class="console-btn btn-gambit" onclick="showGambitModal()" style="margin-left:15px;">
+        [D20 GAMBIT] <span id="gambit-rolls">0/5</span>
+    </button>
+
     <button class="console-btn" id="console-mute-btn">[MUTE]</button>
     <button class="console-btn" id="console-next-btn">[NEXT]</button>
 
@@ -211,6 +226,7 @@
             <button class="cmd-link" data-target="guilds">[STATS/GUILDS]</button>
             <button class="cmd-link" data-target="missions">[MISSIONS]</button>
             <button class="cmd-link" data-target="profile">[PROFILE]</button>
+            <button class="cmd-link" data-target="vault">[VAULT]</button>
             <button class="cmd-link" data-target="tutorial">[HELP/TUTORIAL]</button>
             <button class="cmd-link" data-target="lore">[LORE]</button>
             <button class="cmd-link" data-target="announcements">[ANNOUNCEMENTS]</button>
@@ -448,6 +464,48 @@
             <div class="mono-small-note" style="margin-top:8px;">
                 ENERGY regenerates naturally every 48h. Emergency recovery is possible by sacrificing XP (see [RECOVER]).
                 SEND will assign an Emissary to a live mission, spending Energy and generating XP / Aura if successful.
+            </div>
+        </div>
+    </section>
+
+    <!-- VAULT -->
+    <section class="screen" data-screen="vault">
+        <div class="section-block">
+            <div class="section-title">VAULT // ITEM STORAGE</div>
+            <div class="mono-small-note">Manage your collected items, runes, and equipment</div>
+
+            <!-- Stats Summary -->
+            <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:10px; margin:20px 0;">
+                <div style="border:1px solid var(--border-primary); padding:10px; text-align:center;">
+                    <strong>TOTAL</strong><br/><span id="vault-total">0</span>
+                </div>
+                <div style="border:1px solid var(--border-primary); padding:10px; text-align:center;">
+                    <strong>EQUIPPED</strong><br/><span id="vault-equipped">0</span>
+                </div>
+                <div style="border:1px solid var(--border-primary); padding:10px; text-align:center;">
+                    <strong>AVAILABLE</strong><br/><span id="vault-available">0</span>
+                </div>
+                <div style="border:1px solid var(--border-primary); padding:10px; text-align:center;">
+                    <strong>LEGENDARY</strong><br/><span id="vault-legendary">0</span>
+                </div>
+            </div>
+
+            <!-- Filter Tabs -->
+            <div class="command-menu" style="margin-bottom:20px;">
+                <button class="cmd vault-filter active" onclick="loadVault(currentWallet, null)">[ALL]</button>
+                <button class="cmd vault-filter" onclick="loadVault(currentWallet, 'weapon')">[WEAPONS]</button>
+                <button class="cmd vault-filter" onclick="loadVault(currentWallet, 'armor')">[ARMORS]</button>
+                <button class="cmd vault-filter" onclick="loadVault(currentWallet, 'helmet')">[HELMETS]</button>
+                <button class="cmd vault-filter" onclick="loadVault(currentWallet, 'accessory')">[ACCESSORIES]</button>
+                <button class="cmd vault-filter" onclick="loadVault(currentWallet, 'amulet')">[AMULETS]</button>
+                <button class="cmd vault-filter" onclick="loadVault(currentWallet, 'rune')">[RUNES]</button>
+            </div>
+
+            <!-- Items Container -->
+            <div id="vault-items-container">
+                <div class="mono-block" style="text-align:center; padding:40px;">
+                    <p style="color:var(--dim-green);">Connect your wallet to view your vault.</p>
+                </div>
             </div>
         </div>
     </section>
@@ -1530,6 +1588,173 @@
 </section>
 </div><!-- /.wrapper -->
 
+<!-- ===============================================================
+     MODALS - INVENTORY & VAULT SYSTEM
+     =============================================================== -->
+
+<!-- INVENTORY MODAL -->
+<div class="modal-overlay" id="inventory-modal">
+    <div class="terminal-modal large">
+        <div class="terminal-modal-header">
+            EMISSARY INVENTORY
+            <button class="terminal-modal-close" onclick="closeInventoryModal()">×</button>
+        </div>
+        <div class="terminal-modal-body">
+            <!-- Content loaded dynamically by inventory.js -->
+        </div>
+    </div>
+</div>
+
+<!-- GAMBIT MODAL -->
+<div class="modal-overlay" id="gambit-modal">
+    <div class="terminal-modal">
+        <div class="terminal-modal-header">
+            EMBER GAMBIT // D20 DICE
+            <button class="terminal-modal-close" onclick="closeGambitModal()">×</button>
+        </div>
+        <div class="terminal-modal-body">
+            <!-- Content loaded dynamically by inventory.js -->
+        </div>
+    </div>
+</div>
+
+<!-- PUSH MODAL (Mission Acceleration) -->
+<div class="modal-overlay" id="push-modal">
+    <div class="terminal-modal">
+        <div class="terminal-modal-header">
+            MISSION ACCELERATION // PUSH
+            <button class="terminal-modal-close" onclick="closePushModal()">×</button>
+        </div>
+        <div class="terminal-modal-body">
+            <div class="subheading">ACCELERATE MISSION WITH $EMBER</div>
+
+            <p>Speed up your mission using $EMBER currency:</p>
+
+            <div class="mono-block" style="margin:20px 0;">
+                <div class="subheading">OPTIONS</div>
+                <div style="font-size:12px; line-height:1.8;">
+                    [25%]  → Reduce time by 25%<br/>
+                    [50%]  → Reduce time by 50%<br/>
+                    [100%] → Complete instantly
+                </div>
+            </div>
+
+            <p style="margin-top:20px;">Cost varies by mission difficulty.</p>
+
+            <div class="modal-buttons">
+                <button class="modal-btn btn-push" id="push-25-btn">[PUSH 25%]</button>
+                <button class="modal-btn btn-push" id="push-50-btn">[PUSH 50%]</button>
+                <button class="modal-btn btn-push" id="push-100-btn">[PUSH 100%]</button>
+                <button class="modal-btn" onclick="closePushModal()">[ CANCEL]</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- RECOVER MODAL (Energy Restoration) -->
+<div class="modal-overlay" id="recover-modal">
+    <div class="terminal-modal">
+        <div class="terminal-modal-header">
+            ENERGY RESTORATION // RECOVER
+            <button class="terminal-modal-close" onclick="closeRecoverModal()">×</button>
+        </div>
+        <div class="terminal-modal-body">
+            <div class="subheading">RESTORE ENERGY WITH $EMBER</div>
+
+            <p>Instantly restore your emissary's energy using $EMBER:</p>
+
+            <div class="mono-block" style="margin:20px 0;">
+                <div class="subheading">RESTORATION OPTIONS</div>
+                <div style="font-size:12px; line-height:1.8;">
+                    [+25 Energy]  → 30 $EMBER<br/>
+                    [+50 Energy]  → 75 $EMBER<br/>
+                    [+100 Energy] → 150 $EMBER (Full Restore)
+                </div>
+            </div>
+
+            <p style="margin-top:20px;">Your Balance: <span id="recover-balance">[E] 0 $EMBER</span></p>
+
+            <div class="modal-buttons">
+                <button class="modal-btn btn-recover" id="recover-25-btn">[+25 ENERGY - 30 $EMBER]</button>
+                <button class="modal-btn btn-recover" id="recover-50-btn">[+50 ENERGY - 75 $EMBER]</button>
+                <button class="modal-btn btn-recover" id="recover-100-btn">[+100 ENERGY - 150 $EMBER]</button>
+                <button class="modal-btn" onclick="closeRecoverModal()">[CANCEL]</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- BURN MODAL (EMBER to ASH) -->
+<div class="modal-overlay" id="burn-modal" style="display:none;">
+    <div class="terminal-modal">
+        <div class="terminal-modal-header">
+            ASH PROTOCOL // BURN EMBER
+            <button class="terminal-modal-close" onclick="closeBurnModal()">×</button>
+        </div>
+        <div class="terminal-modal-body">
+            <div class="subheading">CONVERT $EMBER TO $ASH</div>
+
+            <p style="color:var(--gold);">⚠ WARNING: This conversion is IRREVERSIBLE!</p>
+
+            <div class="mono-block" style="margin:20px 0;">
+                <div class="subheading">CONVERSION RATE</div>
+                <div style="font-size:14px; line-height:1.8;">
+                    100 $EMBER = 1 $ASH
+                </div>
+            </div>
+
+            <p>$ASH is used for reviving dead emissaries.</p>
+
+            <div style="margin:20px 0;">
+                <label for="burn-amount">Amount of $EMBER to burn:</label><br/>
+                <input type="number" id="burn-amount" min="100" step="100" value="100"
+                       style="width:200px; padding:8px; margin-top:10px; background:var(--bg-panel); color:var(--primary-green); border:1px solid var(--border-primary);"/>
+            </div>
+
+            <p style="margin-top:20px;">Your Balance: <span id="burn-balance">[E] 0 $EMBER</span></p>
+
+            <div class="modal-buttons">
+                <button class="modal-btn btn-revive" id="burn-confirm-btn">[BURN EMBER]</button>
+                <button class="modal-btn" onclick="closeBurnModal()">[CANCEL]</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- REVIVE MODAL -->
+<div class="modal-overlay" id="revive-modal" style="display:none;">
+    <div class="terminal-modal">
+        <div class="terminal-modal-header">
+            ASH PROTOCOL // REVIVE EMISSARY
+            <button class="terminal-modal-close" onclick="closeReviveModal()">×</button>
+        </div>
+        <div class="terminal-modal-body">
+            <div class="subheading">REVIVE DEAD EMISSARY WITH $ASH</div>
+
+            <p>Bring your fallen emissary back to life using $ASH.</p>
+
+            <div class="mono-block" style="margin:20px 0;">
+                <div class="subheading">REVIVE COSTS</div>
+                <div style="font-size:12px; line-height:1.8;">
+                    1st Death: 25 $ASH<br/>
+                    2nd Death: 50 $ASH<br/>
+                    3rd Death: 100 $ASH<br/>
+                    4th+ Death: 200 $ASH (max)
+                </div>
+            </div>
+
+            <p style="margin-top:20px;">Emissary: <span id="revive-emissary-name">--</span></p>
+            <p>Cost: <span id="revive-cost">-- $ASH</span></p>
+            <p>Your Balance: <span id="revive-balance">[A] 0 $ASH</span></p>
+
+            <div class="modal-buttons">
+                <button class="modal-btn btn-revive" id="revive-confirm-btn">[REVIVE]</button>
+                <button class="modal-btn" onclick="closeReviveModal()">[CANCEL]</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- 🔥 ETHERS.JS -->
 <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
 
@@ -1566,6 +1791,13 @@ navButtons.forEach(btn => {
         if (target) {
             switchScreen(target);
             setActiveButton(btn);
+
+            // 🔥 Load vault data when switching to vault screen
+            if (target === 'vault' && connectedWallet) {
+                if (typeof loadVault === 'function') {
+                    loadVault(connectedWallet, null);
+                }
+            }
 
             // 🔊 asegura música
             if (typeof ensureMusicPlaying === "function") {
@@ -2443,6 +2675,9 @@ async function loadPlayerAndRender(){
             let actionButtons = "";
             if (state === "READY") {
                 actionButtons = `
+                    <button class="terminal-btn small-btn btn-inventory" onclick="showInventoryModal('${h.token_id}')" title="Manage Equipment">
+                        [INVENTORY]
+                    </button>
                     <button class="terminal-btn small-btn" onclick="openMissionListModal('${h.token_id}')">
                         [SEND]
                     </button>`;
@@ -2493,6 +2728,7 @@ async function loadPlayerAndRender(){
                         </div>
                         <div>
                             <div>${h.name || h.token_id}</div>
+                            ${window.renderEquipmentIndicators ? window.renderEquipmentIndicators(h) : ''}
                             <button class="terminal-btn" style="font-size:0.6rem; padding:2px 6px; margin-top:2px;"
                                     onclick="downloadNFTImage('${h.image_url}', '${h.token_id}')"
                                     title="Download NFT Image">
@@ -2680,6 +2916,11 @@ async function loadPlayerAndRender(){
                 }
             });
         });
+
+        // 🔥 Initialize Inventory & Vault System
+        if (typeof initInventorySystem === 'function') {
+            initInventorySystem(wallet);
+        }
 
     } catch(e){
         console.error(e);
@@ -3863,6 +4104,9 @@ document.addEventListener('visibilitychange', function() {
 
 <!-- HACKNET UI INTERACTIONS -->
 <script src="/js/hacknet-ui.js"></script>
+
+<!-- INVENTORY & VAULT SYSTEM -->
+<script src="/js/inventory.js"></script>
 
 </body>
 </html>
