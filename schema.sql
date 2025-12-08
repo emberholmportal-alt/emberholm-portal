@@ -176,6 +176,129 @@ WHERE last_known_owner IS NOT NULL
 GROUP BY last_known_owner
 ORDER BY xp_total_all DESC;
 
+-- -------------------------------------------------------------------------
+-- TABLA: ITEMS (Inventory System)
+-- -------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS items (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    type VARCHAR(50) NOT NULL,                       -- weapon, armor, helmet, accessory, amulet, rune
+    rarity VARCHAR(50) NOT NULL,                     -- common, rare, epic, legendary
+    image_url TEXT,
+    stats JSONB NOT NULL DEFAULT '{}'::jsonb,        -- { ember_boost: 20, xp_boost: 20, ... }
+    equipped_by VARCHAR(10),                         -- token_id del emissary o null
+    owner_wallet VARCHAR(42) NOT NULL,               -- Wallet address
+    created_at TIMESTAMP DEFAULT NOW(),
+
+    CONSTRAINT fk_item_emissary FOREIGN KEY (equipped_by)
+        REFERENCES nfts(token_id) ON DELETE SET NULL
+);
+
+-- Índices para items
+CREATE INDEX IF NOT EXISTS idx_items_owner ON items(owner_wallet);
+CREATE INDEX IF NOT EXISTS idx_items_type ON items(type);
+CREATE INDEX IF NOT EXISTS idx_items_rarity ON items(rarity);
+CREATE INDEX IF NOT EXISTS idx_items_equipped ON items(equipped_by);
+
+-- -------------------------------------------------------------------------
+-- TABLA: LANDS (Land Binding System)
+-- -------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS lands (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    land_token_id VARCHAR(10) UNIQUE,                -- Token ID de la land NFT
+    rarity VARCHAR(50) NOT NULL,                     -- common, rare, epic, legendary
+    region VARCHAR(100),                             -- "Ashfall Wastes", etc.
+    image_url TEXT,
+    stats JSONB NOT NULL DEFAULT '{}'::jsonb,        -- { ember_boost: 5, xp_boost: 5, ... }
+    bound_emissaries TEXT[],                         -- Array de token_ids vinculados
+    max_emissaries INTEGER DEFAULT 5,                -- Max emissaries que pueden vincularse
+    owner_wallet VARCHAR(42) NOT NULL,
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Índices para lands
+CREATE INDEX IF NOT EXISTS idx_lands_owner ON lands(owner_wallet);
+CREATE INDEX IF NOT EXISTS idx_lands_rarity ON lands(rarity);
+CREATE INDEX IF NOT EXISTS idx_lands_token ON lands(land_token_id);
+
+-- -------------------------------------------------------------------------
+-- TABLA: USER BALANCES (EMBER & ASH Economy)
+-- -------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS user_balances (
+    wallet VARCHAR(42) PRIMARY KEY,
+    ember_balance INTEGER DEFAULT 0,
+    ash_balance INTEGER DEFAULT 0,
+    gambit_rolls_today INTEGER DEFAULT 0,
+    gambit_rolls_max INTEGER DEFAULT 5,
+    gambit_next_reset TIMESTAMP,
+    last_update TIMESTAMP DEFAULT NOW(),
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Índice
+CREATE INDEX IF NOT EXISTS idx_balances_wallet ON user_balances(wallet);
+
+-- -------------------------------------------------------------------------
+-- EXTENSIÓN DE TABLA NFTs: Añadir columnas de equipamiento
+-- -------------------------------------------------------------------------
+-- Añadir columnas de equipamiento si no existen
+ALTER TABLE nfts ADD COLUMN IF NOT EXISTS weapon_id INTEGER REFERENCES items(id) ON DELETE SET NULL;
+ALTER TABLE nfts ADD COLUMN IF NOT EXISTS armor_id INTEGER REFERENCES items(id) ON DELETE SET NULL;
+ALTER TABLE nfts ADD COLUMN IF NOT EXISTS helmet_id INTEGER REFERENCES items(id) ON DELETE SET NULL;
+ALTER TABLE nfts ADD COLUMN IF NOT EXISTS accessory_id INTEGER REFERENCES items(id) ON DELETE SET NULL;
+ALTER TABLE nfts ADD COLUMN IF NOT EXISTS amulet_id INTEGER REFERENCES items(id) ON DELETE SET NULL;
+ALTER TABLE nfts ADD COLUMN IF NOT EXISTS rune_ids INTEGER[];
+ALTER TABLE nfts ADD COLUMN IF NOT EXISTS land_id INTEGER REFERENCES lands(id) ON DELETE SET NULL;
+
+-- -------------------------------------------------------------------------
+-- FUNCIONES HELPER ADICIONALES
+-- -------------------------------------------------------------------------
+
+-- Función: Obtener items disponibles (no equipados) por wallet
+CREATE OR REPLACE FUNCTION get_available_items(wallet_address VARCHAR(42), item_type VARCHAR(50))
+RETURNS TABLE (
+    id INTEGER,
+    name VARCHAR(255),
+    type VARCHAR(50),
+    rarity VARCHAR(50),
+    image_url TEXT,
+    stats JSONB
+) AS $$
+    SELECT id, name, type, rarity, image_url, stats
+    FROM items
+    WHERE owner_wallet = wallet_address
+      AND equipped_by IS NULL
+      AND (item_type IS NULL OR type = item_type);
+$$ LANGUAGE SQL;
+
+-- Función: Calcular total de boosts de un emissary
+CREATE OR REPLACE FUNCTION calculate_emissary_boosts(emissary_id VARCHAR(10))
+RETURNS JSONB AS $$
+DECLARE
+    result JSONB;
+    weapon_stats JSONB;
+    armor_stats JSONB;
+    helmet_stats JSONB;
+    accessory_stats JSONB;
+    amulet_stats JSONB;
+    land_stats JSONB;
+BEGIN
+    -- Obtener stats de cada item equipado
+    SELECT stats INTO weapon_stats FROM items WHERE id = (SELECT weapon_id FROM nfts WHERE token_id = emissary_id);
+    SELECT stats INTO armor_stats FROM items WHERE id = (SELECT armor_id FROM nfts WHERE token_id = emissary_id);
+    SELECT stats INTO helmet_stats FROM items WHERE id = (SELECT helmet_id FROM nfts WHERE token_id = emissary_id);
+    SELECT stats INTO accessory_stats FROM items WHERE id = (SELECT accessory_id FROM nfts WHERE token_id = emissary_id);
+    SELECT stats INTO amulet_stats FROM items WHERE id = (SELECT amulet_id FROM nfts WHERE token_id = emissary_id);
+    SELECT stats INTO land_stats FROM lands WHERE id = (SELECT land_id FROM nfts WHERE token_id = emissary_id);
+
+    -- Sumar todos los boosts (implementación simplificada)
+    result := '{}'::jsonb;
+
+    RETURN result;
+END;
+$$ LANGUAGE plpgsql;
+
 -- =========================================================================
 -- SCHEMA COMPLETO
 -- =========================================================================

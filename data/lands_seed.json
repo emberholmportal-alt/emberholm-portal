@@ -1,0 +1,154 @@
+{
+  "lands": [
+    {
+      "name": "Ashfall Wastes",
+      "land_token_id": "L00001",
+      "rarity": "common",
+      "region": "Ashfall Wastes",
+      "image_url": "/img/lands/ashfall-wastes.png",
+      "stats": {
+        "ember_boost": 5,
+        "xp_boost": 5,
+        "energy_reduction": 0,
+        "death_protection": 0,
+        "speed_boost": 0
+      },
+      "max_emissaries": 5
+    },
+    {
+      "name": "Verdant Highlands",
+      "land_token_id": "L00002",
+      "rarity": "rare",
+      "region": "Verdant Highlands",
+      "image_url": "/img/lands/verdant-highlands.png",
+      "stats": {
+        "ember_boost": 10,
+        "xp_boost": 10,
+        "energy_reduction": 3,
+        "death_protection": 2,
+        "speed_boost": 3
+      },
+      "max_emissaries": 5
+    },
+    {
+      "name": "Crimson Peaks",
+      "land_token_id": "L00003",
+      "rarity": "epic",
+      "region": "Crimson Peaks",
+      "image_url": "/img/lands/crimson-peaks.png",
+      "stats": {
+        "ember_boost": 15,
+        "xp_boost": 15,
+        "energy_reduction": 5,
+        "death_protection": 3,
+        "speed_boost": 5
+      },
+      "max_emissaries": 5
+    },
+    {
+      "name": "Void Nexus",
+      "land_token_id": "L00004",
+      "rarity": "legendary",
+      "region": "Void Nexus",
+      "image_url": "/img/lands/void-nexus.png",
+      "stats": {
+        "ember_boost": 25,
+        "xp_boost": 25,
+        "energy_reduction": 10,
+        "death_protection": 5,
+        "speed_boost": 10
+      },
+      "max_emissaries": 5
+    },
+    {
+      "name": "Frostbite Tundra",
+      "land_token_id": "L00005",
+      "rarity": "common",
+      "region": "Frostbite Tundra",
+      "image_url": "/img/lands/frostbite-tundra.png",
+      "stats": {
+        "ember_boost": 5,
+        "xp_boost": 5,
+        "energy_reduction": 0,
+        "death_protection": 0,
+        "speed_boost": 0
+      },
+      "max_emissaries": 5
+    },
+    {
+      "name": "Sunken Marshes",
+      "land_token_id": "L00006",
+      "rarity": "rare",
+      "region": "Sunken Marshes",
+      "image_url": "/img/lands/sunken-marshes.png",
+      "stats": {
+        "ember_boost": 8,
+        "xp_boost": 8,
+        "energy_reduction": 2,
+        "death_protection": 2,
+        "speed_boost": 2
+      },
+      "max_emissaries": 5
+    },
+    {
+      "name": "Dragon's Roost",
+      "land_token_id": "L00007",
+      "rarity": "legendary",
+      "region": "Dragon's Roost",
+      "image_url": "/img/lands/dragons-roost.png",
+      "stats": {
+        "ember_boost": 30,
+        "xp_boost": 30,
+        "energy_reduction": 12,
+        "death_protection": 8,
+        "speed_boost": 12
+      },
+      "max_emissaries": 5
+    },
+    {
+      "name": "Crystal Caverns",
+      "land_token_id": "L00008",
+      "rarity": "epic",
+      "region": "Crystal Caverns",
+      "image_url": "/img/lands/crystal-caverns.png",
+      "stats": {
+        "ember_boost": 12,
+        "xp_boost": 12,
+        "energy_reduction": 4,
+        "death_protection": 3,
+        "speed_boost": 4
+      },
+      "max_emissaries": 5
+    },
+    {
+      "name": "Shadowfen",
+      "land_token_id": "L00009",
+      "rarity": "common",
+      "region": "Shadowfen",
+      "image_url": "/img/lands/shadowfen.png",
+      "stats": {
+        "ember_boost": 4,
+        "xp_boost": 4,
+        "energy_reduction": 0,
+        "death_protection": 0,
+        "speed_boost": 0
+      },
+      "max_emissaries": 5
+    },
+    {
+      "name": "Emberfell Citadel",
+      "land_token_id": "L00010",
+      "rarity": "epic",
+      "region": "Emberfell Citadel",
+      "image_url": "/img/lands/emberfell-citadel.png",
+      "stats": {
+        "ember_boost": 18,
+        "xp_boost": 18,
+        "energy_reduction": 6,
+        "death_protection": 4,
+        "speed_boost": 6
+      },
+      "max_emissaries": 5
+    }
+  ]
+}

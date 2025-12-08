@@ -3920,6 +3920,896 @@ def api_migration_add_image_url():
 
     return jsonify(result)
 
+# =========================================================================
+# INVENTORY & VAULT SYSTEM - API ENDPOINTS
+# =========================================================================
+
+# Feature Flags
+FEATURES = {
+    "ASH_PROTOCOL_ENABLED": False,  # Set to True when ASH protocol is ready
+    "EMBER_GAMBIT_ENABLED": True,
+    "EMBER_PUSH_ENABLED": True,
+    "LAND_STAKING_ENABLED": False
+}
+
+# Economy Configuration
+PUSH_COSTS = {
+    "easy": {"push25": 50, "push50": 150, "push100": 400},
+    "medium": {"push25": 100, "push50": 300, "push100": 800},
+    "hard": {"push25": 200, "push50": 600, "push100": 1500},
+    "legendary": {"push25": 500, "push50": 1500, "push100": 4000}
+}
+
+ENERGY_RESTORE_COSTS = {
+    25: 30,
+    50: 75,
+    100: 150
+}
+
+REVIVE_COSTS = {
+    1: 25,
+    2: 50,
+    3: 100,
+    4: 200  # Max cost for 4+ deaths
+}
+
+BURN_RATE = 100  # 100 EMBER = 1 ASH
+
+D20_REWARDS = {
+    1: {"type": "critical_fail", "ember": -100, "item": None},
+    2: {"type": "nothing", "ember": 0, "item": None},
+    3: {"type": "nothing", "ember": 0, "item": None},
+    4: {"type": "nothing", "ember": 0, "item": None},
+    5: {"type": "nothing", "ember": 0, "item": None},
+    6: {"type": "ember", "ember": 50, "item": None},
+    7: {"type": "ember", "ember": 50, "item": None},
+    8: {"type": "ember", "ember": 50, "item": None},
+    9: {"type": "ember", "ember": 100, "item": None},
+    10: {"type": "ember", "ember": 100, "item": None},
+    11: {"type": "ember", "ember": 100, "item": None},
+    12: {"type": "ember", "ember": 200, "item": None},
+    13: {"type": "ember", "ember": 200, "item": None},
+    14: {"type": "ember", "ember": 200, "item": None},
+    15: {"type": "ember", "ember": 350, "item": None},
+    16: {"type": "ember", "ember": 350, "item": None},
+    17: {"type": "ember", "ember": 350, "item": None},
+    18: {"type": "ember_and_item", "ember": 500, "item": "random_common"},
+    19: {"type": "ember_and_item", "ember": 500, "item": "random_common"},
+    20: {"type": "natural_20", "ember": 1000, "item": "random_rare_or_epic"}
+}
+
+# ---------------------------------
+# BALANCE API
+# ---------------------------------
+
+@app.route('/api/balance', methods=['GET'])
+def get_balance():
+    """Get user balance (EMBER, ASH, Gambit rolls)"""
+    wallet = request.args.get('wallet', '').lower()
+
+    if not wallet:
+        return jsonify({"error": "Wallet address required"}), 400
+
+    if not POSTGRESQL_AVAILABLE:
+        return jsonify({
+            "ember_balance": 0,
+            "ash_balance": 0,
+            "gambit_rolls_today": 0,
+            "gambit_rolls_max": 5
+        })
+
+    try:
+        conn = db.get_connection()
+        cursor = conn.cursor()
+
+        # Get or create balance
+        cursor.execute("""
+            INSERT INTO user_balances (wallet, ember_balance, ash_balance, gambit_rolls_today, gambit_rolls_max, gambit_next_reset)
+            VALUES (%s, 1000, 0, 0, 5, NOW() + INTERVAL '1 day')
+            ON CONFLICT (wallet) DO NOTHING
+        """, (wallet,))
+
+        cursor.execute("""
+            SELECT ember_balance, ash_balance, gambit_rolls_today, gambit_rolls_max, gambit_next_reset
+            FROM user_balances
+            WHERE wallet = %s
+        """, (wallet,))
+
+        row = cursor.fetchone()
+
+        if not row:
+            return jsonify({
+                "ember_balance": 1000,
+                "ash_balance": 0,
+                "gambit_rolls_today": 0,
+                "gambit_rolls_max": 5
+            })
+
+        # Check if need to reset gambit rolls
+        now = datetime.utcnow()
+        next_reset = row[4]
+        gambit_rolls = row[2]
+
+        if next_reset and now >= next_reset:
+            # Reset rolls
+            cursor.execute("""
+                UPDATE user_balances
+                SET gambit_rolls_today = 0, gambit_next_reset = %s
+                WHERE wallet = %s
+            """, (now + timedelta(days=1), wallet))
+            conn.commit()
+            gambit_rolls = 0
+
+        db.release_connection(conn)
+
+        return jsonify({
+            "ember_balance": row[0],
+            "ash_balance": row[1] if FEATURES["ASH_PROTOCOL_ENABLED"] else 0,
+            "gambit_rolls_today": gambit_rolls,
+            "gambit_rolls_max": row[3]
+        })
+
+    except Exception as e:
+        print(f"Error getting balance: {e}")
+        return jsonify({"error": str(e)}), 500
+
+# ---------------------------------
+# VAULT API
+# ---------------------------------
+
+@app.route('/api/vault', methods=['GET'])
+def get_vault():
+    """Get all items in vault"""
+    wallet = request.args.get('wallet', '').lower()
+    item_type = request.args.get('type')
+
+    if not wallet:
+        return jsonify({"error": "Wallet address required"}), 400
+
+    if not POSTGRESQL_AVAILABLE:
+        # Return mock data for testing
+        return jsonify({"items": []})
+
+    try:
+        conn = db.get_connection()
+        cursor = conn.cursor()
+
+        if item_type:
+            cursor.execute("""
+                SELECT i.id, i.name, i.type, i.rarity, i.image_url, i.stats, i.equipped_by,
+                       n.name as equipped_by_name
+                FROM items i
+                LEFT JOIN nfts n ON i.equipped_by = n.token_id
+                WHERE i.owner_wallet = %s AND i.type = %s
+                ORDER BY
+                    CASE i.rarity
+                        WHEN 'legendary' THEN 1
+                        WHEN 'epic' THEN 2
+                        WHEN 'rare' THEN 3
+                        WHEN 'common' THEN 4
+                    END,
+                    i.name
+            """, (wallet, item_type))
+        else:
+            cursor.execute("""
+                SELECT i.id, i.name, i.type, i.rarity, i.image_url, i.stats, i.equipped_by,
+                       n.name as equipped_by_name
+                FROM items i
+                LEFT JOIN nfts n ON i.equipped_by = n.token_id
+                WHERE i.owner_wallet = %s
+                ORDER BY
+                    CASE i.rarity
+                        WHEN 'legendary' THEN 1
+                        WHEN 'epic' THEN 2
+                        WHEN 'rare' THEN 3
+                        WHEN 'common' THEN 4
+                    END,
+                    i.name
+            """, (wallet,))
+
+        rows = cursor.fetchall()
+        items = []
+
+        for row in rows:
+            items.append({
+                "id": row[0],
+                "name": row[1],
+                "type": row[2],
+                "rarity": row[3],
+                "image_url": row[4],
+                "stats": row[5],
+                "equipped_by": row[6],
+                "equipped_by_name": row[7]
+            })
+
+        db.release_connection(conn)
+
+        return jsonify({"items": items})
+
+    except Exception as e:
+        print(f"Error getting vault: {e}")
+        return jsonify({"error": str(e)}), 500
+
+# ---------------------------------
+# EQUIPMENT API
+# ---------------------------------
+
+@app.route('/api/equip', methods=['POST'])
+def equip_item():
+    """Equip an item to an emissary"""
+    data = request.get_json()
+    item_id = data.get('item_id')
+    emissary_id = data.get('emissary_id')
+
+    if not item_id or not emissary_id:
+        return jsonify({"error": "item_id and emissary_id required"}), 400
+
+    if not POSTGRESQL_AVAILABLE:
+        return jsonify({"success": False, "message": "Database not available"}), 503
+
+    try:
+        conn = db.get_connection()
+        cursor = conn.cursor()
+
+        # Get item type
+        cursor.execute("SELECT type, equipped_by FROM items WHERE id = %s", (item_id,))
+        item_row = cursor.fetchone()
+
+        if not item_row:
+            return jsonify({"error": "Item not found"}), 404
+
+        item_type = item_row[0]
+        already_equipped_by = item_row[1]
+
+        if already_equipped_by:
+            return jsonify({"error": "Item already equipped"}), 400
+
+        # Determine which column to update based on item type
+        if item_type == "rune":
+            # Handle runes separately (array)
+            cursor.execute("""
+                UPDATE nfts
+                SET rune_ids = array_append(COALESCE(rune_ids, ARRAY[]::integer[]), %s)
+                WHERE token_id = %s AND array_length(COALESCE(rune_ids, ARRAY[]::integer[]), 1) < 2
+            """, (item_id, emissary_id))
+        else:
+            # Regular equipment
+            column_map = {
+                "weapon": "weapon_id",
+                "armor": "armor_id",
+                "helmet": "helmet_id",
+                "accessory": "accessory_id",
+                "amulet": "amulet_id"
+            }
+
+            column = column_map.get(item_type)
+            if not column:
+                return jsonify({"error": "Invalid item type"}), 400
+
+            # Update emissary
+            cursor.execute(f"""
+                UPDATE nfts
+                SET {column} = %s
+                WHERE token_id = %s
+            """, (item_id, emissary_id))
+
+        # Mark item as equipped
+        cursor.execute("""
+            UPDATE items
+            SET equipped_by = %s
+            WHERE id = %s
+        """, (emissary_id, item_id))
+
+        conn.commit()
+        db.release_connection(conn)
+
+        return jsonify({"success": True, "message": "Item equipped successfully"})
+
+    except Exception as e:
+        print(f"Error equipping item: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/unequip', methods=['POST'])
+def unequip_item():
+    """Unequip an item"""
+    data = request.get_json()
+    item_id = data.get('item_id')
+
+    if not item_id:
+        return jsonify({"error": "item_id required"}), 400
+
+    if not POSTGRESQL_AVAILABLE:
+        return jsonify({"success": False, "message": "Database not available"}), 503
+
+    try:
+        conn = db.get_connection()
+        cursor = conn.cursor()
+
+        # Get item details
+        cursor.execute("SELECT type, equipped_by FROM items WHERE id = %s", (item_id,))
+        item_row = cursor.fetchone()
+
+        if not item_row:
+            return jsonify({"error": "Item not found"}), 404
+
+        item_type = item_row[0]
+        equipped_by = item_row[1]
+
+        if not equipped_by:
+            return jsonify({"error": "Item not equipped"}), 400
+
+        # Unequip from emissary
+        if item_type == "rune":
+            cursor.execute("""
+                UPDATE nfts
+                SET rune_ids = array_remove(rune_ids, %s)
+                WHERE token_id = %s
+            """, (item_id, equipped_by))
+        else:
+            column_map = {
+                "weapon": "weapon_id",
+                "armor": "armor_id",
+                "helmet": "helmet_id",
+                "accessory": "accessory_id",
+                "amulet": "amulet_id"
+            }
+
+            column = column_map.get(item_type)
+            if column:
+                cursor.execute(f"""
+                    UPDATE nfts
+                    SET {column} = NULL
+                    WHERE token_id = %s AND {column} = %s
+                """, (equipped_by, item_id))
+
+        # Clear equipped_by in item
+        cursor.execute("""
+            UPDATE items
+            SET equipped_by = NULL
+            WHERE id = %s
+        """, (item_id,))
+
+        conn.commit()
+        db.release_connection(conn)
+
+        return jsonify({"success": True, "message": "Item unequipped successfully"})
+
+    except Exception as e:
+        print(f"Error unequipping item: {e}")
+        return jsonify({"error": str(e)}), 500
+
+# ---------------------------------
+# LAND BINDING API
+# ---------------------------------
+
+@app.route('/api/bind-land', methods=['POST'])
+def bind_land():
+    """Bind a land to an emissary"""
+    data = request.get_json()
+    land_id = data.get('land_id')
+    emissary_id = data.get('emissary_id')
+
+    if not land_id or not emissary_id:
+        return jsonify({"error": "land_id and emissary_id required"}), 400
+
+    if not POSTGRESQL_AVAILABLE:
+        return jsonify({"success": False, "message": "Database not available"}), 503
+
+    try:
+        conn = db.get_connection()
+        cursor = conn.cursor()
+
+        # Check if land exists and has space
+        cursor.execute("""
+            SELECT bound_emissaries, max_emissaries
+            FROM lands
+            WHERE id = %s
+        """, (land_id,))
+
+        land_row = cursor.fetchone()
+        if not land_row:
+            return jsonify({"error": "Land not found"}), 404
+
+        bound_emissaries = land_row[0] or []
+        max_emissaries = land_row[1]
+
+        if len(bound_emissaries) >= max_emissaries:
+            return jsonify({"error": "Land is full"}), 400
+
+        # Bind emissary to land
+        cursor.execute("""
+            UPDATE nfts
+            SET land_id = %s
+            WHERE token_id = %s
+        """, (land_id, emissary_id))
+
+        # Add emissary to land's bound list
+        cursor.execute("""
+            UPDATE lands
+            SET bound_emissaries = array_append(bound_emissaries, %s)
+            WHERE id = %s
+        """, (emissary_id, land_id))
+
+        conn.commit()
+        db.release_connection(conn)
+
+        return jsonify({"success": True, "message": "Land bound successfully"})
+
+    except Exception as e:
+        print(f"Error binding land: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/unbind-land', methods=['POST'])
+def unbind_land():
+    """Unbind land from emissary"""
+    data = request.get_json()
+    emissary_id = data.get('emissary_id')
+
+    if not emissary_id:
+        return jsonify({"error": "emissary_id required"}), 400
+
+    if not POSTGRESQL_AVAILABLE:
+        return jsonify({"success": False, "message": "Database not available"}), 503
+
+    try:
+        conn = db.get_connection()
+        cursor = conn.cursor()
+
+        # Get current land_id
+        cursor.execute("SELECT land_id FROM nfts WHERE token_id = %s", (emissary_id,))
+        row = cursor.fetchone()
+
+        if not row or not row[0]:
+            return jsonify({"error": "No land bound"}), 400
+
+        land_id = row[0]
+
+        # Unbind from emissary
+        cursor.execute("""
+            UPDATE nfts
+            SET land_id = NULL
+            WHERE token_id = %s
+        """, (emissary_id,))
+
+        # Remove from land's bound list
+        cursor.execute("""
+            UPDATE lands
+            SET bound_emissaries = array_remove(bound_emissaries, %s)
+            WHERE id = %s
+        """, (emissary_id, land_id))
+
+        conn.commit()
+        db.release_connection(conn)
+
+        return jsonify({"success": True, "message": "Land unbound successfully"})
+
+    except Exception as e:
+        print(f"Error unbinding land: {e}")
+        return jsonify({"error": str(e)}), 500
+
+# ---------------------------------
+# EMBER PUSH (Accelerate Mission)
+# ---------------------------------
+
+@app.route('/api/mission/push', methods=['POST'])
+def push_mission():
+    """Accelerate mission using EMBER"""
+    if not FEATURES["EMBER_PUSH_ENABLED"]:
+        return jsonify({"error": "Feature not enabled"}), 403
+
+    data = request.get_json()
+    emissary_id = data.get('emissary_id')
+    push_percent = data.get('push_percent')  # 25, 50, or 100
+    wallet = data.get('wallet', '').lower()
+
+    if not all([emissary_id, push_percent, wallet]):
+        return jsonify({"error": "Missing required fields"}), 400
+
+    if push_percent not in [25, 50, 100]:
+        return jsonify({"error": "Invalid push_percent"}), 400
+
+    if not POSTGRESQL_AVAILABLE:
+        return jsonify({"success": False, "message": "Database not available"}), 503
+
+    try:
+        conn = db.get_connection()
+        cursor = conn.cursor()
+
+        # Get mission details
+        cursor.execute("""
+            SELECT mission_id, start_time, duration_hours
+            FROM active_missions
+            WHERE hero_id = %s AND wallet = %s
+        """, (emissary_id, wallet))
+
+        mission_row = cursor.fetchone()
+        if not mission_row:
+            return jsonify({"error": "No active mission found"}), 404
+
+        mission_id = mission_row[0]
+        start_time = mission_row[1]
+        duration_hours = mission_row[2]
+
+        # Get mission difficulty
+        # (Simplified - you should get this from missions config)
+        difficulty = "easy"  # Default
+
+        # Get cost
+        cost_key = f"push{push_percent}"
+        cost = PUSH_COSTS.get(difficulty, {}).get(cost_key, 0)
+
+        # Check balance
+        cursor.execute("SELECT ember_balance FROM user_balances WHERE wallet = %s", (wallet,))
+        balance_row = cursor.fetchone()
+
+        if not balance_row or balance_row[0] < cost:
+            return jsonify({"error": "Insufficient EMBER balance"}), 400
+
+        # Deduct EMBER
+        cursor.execute("""
+            UPDATE user_balances
+            SET ember_balance = ember_balance - %s
+            WHERE wallet = %s
+        """, (cost, wallet))
+
+        # Calculate time reduction
+        time_reduction_hours = (duration_hours * push_percent) / 100.0
+
+        # Update mission start time (make it started earlier)
+        new_start_time = start_time - timedelta(hours=time_reduction_hours)
+
+        cursor.execute("""
+            UPDATE active_missions
+            SET start_time = %s
+            WHERE hero_id = %s AND wallet = %s
+        """, (new_start_time, emissary_id, wallet))
+
+        conn.commit()
+        db.release_connection(conn)
+
+        return jsonify({
+            "success": True,
+            "message": f"Mission accelerated by {push_percent}%",
+            "ember_spent": cost,
+            "time_reduced_hours": time_reduction_hours
+        })
+
+    except Exception as e:
+        print(f"Error pushing mission: {e}")
+        return jsonify({"error": str(e)}), 500
+
+# ---------------------------------
+# EMBER GAMBIT (D20 Dice Roll)
+# ---------------------------------
+
+@app.route('/api/gambit/status', methods=['GET'])
+def gambit_status():
+    """Get gambit roll status"""
+    if not FEATURES["EMBER_GAMBIT_ENABLED"]:
+        return jsonify({"error": "Feature not enabled"}), 403
+
+    wallet = request.args.get('wallet', '').lower()
+
+    if not wallet:
+        return jsonify({"error": "Wallet required"}), 400
+
+    if not POSTGRESQL_AVAILABLE:
+        return jsonify({"rolls_remaining": 5, "next_reset": None})
+
+    try:
+        conn = db.get_connection()
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            SELECT gambit_rolls_today, gambit_rolls_max, gambit_next_reset
+            FROM user_balances
+            WHERE wallet = %s
+        """, (wallet,))
+
+        row = cursor.fetchone()
+        db.release_connection(conn)
+
+        if not row:
+            return jsonify({"rolls_remaining": 5, "next_reset": None})
+
+        rolls_used = row[0]
+        rolls_max = row[1]
+        next_reset = row[2]
+
+        # Check if reset needed
+        if next_reset and datetime.utcnow() >= next_reset:
+            rolls_used = 0
+
+        return jsonify({
+            "rolls_remaining": max(0, rolls_max - rolls_used),
+            "next_reset": next_reset.isoformat() if next_reset else None
+        })
+
+    except Exception as e:
+        print(f"Error getting gambit status: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/gambit/roll', methods=['POST'])
+def gambit_roll():
+    """Roll the D20 gambit dice"""
+    if not FEATURES["EMBER_GAMBIT_ENABLED"]:
+        return jsonify({"error": "Feature not enabled"}), 403
+
+    data = request.get_json()
+    wallet = data.get('wallet', '').lower()
+
+    if not wallet:
+        return jsonify({"error": "Wallet required"}), 400
+
+    if not POSTGRESQL_AVAILABLE:
+        return jsonify({"success": False, "message": "Database not available"}), 503
+
+    try:
+        conn = db.get_connection()
+        cursor = conn.cursor()
+
+        # Check balance and rolls
+        cursor.execute("""
+            SELECT ember_balance, gambit_rolls_today, gambit_rolls_max
+            FROM user_balances
+            WHERE wallet = %s
+        """, (wallet,))
+
+        row = cursor.fetchone()
+        if not row:
+            return jsonify({"error": "Balance not found"}), 404
+
+        ember_balance = row[0]
+        rolls_today = row[1]
+        rolls_max = row[2]
+
+        # Check if can roll
+        if rolls_today >= rolls_max:
+            return jsonify({"error": "No rolls remaining today"}), 400
+
+        roll_cost = 100
+        if ember_balance < roll_cost:
+            return jsonify({"error": "Insufficient EMBER"}), 400
+
+        # Deduct cost
+        cursor.execute("""
+            UPDATE user_balances
+            SET ember_balance = ember_balance - %s,
+                gambit_rolls_today = gambit_rolls_today + 1
+            WHERE wallet = %s
+        """, (roll_cost, wallet))
+
+        # Roll D20
+        roll_result = random.randint(1, 20)
+        reward = D20_REWARDS[roll_result]
+
+        # Apply reward
+        ember_change = reward["ember"]
+
+        cursor.execute("""
+            UPDATE user_balances
+            SET ember_balance = ember_balance + %s
+            WHERE wallet = %s
+        """, (ember_change, wallet))
+
+        conn.commit()
+        db.release_connection(conn)
+
+        return jsonify({
+            "success": True,
+            "roll": roll_result,
+            "reward_type": reward["type"],
+            "ember_change": ember_change,
+            "item": reward["item"]
+        })
+
+    except Exception as e:
+        print(f"Error rolling gambit: {e}")
+        return jsonify({"error": str(e)}), 500
+
+# ---------------------------------
+# ENERGY RESTORE
+# ---------------------------------
+
+@app.route('/api/energy/restore', methods=['POST'])
+def restore_energy():
+    """Restore energy using EMBER"""
+    data = request.get_json()
+    emissary_id = data.get('emissary_id')
+    amount = data.get('amount')  # 25, 50, or 100
+    wallet = data.get('wallet', '').lower()
+
+    if not all([emissary_id, amount, wallet]):
+        return jsonify({"error": "Missing required fields"}), 400
+
+    if amount not in [25, 50, 100]:
+        return jsonify({"error": "Invalid amount"}), 400
+
+    if not POSTGRESQL_AVAILABLE:
+        return jsonify({"success": False, "message": "Database not available"}), 503
+
+    try:
+        conn = db.get_connection()
+        cursor = conn.cursor()
+
+        # Get cost
+        cost = ENERGY_RESTORE_COSTS.get(amount, 0)
+
+        # Check balance
+        cursor.execute("SELECT ember_balance FROM user_balances WHERE wallet = %s", (wallet,))
+        balance_row = cursor.fetchone()
+
+        if not balance_row or balance_row[0] < cost:
+            return jsonify({"error": "Insufficient EMBER"}), 400
+
+        # Deduct EMBER
+        cursor.execute("""
+            UPDATE user_balances
+            SET ember_balance = ember_balance - %s
+            WHERE wallet = %s
+        """, (cost, wallet))
+
+        # Restore energy (update dynamic_state)
+        cursor.execute("""
+            UPDATE nfts
+            SET dynamic_state = jsonb_set(
+                dynamic_state,
+                '{energy_current}',
+                to_jsonb(LEAST(100, COALESCE((dynamic_state->>'energy_current')::int, 0) + %s))
+            )
+            WHERE token_id = %s
+        """, (amount, emissary_id))
+
+        conn.commit()
+        db.release_connection(conn)
+
+        return jsonify({
+            "success": True,
+            "message": f"Restored {amount} energy",
+            "ember_spent": cost
+        })
+
+    except Exception as e:
+        print(f"Error restoring energy: {e}")
+        return jsonify({"error": str(e)}), 500
+
+# ---------------------------------
+# ASH PROTOCOL (Only if enabled)
+# ---------------------------------
+
+@app.route('/api/burn', methods=['POST'])
+def burn_ember():
+    """Burn EMBER to get ASH"""
+    if not FEATURES["ASH_PROTOCOL_ENABLED"]:
+        return jsonify({"error": "ASH Protocol not enabled"}), 403
+
+    data = request.get_json()
+    wallet = data.get('wallet', '').lower()
+    ember_amount = data.get('ember_amount', 0)
+
+    if not wallet or ember_amount <= 0:
+        return jsonify({"error": "Invalid request"}), 400
+
+    if not POSTGRESQL_AVAILABLE:
+        return jsonify({"success": False, "message": "Database not available"}), 503
+
+    try:
+        conn = db.get_connection()
+        cursor = conn.cursor()
+
+        # Check balance
+        cursor.execute("SELECT ember_balance FROM user_balances WHERE wallet = %s", (wallet,))
+        row = cursor.fetchone()
+
+        if not row or row[0] < ember_amount:
+            return jsonify({"error": "Insufficient EMBER"}), 400
+
+        # Calculate ASH
+        ash_received = ember_amount // BURN_RATE
+
+        if ash_received == 0:
+            return jsonify({"error": "Minimum 100 EMBER required"}), 400
+
+        # Update balances
+        cursor.execute("""
+            UPDATE user_balances
+            SET ember_balance = ember_balance - %s,
+                ash_balance = ash_balance + %s
+            WHERE wallet = %s
+        """, (ember_amount, ash_received, wallet))
+
+        conn.commit()
+        db.release_connection(conn)
+
+        return jsonify({
+            "success": True,
+            "ember_burned": ember_amount,
+            "ash_received": ash_received
+        })
+
+    except Exception as e:
+        print(f"Error burning EMBER: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/revive', methods=['POST'])
+def revive_emissary():
+    """Revive a dead emissary using ASH"""
+    if not FEATURES["ASH_PROTOCOL_ENABLED"]:
+        return jsonify({"error": "ASH Protocol not enabled"}), 403
+
+    data = request.get_json()
+    emissary_id = data.get('emissary_id')
+    wallet = data.get('wallet', '').lower()
+
+    if not all([emissary_id, wallet]):
+        return jsonify({"error": "Missing required fields"}), 400
+
+    if not POSTGRESQL_AVAILABLE:
+        return jsonify({"success": False, "message": "Database not available"}), 503
+
+    try:
+        conn = db.get_connection()
+        cursor = conn.cursor()
+
+        # Get emissary death count
+        cursor.execute("""
+            SELECT dynamic_state->>'deaths', dynamic_state->>'state'
+            FROM nfts
+            WHERE token_id = %s
+        """, (emissary_id,))
+
+        nft_row = cursor.fetchone()
+        if not nft_row:
+            return jsonify({"error": "Emissary not found"}), 404
+
+        deaths = int(nft_row[0] or 0)
+        state = nft_row[1]
+
+        if state != 'dead':
+            return jsonify({"error": "Emissary is not dead"}), 400
+
+        # Get revive cost based on deaths
+        death_count = min(deaths, 4)
+        cost = REVIVE_COSTS.get(death_count, REVIVE_COSTS[4])
+
+        # Check ASH balance
+        cursor.execute("SELECT ash_balance FROM user_balances WHERE wallet = %s", (wallet,))
+        balance_row = cursor.fetchone()
+
+        if not balance_row or balance_row[0] < cost:
+            return jsonify({"error": "Insufficient ASH"}), 400
+
+        # Deduct ASH
+        cursor.execute("""
+            UPDATE user_balances
+            SET ash_balance = ash_balance - %s
+            WHERE wallet = %s
+        """, (cost, wallet))
+
+        # Revive emissary
+        cursor.execute("""
+            UPDATE nfts
+            SET dynamic_state = jsonb_set(
+                jsonb_set(dynamic_state, '{state}', '"ready"'),
+                '{energy_current}',
+                '100'
+            )
+            WHERE token_id = %s
+        """, (emissary_id,))
+
+        conn.commit()
+        db.release_connection(conn)
+
+        return jsonify({
+            "success": True,
+            "message": "Emissary revived",
+            "ash_spent": cost
+        })
+
+    except Exception as e:
+        print(f"Error reviving emissary: {e}")
+        return jsonify({"error": str(e)}), 500
+
 # ---------------------------------
 
 if __name__ == "__main__":

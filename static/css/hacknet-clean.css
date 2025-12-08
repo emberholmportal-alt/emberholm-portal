@@ -1713,3 +1713,412 @@ body {
         grid-template-columns: 1fr !important;
     }
 }
+
+/* ===============================================================
+   INVENTORY & VAULT SYSTEM
+   =============================================================== */
+
+/* Equipment Indicators (debajo del nombre del emissary) */
+.equipment-indicators {
+    font-size: 11px;
+    margin-top: 5px;
+    font-family: 'Classic Console Neue', 'IBM Plex Mono', 'Share Tech Mono', monospace;
+    letter-spacing: 0.5px;
+}
+
+.equipment-indicators .eq-icon {
+    color: var(--primary-green);
+    font-weight: 700;
+}
+
+.equipment-indicators .eq-count {
+    color: #888;
+}
+
+.equipment-indicators .eq-empty {
+    color: #444;
+}
+
+/* Item Cards en Vault */
+.item-card {
+    background: var(--bg-panel);
+    border: 1px solid var(--border-primary);
+    padding: 15px;
+    margin-bottom: 15px;
+    transition: all 0.2s;
+    font-family: 'Classic Console Neue', 'IBM Plex Mono', 'Share Tech Mono', monospace;
+    position: relative;
+}
+
+.item-card.equipped {
+    background: rgba(255, 149, 0, 0.1);
+    border-left: 3px solid var(--primary-green);
+}
+
+.item-card.rarity-common {
+    border-left: 3px solid #9ca3af;
+}
+
+.item-card.rarity-rare {
+    border-left: 3px solid #3b82f6;
+}
+
+.item-card.rarity-epic {
+    border-left: 3px solid #a855f7;
+}
+
+.item-card.rarity-legendary {
+    border-left: 3px solid #ff6b00;
+    box-shadow: 0 0 15px rgba(255, 107, 0, 0.3);
+}
+
+.item-card:hover {
+    background: rgba(255, 136, 0, 0.05);
+    transform: translateX(3px);
+}
+
+/* Rarity Colors */
+.rarity-common { color: #9ca3af; }
+.rarity-rare { color: #3b82f6; }
+.rarity-epic { color: #a855f7; }
+.rarity-legendary { color: #ff6b00; }
+
+/* Item Stats */
+.item-stats {
+    font-size: 12px;
+    margin-top: 8px;
+}
+
+.stat-positive {
+    color: #4ade80;
+}
+
+.stat-negative {
+    color: #3b82f6;
+}
+
+/* Action Buttons (Contextuales según estado) */
+.btn-inventory {
+    border-color: #ff9500;
+    color: #ff9500;
+    background: transparent;
+    padding: 6px 12px;
+    font-size: 11px;
+    font-family: 'Classic Console Neue', 'IBM Plex Mono', 'Share Tech Mono', monospace;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.btn-inventory:hover {
+    background: rgba(255, 149, 0, 0.1);
+    border-color: var(--bright-green);
+}
+
+.btn-push {
+    border-color: #f59e0b;
+    color: #f59e0b;
+    background: transparent;
+    padding: 6px 12px;
+    font-size: 11px;
+    font-family: 'Classic Console Neue', 'IBM Plex Mono', 'Share Tech Mono', monospace;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.btn-push:hover {
+    background: rgba(245, 158, 11, 0.1);
+}
+
+.btn-claim {
+    border-color: #3b82f6;
+    color: #3b82f6;
+    background: transparent;
+    padding: 6px 12px;
+    font-size: 11px;
+    font-family: 'Classic Console Neue', 'IBM Plex Mono', 'Share Tech Mono', monospace;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.btn-claim:hover {
+    background: rgba(59, 130, 246, 0.1);
+}
+
+.btn-recover {
+    border-color: #22c55e;
+    color: #22c55e;
+    background: transparent;
+    padding: 6px 12px;
+    font-size: 11px;
+    font-family: 'Classic Console Neue', 'IBM Plex Mono', 'Share Tech Mono', monospace;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.btn-recover:hover {
+    background: rgba(34, 197, 94, 0.1);
+}
+
+.btn-revive {
+    border-color: #ef4444;
+    color: #ef4444;
+    background: transparent;
+    padding: 6px 12px;
+    font-size: 11px;
+    font-family: 'Classic Console Neue', 'IBM Plex Mono', 'Share Tech Mono', monospace;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.btn-revive:hover {
+    background: rgba(239, 68, 68, 0.1);
+}
+
+.btn-gambit {
+    border-color: #a855f7;
+    color: #a855f7;
+    background: transparent;
+    padding: 6px 12px;
+    font-size: 11px;
+    font-family: 'Classic Console Neue', 'IBM Plex Mono', 'Share Tech Mono', monospace;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.btn-gambit:hover {
+    background: rgba(168, 85, 247, 0.1);
+}
+
+/* D20 Dice Display */
+.dice-display {
+    font-size: 80px;
+    font-family: 'Alagard', serif;
+    color: var(--gold);
+    text-shadow:
+        0 0 10px var(--gold),
+        0 0 20px var(--gold),
+        0 0 30px var(--gold);
+    animation: diceGlow 1s infinite alternate;
+    text-align: center;
+    margin: 30px 0;
+}
+
+@keyframes diceGlow {
+    0% {
+        text-shadow:
+            0 0 10px var(--gold),
+            0 0 20px var(--gold);
+    }
+    100% {
+        text-shadow:
+            0 0 20px var(--gold),
+            0 0 40px var(--gold),
+            0 0 60px var(--gold);
+    }
+}
+
+/* Equipment Slots en Modal Inventory */
+.equipment-slot {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-primary);
+    padding: 12px;
+    text-align: center;
+    min-height: 180px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.equipment-slot.empty {
+    border-style: dashed;
+    opacity: 0.6;
+}
+
+.equipment-slot img {
+    width: 64px;
+    height: 64px;
+    margin: 0 auto 10px auto;
+    border: 1px solid var(--border-primary);
+    image-rendering: pixelated;
+}
+
+.equipment-slot .slot-name {
+    font-size: 10px;
+    color: var(--dim-green);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+}
+
+.equipment-slot .item-name {
+    font-size: 12px;
+    color: var(--primary-green);
+    font-weight: 600;
+    margin-bottom: 5px;
+}
+
+/* Balance Header */
+.balance-display {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    font-family: 'Classic Console Neue', 'IBM Plex Mono', 'Share Tech Mono', monospace;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.balance-ember {
+    color: var(--primary-green);
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.balance-ash {
+    color: #666;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.balance-icon {
+    font-size: 14px;
+}
+
+/* Vault Grid */
+.vault-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 15px;
+    margin-top: 20px;
+}
+
+@media (max-width: 768px) {
+    .vault-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Equipment Grid en Inventory Modal */
+.equipment-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+@media (max-width: 768px) {
+    .equipment-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+/* Rune Slots */
+.rune-slots {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.rune-slot {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-primary);
+    padding: 15px;
+}
+
+.rune-slot.empty {
+    border-style: dashed;
+    opacity: 0.6;
+}
+
+/* Land Slot */
+.land-slot {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-primary);
+    border-left: 3px solid var(--gold);
+    padding: 15px;
+    margin-bottom: 20px;
+}
+
+.land-slot.empty {
+    border-style: dashed;
+    opacity: 0.6;
+}
+
+/* Total Boosts Display */
+.total-boosts {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.boost-item {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-primary);
+    padding: 10px;
+    text-align: center;
+}
+
+.boost-item .boost-label {
+    font-size: 10px;
+    color: var(--dim-green);
+    text-transform: uppercase;
+    margin-bottom: 5px;
+}
+
+.boost-item .boost-value {
+    font-size: 16px;
+    color: var(--gold);
+    font-weight: 700;
+}
+
+@media (max-width: 768px) {
+    .total-boosts {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+/* Disabled button state */
+.btn-disabled,
+button:disabled {
+    opacity: 0.4;
+    cursor: not-allowed !important;
+    pointer-events: none;
+}
+
+/* Vault Filter Tabs */
+.vault-filter {
+    padding: 8px 15px;
+    margin: 5px;
+}
+
+.vault-filter.active {
+    background: rgba(255, 204, 0, 0.1);
+    border-color: var(--border-gold);
+    color: var(--gold);
+}
+
+/* Modal Size Variants */
+.terminal-modal.large {
+    max-width: 1000px;
+    width: 95%;
+}
+
+.terminal-modal.xlarge {
+    max-width: 1200px;
+    width: 95%;
+}
