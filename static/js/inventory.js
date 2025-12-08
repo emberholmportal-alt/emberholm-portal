@@ -927,6 +927,41 @@
     };
 
     // ===============================================================
+    // GAMBIT D20 - FREE ROLL TRACKING (localStorage)
+    // ===============================================================
+
+    function getFreeRollStatus(wallet) {
+        const key = `gambit_free_roll_${wallet}`;
+        const stored = localStorage.getItem(key);
+
+        if (!stored) {
+            return { used: false, date: null };
+        }
+
+        try {
+            const data = JSON.parse(stored);
+            const today = new Date().toDateString();
+
+            // Reset if it's a new day
+            if (data.date !== today) {
+                localStorage.removeItem(key);
+                return { used: false, date: null };
+            }
+
+            return { used: data.used, date: data.date };
+        } catch (e) {
+            localStorage.removeItem(key);
+            return { used: false, date: null };
+        }
+    }
+
+    function markFreeRollUsed(wallet) {
+        const key = `gambit_free_roll_${wallet}`;
+        const today = new Date().toDateString();
+        localStorage.setItem(key, JSON.stringify({ used: true, date: today }));
+    }
+
+    // ===============================================================
     // GAMBIT D20
     // ===============================================================
 
@@ -941,22 +976,35 @@
             return;
         }
 
-        // Check status
+        // Check free roll status from localStorage
+        const freeRollStatus = getFreeRollStatus(currentWallet);
+        const isFreeRoll = !freeRollStatus.used;
+        const costPerRoll = isFreeRoll ? 0 : 75;
+
+        // Try to get database status (for paid rolls tracking) - but don't fail if DB unavailable
+        let rollsToday = freeRollStatus.used ? 1 : 0;
+        let maxRolls = 5;
+
         try {
             const response = await fetch(`/api/gambit/status?wallet=${currentWallet}`);
-            const data = await response.json();
-
-            const rollsToday = data.rolls_today || 0;
-            const maxRolls = data.rolls_max || 5;
-            const rollsRemaining = maxRolls - rollsToday;
-            const isFreeRoll = rollsToday === 0;
-            const costPerRoll = isFreeRoll ? 0 : 75;
-
-            const modal = document.getElementById('gambit-modal');
-            if (!modal) {
-                console.error('Gambit modal not found');
-                return;
+            if (response.ok) {
+                const data = await response.json();
+                rollsToday = data.rolls_today || rollsToday;
+                maxRolls = data.rolls_max || maxRolls;
             }
+        } catch (e) {
+            console.log('Could not fetch roll status from DB, using localStorage only');
+        }
+
+        const rollsRemaining = maxRolls - rollsToday;
+
+        const modal = document.getElementById('gambit-modal');
+        if (!modal) {
+            console.error('Gambit modal not found');
+            return;
+        }
+
+        try {
 
             const content = `
                 <div class="subheading" style="margin-bottom:15px;">EMBER ROLL // TEST YOUR FATE</div>
@@ -1104,6 +1152,11 @@
                 alert('Error: ' + data.error);
                 closeGambitModal();
                 return;
+            }
+
+            // Mark free roll as used if cost was 0
+            if (cost === 0 && data.success) {
+                markFreeRollUsed(currentWallet);
             }
 
             showGambitResult(data, emissaryId);

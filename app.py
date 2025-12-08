@@ -4618,8 +4618,28 @@ def gambit_roll():
     if not wallet:
         return jsonify({"error": "Wallet required"}), 400
 
+    # ============================================================
+    # FREE ROLL (cost = 0) - No database required
+    # ============================================================
+    if cost == 0:
+        # Generate random roll
+        roll_result = random.randint(1, 20)
+        reward = D20_REWARDS.get(roll_result, {"type": "nothing", "ember": 0, "item": None})
+
+        return jsonify({
+            "success": True,
+            "roll": roll_result,
+            "reward_type": reward["type"],
+            "ember_change": reward["ember"],
+            "item": reward["item"],
+            "free_roll": True
+        })
+
+    # ============================================================
+    # PAID ROLL (cost > 0) - Requires database
+    # ============================================================
     if not POSTGRESQL_AVAILABLE:
-        return jsonify({"success": False, "message": "Database not available"}), 503
+        return jsonify({"error": "Database not available for paid rolls"}), 503
 
     try:
         conn = db.get_connection()
@@ -4652,25 +4672,17 @@ def gambit_roll():
         if rolls_today >= rolls_max:
             return jsonify({"error": "No rolls remaining today"}), 400
 
-        # Only check balance if cost > 0
-        if cost > 0 and ember_balance < cost:
+        # Check balance
+        if ember_balance < cost:
             return jsonify({"error": "Insufficient EMBER"}), 400
 
-        # Deduct cost (if any) and increment roll counter
-        if cost > 0:
-            cursor.execute("""
-                UPDATE user_balances
-                SET ember_balance = ember_balance - %s,
-                    gambit_rolls_today = gambit_rolls_today + 1
-                WHERE wallet = %s
-            """, (cost, wallet))
-        else:
-            # Free roll - just increment counter
-            cursor.execute("""
-                UPDATE user_balances
-                SET gambit_rolls_today = gambit_rolls_today + 1
-                WHERE wallet = %s
-            """, (wallet,))
+        # Deduct cost and increment roll counter
+        cursor.execute("""
+            UPDATE user_balances
+            SET ember_balance = ember_balance - %s,
+                gambit_rolls_today = gambit_rolls_today + 1
+            WHERE wallet = %s
+        """, (cost, wallet))
 
         # Roll D20
         roll_result = random.randint(1, 20)
