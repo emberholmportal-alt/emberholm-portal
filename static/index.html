@@ -202,6 +202,9 @@
         <div class="top-status-row">
             <span>EMBERHOLM PORTAL : NODE-Δ / REALM MONITOR</span>
             <span id="access-level">ACCESS LEVEL: [CITIZEN]</span>
+            <span id="ember-balance-display" style="color:#fc0; font-weight:bold; text-shadow: 0 0 8px rgba(255, 204, 0, 0.6);">
+                $EMBER: <span id="ember-balance-value">---</span>
+            </span>
             <span>STATUS: FLAME WEAKENING // MISSIONS REQUIRED</span>
         </div>
 
@@ -211,6 +214,7 @@
             <button class="cmd-link" data-target="guilds">[STATS/GUILDS]</button>
             <button class="cmd-link" data-target="missions">[MISSIONS]</button>
             <button class="cmd-link" data-target="profile">[PROFILE]</button>
+            <button class="cmd-link" data-target="vault">[VAULT]</button>
             <button class="cmd-link" data-target="tutorial">[HELP/TUTORIAL]</button>
             <button class="cmd-link" data-target="lore">[LORE]</button>
             <button class="cmd-link" data-target="announcements">[ANNOUNCEMENTS]</button>
@@ -449,6 +453,60 @@
                 ENERGY regenerates naturally every 48h. Emergency recovery is possible by sacrificing XP (see [RECOVER]).
                 SEND will assign an Emissary to a live mission, spending Energy and generating XP / Aura if successful.
             </div>
+        </div>
+    </section>
+
+    <!-- VAULT -->
+    <section class="screen" data-screen="vault">
+        <div class="section-block">
+            <div class="section-title">╬ VAULT // ITEM REPOSITORY</div>
+
+            <div class="mono-block" style="margin-bottom:20px;">
+                <div style="color: var(--gold); font-weight: 700; margin-bottom:8px;">VAULT SYSTEM // ITEM MANAGEMENT</div>
+                <div style="margin-bottom:12px;">
+                    <span class="glow-green">&gt;</span> CONNECTION ESTABLISHED<br/>
+                    <span class="glow-green">&gt;</span> VAULT ACCESS: <span class="glow-yellow">AUTHORIZED</span><br/>
+                    <span class="glow-green">&gt;</span> WALLET: <span id="vault-wallet-display" style="color:#4af;">Not connected</span>
+                </div>
+                <div style="color: #888; font-size: 12px;">
+                    All equipment, runes, and land deeds owned by your wallet are stored here.<br/>
+                    Click on items to equip them to your Emissaries (requires Emissary selection).
+                </div>
+            </div>
+
+            <!-- FILTER TABS -->
+            <div style="display:flex; gap:8px; margin-bottom:20px; flex-wrap:wrap;">
+                <button class="terminal-btn small-btn vault-filter-btn active" data-filter="all" onclick="filterVaultItems('all')">
+                    [ALL ITEMS]
+                </button>
+                <button class="terminal-btn small-btn vault-filter-btn" data-filter="equipment" onclick="filterVaultItems('equipment')">
+                    [╬ EQUIPMENT]
+                </button>
+                <button class="terminal-btn small-btn vault-filter-btn" data-filter="runes" onclick="filterVaultItems('runes')">
+                    [◈ RUNES]
+                </button>
+                <button class="terminal-btn small-btn vault-filter-btn" data-filter="lands" onclick="filterVaultItems('lands')">
+                    [⌂ LANDS]
+                </button>
+            </div>
+
+            <hr class="emberline"/>
+
+            <!-- VAULT GRID -->
+            <div id="vault-items-container" style="min-height:300px;">
+                <div class="mono-block" style="text-align:center; padding:60px 20px; color:#666;">
+                    <div style="font-size:48px; margin-bottom:15px;">╬</div>
+                    <div style="font-size:14px; color:#888; margin-bottom:8px;">VAULT EMPTY</div>
+                    <div style="font-size:12px; color:#666;">
+                        No items found in your vault.<br/>
+                        Items will appear here once the backend integration is complete (Sprint 4).
+                    </div>
+                    <div style="margin-top:20px; font-size:11px; color:#444;">
+                        [Coming soon: Equipment, Runes, and Land deeds will be displayed here]
+                    </div>
+                </div>
+            </div>
+
         </div>
     </section>
 
@@ -1737,6 +1795,16 @@ async function connectWallet() {
 
         connectedWallet = address;
         document.getElementById("wallet-display").textContent = address.slice(0, 6) + "..." + address.slice(-4);
+
+        // Update vault wallet display if it exists
+        const vaultWalletDisplay = document.getElementById("vault-wallet-display");
+        if (vaultWalletDisplay) {
+            vaultWalletDisplay.textContent = address.slice(0, 6) + "..." + address.slice(-4);
+        }
+
+        // Update $EMBER balance
+        await updateEmberBalance(address);
+
         console.log(`✅ Wallet connected: ${address}`);
 
         // 🔥 TRIPLE CHECK: Verify we're still on Base Sepolia before querying
@@ -1910,6 +1978,16 @@ function disconnectWallet() {
 
     // Update UI
     document.getElementById("wallet-display").textContent = "Not connected";
+
+    // Update vault wallet display if it exists
+    const vaultWalletDisplay = document.getElementById("vault-wallet-display");
+    if (vaultWalletDisplay) {
+        vaultWalletDisplay.textContent = "Not connected";
+    }
+
+    // Reset $EMBER balance
+    updateEmberBalance(null);
+
     document.getElementById("connect-wallet-btn").style.display = "inline-block";
     document.getElementById("connect-wallet-btn").textContent = "[CONNECT WALLET]";
     document.getElementById("connect-wallet-btn").disabled = false;
@@ -2441,19 +2519,40 @@ async function loadPlayerAndRender(){
 
             // Action buttons based on state
             let actionButtons = "";
+
+            // [INVENTORY] button always visible
+            const inventoryBtn = `<button class="terminal-btn small-btn" onclick="openInventory('${h.token_id}')"
+                style="border-color:var(--orange-light); color:var(--orange-light);" title="View Inventory">
+                [INVENTORY]
+            </button>`;
+
             if (state === "READY") {
+                // READY: [INVENTORY] [SEND] [RECOVER]
                 actionButtons = `
-                    <button class="terminal-btn small-btn" onclick="openMissionListModal('${h.token_id}')">
+                    ${inventoryBtn}
+                    <button class="terminal-btn small-btn" onclick="openMissionListModal('${h.token_id}')"
+                        style="border-color:#666; color:#888;" title="Send on Mission">
                         [SEND]
+                    </button>
+                    <button class="terminal-btn small-btn" onclick="openRecoverModal('${h.token_id}')"
+                        style="border-color:#22c55e; color:#22c55e;" title="Recover Energy">
+                        [RECOVER]
                     </button>`;
             } else if (state === "ON_MISSION") {
                 if (missionComplete) {
+                    // COMPLETED: [INVENTORY] [CLAIM] [RECOVER]
                     actionButtons = `
-                        <button class="terminal-btn small-btn complete-btn" data-hero="${h.token_id}" style="color:#44ff44;">
-                            [CLAIM REWARDS]
+                        ${inventoryBtn}
+                        <button class="terminal-btn small-btn complete-btn" data-hero="${h.token_id}"
+                            style="border-color:#3b82f6; color:#3b82f6;" title="Claim Rewards">
+                            [CLAIM]
+                        </button>
+                        <button class="terminal-btn small-btn" onclick="openRecoverModal('${h.token_id}')"
+                            style="border-color:#22c55e; color:#22c55e;" title="Recover Energy">
+                            [RECOVER]
                         </button>`;
                 } else {
-                    // 🔥 Calculate progress percentage
+                    // IN PROGRESS: [INVENTORY] [PUSH] [--] [RECOVER]
                     let progressHtml = "";
                     if (missionDuration > 0) {
                         const startTime = new Date(missionStartTime.replace("Z", "") + "Z");
@@ -2468,15 +2567,30 @@ async function loadPlayerAndRender(){
                     }
 
                     actionButtons = `
-                        <button class="terminal-btn small-btn" disabled style="opacity:0.5; cursor:not-allowed;">
-                            [IN PROGRESS]
+                        ${inventoryBtn}
+                        <button class="terminal-btn small-btn" onclick="openPushModal('${h.token_id}')"
+                            style="border-color:#f59e0b; color:#f59e0b;" title="Accelerate Mission">
+                            [PUSH]
+                        </button>
+                        <button class="terminal-btn small-btn" disabled style="opacity:0.4; cursor:not-allowed;">
+                            [--]
+                        </button>
+                        <button class="terminal-btn small-btn" onclick="openRecoverModal('${h.token_id}')"
+                            style="border-color:#22c55e; color:#22c55e;" title="Recover Energy">
+                            [RECOVER]
                         </button>
                         ${progressHtml}`;
                 }
             } else if (state === "FALLEN") {
+                // FALLEN: [INVENTORY] [REVIVE] [--]
                 actionButtons = `
-                    <button class="terminal-btn small-btn reinvoke-btn" data-hero="${h.token_id}" style="color:#ff4444;">
-                        [REINVOKE]
+                    ${inventoryBtn}
+                    <button class="terminal-btn small-btn reinvoke-btn" data-hero="${h.token_id}"
+                        style="border-color:#ef4444; color:#ef4444;" title="Revive Emissary">
+                        [REVIVE]
+                    </button>
+                    <button class="terminal-btn small-btn" disabled style="opacity:0.4; cursor:not-allowed;">
+                        [--]
                     </button>`;
             }
 
@@ -2493,6 +2607,12 @@ async function loadPlayerAndRender(){
                         </div>
                         <div>
                             <div>${h.name || h.token_id}</div>
+                            <!-- Equipment Indicators -->
+                            <div class="equipment-indicators" style="font-size:9px; color:#888; margin-top:3px; letter-spacing:0.5px;">
+                                <span class="eq-items" style="margin-right:6px;"><span style="color:var(--orange-light);">╬</span>[--]</span>
+                                <span class="eq-runes" style="margin-right:6px;"><span style="color:var(--orange-light);">◈</span>[--]</span>
+                                <span class="eq-land" style="color:#444;">--</span>
+                            </div>
                             <button class="terminal-btn" style="font-size:0.6rem; padding:2px 6px; margin-top:2px;"
                                     onclick="downloadNFTImage('${h.image_url}', '${h.token_id}')"
                                     title="Download NFT Image">
@@ -3090,6 +3210,116 @@ function showConfirmModal(title, message, onConfirm) {
 function closeConfirmModal() {
     hideModal('confirm-modal');
     confirmCallback = null;
+}
+
+// ============================================
+// $EMBER BALANCE FUNCTIONS
+// ============================================
+async function updateEmberBalance(walletAddress) {
+    const balanceElement = document.getElementById('ember-balance-value');
+
+    if (!walletAddress) {
+        balanceElement.textContent = '---';
+        return;
+    }
+
+    try {
+        // TODO: In Sprint 4, fetch actual balance from backend
+        // For now, show placeholder "0"
+        balanceElement.textContent = '0';
+
+        console.log(`%c[ECONOMY] $EMBER balance loaded for ${walletAddress}`, 'color: #fc0; font-family: monospace;');
+
+        // Future implementation:
+        // const response = await fetch(`/api/economy/balance/${walletAddress}`);
+        // const data = await response.json();
+        // balanceElement.textContent = data.ember_balance.toLocaleString();
+
+    } catch (error) {
+        console.error('Error loading $EMBER balance:', error);
+        balanceElement.textContent = 'ERR';
+    }
+}
+
+// ============================================
+// VAULT FUNCTIONS
+// ============================================
+function filterVaultItems(filter) {
+    // Remove active class from all filter buttons
+    document.querySelectorAll('.vault-filter-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+
+    // Add active class to clicked button
+    const clickedBtn = document.querySelector(`[data-filter="${filter}"]`);
+    if (clickedBtn) {
+        clickedBtn.classList.add('active');
+    }
+
+    console.log(`%c[VAULT] Filtering items: ${filter}`, 'color: #fc0; font-family: monospace;');
+
+    // TODO: In Sprint 4, this will filter the vault items display
+    // For now, just log the filter selection
+}
+
+// ============================================
+// PLACEHOLDER FUNCTIONS (Sprint 2)
+// ============================================
+function openPushModal(tokenId) {
+    showInfoModal("COMING SOON", "⚡ PUSH feature will be available in Sprint 2!\n\nThis will allow you to accelerate missions using $EMBER.");
+}
+
+function openRecoverModal(tokenId) {
+    showInfoModal("COMING SOON", "💚 RECOVER feature will be available in Sprint 2!\n\nThis will allow you to restore energy using $EMBER.");
+}
+
+// ============================================
+// OPEN INVENTORY MODAL
+// ============================================
+async function openInventory(tokenId) {
+    if (!connectedWallet) {
+        showInfoModal("WALLET REQUIRED", "Please connect your wallet first!");
+        return;
+    }
+
+    try {
+        // Fetch player data to get hero info
+        const player = await fetchJSON(`/api/player/${encodeURIComponent(connectedWallet)}`);
+        const hero = (player.heroes || []).find(h => h.token_id === tokenId);
+
+        if (!hero) {
+            showInfoModal("ERROR", "❌ Hero not found!");
+            return;
+        }
+
+        const ds = hero.dynamic_state || {};
+
+        // Populate hero info
+        document.getElementById('inventory-emissary-img').src = hero.image_url || '/img/emissary-placeholder.png';
+        document.getElementById('inventory-emissary-name').textContent = hero.name || tokenId;
+        document.getElementById('inventory-emissary-id').textContent = tokenId;
+        document.getElementById('inventory-emissary-class').textContent = hero.race_class || 'Unknown';
+        document.getElementById('inventory-emissary-guild').textContent = hero.guild || 'None';
+        document.getElementById('inventory-emissary-aura').textContent = ds.aura_level || 0;
+        document.getElementById('inventory-emissary-xp').textContent = ds.xp_total || 0;
+
+        // TODO: Populate equipment slots when backend is ready
+        // For now, all slots show [Empty]
+        // In the future, fetch from /api/inventory/{tokenId} and populate:
+        // - Equipment slots (weapon, armor, helmet, accessory, amulet)
+        // - Rune slots (rune1, rune2)
+        // - Land ownership
+        // - Calculate total boosts
+
+        console.log(`%c[INVENTORY] Opening inventory for ${hero.name || tokenId}`, 'color: #fc0; font-family: monospace;');
+
+        // Show the modal
+        showModal('inventory-modal');
+
+    } catch (e) {
+        console.error(e);
+        showInfoModal("ERROR", "❌ Error loading inventory: " + e.message);
+    }
 }
 
 // Open Mission Selection Modal (from PROFILE)
@@ -3860,6 +4090,121 @@ document.addEventListener('visibilitychange', function() {
     }
 });
 </script>
+
+<!-- ============================================
+     INVENTORY MODAL
+     ============================================ -->
+<div id="inventory-modal" class="modal-overlay">
+    <div class="terminal-modal" style="max-width: 700px; width: 90%;">
+        <div class="terminal-modal-header">
+            <span id="inventory-modal-title">╬ EMISSARY INVENTORY</span>
+            <button class="terminal-modal-close" onclick="hideModal('inventory-modal')">×</button>
+        </div>
+        <div class="terminal-modal-body" style="max-height: 70vh; overflow-y: auto;">
+
+            <!-- EMISSARY INFO -->
+            <div id="inventory-emissary-info" style="display:flex; gap:15px; margin-bottom:20px; padding:15px; background:rgba(0,0,0,0.3); border:1px solid var(--border-primary);">
+                <img id="inventory-emissary-img" src="" style="width:80px; height:80px; border:2px solid var(--orange-light); border-radius:4px;" />
+                <div style="flex:1;">
+                    <div style="font-size:16px; font-weight:bold; color:var(--orange-light); margin-bottom:6px;">
+                        <span id="inventory-emissary-name"></span>
+                    </div>
+                    <div style="font-size:11px; color:#888; line-height:1.6;">
+                        <div>ID: <span id="inventory-emissary-id" style="color:#4af;"></span></div>
+                        <div>CLASS: <span id="inventory-emissary-class" style="color:#4af;"></span></div>
+                        <div>GUILD: <span id="inventory-emissary-guild" style="color:#4af;"></span></div>
+                        <div>AURA: <span id="inventory-emissary-aura" style="color:#fc0;"></span> | XP: <span id="inventory-emissary-xp" style="color:#fc0;"></span></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- EQUIPMENT SECTION -->
+            <div style="margin-bottom:20px;">
+                <div style="font-size:12px; font-weight:bold; color:var(--orange-light); margin-bottom:10px; padding-bottom:5px; border-bottom:1px solid var(--border-primary);">
+                    ╬ EQUIPMENT SLOTS
+                </div>
+                <div id="inventory-equipment-grid" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap:10px;">
+                    <!-- 5 slots: weapon, armor, helmet, accessory, amulet -->
+                    <div class="equipment-slot" data-slot="weapon">
+                        <div class="slot-label">⚔ WEAPON</div>
+                        <div class="slot-content empty">[Empty]</div>
+                        <div class="slot-bonus">+0 ATK</div>
+                    </div>
+                    <div class="equipment-slot" data-slot="armor">
+                        <div class="slot-label">🛡 ARMOR</div>
+                        <div class="slot-content empty">[Empty]</div>
+                        <div class="slot-bonus">+0 DEF</div>
+                    </div>
+                    <div class="equipment-slot" data-slot="helmet">
+                        <div class="slot-label">⛑ HELMET</div>
+                        <div class="slot-content empty">[Empty]</div>
+                        <div class="slot-bonus">+0 HP</div>
+                    </div>
+                    <div class="equipment-slot" data-slot="accessory">
+                        <div class="slot-label">💍 ACCESSORY</div>
+                        <div class="slot-content empty">[Empty]</div>
+                        <div class="slot-bonus">+0 SPD</div>
+                    </div>
+                    <div class="equipment-slot" data-slot="amulet">
+                        <div class="slot-label">✧ AMULET</div>
+                        <div class="slot-content empty">[Empty]</div>
+                        <div class="slot-bonus">+0 MAGIC</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- RUNES SECTION -->
+            <div style="margin-bottom:20px;">
+                <div style="font-size:12px; font-weight:bold; color:var(--orange-light); margin-bottom:10px; padding-bottom:5px; border-bottom:1px solid var(--border-primary);">
+                    ◈ RUNE SLOTS
+                </div>
+                <div style="display:grid; grid-template-columns: repeat(2, 1fr); gap:10px;">
+                    <div class="equipment-slot" data-slot="rune1">
+                        <div class="slot-label">◈ RUNE 1</div>
+                        <div class="slot-content empty">[Empty]</div>
+                        <div class="slot-bonus">--</div>
+                    </div>
+                    <div class="equipment-slot" data-slot="rune2">
+                        <div class="slot-label">◈ RUNE 2</div>
+                        <div class="slot-content empty">[Empty]</div>
+                        <div class="slot-bonus">--</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- LAND SECTION -->
+            <div style="margin-bottom:20px;">
+                <div style="font-size:12px; font-weight:bold; color:var(--orange-light); margin-bottom:10px; padding-bottom:5px; border-bottom:1px solid var(--border-primary);">
+                    ⌂ LAND OWNERSHIP
+                </div>
+                <div class="equipment-slot" style="width:100%;">
+                    <div class="slot-label">⌂ LAND</div>
+                    <div id="inventory-land-content" class="slot-content empty">[No Land]</div>
+                    <div id="inventory-land-bonus" class="slot-bonus">--</div>
+                </div>
+            </div>
+
+            <!-- TOTAL BOOSTS -->
+            <div style="padding:15px; background:rgba(255,204,0,0.1); border:2px solid var(--orange-light); border-radius:4px;">
+                <div style="font-size:12px; font-weight:bold; color:var(--orange-light); margin-bottom:8px;">
+                    ⚡ TOTAL EQUIPMENT BOOSTS
+                </div>
+                <div id="inventory-total-boosts" style="font-size:11px; color:#4af; line-height:1.8;">
+                    <div>ATK: <span id="total-atk">+0</span></div>
+                    <div>DEF: <span id="total-def">+0</span></div>
+                    <div>HP: <span id="total-hp">+0</span></div>
+                    <div>MAGIC: <span id="total-magic">+0</span></div>
+                    <div>SPD: <span id="total-spd">+0</span></div>
+                    <div>SUCCESS RATE: <span id="total-success">+0%</span></div>
+                </div>
+            </div>
+
+        </div>
+        <div class="modal-buttons" style="margin-top:15px;">
+            <button class="modal-btn" onclick="hideModal('inventory-modal')">CLOSE</button>
+        </div>
+    </div>
+</div>
 
 <!-- HACKNET UI INTERACTIONS -->
 <script src="/js/hacknet-ui.js"></script>

@@ -1448,6 +1448,50 @@ table th {
     color: var(--error-red);
 }
 
+/* ============================================
+   EQUIPMENT SLOT STYLES (Inventory Modal)
+   ============================================ */
+.equipment-slot {
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid var(--border-primary);
+    padding: 10px;
+    border-radius: 4px;
+    transition: all 0.2s;
+}
+
+.equipment-slot:hover {
+    border-color: var(--orange-light);
+    box-shadow: 0 0 10px rgba(255, 136, 0, 0.2);
+}
+
+.equipment-slot .slot-label {
+    font-size: 10px;
+    font-weight: bold;
+    color: #888;
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.equipment-slot .slot-content {
+    font-size: 11px;
+    color: var(--orange-light);
+    margin-bottom: 6px;
+    min-height: 20px;
+    font-weight: 600;
+}
+
+.equipment-slot .slot-content.empty {
+    color: #444;
+    font-style: italic;
+}
+
+.equipment-slot .slot-bonus {
+    font-size: 10px;
+    color: #4af;
+    font-weight: bold;
+}
+
 .modal-btn.danger:hover {
     background: rgba(255, 34, 68, 0.1);
     box-shadow: 0 4px 10px rgba(255, 34, 68, 0.3);
