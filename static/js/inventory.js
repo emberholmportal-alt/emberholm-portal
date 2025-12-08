@@ -191,6 +191,41 @@
         }
     };
 
+    function calculateTotalBoosts(emissary, availableItems) {
+        const totals = {
+            ember_boost: 0,
+            xp_boost: 0,
+            energy_reduction: 0,
+            death_protection: 0,
+            speed_boost: 0
+        };
+
+        // Items equipados
+        ['weapon', 'armor', 'helmet', 'accessory', 'amulet'].forEach(slot => {
+            const itemId = emissary[`${slot}_id`];
+            const item = availableItems.find(i => i.id === itemId);
+            if (item && item.stats) {
+                Object.keys(totals).forEach(key => {
+                    if (item.stats[key]) totals[key] += item.stats[key];
+                });
+            }
+        });
+
+        // Runas equipadas
+        (emissary.rune_ids || []).forEach(runeId => {
+            const rune = availableItems.find(i => i.id === runeId);
+            if (rune && rune.stats) {
+                Object.keys(totals).forEach(key => {
+                    if (rune.stats[key]) totals[key] += rune.stats[key];
+                });
+            }
+        });
+
+        // TODO: Agregar boosts de Land y Rank
+
+        return totals;
+    }
+
     function buildInventoryContent(emissary, availableItems) {
         const slots = [
             { key: 'weapon', label: 'WEAPON', type: 'weapon', icon: '⚔️' },
@@ -298,30 +333,131 @@
             }
         }
 
+        const ds = emissary.dynamic_state || {};
+        const state = ds.state || "READY";
+        const totalBoosts = calculateTotalBoosts(emissary, availableItems);
+
+        // Determine state badge
+        let stateBadge = '✓ READY';
+        if (state === 'ON_MISSION') stateBadge = '⏳ IN PROGRESS';
+        else if (state === 'FALLEN') stateBadge = '💀 FALLEN';
+
         return `
-            <div class="subheading" style="margin-bottom:15px;">
-                EMISSARY INVENTORY - ${emissary.name || emissary.token_id}
+            <!-- Emissary Header -->
+            <div style="display:grid; grid-template-columns: 120px 1fr; gap:20px; margin-bottom:20px; padding:15px; border:1px solid var(--border-primary); background:rgba(0,0,0,0.3);">
+                <div style="text-align:center;">
+                    ${emissary.image_url ? `<img src="${emissary.image_url}" style="max-width:100px; max-height:100px; image-rendering:pixelated;" alt="${emissary.name}"/>` : '<div style="width:100px; height:100px; background:#222; display:flex; align-items:center; justify-content:center; color:#666;">NO IMG</div>'}
+                </div>
+                <div>
+                    <div style="font-size:16px; font-weight:600; color:var(--primary-green); margin-bottom:5px;">
+                        ${emissary.name || emissary.token_id}
+                    </div>
+                    <div style="font-size:11px; color:#888; margin-bottom:10px;">
+                        ID: #${emissary.token_id}  <span style="padding:2px 8px; background:rgba(68,170,255,0.2); color:var(--primary-green); border:1px solid var(--primary-green);">${stateBadge}</span>
+                    </div>
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:10px;">
+                        <div style="border:1px solid var(--border-dim); padding:8px; font-size:11px;">
+                            <strong>RACE:</strong> ${emissary.race || 'Unknown'}<br/>
+                            <strong>GUILD:</strong> ${emissary.guild || ds.current_guild || 'None'}
+                        </div>
+                        <div style="border:1px solid var(--border-dim); padding:8px; font-size:11px;">
+                            <strong>CLASS:</strong> ${emissary.class || 'Unknown'}<br/>
+                            <strong>RANK:</strong> ${emissary.rank || 'Tier 1'}
+                        </div>
+                    </div>
+                </div>
             </div>
 
-            <div class="mono-small-note" style="margin-bottom:20px;">
-                Equip items and runes to boost your emissary's performance in missions.
+            <!-- Stats Grid -->
+            <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:10px; margin-bottom:20px;">
+                <div style="border:1px solid var(--border-primary); padding:10px; text-align:center;">
+                    <div style="font-size:10px; color:#888;">XP</div>
+                    <div style="font-size:16px; color:var(--primary-green); font-weight:600;">${(ds.xp_total || 0).toLocaleString()}</div>
+                </div>
+                <div style="border:1px solid var(--border-primary); padding:10px; text-align:center;">
+                    <div style="font-size:10px; color:#888;">AURA</div>
+                    <div style="font-size:16px; color:var(--gold); font-weight:600;">${ds.aura_level || 0}</div>
+                </div>
+                <div style="border:1px solid var(--border-primary); padding:10px; text-align:center;">
+                    <div style="font-size:10px; color:#888;">ENERGY</div>
+                    <div style="font-size:16px; color:#22c55e; font-weight:600;">${ds.energy_current || 0}/${ds.energy_max || 100}</div>
+                </div>
+                <div style="border:1px solid var(--border-primary); padding:10px; text-align:center;">
+                    <div style="font-size:10px; color:#888;">DEATHS</div>
+                    <div style="font-size:16px; color:#ef4444; font-weight:600;">${ds.death_count || 0}</div>
+                </div>
             </div>
 
+            <div class="mono-small-note" style="margin-bottom:20px; padding:10px; background:rgba(255,149,0,0.1); border-left:3px solid #ff9500;">
+                📦 Equip items and runes to boost your emissary's performance in missions.
+            </div>
+
+            <!-- Equipment Slots -->
             <div style="margin-bottom:20px;">
-                <strong>Equipment Slots (5)</strong>
-                <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:10px; margin-top:10px;">
+                <div class="subheading" style="margin-bottom:10px;">// EQUIPMENT</div>
+                <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:10px;">
                     ${slotsHtml}
                 </div>
             </div>
 
+            <!-- Rune Slots -->
             <div style="margin-bottom:20px;">
-                <strong>Rune Slots (2)</strong>
-                <div style="display:grid; grid-template-columns:repeat(2, 1fr); gap:10px; margin-top:10px;">
+                <div class="subheading" style="margin-bottom:10px;">// RUNES [2 SLOTS]</div>
+                <div style="display:grid; grid-template-columns:repeat(2, 1fr); gap:10px;">
                     ${runesHtml}
                 </div>
             </div>
 
-            <div class="modal-buttons" style="margin-top:30px;">
+            <!-- Bound Land -->
+            <div style="margin-bottom:20px;">
+                <div class="subheading" style="margin-bottom:10px;">// BOUND LAND</div>
+                ${emissary.land_id ? `
+                    <div style="border:1px solid var(--border-primary); padding:15px; background:rgba(0,0,0,0.2);">
+                        <div style="font-size:14px; font-weight:600; color:var(--primary-green);">⌂ Land #${emissary.land_id}</div>
+                        <div style="font-size:11px; color:#888; margin:5px 0;">Bound • +5% EMBER  +5% XP</div>
+                        <div style="margin-top:10px;">
+                            <button class="terminal-btn small-btn" style="margin-right:5px;">[CHANGE]</button>
+                            <button class="terminal-btn small-btn">[UNBIND]</button>
+                        </div>
+                    </div>
+                ` : `
+                    <div style="border:1px dashed var(--border-dim); padding:15px; text-align:center; color:#666;">
+                        <div>No land bound</div>
+                        <button class="terminal-btn small-btn" style="margin-top:10px;">[BIND LAND]</button>
+                    </div>
+                `}
+            </div>
+
+            <!-- Total Boosts -->
+            <div style="margin-bottom:20px;">
+                <div class="subheading" style="margin-bottom:10px;">// TOTAL BOOSTS</div>
+                <div style="display:grid; grid-template-columns:repeat(5, 1fr); gap:10px;">
+                    <div style="border:1px solid var(--border-primary); padding:10px; text-align:center;">
+                        <div style="font-size:10px; color:#888;">EMBER</div>
+                        <div style="font-size:16px; color:${totalBoosts.ember_boost > 0 ? '#4ade80' : '#888'}; font-weight:600;">+${totalBoosts.ember_boost}%</div>
+                    </div>
+                    <div style="border:1px solid var(--border-primary); padding:10px; text-align:center;">
+                        <div style="font-size:10px; color:#888;">XP</div>
+                        <div style="font-size:16px; color:${totalBoosts.xp_boost > 0 ? '#4ade80' : '#888'}; font-weight:600;">+${totalBoosts.xp_boost}%</div>
+                    </div>
+                    <div style="border:1px solid var(--border-primary); padding:10px; text-align:center;">
+                        <div style="font-size:10px; color:#888;">ENERGY</div>
+                        <div style="font-size:16px; color:${totalBoosts.energy_reduction > 0 ? '#3b82f6' : '#888'}; font-weight:600;">-${totalBoosts.energy_reduction}%</div>
+                    </div>
+                    <div style="border:1px solid var(--border-primary); padding:10px; text-align:center;">
+                        <div style="font-size:10px; color:#888;">DEATH</div>
+                        <div style="font-size:16px; color:${totalBoosts.death_protection > 0 ? '#3b82f6' : '#888'}; font-weight:600;">-${totalBoosts.death_protection}%</div>
+                    </div>
+                    <div style="border:1px solid var(--border-primary); padding:10px; text-align:center;">
+                        <div style="font-size:10px; color:#888;">SPEED</div>
+                        <div style="font-size:16px; color:${totalBoosts.speed_boost > 0 ? '#4ade80' : '#888'}; font-weight:600;">+${totalBoosts.speed_boost}%</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="modal-buttons" style="margin-top:30px; display:flex; gap:10px; justify-content:space-between;">
+                <button class="modal-btn" style="background:#ef4444; border-color:#ef4444;" onclick="unequipAllItems('${emissary.token_id}')">[UNEQUIP ALL]</button>
                 <button class="modal-btn" onclick="closeInventoryModal()">[CLOSE]</button>
             </div>
         `;
@@ -464,6 +600,34 @@
             alert('Failed to unequip rune');
         }
     }
+
+    window.unequipAllItems = async function(emissaryId) {
+        if (!confirm('Are you sure you want to unequip all items and runes from this emissary?')) {
+            return;
+        }
+
+        try {
+            const response = await fetch('/api/equipment/unequip-all', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    wallet: currentWallet,
+                    emissary_id: emissaryId
+                })
+            });
+
+            const data = await response.json();
+            if (data.error) {
+                alert('Error: ' + data.error);
+            } else {
+                // Reload the modal
+                window.showInventoryModal(emissaryId);
+            }
+        } catch (error) {
+            console.error('Error unequipping all items:', error);
+            alert('Failed to unequip all items');
+        }
+    };
 
     window.closeInventoryModal = function() {
         const modal = document.getElementById('inventory-modal');
@@ -754,6 +918,48 @@
         // Reload balance
         loadBalance(currentWallet);
     }
+
+    // ===============================================================
+    // PUSH MODAL (Mission Acceleration)
+    // ===============================================================
+
+    window.showPushModal = function(emissaryId) {
+        console.log('Opening PUSH modal for emissary:', emissaryId);
+
+        const modal = document.getElementById('push-modal');
+        if (!modal) return;
+
+        // TODO: Implementar contenido completo en FASE 4
+        modal.classList.add('active');
+    };
+
+    window.closePushModal = function() {
+        const modal = document.getElementById('push-modal');
+        if (modal) {
+            modal.classList.remove('active');
+        }
+    };
+
+    // ===============================================================
+    // RECOVER MODAL (Energy Restoration)
+    // ===============================================================
+
+    window.showRecoverModal = function(emissaryId) {
+        console.log('Opening RECOVER modal for emissary:', emissaryId);
+
+        const modal = document.getElementById('recover-modal');
+        if (!modal) return;
+
+        // TODO: Implementar contenido completo en FASE 5
+        modal.classList.add('active');
+    };
+
+    window.closeRecoverModal = function() {
+        const modal = document.getElementById('recover-modal');
+        if (modal) {
+            modal.classList.remove('active');
+        }
+    };
 
     // ===============================================================
     // INITIALIZATION

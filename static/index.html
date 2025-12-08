@@ -2673,47 +2673,70 @@ async function loadPlayerAndRender(){
             let actionButtons = "";
             if (state === "READY") {
                 actionButtons = `
-                    <button class="terminal-btn small-btn btn-inventory" onclick="showInventoryModal('${h.token_id}')" title="Manage Equipment">
-                        [INVENTORY]
-                    </button>
-                    <button class="terminal-btn small-btn btn-gambit" onclick="showGambitModal('${h.token_id}')" title="Roll D20 for mission bonuses">
-                        [D20 GAMBIT]
-                    </button>
-                    <button class="terminal-btn small-btn" onclick="openMissionListModal('${h.token_id}')">
-                        [SEND]
-                    </button>`;
+                    <div class="actions-cell">
+                        <button class="action-btn inventory" onclick="showInventoryModal('${h.token_id}')" title="Manage Equipment">
+                            [INVENTORY]
+                        </button>
+                        <button class="action-btn ember-roll" onclick="showGambitModal('${h.token_id}')" title="Roll D20 for mission bonuses">
+                            [EMBER ROLL]
+                        </button>
+                        <button class="action-btn send" onclick="openMissionListModal('${h.token_id}')">
+                            [SEND]
+                        </button>
+                        <button class="action-btn recover" onclick="showRecoverModal('${h.token_id}')">
+                            [RECOVER]
+                        </button>
+                    </div>`;
             } else if (state === "ON_MISSION") {
                 if (missionComplete) {
                     actionButtons = `
-                        <button class="terminal-btn small-btn complete-btn" data-hero="${h.token_id}" style="color:#44ff44;">
-                            [CLAIM REWARDS]
-                        </button>`;
+                        <div class="actions-cell">
+                            <button class="action-btn inventory" onclick="showInventoryModal('${h.token_id}')">
+                                [INVENTORY]
+                            </button>
+                            <button class="action-btn ember-roll" onclick="showGambitModal('${h.token_id}')">
+                                [EMBER ROLL]
+                            </button>
+                            <button class="action-btn claim complete-btn" data-hero="${h.token_id}">
+                                [CLAIM]
+                            </button>
+                            <button class="action-btn recover" onclick="showRecoverModal('${h.token_id}')">
+                                [RECOVER]
+                            </button>
+                        </div>`;
                 } else {
-                    // 🔥 Calculate progress percentage
-                    let progressHtml = "";
-                    if (missionDuration > 0) {
-                        const startTime = new Date(missionStartTime.replace("Z", "") + "Z");
-                        const now = new Date();
-                        const elapsed = (now - startTime) / 1000 / 3600; // hours
-                        const percentComplete = Math.min(100, Math.floor((elapsed / missionDuration) * 100));
-
-                        progressHtml = `
-                            <div style="font-size:0.7rem; color:#ffaa00; margin-top:4px; line-height:1.2;">
-                                <div>⏳ ${percentComplete}%</div>
-                            </div>`;
-                    }
-
                     actionButtons = `
-                        <button class="terminal-btn small-btn" disabled style="opacity:0.5; cursor:not-allowed;">
-                            [IN PROGRESS]
-                        </button>
-                        ${progressHtml}`;
+                        <div class="actions-cell">
+                            <button class="action-btn inventory" onclick="showInventoryModal('${h.token_id}')">
+                                [INVENTORY]
+                            </button>
+                            <button class="action-btn push" onclick="showPushModal('${h.token_id}')">
+                                [PUSH]
+                            </button>
+                            <button class="action-btn disabled">
+                                [--]
+                            </button>
+                            <button class="action-btn recover" onclick="showRecoverModal('${h.token_id}')">
+                                [RECOVER]
+                            </button>
+                        </div>`;
                 }
             } else if (state === "FALLEN") {
                 actionButtons = `
-                    <button class="terminal-btn small-btn reinvoke-btn" data-hero="${h.token_id}" style="color:#ff4444;">
-                        [REINVOKE]
-                    </button>`;
+                    <div class="actions-cell">
+                        <button class="action-btn inventory" onclick="showInventoryModal('${h.token_id}')">
+                            [INVENTORY]
+                        </button>
+                        <button class="action-btn disabled">
+                            [--]
+                        </button>
+                        <button class="action-btn revive reinvoke-btn" data-hero="${h.token_id}">
+                            [REVIVE]
+                        </button>
+                        <button class="action-btn disabled">
+                            [--]
+                        </button>
+                    </div>`;
             }
 
             tbodyRows += `
@@ -2745,11 +2768,6 @@ async function loadPlayerAndRender(){
                 <td>${h.guild || ds.current_guild || ""}</td>
                 <td style="color:${stateColor};">${stateText}${timeRemainingHtml}</td>
                 <td>${actionButtons}</td>
-                <td>
-                    <button class="terminal-btn small-btn recover-btn" data-hero="${h.token_id}">
-                        [RECOVER]
-                    </button>
-                </td>
             </tr>`;
         });
 
@@ -2764,8 +2782,7 @@ async function loadPlayerAndRender(){
                         <th>ENERGY</th>
                         <th>GUILD</th>
                         <th>STATE</th>
-                        <th>SEND</th>
-                        <th>RECOVER</th>
+                        <th>ACTIONS</th>
                     </tr>
                 </thead>
                 <tbody>
