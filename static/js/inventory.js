@@ -750,13 +750,189 @@
         document.getElementById('vault-legendary').textContent = legendary;
     }
 
+    // Show emissary selection modal when equipping an item
+    window.showEquipModal = function(itemId) {
+        if (!currentWallet) {
+            alert('Please connect your wallet first.');
+            return;
+        }
+
+        const modal = document.getElementById('select-emissary-modal');
+        if (!modal) return;
+
+        // Find the item
+        const item = vaultItems.find(i => i.id === itemId);
+        if (!item) {
+            alert('Item not found.');
+            return;
+        }
+
+        // Get READY emissaries from current roster
+        const readyEmissaries = currentEmissaries.filter(e => e.state === 'READY');
+
+        if (readyEmissaries.length === 0) {
+            alert('No READY emissaries available to equip items.\n\nEmissaries must be in READY state to equip items.');
+            return;
+        }
+
+        // Build modal content
+        let content = `
+            <div class="subheading">SELECT EMISSARY TO EQUIP</div>
+
+            <!-- Item Info Card -->
+            <div style="border: 1px solid ${getRarityColor(item.rarity)}; padding: 12px; margin: 15px 0; background: rgba(0,0,0,0.3);">
+                <div style="display: flex; gap: 12px; align-items: center;">
+                    <img src="${item.image_url || '/img/items/placeholder.png'}"
+                         style="width: 48px; height: 48px; border: 1px solid var(--border-primary);"
+                         onerror="this.src='/img/items/placeholder.png'"/>
+                    <div>
+                        <div style="font-weight: bold; color: ${getRarityColor(item.rarity)};">
+                            ${item.name}
+                        </div>
+                        <div style="font-size: 11px; color: #888; margin-top: 2px;">
+                            ${item.type.toUpperCase()} · ${item.rarity.toUpperCase()}
+                        </div>
+                        <div style="font-size: 11px; margin-top: 4px;">
+                            ${formatStats(item.stats)}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="subheading" style="margin-top: 20px;">AVAILABLE EMISSARIES (${readyEmissaries.length})</div>
+            <p style="font-size: 11px; color: #888; margin: 8px 0 15px 0;">
+                Select an emissary to equip this ${item.type}
+            </p>
+
+            <div style="display: grid; gap: 10px; margin: 15px 0; max-height: 400px; overflow-y: auto;">
+        `;
+
+        // List each READY emissary
+        readyEmissaries.forEach(emissary => {
+            const slotKey = item.type === 'rune' ? 'rune_ids' : `${item.type}_id`;
+            const isSlotFull = item.type === 'rune'
+                ? (emissary.rune_ids && emissary.rune_ids.length >= 2)
+                : emissary[slotKey];
+
+            content += `
+                <div style="border: 1px solid var(--border-primary); padding: 12px; background: rgba(0,0,0,0.2); cursor: pointer; transition: all 0.2s;"
+                     onmouseover="this.style.borderColor='var(--text-primary)'"
+                     onmouseout="this.style.borderColor='var(--border-primary)'"
+                     onclick="selectEmissaryForEquip(${itemId}, '${emissary.token_id}')">
+                    <div style="display: grid; grid-template-columns: 60px 1fr auto; gap: 12px; align-items: center;">
+                        <img src="${emissary.image_url || '/img/emissary_placeholder.png'}"
+                             style="width: 60px; height: 60px; border: 1px solid var(--border-primary);"
+                             onerror="this.src='/img/emissary_placeholder.png'"/>
+                        <div>
+                            <div style="font-weight: bold; color: var(--text-primary);">
+                                ${emissary.name || `#${emissary.token_id}`}
+                            </div>
+                            <div style="font-size: 11px; color: #888; margin-top: 3px;">
+                                ${emissary.race} ${emissary.guild ? `· ${emissary.guild}` : ''}
+                            </div>
+                            <div style="font-size: 11px; margin-top: 3px;">
+                                ${emissary.class_type || 'Unknown Class'} · Rank ${emissary.rank || '?'}
+                            </div>
+                        </div>
+                        <div style="text-align: right;">
+                            ${isSlotFull ? `
+                                <div style="font-size: 11px; color: #f59e0b;">
+                                    ⚠ SLOT FULL
+                                </div>
+                            ` : `
+                                <div style="font-size: 13px; color: var(--primary-green);">
+                                    ✓ AVAILABLE
+                                </div>
+                            `}
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+
+        content += `
+            </div>
+
+            <div class="modal-buttons" style="margin-top: 20px;">
+                <button class="modal-btn" onclick="closeSelectEmissaryModal()">
+                    [CANCEL]
+                </button>
+            </div>
+        `;
+
+        const modalBody = modal.querySelector('.terminal-modal-body');
+        if (modalBody) {
+            modalBody.innerHTML = content;
+        }
+
+        modal.classList.add('active');
+    };
+
+    window.closeSelectEmissaryModal = function() {
+        const modal = document.getElementById('select-emissary-modal');
+        if (modal) {
+            modal.classList.remove('active');
+        }
+    };
+
+    window.selectEmissaryForEquip = async function(itemId, emissaryId) {
+        if (!currentWallet) {
+            alert('Please connect your wallet first.');
+            return;
+        }
+
+        try {
+            const item = vaultItems.find(i => i.id === itemId);
+            if (!item) {
+                alert('Item not found.');
+                return;
+            }
+
+            const endpoint = item.type === 'rune' ? '/api/equipment/equip-rune' : '/api/equipment/equip';
+
+            const response = await fetch(endpoint, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    wallet: currentWallet,
+                    emissary_id: emissaryId,
+                    item_id: itemId
+                })
+            });
+
+            const data = await response.json();
+
+            if (response.ok && data.success) {
+                alert(`✓ ${item.name} equipped successfully!`);
+
+                // Close modal
+                closeSelectEmissaryModal();
+
+                // Reload vault
+                if (window.loadVault) {
+                    await loadVault(currentWallet);
+                }
+
+                // Refresh profile data
+                if (window.loadProfileData) {
+                    await window.loadProfileData();
+                }
+            } else {
+                alert(`✗ Error: ${data.error || 'Failed to equip item'}`);
+            }
+        } catch (error) {
+            console.error('Error equipping item:', error);
+            alert('✗ Network error. Please try again.');
+        }
+    };
+
     // ===============================================================
     // GAMBIT D20
     // ===============================================================
 
-    window.showGambitModal = async function() {
+    window.showGambitModal = async function(emissaryId) {
         if (!FEATURES.EMBER_GAMBIT_ENABLED) {
-            alert('EMBER GAMBIT is not available yet.');
+            alert('EMBER ROLL is not available yet.');
             return;
         }
 
@@ -770,7 +946,11 @@
             const response = await fetch(`/api/gambit/status?wallet=${currentWallet}`);
             const data = await response.json();
 
-            const rollsRemaining = data.rolls_remaining;
+            const rollsToday = data.rolls_today || 0;
+            const maxRolls = data.rolls_max || 5;
+            const rollsRemaining = maxRolls - rollsToday;
+            const isFreeRoll = rollsToday === 0;
+            const costPerRoll = isFreeRoll ? 0 : 75;
 
             const modal = document.getElementById('gambit-modal');
             if (!modal) {
@@ -779,36 +959,84 @@
             }
 
             const content = `
-                <div class="subheading">EMBER GAMBIT // ROLL THE D20</div>
+                <div class="subheading" style="margin-bottom:15px;">EMBER ROLL // TEST YOUR FATE</div>
 
-                <div class="dice-display" id="dice-display">
-                    [?]
-                </div>
-
-                <p>Cost per roll: 100 $EMBER</p>
-                <p>Rolls remaining today: <span id="gambit-rolls-remaining">${rollsRemaining}</span>/5</p>
-
-                <div class="mono-block" style="margin-top:20px;">
-                    <div class="subheading">POSSIBLE REWARDS</div>
-                    <div style="font-size:12px; line-height:1.8;">
-                        [1]     → CRITICAL FAIL! Lose 100 $EMBER<br/>
-                        [2-5]   → Nothing (lose your bet)<br/>
-                        [6-8]   → +50 $EMBER<br/>
-                        [9-11]  → +100 $EMBER (break even)<br/>
-                        [12-14] → +200 $EMBER<br/>
-                        [15-17] → +350 $EMBER<br/>
-                        [18-19] → +500 $EMBER + Common Item<br/>
-                        [20]    → NATURAL 20! +1000 $EMBER + Rare/Epic Item
+                <div style="text-align:center; margin:30px 0;">
+                    <div class="dice-display" id="dice-display" style="font-size:80px; font-family:'Alagard',serif; color:var(--gold); text-shadow: 0 0 20px var(--gold);">
+                        ╔═╗<br/>
+                        ║?║<br/>
+                        ╚═╝<br/>
+                        D20
                     </div>
                 </div>
 
-                <p style="margin-top:20px;">Your Balance: [E] ${currentBalance.ember_balance.toLocaleString()} $EMBER</p>
+                <div style="text-align:center; margin:20px 0; padding:15px; border:1px solid var(--border-primary); background:rgba(0,0,0,0.3);">
+                    <div style="font-size:14px;">
+                        <strong>Rolls today:</strong> ${rollsToday}/${maxRolls} |
+                        <strong>Next roll:</strong> ${isFreeRoll ? '<span style="color:#4ade80;">FREE!</span>' : `<span style="color:var(--gold);">${costPerRoll} $EMBER</span>`}
+                    </div>
+                </div>
+
+                <div class="mono-block" style="margin:20px 0; padding:15px; border-left:3px solid #a855f7; background:rgba(168,85,247,0.05);">
+                    <div class="subheading" style="margin-bottom:10px;">POSSIBLE OUTCOMES</div>
+                    <div style="font-size:11px; line-height:2; font-family:monospace;">
+                        <div style="display:grid; grid-template-columns:80px 140px 1fr; gap:10px;">
+                            <div style="color:#ef4444;">[1]</div>
+                            <div style="color:#ef4444;">CRITICAL FAIL</div>
+                            <div style="color:#888;">Debuff: -50% EMBER next mission</div>
+
+                            <div style="color:#f87171;">[2-3]</div>
+                            <div style="color:#f87171;">FUMBLE</div>
+                            <div style="color:#888;">Debuff: -25% EMBER next mission</div>
+
+                            <div style="color:#666;">[4-5]</div>
+                            <div style="color:#666;">MISS</div>
+                            <div style="color:#888;">Nothing happens</div>
+
+                            <div style="color:#888;">[6-8]</div>
+                            <div style="color:#888;">GRAZE</div>
+                            <div style="color:#4ade80;">+25 $EMBER</div>
+
+                            <div style="color:#888;">[9-11]</div>
+                            <div style="color:#888;">HIT</div>
+                            <div style="color:#4ade80;">+75 $EMBER</div>
+
+                            <div style="color:var(--primary-green);">[12-14]</div>
+                            <div style="color:var(--primary-green);">SOLID HIT</div>
+                            <div style="color:#4ade80;">+150 $EMBER</div>
+
+                            <div style="color:var(--primary-green);">[15-16]</div>
+                            <div style="color:var(--primary-green);">GREAT HIT</div>
+                            <div style="color:#4ade80;">+300 $EMBER</div>
+
+                            <div style="color:#3b82f6;">[17-18]</div>
+                            <div style="color:#3b82f6;">CRITICAL RANGE</div>
+                            <div style="color:#4ade80;">+500 $EMBER + Buff: +10% XP</div>
+
+                            <div style="color:#a855f7;">[19]</div>
+                            <div style="color:#a855f7;">SUPERIOR</div>
+                            <div style="color:#4ade80;">+750 $EMBER + Common Item</div>
+
+                            <div style="color:var(--gold); font-weight:bold;">[20]</div>
+                            <div style="color:var(--gold); font-weight:bold;">NATURAL 20!</div>
+                            <div style="color:#4ade80;">+1,500 $EMBER + Rare/Epic Item<br/><span style="color:#a855f7;">+ Buff: +25% EMBER next mission</span></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="text-align:center; margin:20px 0; font-size:14px;">
+                    Your Balance: <span style="color:var(--gold); font-weight:600;">[E] ${currentBalance.ember_balance.toLocaleString()} $EMBER</span>
+                </div>
 
                 <div class="modal-buttons">
                     ${rollsRemaining > 0 ? `
-                        <button class="modal-btn btn-gambit" onclick="rollGambitDice()">[ROLL THE D20 - 100 $EMBER]</button>
+                        <button class="modal-btn btn-gambit" onclick="rollGambitDice('${emissaryId}')" style="background:#a855f7; border-color:#a855f7;">
+                            [ROLL THE D20${isFreeRoll ? ' - FREE' : ' - ' + costPerRoll + ' $EMBER'}]
+                        </button>
                     ` : `
-                        <button class="modal-btn btn-disabled" disabled>[NO ROLLS REMAINING]</button>
+                        <button class="modal-btn" disabled style="opacity:0.3; cursor:not-allowed;">
+                            [NO ROLLS REMAINING TODAY]
+                        </button>
                     `}
                     <button class="modal-btn" onclick="closeGambitModal()">[CANCEL]</button>
                 </div>
@@ -822,6 +1050,7 @@
             modal.classList.add('active');
         } catch (error) {
             console.error('Error showing gambit modal:', error);
+            alert('Failed to load EMBER ROLL status');
         }
     };
 
@@ -832,28 +1061,39 @@
         }
     };
 
-    window.rollGambitDice = async function() {
+    window.rollGambitDice = async function(emissaryId) {
         const diceDisplay = document.getElementById('dice-display');
         if (!diceDisplay) return;
 
-        // Animate dice
+        // Disable button during roll
+        const rollBtn = document.querySelector('.btn-gambit');
+        if (rollBtn) {
+            rollBtn.disabled = true;
+            rollBtn.textContent = '[ROLLING...]';
+        }
+
+        // Animate dice - faster animation
         let counter = 0;
         const interval = setInterval(() => {
-            diceDisplay.textContent = `[${Math.floor(Math.random() * 20) + 1}]`;
+            const randomNum = Math.floor(Math.random() * 20) + 1;
+            diceDisplay.innerHTML = `╔═╗<br/>║${randomNum}║<br/>╚═╝<br/>D20`;
             counter++;
-            if (counter > 20) {
+            if (counter > 25) {
                 clearInterval(interval);
-                performGambitRoll();
+                performGambitRoll(emissaryId);
             }
-        }, 100);
+        }, 80);
     };
 
-    async function performGambitRoll() {
+    async function performGambitRoll(emissaryId) {
         try {
             const response = await fetch('/api/gambit/roll', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ wallet: currentWallet })
+                body: JSON.stringify({
+                    wallet: currentWallet,
+                    emissary_id: emissaryId
+                })
             });
 
             const data = await response.json();
@@ -864,7 +1104,7 @@
                 return;
             }
 
-            showGambitResult(data);
+            showGambitResult(data, emissaryId);
         } catch (error) {
             console.error('Error rolling dice:', error);
             alert('Error rolling dice. Please try again.');
@@ -872,42 +1112,115 @@
         }
     }
 
-    function showGambitResult(result) {
+    function showGambitResult(result, emissaryId) {
         const modal = document.getElementById('gambit-modal');
         if (!modal) return;
 
-        let message = '';
+        const roll = result.roll || result.result;
         let title = '';
+        let diceStyle = '';
+        let outcomeText = '';
+        let rewardsHtml = '';
 
-        if (result.roll === 1) {
+        // Determine outcome based on roll
+        if (roll === 1) {
             title = '✗ ✗ ✗ CRITICAL FAIL! ✗ ✗ ✗';
-            message = `You rolled a [1] and lost 100 $EMBER!<br/>Better luck next time.`;
-        } else if (result.roll === 20) {
+            diceStyle = 'color:#ef4444; animation: shake 0.5s;';
+            outcomeText = 'CRITICAL FAIL';
+            rewardsHtml = `<div style="color:#ef4444; font-size:16px;">⚠ Debuff Applied: -50% EMBER next mission</div>`;
+        } else if (roll >= 2 && roll <= 3) {
+            title = '✗ FUMBLE ✗';
+            diceStyle = 'color:#f87171;';
+            outcomeText = 'FUMBLE';
+            rewardsHtml = `<div style="color:#f87171; font-size:16px;">⚠ Debuff Applied: -25% EMBER next mission</div>`;
+        } else if (roll >= 4 && roll <= 5) {
+            title = 'MISS';
+            diceStyle = 'color:#666;';
+            outcomeText = 'MISS';
+            rewardsHtml = `<div style="color:#888; font-size:14px;">Nothing happens. Better luck next time!</div>`;
+        } else if (roll >= 6 && roll <= 8) {
+            title = 'GRAZE!';
+            diceStyle = 'color:#888;';
+            outcomeText = 'GRAZE';
+            rewardsHtml = `<div style="color:#4ade80; font-size:18px;">+25 $EMBER</div>`;
+        } else if (roll >= 9 && roll <= 11) {
+            title = 'HIT!';
+            diceStyle = 'color:#888;';
+            outcomeText = 'HIT';
+            rewardsHtml = `<div style="color:#4ade80; font-size:18px;">+75 $EMBER</div>`;
+        } else if (roll >= 12 && roll <= 14) {
+            title = '✓ SOLID HIT!';
+            diceStyle = 'color:var(--primary-green);';
+            outcomeText = 'SOLID HIT';
+            rewardsHtml = `<div style="color:#4ade80; font-size:18px;">+150 $EMBER</div>`;
+        } else if (roll >= 15 && roll <= 16) {
+            title = '✓✓ GREAT HIT!';
+            diceStyle = 'color:var(--primary-green);';
+            outcomeText = 'GREAT HIT';
+            rewardsHtml = `<div style="color:#4ade80; font-size:18px;">+300 $EMBER</div>`;
+        } else if (roll >= 17 && roll <= 18) {
+            title = '⚡ CRITICAL RANGE!';
+            diceStyle = 'color:#3b82f6; animation: pulse 1s infinite;';
+            outcomeText = 'CRITICAL RANGE';
+            rewardsHtml = `
+                <div style="color:#4ade80; font-size:18px;">+500 $EMBER</div>
+                <div style="color:#3b82f6; font-size:14px; margin-top:10px;">✨ Buff Applied: +10% XP next mission</div>
+            `;
+        } else if (roll === 19) {
+            title = '⭐ SUPERIOR!';
+            diceStyle = 'color:#a855f7; animation: pulse 1s infinite;';
+            outcomeText = 'SUPERIOR';
+            rewardsHtml = `
+                <div style="color:#4ade80; font-size:18px;">+750 $EMBER</div>
+                <div style="color:#9ca3af; font-size:14px; margin-top:10px;">📦 Item Granted: ${result.item_name || 'Common Item'}</div>
+            `;
+        } else if (roll === 20) {
             title = '★ ★ ★ NATURAL 20! ★ ★ ★';
-            message = `You rolled a [20]!<br/><br/>[E] +1,000 $EMBER<br/>╬ ${result.item || 'Rare Item'}`;
-        } else if (result.ember_change > 0) {
-            title = `✓ YOU WON ${result.ember_change} $EMBER!`;
-            message = `You rolled a [${result.roll}]`;
-        } else {
-            title = 'Nothing...';
-            message = `You rolled a [${result.roll}]<br/>Better luck next time.`;
+            diceStyle = 'color:var(--gold); animation: pulse 1s infinite; text-shadow: 0 0 30px var(--gold);';
+            outcomeText = 'NATURAL 20!';
+            rewardsHtml = `
+                <div style="color:#4ade80; font-size:20px; font-weight:bold;">+1,500 $EMBER</div>
+                <div style="color:#a855f7; font-size:14px; margin-top:10px;">📦 Item Granted: ${result.item_name || 'Rare/Epic Item'}</div>
+                <div style="color:#a855f7; font-size:14px; margin-top:10px;">✨ Buff Applied: +25% EMBER next mission</div>
+            `;
         }
 
         const content = `
             <div style="text-align:center;">
-                <div style="font-size:18px; color:var(--gold); margin-bottom:20px;">${title}</div>
+                <div style="font-size:20px; color:var(--gold); margin-bottom:20px; font-weight:600;">
+                    ${title}
+                </div>
 
-                <div class="dice-display">[${result.roll}]</div>
+                <div style="margin:30px 0;">
+                    <div class="dice-display" style="font-size:100px; ${diceStyle}">
+                        ╔═╗<br/>
+                        ║${roll}║<br/>
+                        ╚═╝
+                    </div>
+                    <div style="font-size:14px; color:#888; margin-top:10px;">${outcomeText}</div>
+                </div>
 
-                <div style="font-size:16px; margin:30px 0;">
-                    ${message}
+                <div style="margin:30px 0; padding:20px; border:1px solid var(--border-primary); background:rgba(0,0,0,0.3);">
+                    ${rewardsHtml}
                 </div>
 
                 <div class="modal-buttons">
-                    <button class="modal-btn" onclick="closeGambitModal(); showGambitModal();">[ROLL AGAIN]</button>
+                    <button class="modal-btn" onclick="closeGambitModal(); setTimeout(() => showGambitModal('${emissaryId}'), 100);">[ROLL AGAIN]</button>
                     <button class="modal-btn" onclick="closeGambitModal()">[CLOSE]</button>
                 </div>
             </div>
+
+            <style>
+                @keyframes shake {
+                    0%, 100% { transform: translateX(0); }
+                    25% { transform: translateX(-10px); }
+                    75% { transform: translateX(10px); }
+                }
+                @keyframes pulse {
+                    0%, 100% { transform: scale(1); }
+                    50% { transform: scale(1.05); }
+                }
+            </style>
         `;
 
         const modalBody = modal.querySelector('.terminal-modal-body');
@@ -923,13 +1236,189 @@
     // PUSH MODAL (Mission Acceleration)
     // ===============================================================
 
-    window.showPushModal = function(emissaryId) {
+    window.showPushModal = async function(emissaryId) {
         console.log('Opening PUSH modal for emissary:', emissaryId);
 
         const modal = document.getElementById('push-modal');
         if (!modal) return;
 
-        // TODO: Implementar contenido completo en FASE 4
+        // Find emissary in current roster
+        const emissary = currentEmissaries.find(e => String(e.token_id) === String(emissaryId));
+        if (!emissary || emissary.state !== 'IN_PROGRESS') {
+            alert('No active mission found for this emissary.');
+            return;
+        }
+
+        // Calculate mission progress
+        const now = new Date();
+        const startTime = new Date(emissary.mission_start);
+        const durationMs = emissary.mission_duration * 60 * 60 * 1000; // hours to ms
+        const endTime = new Date(startTime.getTime() + durationMs);
+
+        const elapsedMs = now - startTime;
+        const remainingMs = Math.max(0, endTime - now);
+        const totalMs = durationMs;
+
+        const progressPercent = Math.min(100, (elapsedMs / totalMs) * 100);
+        const remainingPercent = Math.max(0, (remainingMs / totalMs) * 100);
+
+        // Format time remaining
+        const remainingHours = Math.floor(remainingMs / (1000 * 60 * 60));
+        const remainingMinutes = Math.floor((remainingMs % (1000 * 60 * 60)) / (1000 * 60));
+        const timeRemainingStr = remainingHours > 0
+            ? `${remainingHours}h ${remainingMinutes}m`
+            : `${remainingMinutes}m`;
+
+        // Get mission difficulty (from state message or default to medium)
+        let difficulty = 'medium';
+        if (emissary.state_message) {
+            const msg = emissary.state_message.toLowerCase();
+            if (msg.includes('easy')) difficulty = 'easy';
+            else if (msg.includes('hard')) difficulty = 'hard';
+            else if (msg.includes('legendary')) difficulty = 'legendary';
+        }
+
+        // Base costs by difficulty
+        const baseCosts = {
+            easy: { push25: 50, push50: 150, push100: 400 },
+            medium: { push25: 100, push50: 300, push100: 800 },
+            hard: { push25: 200, push50: 600, push100: 1500 },
+            legendary: { push25: 500, push50: 1500, push100: 4000 }
+        };
+
+        // Scale costs based on REMAINING time (not total time)
+        const costMultiplier = remainingPercent / 100;
+        const costs = {
+            push25: Math.ceil(baseCosts[difficulty].push25 * costMultiplier),
+            push50: Math.ceil(baseCosts[difficulty].push50 * costMultiplier),
+            push100: Math.ceil(baseCosts[difficulty].push100 * costMultiplier)
+        };
+
+        // Calculate time reductions
+        const remainingHoursFloat = remainingMs / (1000 * 60 * 60);
+        const timeReductions = {
+            push25: (remainingHoursFloat * 0.25).toFixed(1),
+            push50: (remainingHoursFloat * 0.50).toFixed(1),
+            push100: remainingHoursFloat.toFixed(1)
+        };
+
+        // Build modal content
+        const content = `
+            <div class="subheading">MISSION ACCELERATION</div>
+
+            <!-- Mission Info Card -->
+            <div style="border: 1px solid var(--border-primary); padding: 12px; margin: 15px 0; background: rgba(0,0,0,0.3);">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 12px;">
+                    <div>
+                        <span style="color: #888;">EMISSARY:</span><br/>
+                        <span style="color: var(--text-primary);">${emissary.name || `#${emissary.token_id}`}</span>
+                    </div>
+                    <div>
+                        <span style="color: #888;">DIFFICULTY:</span><br/>
+                        <span style="color: var(--text-primary); text-transform: uppercase;">${difficulty}</span>
+                    </div>
+                    <div>
+                        <span style="color: #888;">TIME REMAINING:</span><br/>
+                        <span style="color: var(--text-primary);">${timeRemainingStr}</span>
+                    </div>
+                    <div>
+                        <span style="color: #888;">PROGRESS:</span><br/>
+                        <span style="color: var(--text-primary);">${progressPercent.toFixed(1)}%</span>
+                    </div>
+                </div>
+
+                <!-- Progress Bar -->
+                <div style="margin-top: 12px;">
+                    <div style="background: #1a1a1a; border: 1px solid var(--border-primary); height: 20px; position: relative; overflow: hidden;">
+                        <div style="background: linear-gradient(90deg, var(--text-primary) 0%, #ffb84d 100%); height: 100%; width: ${progressPercent}%; transition: width 0.3s ease;"></div>
+                        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 11px; color: #fff; text-shadow: 0 0 3px #000;">
+                            ${progressPercent.toFixed(1)}% COMPLETE
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Push Options -->
+            <div class="subheading" style="margin-top: 20px;">ACCELERATION OPTIONS</div>
+            <p style="font-size: 11px; color: #888; margin: 8px 0 15px 0;">
+                Costs scaled to remaining time (${remainingPercent.toFixed(0)}% of base cost)
+            </p>
+
+            <div style="display: grid; gap: 12px; margin: 15px 0;">
+                <!-- 25% Option -->
+                <div style="border: 1px solid #f59e0b; padding: 12px; background: rgba(245,158,11,0.05);">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <div style="font-size: 14px; color: #f59e0b; font-weight: bold;">[25% FASTER]</div>
+                            <div style="font-size: 11px; color: #888; margin-top: 4px;">
+                                Reduce time by ${timeReductions.push25}h
+                            </div>
+                        </div>
+                        <div style="text-align: right;">
+                            <div style="font-size: 13px; color: var(--text-primary);">
+                                ${costs.push25} $EMBER
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 50% Option -->
+                <div style="border: 1px solid #f59e0b; padding: 12px; background: rgba(245,158,11,0.05);">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <div style="font-size: 14px; color: #f59e0b; font-weight: bold;">[50% FASTER]</div>
+                            <div style="font-size: 11px; color: #888; margin-top: 4px;">
+                                Reduce time by ${timeReductions.push50}h
+                            </div>
+                        </div>
+                        <div style="text-align: right;">
+                            <div style="font-size: 13px; color: var(--text-primary);">
+                                ${costs.push50} $EMBER
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 100% Option (Instant) -->
+                <div style="border: 1px solid #f59e0b; padding: 12px; background: rgba(245,158,11,0.1);">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <div style="font-size: 14px; color: #f59e0b; font-weight: bold;">[100% INSTANT]</div>
+                            <div style="font-size: 11px; color: #888; margin-top: 4px;">
+                                Complete mission immediately
+                            </div>
+                        </div>
+                        <div style="text-align: right;">
+                            <div style="font-size: 13px; color: var(--text-primary);">
+                                ${costs.push100} $EMBER
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="modal-buttons" style="margin-top: 20px;">
+                <button class="modal-btn btn-push" onclick="performPush('${emissaryId}', 25, ${costs.push25})">
+                    [PUSH 25%]
+                </button>
+                <button class="modal-btn btn-push" onclick="performPush('${emissaryId}', 50, ${costs.push50})">
+                    [PUSH 50%]
+                </button>
+                <button class="modal-btn btn-push" onclick="performPush('${emissaryId}', 100, ${costs.push100})">
+                    [PUSH 100%]
+                </button>
+                <button class="modal-btn" onclick="closePushModal()">
+                    [CANCEL]
+                </button>
+            </div>
+        `;
+
+        const modalBody = modal.querySelector('.terminal-modal-body');
+        if (modalBody) {
+            modalBody.innerHTML = content;
+        }
+
         modal.classList.add('active');
     };
 
@@ -937,6 +1426,50 @@
         const modal = document.getElementById('push-modal');
         if (modal) {
             modal.classList.remove('active');
+        }
+    };
+
+    window.performPush = async function(emissaryId, pushPercent, cost) {
+        if (!currentWallet) {
+            alert('Please connect your wallet first.');
+            return;
+        }
+
+        // Confirm action
+        const confirmMsg = `Push mission ${pushPercent}% for ${cost} $EMBER?\n\nThis will reduce the mission time immediately.`;
+        if (!confirm(confirmMsg)) {
+            return;
+        }
+
+        try {
+            const response = await fetch('/api/mission/push', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    emissary_id: emissaryId,
+                    push_percent: pushPercent,
+                    wallet: currentWallet
+                })
+            });
+
+            const data = await response.json();
+
+            if (response.ok && data.success) {
+                alert(`✓ Mission accelerated by ${pushPercent}%!\n\nEMBER spent: ${data.ember_spent}\nTime reduced: ${data.time_reduced_hours}h`);
+
+                // Close modal
+                closePushModal();
+
+                // Refresh data
+                if (window.loadProfileData) {
+                    await window.loadProfileData();
+                }
+            } else {
+                alert(`✗ Error: ${data.error || 'Failed to push mission'}`);
+            }
+        } catch (error) {
+            console.error('Error pushing mission:', error);
+            alert('✗ Network error. Please try again.');
         }
     };
 
@@ -950,7 +1483,176 @@
         const modal = document.getElementById('recover-modal');
         if (!modal) return;
 
-        // TODO: Implementar contenido completo en FASE 5
+        // Find emissary in current roster
+        const emissary = currentEmissaries.find(e => String(e.token_id) === String(emissaryId));
+        if (!emissary) {
+            alert('Emissary not found.');
+            return;
+        }
+
+        // Get energy data
+        const energyCurrent = emissary.energy_current || 0;
+        const energyMax = emissary.energy_max || 100;
+        const energyPercent = (energyCurrent / energyMax) * 100;
+
+        // Calculate time until next natural refresh (48h)
+        const lastRefresh = emissary.last_energy_refresh ? new Date(emissary.last_energy_refresh) : new Date();
+        const nextRefresh = new Date(lastRefresh.getTime() + 48 * 60 * 60 * 1000);
+        const now = new Date();
+        const timeUntilRefresh = Math.max(0, nextRefresh - now);
+
+        const hoursUntilRefresh = Math.floor(timeUntilRefresh / (1000 * 60 * 60));
+        const minutesUntilRefresh = Math.floor((timeUntilRefresh % (1000 * 60 * 60)) / (1000 * 60));
+        const refreshTimeStr = hoursUntilRefresh > 0
+            ? `${hoursUntilRefresh}h ${minutesUntilRefresh}m`
+            : `${minutesUntilRefresh}m`;
+
+        // Energy costs
+        const costs = {
+            25: 30,
+            50: 75,
+            100: 150
+        };
+
+        // Determine energy bar color
+        let energyColor = '#22c55e'; // Green
+        if (energyPercent < 30) energyColor = '#ef4444'; // Red
+        else if (energyPercent < 60) energyColor = '#f59e0b'; // Orange
+
+        // Build modal content
+        const content = `
+            <div class="subheading">ENERGY RESTORATION</div>
+
+            <!-- Emissary Info Card -->
+            <div style="border: 1px solid var(--border-primary); padding: 12px; margin: 15px 0; background: rgba(0,0,0,0.3);">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 12px;">
+                    <div>
+                        <span style="color: #888;">EMISSARY:</span><br/>
+                        <span style="color: var(--text-primary);">${emissary.name || `#${emissary.token_id}`}</span>
+                    </div>
+                    <div>
+                        <span style="color: #888;">STATE:</span><br/>
+                        <span style="color: var(--text-primary); text-transform: uppercase;">${emissary.state || 'READY'}</span>
+                    </div>
+                    <div>
+                        <span style="color: #888;">CURRENT ENERGY:</span><br/>
+                        <span style="color: ${energyColor};">${energyCurrent} / ${energyMax}</span>
+                    </div>
+                    <div>
+                        <span style="color: #888;">NEXT REFRESH:</span><br/>
+                        <span style="color: var(--text-primary);">${refreshTimeStr}</span>
+                    </div>
+                </div>
+
+                <!-- Energy Bar -->
+                <div style="margin-top: 12px;">
+                    <div style="background: #1a1a1a; border: 1px solid var(--border-primary); height: 24px; position: relative; overflow: hidden;">
+                        <div style="background: linear-gradient(90deg, ${energyColor} 0%, ${energyColor}dd 100%); height: 100%; width: ${energyPercent}%; transition: width 0.3s ease;"></div>
+                        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 12px; color: #fff; text-shadow: 0 0 4px #000; font-weight: bold;">
+                            ⚡ ${energyPercent.toFixed(0)}% ENERGY
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recovery Options -->
+            <div class="subheading" style="margin-top: 20px;">RECOVERY OPTIONS</div>
+            <p style="font-size: 11px; color: #888; margin: 8px 0 15px 0;">
+                Restore energy immediately using $EMBER or wait for natural recovery
+            </p>
+
+            <div style="display: grid; gap: 12px; margin: 15px 0;">
+                <!-- +25 Energy Option -->
+                <div style="border: 1px solid #22c55e; padding: 12px; background: rgba(34,197,94,0.05);">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <div style="font-size: 14px; color: #22c55e; font-weight: bold;">[+25 ENERGY]</div>
+                            <div style="font-size: 11px; color: #888; margin-top: 4px;">
+                                Restore 25 energy points
+                            </div>
+                        </div>
+                        <div style="text-align: right;">
+                            <div style="font-size: 13px; color: var(--text-primary);">
+                                ${costs[25]} $EMBER
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- +50 Energy Option -->
+                <div style="border: 1px solid #22c55e; padding: 12px; background: rgba(34,197,94,0.05);">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <div style="font-size: 14px; color: #22c55e; font-weight: bold;">[+50 ENERGY]</div>
+                            <div style="font-size: 11px; color: #888; margin-top: 4px;">
+                                Restore 50 energy points
+                            </div>
+                        </div>
+                        <div style="text-align: right;">
+                            <div style="font-size: 13px; color: var(--text-primary);">
+                                ${costs[50]} $EMBER
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- +100 Energy Option (Full) -->
+                <div style="border: 1px solid #22c55e; padding: 12px; background: rgba(34,197,94,0.1);">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <div style="font-size: 14px; color: #22c55e; font-weight: bold;">[+100 ENERGY] FULL</div>
+                            <div style="font-size: 11px; color: #888; margin-top: 4px;">
+                                Restore to maximum energy
+                            </div>
+                        </div>
+                        <div style="text-align: right;">
+                            <div style="font-size: 13px; color: var(--text-primary);">
+                                ${costs[100]} $EMBER
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- WAIT Option (Free) -->
+                <div style="border: 1px solid #666; padding: 12px; background: rgba(102,102,102,0.05);">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <div style="font-size: 14px; color: #888; font-weight: bold;">[WAIT] FREE RECOVERY</div>
+                            <div style="font-size: 11px; color: #666; margin-top: 4px;">
+                                Natural recovery in ${refreshTimeStr} (48h cycle)
+                            </div>
+                        </div>
+                        <div style="text-align: right;">
+                            <div style="font-size: 13px; color: #666;">
+                                FREE
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="modal-buttons" style="margin-top: 20px;">
+                <button class="modal-btn btn-recover" onclick="performRecover('${emissaryId}', 25, ${costs[25]})">
+                    [+25]
+                </button>
+                <button class="modal-btn btn-recover" onclick="performRecover('${emissaryId}', 50, ${costs[50]})">
+                    [+50]
+                </button>
+                <button class="modal-btn btn-recover" onclick="performRecover('${emissaryId}', 100, ${costs[100]})">
+                    [+100]
+                </button>
+                <button class="modal-btn" onclick="closeRecoverModal()">
+                    [WAIT]
+                </button>
+            </div>
+        `;
+
+        const modalBody = modal.querySelector('.terminal-modal-body');
+        if (modalBody) {
+            modalBody.innerHTML = content;
+        }
+
         modal.classList.add('active');
     };
 
@@ -958,6 +1660,50 @@
         const modal = document.getElementById('recover-modal');
         if (modal) {
             modal.classList.remove('active');
+        }
+    };
+
+    window.performRecover = async function(emissaryId, amount, cost) {
+        if (!currentWallet) {
+            alert('Please connect your wallet first.');
+            return;
+        }
+
+        // Confirm action
+        const confirmMsg = `Restore ${amount} energy for ${cost} $EMBER?`;
+        if (!confirm(confirmMsg)) {
+            return;
+        }
+
+        try {
+            const response = await fetch('/api/energy/recover', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    emissary_id: emissaryId,
+                    amount: amount,
+                    wallet: currentWallet
+                })
+            });
+
+            const data = await response.json();
+
+            if (response.ok && data.success) {
+                alert(`✓ Energy restored!\n\n+${amount} energy\nEMBER spent: ${data.ember_spent}\nNew energy: ${data.new_energy}/${data.energy_max}`);
+
+                // Close modal
+                closeRecoverModal();
+
+                // Refresh data
+                if (window.loadProfileData) {
+                    await window.loadProfileData();
+                }
+            } else {
+                alert(`✗ Error: ${data.error || 'Failed to restore energy'}`);
+            }
+        } catch (error) {
+            console.error('Error recovering energy:', error);
+            alert('✗ Network error. Please try again.');
         }
     };
 

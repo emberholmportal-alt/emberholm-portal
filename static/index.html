@@ -1607,7 +1607,7 @@
 <div class="modal-overlay" id="gambit-modal">
     <div class="terminal-modal">
         <div class="terminal-modal-header">
-            EMBER GAMBIT // D20 DICE
+            EMBER ROLL // TEST YOUR FATE
             <button class="terminal-modal-close" onclick="closeGambitModal()">×</button>
         </div>
         <div class="terminal-modal-body">
@@ -1678,6 +1678,19 @@
                 <button class="modal-btn btn-recover" id="recover-100-btn">[+100 ENERGY - 150 $EMBER]</button>
                 <button class="modal-btn" onclick="closeRecoverModal()">[CANCEL]</button>
             </div>
+        </div>
+    </div>
+</div>
+
+<!-- SELECT EMISSARY MODAL (for equipping items) -->
+<div class="modal-overlay" id="select-emissary-modal">
+    <div class="terminal-modal">
+        <div class="terminal-modal-header">
+            SELECT EMISSARY // EQUIP ITEM
+            <button class="terminal-modal-close" onclick="closeSelectEmissaryModal()">×</button>
+        </div>
+        <div class="terminal-modal-body">
+            <!-- Content loaded dynamically by inventory.js -->
         </div>
     </div>
 </div>

@@ -4479,6 +4479,82 @@ def push_mission():
         return jsonify({"error": str(e)}), 500
 
 # ---------------------------------
+# ENERGY RECOVERY (Restore Energy with EMBER)
+# ---------------------------------
+
+@app.route('/api/energy/recover', methods=['POST'])
+def recover_energy():
+    """Restore emissary energy using EMBER"""
+    data = request.get_json()
+    emissary_id = data.get('emissary_id')
+    amount = data.get('amount')  # 25, 50, or 100
+    wallet = data.get('wallet', '').lower()
+
+    if not all([emissary_id, amount, wallet]):
+        return jsonify({"error": "Missing required fields"}), 400
+
+    if amount not in [25, 50, 100]:
+        return jsonify({"error": "Invalid amount"}), 400
+
+    if not POSTGRESQL_AVAILABLE:
+        return jsonify({"success": False, "message": "Database not available"}), 503
+
+    try:
+        conn = db.get_connection()
+        cursor = conn.cursor()
+
+        # Get cost
+        cost = ENERGY_RESTORE_COSTS.get(amount, 0)
+
+        # Check balance
+        cursor.execute("SELECT ember_balance FROM user_balances WHERE wallet = %s", (wallet,))
+        balance_row = cursor.fetchone()
+
+        if not balance_row or balance_row[0] < cost:
+            return jsonify({"error": "Insufficient EMBER balance"}), 400
+
+        # Deduct EMBER
+        cursor.execute("""
+            UPDATE user_balances
+            SET ember_balance = ember_balance - %s
+            WHERE wallet = %s
+        """, (cost, wallet))
+
+        conn.commit()
+        db.release_connection(conn)
+
+        # Update energy in player data (JSON storage)
+        player_obj, _ = load_or_init_player(wallet)
+        heroes = player_obj.get("heroes", [])
+
+        for hero in heroes:
+            if str(hero.get("token_id")) == str(emissary_id):
+                ds = hero.setdefault("dynamic_state", {})
+                energy_current = ds.get("energy_current", 100)
+                energy_max = ds.get("energy_max", 100)
+
+                # Add energy (cap at max)
+                new_energy = min(energy_max, energy_current + amount)
+                ds["energy_current"] = new_energy
+
+                # Save updated player data
+                save_player(wallet, player_obj)
+
+                return jsonify({
+                    "success": True,
+                    "message": f"Restored {amount} energy",
+                    "ember_spent": cost,
+                    "new_energy": new_energy,
+                    "energy_max": energy_max
+                })
+
+        return jsonify({"error": "Emissary not found"}), 404
+
+    except Exception as e:
+        print(f"Error recovering energy: {e}")
+        return jsonify({"error": str(e)}), 500
+
+# ---------------------------------
 # EMBER GAMBIT (D20 Dice Roll)
 # ---------------------------------
 
