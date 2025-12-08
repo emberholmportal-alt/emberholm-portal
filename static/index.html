@@ -181,21 +181,6 @@
         Track: (loading)
     </div>
 
-    <!-- Balance Display -->
-    <div class="balance-display" style="margin-left:20px;">
-        <span class="balance-ember">
-            [E] <span id="ember-balance">0</span> $EMBER
-        </span>
-        <span id="ash-balance-display" class="balance-ash" style="display:none; margin-left:15px;">
-            [A] <span id="ash-balance">0</span> $ASH
-        </span>
-    </div>
-
-    <!-- Gambit Button -->
-    <button class="console-btn btn-gambit" onclick="showGambitModal()" style="margin-left:15px;">
-        [D20 GAMBIT] <span id="gambit-rolls">0/5</span>
-    </button>
-
     <button class="console-btn" id="console-mute-btn">[MUTE]</button>
     <button class="console-btn" id="console-next-btn">[NEXT]</button>
 
@@ -433,7 +418,7 @@
         <div class="section-block">
             <div class="section-title">PLAYER PROFILE // WALLET LINK</div>
 
-            <div class="player-profile-row">
+            <div class="player-profile-row" style="display:grid; grid-template-columns: 35fr 65fr; gap:20px;">
                 <div class="profile-col-left">
                     <div>
                         <label>WALLET (BASE): </label>
@@ -443,6 +428,19 @@
                     </div>
 
                     <div id="wallet-summary" style="margin-top:10px;"></div>
+
+                    <!-- Balance Display -->
+                    <div id="balance-display" style="margin-top:15px; padding:12px; border:1px solid var(--border-primary); background:rgba(0,0,0,0.3);">
+                        <div class="subheading" style="margin-bottom:8px;">ECONOMY BALANCE</div>
+                        <div style="font-size:13px; line-height:1.8;">
+                            <div class="balance-ember">
+                                💰 EMBER: <span id="ember-balance" style="color:var(--gold); font-weight:600;">0</span> $EMBER
+                            </div>
+                            <div id="ash-balance-display" class="balance-ash" style="display:none; margin-top:5px;">
+                                🔥 ASH: <span id="ash-balance" style="color:#ff6b6b; font-weight:600;">0</span> $ASH
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="profile-col-right">
@@ -2677,6 +2675,9 @@ async function loadPlayerAndRender(){
                 actionButtons = `
                     <button class="terminal-btn small-btn btn-inventory" onclick="showInventoryModal('${h.token_id}')" title="Manage Equipment">
                         [INVENTORY]
+                    </button>
+                    <button class="terminal-btn small-btn btn-gambit" onclick="showGambitModal('${h.token_id}')" title="Roll D20 for mission bonuses">
+                        [D20 GAMBIT]
                     </button>
                     <button class="terminal-btn small-btn" onclick="openMissionListModal('${h.token_id}')">
                         [SEND]

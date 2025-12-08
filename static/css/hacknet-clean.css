@@ -2122,3 +2122,77 @@ button:disabled {
     max-width: 1200px;
     width: 95%;
 }
+
+/* ===============================================================
+   EQUIPMENT SLOTS - INVENTORY MODAL
+   =============================================================== */
+
+.equipment-slot {
+    padding: 12px;
+    border: 1px solid var(--border-primary);
+    background: rgba(0, 0, 0, 0.3);
+    position: relative;
+    transition: all 0.3s ease;
+}
+
+.equipment-slot.equipped {
+    border-color: var(--gold);
+    background: rgba(255, 204, 0, 0.05);
+}
+
+.equipment-slot.empty {
+    border-color: var(--border-dim);
+    border-style: dashed;
+}
+
+.equipment-slot:hover {
+    background: rgba(0, 0, 0, 0.5);
+    border-color: var(--primary-green);
+}
+
+.equipment-slot .slot-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+    font-weight: 600;
+    font-size: 11px;
+    letter-spacing: 1px;
+}
+
+.equipment-slot .slot-item {
+    margin: 10px 0;
+    padding: 8px;
+    background: rgba(0, 0, 0, 0.4);
+    border-left: 2px solid var(--primary-green);
+    font-size: 12px;
+    line-height: 1.6;
+}
+
+.equipment-slot .slot-item strong {
+    color: var(--primary-green);
+    text-shadow: 0 0 5px rgba(68, 170, 255, 0.3);
+}
+
+.equipment-slot.rune-slot {
+    border-color: #a855f7;
+}
+
+.equipment-slot.rune-slot.equipped {
+    background: rgba(168, 85, 247, 0.05);
+}
+
+.equipment-slot.rune-slot .slot-item {
+    border-left-color: #a855f7;
+}
+
+/* Stat badges */
+.stat-positive {
+    color: #4ade80;
+    font-size: 11px;
+}
+
+.stat-negative {
+    color: #f87171;
+    font-size: 11px;
+}

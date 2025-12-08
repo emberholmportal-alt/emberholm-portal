@@ -133,36 +133,337 @@
     // ===============================================================
 
     window.showInventoryModal = async function(emissaryId) {
-        // TODO: Fetch emissary full data with equipment
         console.log('Opening inventory for emissary:', emissaryId);
 
-        // For now, show a placeholder
         const modal = document.getElementById('inventory-modal');
         if (!modal) {
             console.error('Inventory modal not found');
             return;
         }
 
-        const content = `
-            <div class="mono-block">
-                <h3 style="color:var(--gold); margin-bottom:20px;">EMISSARY INVENTORY</h3>
-                <p>Loading inventory for Emissary #${emissaryId}...</p>
-                <p style="margin-top:20px; color:var(--dim-green);">
-                    <small>This feature is currently in development.</small>
-                </p>
-                <div class="modal-buttons" style="margin-top:30px;">
-                    <button class="modal-btn" onclick="closeInventoryModal()">[CLOSE]</button>
-                </div>
+        const modalBody = modal.querySelector('.terminal-modal-body');
+        if (!modalBody) return;
+
+        // Show loading state
+        modalBody.innerHTML = `
+            <div class="mono-block" style="text-align:center; padding:40px;">
+                <p>Loading inventory...</p>
             </div>
         `;
+        modal.classList.add('active');
 
-        const modalBody = modal.querySelector('.terminal-modal-body');
-        if (modalBody) {
+        try {
+            // Fetch emissary data with equipment
+            const emissaryResponse = await fetch(`/api/player/${encodeURIComponent(currentWallet)}`);
+            const playerData = await emissaryResponse.json();
+            const emissary = playerData.heroes?.find(h => h.token_id === emissaryId);
+
+            if (!emissary) {
+                modalBody.innerHTML = `
+                    <div class="mono-block">
+                        <p style="color:#ff4444;">Emissary not found!</p>
+                        <button class="modal-btn" onclick="closeInventoryModal()">[CLOSE]</button>
+                    </div>
+                `;
+                return;
+            }
+
+            // Fetch available vault items
+            const vaultResponse = await fetch(`/api/vault?wallet=${currentWallet}`);
+            const vaultData = await vaultResponse.json();
+            const availableItems = vaultData.items || [];
+
+            // Build inventory HTML
+            const content = buildInventoryContent(emissary, availableItems);
             modalBody.innerHTML = content;
+
+            // Attach event listeners for equip/unequip buttons
+            attachInventoryListeners(emissaryId);
+
+        } catch (error) {
+            console.error('Error loading inventory:', error);
+            modalBody.innerHTML = `
+                <div class="mono-block">
+                    <p style="color:#ff4444;">Error loading inventory!</p>
+                    <button class="modal-btn" onclick="closeInventoryModal()">[CLOSE]</button>
+                </div>
+            `;
+        }
+    };
+
+    function buildInventoryContent(emissary, availableItems) {
+        const slots = [
+            { key: 'weapon', label: 'WEAPON', type: 'weapon', icon: '⚔️' },
+            { key: 'armor', label: 'ARMOR', type: 'armor', icon: '🛡️' },
+            { key: 'helmet', label: 'HELMET', type: 'helmet', icon: '⛑️' },
+            { key: 'accessory', label: 'ACCESSORY', type: 'accessory', icon: '💍' },
+            { key: 'amulet', label: 'AMULET', type: 'amulet', icon: '📿' }
+        ];
+
+        let slotsHtml = '';
+        slots.forEach(slot => {
+            const itemId = emissary[`${slot.key}_id`];
+            const equippedItem = availableItems.find(item => item.id === itemId);
+
+            if (equippedItem) {
+                slotsHtml += `
+                    <div class="equipment-slot equipped" data-slot="${slot.key}">
+                        <div class="slot-header">
+                            <span>${slot.icon} ${slot.label}</span>
+                            <span class="rarity-${equippedItem.rarity}">[${equippedItem.rarity.toUpperCase()}]</span>
+                        </div>
+                        <div class="slot-item">
+                            <strong>${equippedItem.name}</strong><br/>
+                            <small>${formatStats(equippedItem.stats)}</small>
+                        </div>
+                        <button class="terminal-btn small-btn btn-unequip" data-item-id="${equippedItem.id}" data-slot="${slot.key}">
+                            [UNEQUIP]
+                        </button>
+                    </div>
+                `;
+            } else {
+                const availableForSlot = availableItems.filter(item =>
+                    item.type === slot.type && !item.equipped_by
+                );
+
+                let optionsHtml = '<option value="">-- Select --</option>';
+                availableForSlot.forEach(item => {
+                    optionsHtml += `<option value="${item.id}">${item.name} [${item.rarity}]</option>`;
+                });
+
+                slotsHtml += `
+                    <div class="equipment-slot empty" data-slot="${slot.key}">
+                        <div class="slot-header">
+                            <span>${slot.icon} ${slot.label}</span>
+                            <span style="color:#666;">[EMPTY]</span>
+                        </div>
+                        <select class="equipment-select" data-slot="${slot.key}" style="width:100%; padding:8px; margin:10px 0; background:var(--bg-panel); color:var(--primary-green); border:1px solid var(--border-primary);">
+                            ${optionsHtml}
+                        </select>
+                        <button class="terminal-btn small-btn btn-equip" data-slot="${slot.key}" ${availableForSlot.length === 0 ? 'disabled' : ''}>
+                            [EQUIP]
+                        </button>
+                    </div>
+                `;
+            }
+        });
+
+        // Rune slots
+        const runeIds = emissary.rune_ids || [];
+        let runesHtml = '';
+        for (let i = 0; i < 2; i++) {
+            const runeId = runeIds[i];
+            const equippedRune = availableItems.find(item => item.id === runeId);
+
+            if (equippedRune) {
+                runesHtml += `
+                    <div class="equipment-slot equipped rune-slot">
+                        <div class="slot-header">
+                            <span>◈ RUNE ${i + 1}</span>
+                            <span class="rarity-${equippedRune.rarity}">[${equippedRune.rarity.toUpperCase()}]</span>
+                        </div>
+                        <div class="slot-item">
+                            <strong>${equippedRune.name}</strong><br/>
+                            <small>${formatStats(equippedRune.stats)}</small>
+                        </div>
+                        <button class="terminal-btn small-btn btn-unequip-rune" data-item-id="${equippedRune.id}" data-rune-index="${i}">
+                            [UNEQUIP]
+                        </button>
+                    </div>
+                `;
+            } else {
+                const availableRunes = availableItems.filter(item =>
+                    item.type === 'rune' && !item.equipped_by
+                );
+
+                let optionsHtml = '<option value="">-- Select --</option>';
+                availableRunes.forEach(item => {
+                    optionsHtml += `<option value="${item.id}">${item.name} [${item.rarity}]</option>`;
+                });
+
+                runesHtml += `
+                    <div class="equipment-slot empty rune-slot">
+                        <div class="slot-header">
+                            <span>◈ RUNE ${i + 1}</span>
+                            <span style="color:#666;">[EMPTY]</span>
+                        </div>
+                        <select class="rune-select" data-rune-index="${i}" style="width:100%; padding:8px; margin:10px 0; background:var(--bg-panel); color:var(--primary-green); border:1px solid var(--border-primary);">
+                            ${optionsHtml}
+                        </select>
+                        <button class="terminal-btn small-btn btn-equip-rune" data-rune-index="${i}" ${availableRunes.length === 0 ? 'disabled' : ''}>
+                            [EQUIP]
+                        </button>
+                    </div>
+                `;
+            }
         }
 
-        modal.classList.add('active');
-    };
+        return `
+            <div class="subheading" style="margin-bottom:15px;">
+                EMISSARY INVENTORY - ${emissary.name || emissary.token_id}
+            </div>
+
+            <div class="mono-small-note" style="margin-bottom:20px;">
+                Equip items and runes to boost your emissary's performance in missions.
+            </div>
+
+            <div style="margin-bottom:20px;">
+                <strong>Equipment Slots (5)</strong>
+                <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:10px; margin-top:10px;">
+                    ${slotsHtml}
+                </div>
+            </div>
+
+            <div style="margin-bottom:20px;">
+                <strong>Rune Slots (2)</strong>
+                <div style="display:grid; grid-template-columns:repeat(2, 1fr); gap:10px; margin-top:10px;">
+                    ${runesHtml}
+                </div>
+            </div>
+
+            <div class="modal-buttons" style="margin-top:30px;">
+                <button class="modal-btn" onclick="closeInventoryModal()">[CLOSE]</button>
+            </div>
+        `;
+    }
+
+    function attachInventoryListeners(emissaryId) {
+        // Unequip item buttons
+        document.querySelectorAll('.btn-unequip').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                const itemId = btn.getAttribute('data-item-id');
+                const slot = btn.getAttribute('data-slot');
+                await unequipItem(emissaryId, slot);
+                window.showInventoryModal(emissaryId); // Reload
+            });
+        });
+
+        // Equip item buttons
+        document.querySelectorAll('.btn-equip').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                const slot = btn.getAttribute('data-slot');
+                const select = document.querySelector(`.equipment-select[data-slot="${slot}"]`);
+                const itemId = select?.value;
+                if (itemId) {
+                    await equipItem(emissaryId, slot, itemId);
+                    window.showInventoryModal(emissaryId); // Reload
+                }
+            });
+        });
+
+        // Unequip rune buttons
+        document.querySelectorAll('.btn-unequip-rune').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                const itemId = btn.getAttribute('data-item-id');
+                await unequipRune(emissaryId, itemId);
+                window.showInventoryModal(emissaryId); // Reload
+            });
+        });
+
+        // Equip rune buttons
+        document.querySelectorAll('.btn-equip-rune').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                const runeIndex = btn.getAttribute('data-rune-index');
+                const select = document.querySelector(`.rune-select[data-rune-index="${runeIndex}"]`);
+                const itemId = select?.value;
+                if (itemId) {
+                    await equipRune(emissaryId, itemId);
+                    window.showInventoryModal(emissaryId); // Reload
+                }
+            });
+        });
+    }
+
+    async function equipItem(emissaryId, slot, itemId) {
+        try {
+            const response = await fetch('/api/equipment/equip', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    wallet: currentWallet,
+                    emissary_id: emissaryId,
+                    item_id: parseInt(itemId),
+                    slot: slot
+                })
+            });
+
+            const data = await response.json();
+            if (data.error) {
+                alert('Error: ' + data.error);
+            }
+        } catch (error) {
+            console.error('Error equipping item:', error);
+            alert('Failed to equip item');
+        }
+    }
+
+    async function unequipItem(emissaryId, slot) {
+        try {
+            const response = await fetch('/api/equipment/unequip', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    wallet: currentWallet,
+                    emissary_id: emissaryId,
+                    slot: slot
+                })
+            });
+
+            const data = await response.json();
+            if (data.error) {
+                alert('Error: ' + data.error);
+            }
+        } catch (error) {
+            console.error('Error unequipping item:', error);
+            alert('Failed to unequip item');
+        }
+    }
+
+    async function equipRune(emissaryId, itemId) {
+        try {
+            const response = await fetch('/api/equipment/equip', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    wallet: currentWallet,
+                    emissary_id: emissaryId,
+                    item_id: parseInt(itemId),
+                    slot: 'rune'
+                })
+            });
+
+            const data = await response.json();
+            if (data.error) {
+                alert('Error: ' + data.error);
+            }
+        } catch (error) {
+            console.error('Error equipping rune:', error);
+            alert('Failed to equip rune');
+        }
+    }
+
+    async function unequipRune(emissaryId, itemId) {
+        try {
+            const response = await fetch('/api/equipment/unequip', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    wallet: currentWallet,
+                    emissary_id: emissaryId,
+                    slot: 'rune',
+                    item_id: parseInt(itemId)
+                })
+            });
+
+            const data = await response.json();
+            if (data.error) {
+                alert('Error: ' + data.error);
+            }
+        } catch (error) {
+            console.error('Error unequipping rune:', error);
+            alert('Failed to unequip rune');
+        }
+    }
 
     window.closeInventoryModal = function() {
         const modal = document.getElementById('inventory-modal');
