@@ -9,11 +9,19 @@
 
   <style>
     /* Mint-specific layout styles using Hacknet Clean design system */
+    /* Eliminar espacio superior */
+    .wrapper {
+      padding-top: 0 !important;
+    }
+    .sys-msg {
+      margin-top: 0 !important;
+      margin-bottom: 0 !important;
+    }
     .top-row {
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 20px;
-      margin: 20px 0;
+      margin: 10px 0 20px 0;  /* Margen top reducido */
     }
     .console-window, .portal-panel {
       background: var(--bg-panel);
@@ -105,6 +113,7 @@
       display: flex;
       gap: 10px;
       padding: 10px 0;
+      justify-content: flex-start;  /* Alinear botones a la izquierda */
     }
     .bottom-list-wrap {
       background: var(--bg-panel);
