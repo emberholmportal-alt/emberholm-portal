@@ -961,12 +961,12 @@
             const content = `
                 <div class="subheading" style="margin-bottom:15px;">EMBER ROLL // TEST YOUR FATE</div>
 
-                <div style="text-align:center; margin:30px 0;">
-                    <div class="dice-display" id="dice-display" style="font-size:80px; font-family:'Alagard',serif; color:var(--gold); text-shadow: 0 0 20px var(--gold);">
+                <div style="text-align:center; margin:20px 0;">
+                    <div class="dice-display" id="dice-display" style="font-size:40px; font-family:'Alagard',serif; color:var(--gold); text-shadow: 0 0 15px var(--gold); line-height:1.2;">
                         ╔═╗<br/>
                         ║?║<br/>
                         ╚═╝<br/>
-                        D20
+                        <span style="font-size:20px;">D20</span>
                     </div>
                 </div>
 
@@ -1030,7 +1030,7 @@
 
                 <div class="modal-buttons">
                     ${rollsRemaining > 0 ? `
-                        <button class="modal-btn btn-gambit" onclick="rollGambitDice('${emissaryId}')" style="background:#a855f7; border-color:#a855f7;">
+                        <button class="modal-btn btn-gambit" onclick="rollGambitDice('${emissaryId}', ${costPerRoll})" style="background:#a855f7; border-color:#a855f7; color:#fff;">
                             [ROLL THE D20${isFreeRoll ? ' - FREE' : ' - ' + costPerRoll + ' $EMBER'}]
                         </button>
                     ` : `
@@ -1061,7 +1061,7 @@
         }
     };
 
-    window.rollGambitDice = async function(emissaryId) {
+    window.rollGambitDice = async function(emissaryId, cost) {
         const diceDisplay = document.getElementById('dice-display');
         if (!diceDisplay) return;
 
@@ -1070,29 +1070,31 @@
         if (rollBtn) {
             rollBtn.disabled = true;
             rollBtn.textContent = '[ROLLING...]';
+            rollBtn.style.color = '#fff'; // Keep text visible during roll
         }
 
         // Animate dice - faster animation
         let counter = 0;
         const interval = setInterval(() => {
             const randomNum = Math.floor(Math.random() * 20) + 1;
-            diceDisplay.innerHTML = `╔═╗<br/>║${randomNum}║<br/>╚═╝<br/>D20`;
+            diceDisplay.innerHTML = `╔═╗<br/>║${randomNum}║<br/>╚═╝<br/><span style="font-size:20px;">D20</span>`;
             counter++;
             if (counter > 25) {
                 clearInterval(interval);
-                performGambitRoll(emissaryId);
+                performGambitRoll(emissaryId, cost);
             }
         }, 80);
     };
 
-    async function performGambitRoll(emissaryId) {
+    async function performGambitRoll(emissaryId, cost) {
         try {
             const response = await fetch('/api/gambit/roll', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     wallet: currentWallet,
-                    emissary_id: emissaryId
+                    emissary_id: emissaryId,
+                    cost: cost
                 })
             });
 
