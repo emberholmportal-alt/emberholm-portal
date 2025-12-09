@@ -4070,27 +4070,13 @@ def get_balance():
         })
 
     try:
-        conn = db.get_connection()
-        cursor = conn.cursor()
+        # Use the new helper function
+        balance_info = db.get_or_create_user_balance(wallet)
 
-        # Get or create balance
-        cursor.execute("""
-            INSERT INTO user_balances (wallet, ember_balance, ash_balance, gambit_rolls_today, gambit_rolls_max, gambit_next_reset)
-            VALUES (%s, 1000, 0, 0, 5, NOW() + INTERVAL '1 day')
-            ON CONFLICT (wallet) DO NOTHING
-        """, (wallet,))
-
-        cursor.execute("""
-            SELECT ember_balance, ash_balance, gambit_rolls_today, gambit_rolls_max, gambit_next_reset
-            FROM user_balances
-            WHERE wallet = %s
-        """, (wallet,))
-
-        row = cursor.fetchone()
-
-        if not row:
+        if balance_info is None:
+            # Return default on error
             return jsonify({
-                "ember_balance": 1000,
+                "ember_balance": 0,
                 "ash_balance": 0,
                 "gambit_rolls_today": 0,
                 "gambit_rolls_max": 5
@@ -4098,30 +4084,38 @@ def get_balance():
 
         # Check if need to reset gambit rolls
         now = datetime.utcnow()
-        next_reset = row[4]
-        gambit_rolls = row[2]
+        next_reset = balance_info["gambit_next_reset"]
+        gambit_rolls = balance_info["gambit_rolls_today"]
 
         if next_reset and now >= next_reset:
             # Reset rolls
-            cursor.execute("""
-                UPDATE user_balances
-                SET gambit_rolls_today = 0, gambit_next_reset = %s
-                WHERE wallet = %s
-            """, (now + timedelta(days=1), wallet))
-            conn.commit()
-            gambit_rolls = 0
-
-        db.release_connection(conn)
+            try:
+                conn = db.get_connection()
+                cursor = conn.cursor()
+                cursor.execute("""
+                    UPDATE user_balances
+                    SET gambit_rolls_today = 0,
+                        gambit_next_reset = %s,
+                        last_update = NOW()
+                    WHERE wallet = %s
+                """, (now + timedelta(days=1), wallet))
+                conn.commit()
+                db.release_connection(conn)
+                gambit_rolls = 0
+            except Exception as e:
+                print(f"⚠️ Error resetting gambit rolls: {e}")
 
         return jsonify({
-            "ember_balance": row[0],
-            "ash_balance": row[1] if FEATURES["ASH_PROTOCOL_ENABLED"] else 0,
+            "ember_balance": balance_info["ember_balance"],
+            "ash_balance": balance_info["ash_balance"] if FEATURES["ASH_PROTOCOL_ENABLED"] else 0,
             "gambit_rolls_today": gambit_rolls,
-            "gambit_rolls_max": row[3]
+            "gambit_rolls_max": balance_info["gambit_rolls_max"]
         })
 
     except Exception as e:
-        print(f"Error getting balance: {e}")
+        print(f"❌ Error getting balance: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({"error": str(e)}), 500
 
 # ---------------------------------
@@ -4644,24 +4638,16 @@ def gambit_status():
         return jsonify({"rolls_remaining": 5, "next_reset": None})
 
     try:
-        conn = db.get_connection()
-        cursor = conn.cursor()
+        # Use the new helper function
+        balance_info = db.get_or_create_user_balance(wallet)
 
-        cursor.execute("""
-            SELECT gambit_rolls_today, gambit_rolls_max, gambit_next_reset
-            FROM user_balances
-            WHERE wallet = %s
-        """, (wallet,))
-
-        row = cursor.fetchone()
-        db.release_connection(conn)
-
-        if not row:
+        if balance_info is None:
+            # Return default on error
             return jsonify({"rolls_remaining": 5, "next_reset": None})
 
-        rolls_used = row[0]
-        rolls_max = row[1]
-        next_reset = row[2]
+        rolls_used = balance_info["gambit_rolls_today"]
+        rolls_max = balance_info["gambit_rolls_max"]
+        next_reset = balance_info["gambit_next_reset"]
 
         # Check if reset needed
         if next_reset and datetime.utcnow() >= next_reset:
@@ -4674,6 +4660,8 @@ def gambit_status():
 
     except Exception as e:
         print(f"Error getting gambit status: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({"error": str(e)}), 500
 
 @app.route('/api/gambit/roll', methods=['POST'])
@@ -4682,93 +4670,129 @@ def gambit_roll():
     if not FEATURES["EMBER_GAMBIT_ENABLED"]:
         return jsonify({"error": "Feature not enabled"}), 403
 
-    data = request.get_json()
-    wallet = data.get('wallet', '').lower()
-    cost = data.get('cost', 75)  # Get cost from frontend (0 for free roll, 75 otherwise)
-
-    if not wallet:
-        return jsonify({"error": "Wallet required"}), 400
-
-    if not POSTGRESQL_AVAILABLE:
-        return jsonify({"success": False, "message": "Database not available"}), 503
-
     try:
-        conn = db.get_connection()
-        cursor = conn.cursor()
+        data = request.get_json()
+        wallet = data.get('wallet', '').lower()
+        cost = data.get('cost', 75)  # Get cost from frontend (0 for free roll, 75 otherwise)
 
-        # Get current roll status
-        cursor.execute("""
-            SELECT ember_balance, gambit_rolls_today, gambit_rolls_max
-            FROM user_balances
-            WHERE wallet = %s
-        """, (wallet,))
+        if not wallet:
+            return jsonify({"error": "Wallet required"}), 400
 
-        row = cursor.fetchone()
+        if not POSTGRESQL_AVAILABLE:
+            # PostgreSQL not available - still allow free roll for testing
+            if cost == 0:
+                roll_result = random.randint(1, 20)
+                reward = D20_REWARDS[roll_result]
+                return jsonify({
+                    "success": True,
+                    "roll": roll_result,
+                    "reward_type": reward["type"],
+                    "ember_change": reward["ember"],
+                    "item": reward["item"],
+                    "message": "Free roll (database offline)"
+                })
+            return jsonify({"success": False, "message": "Database not available"}), 503
 
-        # If user doesn't exist in user_balances, create entry
-        if not row:
-            cursor.execute("""
-                INSERT INTO user_balances (wallet, ember_balance, ash_balance, gambit_rolls_today, gambit_rolls_max)
-                VALUES (%s, 0, 0, 0, 5)
-            """, (wallet,))
-            ember_balance = 0
-            rolls_today = 0
-            rolls_max = 5
-        else:
-            ember_balance = row[0]
-            rolls_today = row[1]
-            rolls_max = row[2]
+        # Get or create user balance using the new helper
+        balance_info = db.get_or_create_user_balance(wallet)
+
+        if balance_info is None:
+            # Critical error - but allow free roll anyway
+            if cost == 0:
+                print("⚠️ Database error but allowing free roll")
+                roll_result = random.randint(1, 20)
+                reward = D20_REWARDS[roll_result]
+                return jsonify({
+                    "success": True,
+                    "roll": roll_result,
+                    "reward_type": reward["type"],
+                    "ember_change": reward["ember"],
+                    "item": reward["item"],
+                    "message": "Free roll (database error)"
+                })
+            return jsonify({"error": "Database error"}), 500
+
+        ember_balance = balance_info["ember_balance"]
+        rolls_today = balance_info["gambit_rolls_today"]
+        rolls_max = balance_info["gambit_rolls_max"]
+
+        print(f"🎲 GAMBIT ROLL: wallet={wallet[:6]}...{wallet[-4:]}, cost={cost}, balance={ember_balance}, rolls={rolls_today}/{rolls_max}")
 
         # Check if can roll
         if rolls_today >= rolls_max:
             return jsonify({"error": "No rolls remaining today"}), 400
 
+        # 🔥 IMPORTANT: First roll is ALWAYS free (cost = 0)
         # Only check balance if cost > 0
         if cost > 0 and ember_balance < cost:
-            return jsonify({"error": "Insufficient EMBER"}), 400
+            return jsonify({"error": f"Insufficient EMBER (need {cost}, have {ember_balance})"}), 400
 
-        # Deduct cost (if any) and increment roll counter
-        if cost > 0:
+        # Deduct cost and increment roll counter
+        conn = db.get_connection()
+        cursor = conn.cursor()
+
+        try:
+            if cost > 0:
+                cursor.execute("""
+                    UPDATE user_balances
+                    SET ember_balance = ember_balance - %s,
+                        gambit_rolls_today = gambit_rolls_today + 1,
+                        last_update = NOW()
+                    WHERE wallet = %s
+                """, (cost, wallet))
+            else:
+                # Free roll - just increment counter
+                cursor.execute("""
+                    UPDATE user_balances
+                    SET gambit_rolls_today = gambit_rolls_today + 1,
+                        last_update = NOW()
+                    WHERE wallet = %s
+                """, (wallet,))
+
+            # Roll D20
+            roll_result = random.randint(1, 20)
+            reward = D20_REWARDS[roll_result]
+
+            # Apply reward
+            ember_change = reward["ember"]
+
             cursor.execute("""
                 UPDATE user_balances
-                SET ember_balance = ember_balance - %s,
-                    gambit_rolls_today = gambit_rolls_today + 1
+                SET ember_balance = ember_balance + %s,
+                    last_update = NOW()
                 WHERE wallet = %s
-            """, (cost, wallet))
-        else:
-            # Free roll - just increment counter
+            """, (ember_change, wallet))
+
+            conn.commit()
+
+            # Get updated balance
             cursor.execute("""
-                UPDATE user_balances
-                SET gambit_rolls_today = gambit_rolls_today + 1
-                WHERE wallet = %s
+                SELECT ember_balance FROM user_balances WHERE wallet = %s
             """, (wallet,))
+            new_balance = cursor.fetchone()[0]
 
-        # Roll D20
-        roll_result = random.randint(1, 20)
-        reward = D20_REWARDS[roll_result]
+            print(f"✅ Roll result: {roll_result}, reward: {reward['type']}, ember_change: {ember_change}, new_balance: {new_balance}")
 
-        # Apply reward
-        ember_change = reward["ember"]
+            return jsonify({
+                "success": True,
+                "roll": roll_result,
+                "reward_type": reward["type"],
+                "ember_change": ember_change,
+                "item": reward["item"],
+                "new_balance": new_balance,
+                "rolls_remaining": max(0, rolls_max - (rolls_today + 1))
+            })
 
-        cursor.execute("""
-            UPDATE user_balances
-            SET ember_balance = ember_balance + %s
-            WHERE wallet = %s
-        """, (ember_change, wallet))
-
-        conn.commit()
-        db.release_connection(conn)
-
-        return jsonify({
-            "success": True,
-            "roll": roll_result,
-            "reward_type": reward["type"],
-            "ember_change": ember_change,
-            "item": reward["item"]
-        })
+        except Exception as e:
+            conn.rollback()
+            raise e
+        finally:
+            db.release_connection(conn)
 
     except Exception as e:
-        print(f"Error rolling gambit: {e}")
+        print(f"❌ Error rolling gambit: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({"error": str(e)}), 500
 
 # ---------------------------------
