@@ -961,84 +961,90 @@
             const content = `
                 <div class="subheading" style="margin-bottom:15px;">EMBER ROLL // TEST YOUR FATE</div>
 
-                <div style="text-align:center; margin:20px 0;">
-                    <div class="dice-display" id="dice-display" style="font-size:40px; font-family:'Alagard',serif; color:var(--gold); text-shadow: 0 0 15px var(--gold); line-height:1.2;">
-                        ╔═╗<br/>
-                        ║?║<br/>
-                        ╚═╝<br/>
-                        <span style="font-size:20px;">D20</span>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:30px; margin-top:20px;">
+                    <!-- LEFT COLUMN: Dice & Actions -->
+                    <div style="display:flex; flex-direction:column; align-items:center; gap:15px;">
+                        <div style="text-align:center;">
+                            <div class="dice-display" id="dice-display" style="font-size:40px; font-family:'Alagard',serif; color:var(--gold); text-shadow: 0 0 15px var(--gold); line-height:1.2;">
+                                ╔═╗<br/>
+                                ║?║<br/>
+                                ╚═╝<br/>
+                                <span style="font-size:20px;">D20</span>
+                            </div>
+                        </div>
+
+                        <div style="width:100%; text-align:center; padding:15px; border:1px solid var(--border-primary); background:rgba(0,0,0,0.3);">
+                            <div style="font-size:14px;">
+                                <strong>Rolls today:</strong> ${rollsToday}/${maxRolls}<br/>
+                                <strong>Next roll:</strong> ${isFreeRoll ? '<span style="color:#4ade80;">FREE!</span>' : `<span style="color:var(--gold);">${costPerRoll} $EMBER</span>`}
+                            </div>
+                        </div>
+
+                        <div style="width:100%; text-align:center; font-size:14px; margin-bottom:10px;">
+                            Your Balance: <span style="color:var(--gold); font-weight:600;">[E] ${currentBalance.ember_balance.toLocaleString()} $EMBER</span>
+                        </div>
+
+                        ${rollsRemaining > 0 ? `
+                            <button class="modal-btn btn-gambit" onclick="rollGambitDice('${emissaryId}', ${costPerRoll})" style="width:100%; background:#a855f7; border-color:#a855f7; color:#fff; padding:15px; font-size:14px;">
+                                [ROLL THE D20${isFreeRoll ? ' - FREE' : ' - ' + costPerRoll + ' $EMBER'}]
+                            </button>
+                        ` : `
+                            <button class="modal-btn" disabled style="width:100%; opacity:0.3; cursor:not-allowed; padding:15px;">
+                                [NO ROLLS REMAINING TODAY]
+                            </button>
+                        `}
+
+                        <!-- RESULT DISPLAY AREA -->
+                        <div id="gambit-result-display" style="width:100%; min-height:120px; padding:20px; border:2px solid var(--border-primary); background:rgba(0,0,0,0.5); text-align:center; display:none;">
+                            <div id="result-content"></div>
+                        </div>
+
+                        <button class="modal-btn" onclick="closeGambitModal()" style="width:100%; margin-top:10px;">[CLOSE]</button>
                     </div>
-                </div>
 
-                <div style="text-align:center; margin:20px 0; padding:15px; border:1px solid var(--border-primary); background:rgba(0,0,0,0.3);">
-                    <div style="font-size:14px;">
-                        <strong>Rolls today:</strong> ${rollsToday}/${maxRolls} |
-                        <strong>Next roll:</strong> ${isFreeRoll ? '<span style="color:#4ade80;">FREE!</span>' : `<span style="color:var(--gold);">${costPerRoll} $EMBER</span>`}
-                    </div>
-                </div>
+                    <!-- RIGHT COLUMN: Possible Outcomes -->
+                    <div class="mono-block" style="padding:15px; border-left:3px solid #a855f7; background:rgba(168,85,247,0.05); max-height:600px; overflow-y:auto;">
+                        <div class="subheading" style="margin-bottom:10px;">POSSIBLE OUTCOMES</div>
+                        <div style="font-size:11px; line-height:2; font-family:monospace;">
+                            <div style="display:grid; grid-template-columns:80px 140px 1fr; gap:10px;">
+                                <div style="color:#ef4444;">[1]</div>
+                                <div style="color:#ef4444;">CRITICAL FAIL</div>
+                                <div style="color:#888;">-100 $EMBER</div>
 
-                <div class="mono-block" style="margin:20px 0; padding:15px; border-left:3px solid #a855f7; background:rgba(168,85,247,0.05);">
-                    <div class="subheading" style="margin-bottom:10px;">POSSIBLE OUTCOMES</div>
-                    <div style="font-size:11px; line-height:2; font-family:monospace;">
-                        <div style="display:grid; grid-template-columns:80px 140px 1fr; gap:10px;">
-                            <div style="color:#ef4444;">[1]</div>
-                            <div style="color:#ef4444;">CRITICAL FAIL</div>
-                            <div style="color:#888;">Debuff: -50% EMBER next mission</div>
+                                <div style="color:#666;">[2-5]</div>
+                                <div style="color:#666;">NOTHING</div>
+                                <div style="color:#888;">Nothing happens</div>
 
-                            <div style="color:#f87171;">[2-3]</div>
-                            <div style="color:#f87171;">FUMBLE</div>
-                            <div style="color:#888;">Debuff: -25% EMBER next mission</div>
+                                <div style="color:#888;">[6-8]</div>
+                                <div style="color:#888;">GRAZE</div>
+                                <div style="color:#4ade80;">+50 $EMBER</div>
 
-                            <div style="color:#666;">[4-5]</div>
-                            <div style="color:#666;">MISS</div>
-                            <div style="color:#888;">Nothing happens</div>
+                                <div style="color:#888;">[9-11]</div>
+                                <div style="color:#888;">HIT</div>
+                                <div style="color:#4ade80;">+100 $EMBER</div>
 
-                            <div style="color:#888;">[6-8]</div>
-                            <div style="color:#888;">GRAZE</div>
-                            <div style="color:#4ade80;">+25 $EMBER</div>
+                                <div style="color:var(--primary-green);">[12-14]</div>
+                                <div style="color:var(--primary-green);">SOLID HIT</div>
+                                <div style="color:#4ade80;">+200 $EMBER</div>
 
-                            <div style="color:#888;">[9-11]</div>
-                            <div style="color:#888;">HIT</div>
-                            <div style="color:#4ade80;">+75 $EMBER</div>
+                                <div style="color:var(--primary-green);">[15-17]</div>
+                                <div style="color:var(--primary-green);">GREAT HIT</div>
+                                <div style="color:#4ade80;">+350 $EMBER</div>
 
-                            <div style="color:var(--primary-green);">[12-14]</div>
-                            <div style="color:var(--primary-green);">SOLID HIT</div>
-                            <div style="color:#4ade80;">+150 $EMBER</div>
+                                <div style="color:#3b82f6;">[18]</div>
+                                <div style="color:#3b82f6;">CRITICAL!</div>
+                                <div style="color:#4ade80;">+500 $EMBER + Item</div>
 
-                            <div style="color:var(--primary-green);">[15-16]</div>
-                            <div style="color:var(--primary-green);">GREAT HIT</div>
-                            <div style="color:#4ade80;">+300 $EMBER</div>
+                                <div style="color:#a855f7;">[19]</div>
+                                <div style="color:#a855f7;">SUPERIOR</div>
+                                <div style="color:#4ade80;">+500 $EMBER + Item</div>
 
-                            <div style="color:#3b82f6;">[17-18]</div>
-                            <div style="color:#3b82f6;">CRITICAL RANGE</div>
-                            <div style="color:#4ade80;">+500 $EMBER + Buff: +10% XP</div>
-
-                            <div style="color:#a855f7;">[19]</div>
-                            <div style="color:#a855f7;">SUPERIOR</div>
-                            <div style="color:#4ade80;">+750 $EMBER + Common Item</div>
-
-                            <div style="color:var(--gold); font-weight:bold;">[20]</div>
-                            <div style="color:var(--gold); font-weight:bold;">NATURAL 20!</div>
-                            <div style="color:#4ade80;">+1,500 $EMBER + Rare/Epic Item<br/><span style="color:#a855f7;">+ Buff: +25% EMBER next mission</span></div>
+                                <div style="color:var(--gold); font-weight:bold;">[20]</div>
+                                <div style="color:var(--gold); font-weight:bold;">NATURAL 20!</div>
+                                <div style="color:#4ade80;">+500 $EMBER + Item</div>
+                            </div>
                         </div>
                     </div>
-                </div>
-
-                <div style="text-align:center; margin:20px 0; font-size:14px;">
-                    Your Balance: <span style="color:var(--gold); font-weight:600;">[E] ${currentBalance.ember_balance.toLocaleString()} $EMBER</span>
-                </div>
-
-                <div class="modal-buttons">
-                    ${rollsRemaining > 0 ? `
-                        <button class="modal-btn btn-gambit" onclick="rollGambitDice('${emissaryId}', ${costPerRoll})" style="background:#a855f7; border-color:#a855f7; color:#fff;">
-                            [ROLL THE D20${isFreeRoll ? ' - FREE' : ' - ' + costPerRoll + ' $EMBER'}]
-                        </button>
-                    ` : `
-                        <button class="modal-btn" disabled style="opacity:0.3; cursor:not-allowed;">
-                            [NO ROLLS REMAINING TODAY]
-                        </button>
-                    `}
-                    <button class="modal-btn" onclick="closeGambitModal()">[CANCEL]</button>
                 </div>
             `;
 
@@ -1115,10 +1121,15 @@
     }
 
     function showGambitResult(result, emissaryId) {
-        const modal = document.getElementById('gambit-modal');
-        if (!modal) return;
+        const diceDisplay = document.getElementById('dice-display');
+        const resultDisplay = document.getElementById('gambit-result-display');
+        const resultContent = document.getElementById('result-content');
+        const rollBtn = document.querySelector('.btn-gambit');
+
+        if (!diceDisplay || !resultDisplay || !resultContent) return;
 
         const roll = result.roll || result.result;
+        const emberChange = result.ember_change || 0;
         let title = '';
         let diceStyle = '';
         let outcomeText = '';
@@ -1126,91 +1137,77 @@
 
         // Determine outcome based on roll
         if (roll === 1) {
-            title = '✗ ✗ ✗ CRITICAL FAIL! ✗ ✗ ✗';
+            title = '✗ CRITICAL FAIL!';
             diceStyle = 'color:#ef4444; animation: shake 0.5s;';
             outcomeText = 'CRITICAL FAIL';
-            rewardsHtml = `<div style="color:#ef4444; font-size:16px;">⚠ Debuff Applied: -50% EMBER next mission</div>`;
-        } else if (roll >= 2 && roll <= 3) {
-            title = '✗ FUMBLE ✗';
-            diceStyle = 'color:#f87171;';
-            outcomeText = 'FUMBLE';
-            rewardsHtml = `<div style="color:#f87171; font-size:16px;">⚠ Debuff Applied: -25% EMBER next mission</div>`;
-        } else if (roll >= 4 && roll <= 5) {
-            title = 'MISS';
+            rewardsHtml = `<div style="color:#ef4444; font-size:16px;">${emberChange} $EMBER</div>`;
+        } else if (roll >= 2 && roll <= 5) {
+            title = 'NOTHING';
             diceStyle = 'color:#666;';
-            outcomeText = 'MISS';
-            rewardsHtml = `<div style="color:#888; font-size:14px;">Nothing happens. Better luck next time!</div>`;
+            outcomeText = 'NOTHING';
+            rewardsHtml = `<div style="color:#888; font-size:14px;">Nothing happens</div>`;
         } else if (roll >= 6 && roll <= 8) {
             title = 'GRAZE!';
             diceStyle = 'color:#888;';
             outcomeText = 'GRAZE';
-            rewardsHtml = `<div style="color:#4ade80; font-size:18px;">+25 $EMBER</div>`;
+            rewardsHtml = `<div style="color:#4ade80; font-size:18px;">+${emberChange} $EMBER</div>`;
         } else if (roll >= 9 && roll <= 11) {
             title = 'HIT!';
             diceStyle = 'color:#888;';
             outcomeText = 'HIT';
-            rewardsHtml = `<div style="color:#4ade80; font-size:18px;">+75 $EMBER</div>`;
+            rewardsHtml = `<div style="color:#4ade80; font-size:18px;">+${emberChange} $EMBER</div>`;
         } else if (roll >= 12 && roll <= 14) {
             title = '✓ SOLID HIT!';
             diceStyle = 'color:var(--primary-green);';
             outcomeText = 'SOLID HIT';
-            rewardsHtml = `<div style="color:#4ade80; font-size:18px;">+150 $EMBER</div>`;
-        } else if (roll >= 15 && roll <= 16) {
+            rewardsHtml = `<div style="color:#4ade80; font-size:18px;">+${emberChange} $EMBER</div>`;
+        } else if (roll >= 15 && roll <= 17) {
             title = '✓✓ GREAT HIT!';
             diceStyle = 'color:var(--primary-green);';
             outcomeText = 'GREAT HIT';
-            rewardsHtml = `<div style="color:#4ade80; font-size:18px;">+300 $EMBER</div>`;
-        } else if (roll >= 17 && roll <= 18) {
-            title = '⚡ CRITICAL RANGE!';
+            rewardsHtml = `<div style="color:#4ade80; font-size:18px;">+${emberChange} $EMBER</div>`;
+        } else if (roll === 18) {
+            title = '⚡ CRITICAL!';
             diceStyle = 'color:#3b82f6; animation: pulse 1s infinite;';
-            outcomeText = 'CRITICAL RANGE';
+            outcomeText = 'CRITICAL';
             rewardsHtml = `
-                <div style="color:#4ade80; font-size:18px;">+500 $EMBER</div>
-                <div style="color:#3b82f6; font-size:14px; margin-top:10px;">✨ Buff Applied: +10% XP next mission</div>
+                <div style="color:#4ade80; font-size:18px;">+${emberChange} $EMBER</div>
+                ${result.item ? `<div style="color:#9ca3af; font-size:14px; margin-top:8px;">📦 ${result.item}</div>` : ''}
             `;
         } else if (roll === 19) {
             title = '⭐ SUPERIOR!';
             diceStyle = 'color:#a855f7; animation: pulse 1s infinite;';
             outcomeText = 'SUPERIOR';
             rewardsHtml = `
-                <div style="color:#4ade80; font-size:18px;">+750 $EMBER</div>
-                <div style="color:#9ca3af; font-size:14px; margin-top:10px;">📦 Item Granted: ${result.item_name || 'Common Item'}</div>
+                <div style="color:#4ade80; font-size:18px;">+${emberChange} $EMBER</div>
+                ${result.item ? `<div style="color:#9ca3af; font-size:14px; margin-top:8px;">📦 ${result.item}</div>` : ''}
             `;
         } else if (roll === 20) {
-            title = '★ ★ ★ NATURAL 20! ★ ★ ★';
+            title = '★ NATURAL 20! ★';
             diceStyle = 'color:var(--gold); animation: pulse 1s infinite; text-shadow: 0 0 30px var(--gold);';
             outcomeText = 'NATURAL 20!';
             rewardsHtml = `
-                <div style="color:#4ade80; font-size:20px; font-weight:bold;">+1,500 $EMBER</div>
-                <div style="color:#a855f7; font-size:14px; margin-top:10px;">📦 Item Granted: ${result.item_name || 'Rare/Epic Item'}</div>
-                <div style="color:#a855f7; font-size:14px; margin-top:10px;">✨ Buff Applied: +25% EMBER next mission</div>
+                <div style="color:#4ade80; font-size:20px; font-weight:bold;">+${emberChange} $EMBER</div>
+                ${result.item ? `<div style="color:#a855f7; font-size:14px; margin-top:8px;">📦 ${result.item}</div>` : ''}
             `;
         }
 
-        const content = `
-            <div style="text-align:center;">
-                <div style="font-size:20px; color:var(--gold); margin-bottom:20px; font-weight:600;">
-                    ${title}
-                </div>
+        // Update dice display with result
+        diceDisplay.innerHTML = `╔═╗<br/>║${roll}║<br/>╚═╝<br/><span style="font-size:20px;">${outcomeText}</span>`;
+        diceDisplay.style = `font-size:60px; font-family:'Alagard',serif; ${diceStyle} line-height:1.2;`;
 
-                <div style="margin:30px 0;">
-                    <div class="dice-display" style="font-size:100px; ${diceStyle}">
-                        ╔═╗<br/>
-                        ║${roll}║<br/>
-                        ╚═╝
-                    </div>
-                    <div style="font-size:14px; color:#888; margin-top:10px;">${outcomeText}</div>
-                </div>
-
-                <div style="margin:30px 0; padding:20px; border:1px solid var(--border-primary); background:rgba(0,0,0,0.3);">
-                    ${rewardsHtml}
-                </div>
-
-                <div class="modal-buttons">
-                    <button class="modal-btn" onclick="closeGambitModal(); setTimeout(() => showGambitModal('${emissaryId}'), 100);">[ROLL AGAIN]</button>
-                    <button class="modal-btn" onclick="closeGambitModal()">[CLOSE]</button>
-                </div>
+        // Show result in dedicated area
+        resultContent.innerHTML = `
+            <div style="font-size:18px; color:var(--gold); margin-bottom:15px; font-weight:600;">
+                ${title}
             </div>
+            ${rewardsHtml}
+            ${result.new_balance ? `
+                <div style="margin-top:15px; padding-top:15px; border-top:1px solid var(--border-primary); font-size:14px; color:#888;">
+                    New Balance: <span style="color:var(--gold);">${result.new_balance.toLocaleString()} $EMBER</span><br/>
+                    Rolls Remaining: <span style="color:#4ade80;">${result.rolls_remaining || 0}</span>
+                </div>
+            ` : ''}
 
             <style>
                 @keyframes shake {
@@ -1225,9 +1222,21 @@
             </style>
         `;
 
-        const modalBody = modal.querySelector('.terminal-modal-body');
-        if (modalBody) {
-            modalBody.innerHTML = content;
+        // Display the result area
+        resultDisplay.style.display = 'block';
+
+        // Update button - enable for next roll if available
+        if (rollBtn) {
+            if (result.rolls_remaining && result.rolls_remaining > 0) {
+                rollBtn.disabled = false;
+                const nextCost = result.rolls_remaining === (result.gambit_rolls_max || 5) - 1 ? 0 : 75;
+                rollBtn.textContent = `[ROLL THE D20${nextCost === 0 ? ' - FREE' : ' - ' + nextCost + ' $EMBER'}]`;
+            } else {
+                rollBtn.disabled = true;
+                rollBtn.textContent = '[NO ROLLS REMAINING TODAY]';
+                rollBtn.style.opacity = '0.3';
+                rollBtn.style.cursor = 'not-allowed';
+            }
         }
 
         // Reload balance
