@@ -412,12 +412,23 @@ def save_json(path, obj):
     - Others (guilds, missions_config) → JSON files
     """
     if POSTGRESQL_AVAILABLE and db:
-        db.save_json_or_db(path, obj)
-        return
+        try:
+            db.save_json_or_db(path, obj)
+            return
+        except Exception as e:
+            print(f"⚠️ PostgreSQL save failed for {path}, falling back to JSON: {e}")
 
     # Fallback to JSON file
-    with open(path, "w", encoding="utf-8") as f:
-        json.dump(obj, f, indent=4)
+    try:
+        # Ensure directory exists
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(obj, f, indent=4, ensure_ascii=False)
+    except Exception as e:
+        print(f"❌ CRITICAL: Failed to save JSON to {path}: {e}")
+        import traceback
+        traceback.print_exc()
+        raise
 
 # ---------------------------------
 # NFTs Database - Fuente de Verdad Centralizada
@@ -875,8 +886,14 @@ def calculate_guilds_data():
     - Members: cuenta real de NFTs registrados (empieza en 0, crece orgánicamente)
     - XP/Aura: suma total desde dynamic_state de todos los NFTs
     """
-    db = load_nfts_database()
-    guilds_data = load_json(GUILDS_PATH, [])
+    try:
+        db = load_nfts_database()
+        guilds_data = load_json(GUILDS_PATH, [])
+    except Exception as e:
+        print(f"❌ Error loading data for guild calculation: {e}")
+        import traceback
+        traceback.print_exc()
+        return []
 
     # Calcular stats por gremio desde la DB de NFTs registrados
     guild_stats = {}
@@ -906,28 +923,34 @@ def calculate_guilds_data():
         guild_stats[guild]["total_aura"] += ds.get("aura_level", 0)
 
     # 🔥 Actualizar guilds.json con conteos REALES (no hardcoded)
-    for g in guilds_data:
-        guild_name = g.get("name", "")
+    try:
+        for g in guilds_data:
+            guild_name = g.get("name", "")
 
-        if guild_name in guild_stats:
-            stats = guild_stats[guild_name]
+            if guild_name in guild_stats:
+                stats = guild_stats[guild_name]
 
-            # 🔥 Actualizar con datos reales desde nfts_database
-            g["members"] = stats["members"]              # Dinámico: empieza en 0, crece orgánicamente
-            g["total_xp"] = stats["total_xp"]
-            g["total_aura"] = stats["total_aura"]
-            g["avg_xp"] = round(stats["total_xp"] / stats["members"], 2) if stats["members"] > 0 else 0
-            g["avg_aura"] = round(stats["total_aura"] / stats["members"], 2) if stats["members"] > 0 else 0
-        else:
-            # Guild sin NFTs registrados: todo en 0
-            g["members"] = 0                              # 🔥 0 en vez de preservar hardcoded
-            g["total_xp"] = 0
-            g["total_aura"] = 0
-            g["avg_xp"] = 0
-            g["avg_aura"] = 0
+                # 🔥 Actualizar con datos reales desde nfts_database
+                g["members"] = stats["members"]              # Dinámico: empieza en 0, crece orgánicamente
+                g["total_xp"] = stats["total_xp"]
+                g["total_aura"] = stats["total_aura"]
+                g["avg_xp"] = round(stats["total_xp"] / stats["members"], 2) if stats["members"] > 0 else 0
+                g["avg_aura"] = round(stats["total_aura"] / stats["members"], 2) if stats["members"] > 0 else 0
+            else:
+                # Guild sin NFTs registrados: todo en 0
+                g["members"] = 0                              # 🔥 0 en vez de preservar hardcoded
+                g["total_xp"] = 0
+                g["total_aura"] = 0
+                g["avg_xp"] = 0
+                g["avg_aura"] = 0
 
-    save_json(GUILDS_PATH, guilds_data)
-    return guilds_data
+        save_json(GUILDS_PATH, guilds_data)
+        return guilds_data
+    except Exception as e:
+        print(f"❌ Error updating guild data: {e}")
+        import traceback
+        traceback.print_exc()
+        return guilds_data
 
 def update_guild_stats(guild_name, xp_gain, aura_gain, stats_obj, success=True):
     """
@@ -1495,38 +1518,48 @@ def create_hero_from_metadata(token_id):
     filename = f"{str(token_id).zfill(5)}.json"
     path = os.path.join(METADATA_DIR, filename)
 
+    # Default hero template
+    default_hero = {
+        "token_id": str(token_id).zfill(5),
+        "name": f"Emissary #{str(token_id).zfill(5)}",
+        "race_class": "Unknown",
+        "guild": "Unassigned",
+        "image_url": "/img/emissary-placeholder.png",
+        "dynamic_state": {
+            "xp_total": 0,
+            "aura_level": 0,
+            "energy_current": 100,
+            "energy_max": 100,
+            "state": "READY",  # READY, ON_MISSION, FALLEN
+            "current_guild": "Unassigned",
+            "last_update": now_utc_str(),
+            "last_energy_refresh": now_utc_str(),
+            "mission_history": {},  # {mission_id: timestamp}
+            "power_current": 10,
+            "xp_level": 1,
+            "last_mission": "None",
+            # 🔥 CAMPOS ADICIONALES para sistema de misiones completo
+            "total_missions_completed": 0,
+            "death_count": 0,
+            "current_mission_id": None,
+            "mission_start_time": None,
+            "fallen_time": None
+        }
+    }
+
     if not os.path.exists(path):
         # Si no existe metadata, crear un hero básico
-        return {
-            "token_id": str(token_id).zfill(5),
-            "name": f"Emissary #{str(token_id).zfill(5)}",
-            "race_class": "Unknown",
-            "guild": "Unassigned",
-            "image_url": "/img/emissary-placeholder.png",
-            "dynamic_state": {
-                "xp_total": 0,
-                "aura_level": 0,
-                "energy_current": 100,
-                "energy_max": 100,
-                "state": "READY",  # READY, ON_MISSION, FALLEN
-                "current_guild": "Unassigned",
-                "last_update": now_utc_str(),
-                "last_energy_refresh": now_utc_str(),
-                "mission_history": {},  # {mission_id: timestamp}
-                "power_current": 10,
-                "xp_level": 1,
-                "last_mission": "None",
-                # 🔥 CAMPOS ADICIONALES para sistema de misiones completo
-                "total_missions_completed": 0,
-                "death_count": 0,
-                "current_mission_id": None,
-                "mission_start_time": None,
-                "fallen_time": None
-            }
-        }
+        return default_hero
 
-    with open(path, "r", encoding="utf-8") as f:
-        metadata = json.load(f)
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            metadata = json.load(f)
+    except json.JSONDecodeError as e:
+        print(f"⚠️ Invalid JSON in metadata file {filename}: {e}")
+        return default_hero
+    except Exception as e:
+        print(f"⚠️ Error reading metadata file {filename}: {e}")
+        return default_hero
 
     # Extraer datos del fixed_profile
     fixed = metadata.get("fixed_profile", {})
@@ -1656,57 +1689,95 @@ def api_player(wallet):
     # 🔥 CRITICAL FIX: Si es POST, SOLO guardar cache y retornar
     # Esto evita doble sincronización que causa pérdida de estado ON_MISSION
     if request.method == "POST":
+        synced_count = 0
         try:
-            data = request.get_json(force=True)
-            token_ids = data.get("token_ids", [])
-            total_supply = data.get("total_supply", None)
+            # Step 1: Parse request data
+            try:
+                data = request.get_json(force=True)
+                token_ids = data.get("token_ids", [])
+                total_supply = data.get("total_supply", None)
+                print(f"📦 POST data received: {len(token_ids)} token_ids, total_supply={total_supply}")
+            except Exception as e:
+                print(f"❌ Error parsing request data: {e}")
+                return jsonify({"success": False, "error": f"Invalid request data: {str(e)}"}), 400
 
-            print(f"📦 POST data received: {len(token_ids)} token_ids, total_supply={total_supply}")
-
+            # Step 2: Save wallet NFTs to cache
             if token_ids:
-                # Guardar los NFTs que posee esta wallet en cache
-                wallet_nfts = load_json(WALLET_NFTS_PATH, {})
-                print(f"📂 Current wallet_nfts keys: {list(wallet_nfts.keys())}")
-                wallet_nfts[wallet] = token_ids
-                save_json(WALLET_NFTS_PATH, wallet_nfts)
-                print(f"✅ Wallet {wallet[:6]}...{wallet[-4:]} registered with {len(token_ids)} NFTs: {token_ids}")
-                print(f"📂 Updated wallet_nfts keys: {list(wallet_nfts.keys())}")
+                try:
+                    wallet_nfts = load_json(WALLET_NFTS_PATH, {})
+                    print(f"📂 Current wallet_nfts keys: {list(wallet_nfts.keys())}")
+                    wallet_nfts[wallet] = token_ids
+                    save_json(WALLET_NFTS_PATH, wallet_nfts)
+                    print(f"✅ Wallet {wallet[:6]}...{wallet[-4:]} registered with {len(token_ids)} NFTs: {token_ids}")
+                    print(f"📂 Updated wallet_nfts keys: {list(wallet_nfts.keys())}")
+                except Exception as e:
+                    print(f"❌ Error saving wallet NFTs cache: {e}")
+                    # Continue anyway - this is not critical
 
-                # 🔥 AUTO-SINCRONIZACIÓN: Sincronizar cada NFT a la base de datos centralizada
-                print(f"🔄 AUTO-SYNC: Syncing {len(token_ids)} NFTs to database...")
-                synced_count = 0
-                for token_id in token_ids:
-                    try:
-                        # Sincronizar NFT a DB (si existe preserva estado, si es nuevo lo crea)
-                        nft = sync_nft_to_database(token_id, owner_wallet=wallet)
-                        synced_count += 1
-                        ds = nft.get("dynamic_state", {})
-                        print(f"  ✅ {token_id} → DB (xp: {ds.get('xp_total', 0)}, state: {ds.get('state', 'READY')})")
-                    except Exception as e:
-                        print(f"  ⚠️ Error syncing {token_id}: {e}")
+                # Step 3: Auto-sync NFTs to database
+                try:
+                    print(f"🔄 AUTO-SYNC: Syncing {len(token_ids)} NFTs to database...")
+                    for token_id in token_ids:
+                        try:
+                            # Sincronizar NFT a DB (si existe preserva estado, si es nuevo lo crea)
+                            nft = sync_nft_to_database(token_id, owner_wallet=wallet)
+                            synced_count += 1
+                            ds = nft.get("dynamic_state", {})
+                            print(f"  ✅ {token_id} → DB (xp: {ds.get('xp_total', 0)}, state: {ds.get('state', 'READY')})")
+                        except Exception as e:
+                            print(f"  ⚠️ Error syncing token {token_id}: {e}")
+                            import traceback
+                            traceback.print_exc()
+                            # Continue with other NFTs
+                    print(f"✅ Auto-sync complete: {synced_count}/{len(token_ids)} NFTs synced to database")
+                except Exception as e:
+                    print(f"❌ Error during NFT sync process: {e}")
+                    import traceback
+                    traceback.print_exc()
+                    # Continue anyway
 
-                # 🔥 AUTO-RECALCULAR STATS: Actualizar guilds.json con datos reales
-                print(f"📊 AUTO-RECALC: Updating global stats...")
-                calculate_guilds_data()
-                print(f"✅ Auto-sync complete: {synced_count}/{len(token_ids)} NFTs synced to database")
+                # Step 4: Recalculate guild stats
+                try:
+                    print(f"📊 AUTO-RECALC: Updating global stats...")
+                    calculate_guilds_data()
+                    print(f"✅ Guild stats updated")
+                except Exception as e:
+                    print(f"❌ Error calculating guild stats: {e}")
+                    import traceback
+                    traceback.print_exc()
+                    # Continue anyway
 
-            # 🔥 Guardar total_supply real del contrato para STATS
+            # Step 5: Update total supply
             if total_supply is not None:
-                stats_obj = load_json(STATS_PATH, {})
-                stats_obj["total_characters"] = total_supply
-                save_json(STATS_PATH, stats_obj)
-                print(f"✅ Contract total supply updated: {total_supply} characters")
+                try:
+                    stats_obj = load_json(STATS_PATH, {})
+                    stats_obj["total_characters"] = total_supply
+                    save_json(STATS_PATH, stats_obj)
+                    print(f"✅ Contract total supply updated: {total_supply} characters")
+                except Exception as e:
+                    print(f"❌ Error updating total supply: {e}")
+                    import traceback
+                    traceback.print_exc()
+                    # Continue anyway
 
             print(f"{'='*60}\n")
             # ✅ RETORNAR inmediatamente - NO llamar ensure_player() aquí
-            return jsonify({"success": True, "token_ids_cached": len(token_ids), "synced_to_database": synced_count if token_ids else 0})
+            return jsonify({
+                "success": True,
+                "token_ids_cached": len(token_ids) if token_ids else 0,
+                "synced_to_database": synced_count
+            })
 
         except Exception as e:
-            print(f"❌ Error processing POST data: {e}")
+            print(f"❌ CRITICAL ERROR processing POST data: {e}")
             import traceback
             traceback.print_exc()
             print(f"{'='*60}\n")
-            return jsonify({"success": False, "error": str(e)}), 500
+            return jsonify({
+                "success": False,
+                "error": str(e),
+                "synced_count": synced_count
+            }), 500
 
     # 🔥 Si es GET, sincronizar jugador y retornar datos
     print(f"🔄 Calling ensure_player() for wallet {wallet[:6]}...{wallet[-4:]}")
