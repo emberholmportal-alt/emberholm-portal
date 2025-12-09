@@ -959,8 +959,6 @@
             }
 
             const content = `
-                <div class="subheading" style="margin-bottom:15px;">EMBER ROLL // TEST YOUR FATE</div>
-
                 <div style="display:grid; grid-template-columns:1fr 1fr; gap:30px; margin-top:20px;">
                     <!-- LEFT COLUMN: Dice & Actions -->
                     <div style="display:flex; flex-direction:column; align-items:center; gap:15px;">
@@ -1121,12 +1119,24 @@
     }
 
     function showGambitResult(result, emissaryId) {
+        console.log('🎲 showGambitResult called with:', result);
+
         const diceDisplay = document.getElementById('dice-display');
         const resultDisplay = document.getElementById('gambit-result-display');
         const resultContent = document.getElementById('result-content');
         const rollBtn = document.querySelector('.btn-gambit');
 
-        if (!diceDisplay || !resultDisplay || !resultContent) return;
+        console.log('Elements found:', {
+            diceDisplay: !!diceDisplay,
+            resultDisplay: !!resultDisplay,
+            resultContent: !!resultContent,
+            rollBtn: !!rollBtn
+        });
+
+        if (!diceDisplay || !resultDisplay || !resultContent) {
+            console.error('❌ Missing required elements for result display');
+            return;
+        }
 
         const roll = result.roll || result.result;
         const emberChange = result.ember_change || 0;
@@ -1223,7 +1233,9 @@
         `;
 
         // Display the result area
+        console.log('📦 Showing result display...');
         resultDisplay.style.display = 'block';
+        console.log('✅ Result display shown, innerHTML length:', resultContent.innerHTML.length);
 
         // Update button - enable for next roll if available
         if (rollBtn) {
@@ -1231,15 +1243,18 @@
                 rollBtn.disabled = false;
                 const nextCost = result.rolls_remaining === (result.gambit_rolls_max || 5) - 1 ? 0 : 75;
                 rollBtn.textContent = `[ROLL THE D20${nextCost === 0 ? ' - FREE' : ' - ' + nextCost + ' $EMBER'}]`;
+                console.log(`🔄 Button updated for next roll: ${nextCost} $EMBER`);
             } else {
                 rollBtn.disabled = true;
                 rollBtn.textContent = '[NO ROLLS REMAINING TODAY]';
                 rollBtn.style.opacity = '0.3';
                 rollBtn.style.cursor = 'not-allowed';
+                console.log('🚫 No more rolls available');
             }
         }
 
         // Reload balance
+        console.log('💰 Reloading balance...');
         loadBalance(currentWallet);
     }
 
