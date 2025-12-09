@@ -993,8 +993,8 @@
                         `}
 
                         <!-- RESULT DISPLAY AREA -->
-                        <div id="gambit-result-display" style="width:100%; min-height:120px; padding:20px; border:2px solid var(--border-primary); background:rgba(0,0,0,0.5); text-align:center; display:none;">
-                            <div id="result-content"></div>
+                        <div id="gambit-result-display" style="width:100%; min-height:80px; padding:20px; border:2px solid var(--border-primary); background:rgba(0,0,0,0.5); text-align:center; display:none; margin-top:15px;">
+                            <div id="result-content" style="color:#fff;"></div>
                         </div>
 
                         <button class="modal-btn" onclick="closeGambitModal()" style="width:100%; margin-top:10px;">[CLOSE]</button>
@@ -1063,6 +1063,34 @@
         if (modal) {
             modal.classList.remove('active');
         }
+    };
+
+    // Test function to verify result display works
+    window.testGambitResultDisplay = function() {
+        console.log('🧪 Testing result display area...');
+        const resultDisplay = document.getElementById('gambit-result-display');
+        const resultContent = document.getElementById('result-content');
+
+        if (!resultDisplay || !resultContent) {
+            console.error('❌ Elements not found!');
+            return;
+        }
+
+        console.log('✅ Elements found');
+        resultContent.innerHTML = `
+            <div style="font-size:18px; color:var(--gold); margin-bottom:15px; font-weight:600;">
+                🧪 TEST RESULT
+            </div>
+            <div style="color:#4ade80; font-size:18px;">+999 $EMBER (TEST)</div>
+            <div style="margin-top:15px; padding-top:15px; border-top:1px solid var(--border-primary); font-size:14px; color:#888;">
+                This is a test result display
+            </div>
+        `;
+        resultDisplay.style.display = 'block';
+        resultDisplay.style.visibility = 'visible';
+        resultDisplay.style.opacity = '1';
+        console.log('✅ Test content inserted and display set to block');
+        console.log('Computed style:', window.getComputedStyle(resultDisplay).display);
     };
 
     window.rollGambitDice = async function(emissaryId, cost) {
@@ -1234,8 +1262,15 @@
 
         // Display the result area
         console.log('📦 Showing result display...');
+        console.log('Current display style:', resultDisplay.style.display);
         resultDisplay.style.display = 'block';
+        resultDisplay.style.visibility = 'visible';
+        resultDisplay.style.opacity = '1';
         console.log('✅ Result display shown, innerHTML length:', resultContent.innerHTML.length);
+        console.log('New display style:', resultDisplay.style.display);
+
+        // Force a reflow to ensure the display change takes effect
+        resultDisplay.offsetHeight;
 
         // Update button - enable for next roll if available
         if (rollBtn) {
