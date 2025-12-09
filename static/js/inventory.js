@@ -1120,6 +1120,7 @@
 
     async function performGambitRoll(emissaryId, cost) {
         try {
+            console.log('📡 Sending roll request:', { wallet: currentWallet, cost });
             const response = await fetch('/api/gambit/roll', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -1130,19 +1131,73 @@
                 })
             });
 
+            console.log('📨 Response status:', response.status);
             const data = await response.json();
+            console.log('📦 Response data:', data);
 
             if (data.error) {
-                alert('Error: ' + data.error);
-                closeGambitModal();
+                console.error('❌ Backend error:', data.error);
+                // Show error in result area instead of closing modal
+                const resultDisplay = document.getElementById('gambit-result-display');
+                const resultContent = document.getElementById('result-content');
+
+                if (resultDisplay && resultContent) {
+                    resultContent.innerHTML = `
+                        <div style="font-size:18px; color:#ef4444; margin-bottom:15px; font-weight:600;">
+                            ❌ ERROR
+                        </div>
+                        <div style="color:#888; font-size:14px;">${data.error}</div>
+                    `;
+                    resultDisplay.style.display = 'block';
+                    resultDisplay.style.visibility = 'visible';
+                    resultDisplay.style.opacity = '1';
+                } else {
+                    alert('Error: ' + data.error);
+                }
+
+                // Re-enable button
+                const rollBtn = document.querySelector('.btn-gambit');
+                if (rollBtn) {
+                    rollBtn.disabled = false;
+                    rollBtn.textContent = '[RETRY]';
+                }
                 return;
             }
 
+            if (!data.success) {
+                console.error('❌ Roll failed:', data);
+                alert('Roll failed. Please try again.');
+                return;
+            }
+
+            console.log('✅ Roll successful, showing result');
             showGambitResult(data, emissaryId);
         } catch (error) {
-            console.error('Error rolling dice:', error);
-            alert('Error rolling dice. Please try again.');
-            closeGambitModal();
+            console.error('❌ Error rolling dice:', error);
+            // Show error in result area
+            const resultDisplay = document.getElementById('gambit-result-display');
+            const resultContent = document.getElementById('result-content');
+
+            if (resultDisplay && resultContent) {
+                resultContent.innerHTML = `
+                    <div style="font-size:18px; color:#ef4444; margin-bottom:15px; font-weight:600;">
+                        ❌ NETWORK ERROR
+                    </div>
+                    <div style="color:#888; font-size:14px;">${error.message}</div>
+                `;
+                resultDisplay.style.display = 'block';
+                resultDisplay.style.visibility = 'visible';
+                resultDisplay.style.opacity = '1';
+            } else {
+                alert('Error rolling dice. Please try again.');
+            }
+
+            // Re-enable button
+            const rollBtn = document.querySelector('.btn-gambit');
+            if (rollBtn) {
+                rollBtn.disabled = false;
+                rollBtn.textContent = '[RETRY]';
+            }
         }
     }
 

@@ -4694,9 +4694,12 @@ def gambit_roll():
             return jsonify({"success": False, "message": "Database not available"}), 503
 
         # Get or create user balance using the new helper
+        print(f"🔍 Getting balance for wallet: {wallet[:6]}...{wallet[-4:]}")
         balance_info = db.get_or_create_user_balance(wallet)
+        print(f"📊 Balance info: {balance_info}")
 
         if balance_info is None:
+            print("❌ CRITICAL: balance_info is None")
             # Critical error - but allow free roll anyway
             if cost == 0:
                 print("⚠️ Database error but allowing free roll")
@@ -4728,11 +4731,18 @@ def gambit_roll():
             return jsonify({"error": f"Insufficient EMBER (need {cost}, have {ember_balance})"}), 400
 
         # Deduct cost and increment roll counter
+        print(f"💾 Getting database connection...")
         conn = db.get_connection()
+        if not conn:
+            print("❌ CRITICAL: Failed to get database connection")
+            return jsonify({"error": "Database connection failed"}), 500
+
         cursor = conn.cursor()
 
         try:
+            print(f"📝 Updating rolls_today counter: {rolls_today} -> {rolls_today + 1}")
             if cost > 0:
+                print(f"💰 Deducting {cost} EMBER from balance: {ember_balance} -> {ember_balance - cost}")
                 cursor.execute("""
                     UPDATE user_balances
                     SET ember_balance = ember_balance - %s,
@@ -4741,7 +4751,7 @@ def gambit_roll():
                     WHERE wallet = %s
                 """, (cost, wallet))
             else:
-                # Free roll - just increment counter
+                print(f"🆓 Free roll - only incrementing counter")
                 cursor.execute("""
                     UPDATE user_balances
                     SET gambit_rolls_today = gambit_rolls_today + 1,
@@ -4749,12 +4759,20 @@ def gambit_roll():
                     WHERE wallet = %s
                 """, (wallet,))
 
+            affected_rows = cursor.rowcount
+            print(f"📊 Rows affected by UPDATE: {affected_rows}")
+
+            if affected_rows == 0:
+                print(f"⚠️ WARNING: UPDATE affected 0 rows for wallet {wallet}")
+
             # Roll D20
             roll_result = random.randint(1, 20)
             reward = D20_REWARDS[roll_result]
+            print(f"🎲 Rolled: {roll_result}, Reward type: {reward['type']}")
 
             # Apply reward
             ember_change = reward["ember"]
+            print(f"💎 Applying ember reward: {ember_change}")
 
             cursor.execute("""
                 UPDATE user_balances
@@ -4763,15 +4781,19 @@ def gambit_roll():
                 WHERE wallet = %s
             """, (ember_change, wallet))
 
+            print(f"💾 Committing transaction...")
             conn.commit()
+            print(f"✅ Transaction committed successfully")
 
             # Get updated balance
             cursor.execute("""
-                SELECT ember_balance FROM user_balances WHERE wallet = %s
+                SELECT ember_balance, gambit_rolls_today FROM user_balances WHERE wallet = %s
             """, (wallet,))
-            new_balance = cursor.fetchone()[0]
+            row = cursor.fetchone()
+            new_balance = row[0]
+            new_rolls_today = row[1]
 
-            print(f"✅ Roll result: {roll_result}, reward: {reward['type']}, ember_change: {ember_change}, new_balance: {new_balance}")
+            print(f"✅ Roll complete: result={roll_result}, type={reward['type']}, ember_change={ember_change}, new_balance={new_balance}, new_rolls_today={new_rolls_today}")
 
             return jsonify({
                 "success": True,
@@ -4780,10 +4802,12 @@ def gambit_roll():
                 "ember_change": ember_change,
                 "item": reward["item"],
                 "new_balance": new_balance,
-                "rolls_remaining": max(0, rolls_max - (rolls_today + 1))
+                "rolls_remaining": max(0, rolls_max - new_rolls_today)
             })
 
         except Exception as e:
+            print(f"❌ ERROR during roll transaction: {e}")
+            print(f"🔄 Rolling back transaction...")
             conn.rollback()
             raise e
         finally:
