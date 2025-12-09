@@ -4693,44 +4693,11 @@ def gambit_roll():
                 })
             return jsonify({"success": False, "message": "Database not available"}), 503
 
-        # Get or create user balance using the new helper
-        print(f"🔍 Getting balance for wallet: {wallet[:6]}...{wallet[-4:]}")
-        balance_info = db.get_or_create_user_balance(wallet)
-        print(f"📊 Balance info: {balance_info}")
+        # Ensure user_balances table exists
+        print(f"🔍 Ensuring user_balances table exists...")
+        db.ensure_user_balances_table()
 
-        if balance_info is None:
-            print("❌ CRITICAL: balance_info is None")
-            # Critical error - but allow free roll anyway
-            if cost == 0:
-                print("⚠️ Database error but allowing free roll")
-                roll_result = random.randint(1, 20)
-                reward = D20_REWARDS[roll_result]
-                return jsonify({
-                    "success": True,
-                    "roll": roll_result,
-                    "reward_type": reward["type"],
-                    "ember_change": reward["ember"],
-                    "item": reward["item"],
-                    "message": "Free roll (database error)"
-                })
-            return jsonify({"error": "Database error"}), 500
-
-        ember_balance = balance_info["ember_balance"]
-        rolls_today = balance_info["gambit_rolls_today"]
-        rolls_max = balance_info["gambit_rolls_max"]
-
-        print(f"🎲 GAMBIT ROLL: wallet={wallet[:6]}...{wallet[-4:]}, cost={cost}, balance={ember_balance}, rolls={rolls_today}/{rolls_max}")
-
-        # Check if can roll
-        if rolls_today >= rolls_max:
-            return jsonify({"error": "No rolls remaining today"}), 400
-
-        # 🔥 IMPORTANT: First roll is ALWAYS free (cost = 0)
-        # Only check balance if cost > 0
-        if cost > 0 and ember_balance < cost:
-            return jsonify({"error": f"Insufficient EMBER (need {cost}, have {ember_balance})"}), 400
-
-        # Deduct cost and increment roll counter
+        # Get database connection for atomic operations
         print(f"💾 Getting database connection...")
         conn = db.get_connection()
         if not conn:
@@ -4740,6 +4707,46 @@ def gambit_roll():
         cursor = conn.cursor()
 
         try:
+            # First, ensure user row exists and get current state using UPSERT
+            print(f"🔍 Getting/creating balance for wallet: {wallet[:6]}...{wallet[-4:]}")
+            cursor.execute("""
+                INSERT INTO user_balances (wallet, ember_balance, ash_balance, gambit_rolls_today, gambit_rolls_max)
+                VALUES (%s, 0, 0, 0, 5)
+                ON CONFLICT (wallet) DO NOTHING
+                RETURNING ember_balance, gambit_rolls_today, gambit_rolls_max
+            """, (wallet,))
+
+            # Get the current state (either newly inserted or existing)
+            cursor.execute("""
+                SELECT ember_balance, gambit_rolls_today, gambit_rolls_max
+                FROM user_balances
+                WHERE wallet = %s
+            """, (wallet,))
+
+            row = cursor.fetchone()
+            if not row:
+                print("❌ CRITICAL: Failed to get user balance after UPSERT")
+                conn.rollback()
+                return jsonify({"error": "Database error"}), 500
+
+            ember_balance = row[0]
+            rolls_today = row[1]
+            rolls_max = row[2]
+
+            print(f"📊 Current state: balance={ember_balance}, rolls={rolls_today}/{rolls_max}")
+
+            # Check if can roll
+            if rolls_today >= rolls_max:
+                conn.rollback()
+                return jsonify({"error": "No rolls remaining today"}), 400
+
+            # 🔥 IMPORTANT: First roll is ALWAYS free (cost = 0)
+            # Only check balance if cost > 0
+            if cost > 0 and ember_balance < cost:
+                conn.rollback()
+                return jsonify({"error": f"Insufficient EMBER (need {cost}, have {ember_balance})"}), 400
+
+            # Atomically deduct cost and increment roll counter
             print(f"📝 Updating rolls_today counter: {rolls_today} -> {rolls_today + 1}")
             if cost > 0:
                 print(f"💰 Deducting {cost} EMBER from balance: {ember_balance} -> {ember_balance - cost}")
@@ -4763,7 +4770,9 @@ def gambit_roll():
             print(f"📊 Rows affected by UPDATE: {affected_rows}")
 
             if affected_rows == 0:
-                print(f"⚠️ WARNING: UPDATE affected 0 rows for wallet {wallet}")
+                print(f"❌ CRITICAL: UPDATE affected 0 rows for wallet {wallet}")
+                conn.rollback()
+                return jsonify({"error": "Failed to update roll counter"}), 500
 
             # Roll D20
             roll_result = random.randint(1, 20)

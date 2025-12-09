@@ -993,8 +993,8 @@
                         `}
 
                         <!-- RESULT DISPLAY AREA -->
-                        <div id="gambit-result-display" style="width:100%; min-height:80px; padding:20px; border:2px solid var(--border-primary); background:rgba(0,0,0,0.5); text-align:center; display:none; margin-top:15px;">
-                            <div id="result-content" style="color:#fff;"></div>
+                        <div id="gambit-result-display" style="width:100%; min-height:100px; padding:20px; border:2px solid var(--gold); background:rgba(0,0,0,0.7); text-align:center; display:none !important; margin-top:20px; border-radius:4px;">
+                            <div id="result-content" style="color:#fff; font-size:16px;"></div>
                         </div>
 
                         <button class="modal-btn" onclick="closeGambitModal()" style="width:100%; margin-top:10px;">[CLOSE]</button>
@@ -1086,7 +1086,7 @@
                 This is a test result display
             </div>
         `;
-        resultDisplay.style.display = 'block';
+        resultDisplay.style.setProperty('display', 'block', 'important');
         resultDisplay.style.visibility = 'visible';
         resultDisplay.style.opacity = '1';
         console.log('✅ Test content inserted and display set to block');
@@ -1148,7 +1148,7 @@
                         </div>
                         <div style="color:#888; font-size:14px;">${data.error}</div>
                     `;
-                    resultDisplay.style.display = 'block';
+                    resultDisplay.style.setProperty('display', 'block', 'important');
                     resultDisplay.style.visibility = 'visible';
                     resultDisplay.style.opacity = '1';
                 } else {
@@ -1185,7 +1185,7 @@
                     </div>
                     <div style="color:#888; font-size:14px;">${error.message}</div>
                 `;
-                resultDisplay.style.display = 'block';
+                resultDisplay.style.setProperty('display', 'block', 'important');
                 resultDisplay.style.visibility = 'visible';
                 resultDisplay.style.opacity = '1';
             } else {
@@ -1315,10 +1315,10 @@
             </style>
         `;
 
-        // Display the result area
+        // Display the result area with !important to override inline styles
         console.log('📦 Showing result display...');
         console.log('Current display style:', resultDisplay.style.display);
-        resultDisplay.style.display = 'block';
+        resultDisplay.style.setProperty('display', 'block', 'important');
         resultDisplay.style.visibility = 'visible';
         resultDisplay.style.opacity = '1';
         console.log('✅ Result display shown, innerHTML length:', resultContent.innerHTML.length);
