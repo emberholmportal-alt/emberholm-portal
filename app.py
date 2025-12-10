@@ -4797,7 +4797,7 @@ def ember_roll_perform():
                             "success_bonus": reward["success"],
                             "xp_bonus": reward["xp"],
                             "energy_reduction": reward["energy"],
-                            "expires_at": expires.isoformat()
+                            "expires_at": expires.isoformat().replace('+00:00', 'Z')
                         }
 
                         save_player(wallet, player)

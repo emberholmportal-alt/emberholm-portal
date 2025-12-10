@@ -228,6 +228,10 @@
     }
 
     function buildInventoryContent(emissary, availableItems) {
+        // Check if emissary is on mission
+        const ds = emissary.dynamic_state || {};
+        const onMission = ds.state === 'ON_MISSION';
+
         const slots = [
             { key: 'weapon', label: 'WEAPON', type: 'weapon', icon: '⚔️' },
             { key: 'armor', label: 'ARMOR', type: 'armor', icon: '🛡️' },
@@ -252,7 +256,7 @@
                             <strong>${equippedItem.name}</strong><br/>
                             <small>${formatStats(equippedItem.stats)}</small>
                         </div>
-                        <button class="terminal-btn small-btn btn-unequip" data-item-id="${equippedItem.id}" data-slot="${slot.key}">
+                        <button class="terminal-btn small-btn btn-unequip" data-item-id="${equippedItem.id}" data-slot="${slot.key}" ${onMission ? 'disabled title="Cannot modify equipment during mission"' : ''}>
                             [UNEQUIP]
                         </button>
                     </div>
@@ -276,7 +280,7 @@
                         <select class="equipment-select" data-slot="${slot.key}" style="width:100%; padding:8px; margin:10px 0; background:var(--bg-panel); color:var(--primary-green); border:1px solid var(--border-primary);">
                             ${optionsHtml}
                         </select>
-                        <button class="terminal-btn small-btn btn-equip" data-slot="${slot.key}" ${availableForSlot.length === 0 ? 'disabled' : ''}>
+                        <button class="terminal-btn small-btn btn-equip" data-slot="${slot.key}" ${(availableForSlot.length === 0 || onMission) ? 'disabled' : ''} ${onMission ? 'title="Cannot modify equipment during mission"' : ''}>
                             [EQUIP]
                         </button>
                     </div>
@@ -302,7 +306,7 @@
                             <strong>${equippedRune.name}</strong><br/>
                             <small>${formatStats(equippedRune.stats)}</small>
                         </div>
-                        <button class="terminal-btn small-btn btn-unequip-rune" data-item-id="${equippedRune.id}" data-rune-index="${i}">
+                        <button class="terminal-btn small-btn btn-unequip-rune" data-item-id="${equippedRune.id}" data-rune-index="${i}" ${onMission ? 'disabled title="Cannot modify equipment during mission"' : ''}>
                             [UNEQUIP]
                         </button>
                     </div>
@@ -326,7 +330,7 @@
                         <select class="rune-select" data-rune-index="${i}" style="width:100%; padding:8px; margin:10px 0; background:var(--bg-panel); color:var(--primary-green); border:1px solid var(--border-primary);">
                             ${optionsHtml}
                         </select>
-                        <button class="terminal-btn small-btn btn-equip-rune" data-rune-index="${i}" ${availableRunes.length === 0 ? 'disabled' : ''}>
+                        <button class="terminal-btn small-btn btn-equip-rune" data-rune-index="${i}" ${(availableRunes.length === 0 || onMission) ? 'disabled' : ''} ${onMission ? 'title="Cannot modify equipment during mission"' : ''}>
                             [EQUIP]
                         </button>
                     </div>
@@ -1144,20 +1148,65 @@ window.performEmberRoll = async function(emissaryId) {
     window.showPushModal = async function(emissaryId) {
         console.log('Opening PUSH modal for emissary:', emissaryId);
 
-        const modal = document.getElementById('push-modal');
-        if (!modal) return;
-
-        // Find emissary in current roster
-        const emissary = currentEmissaries.find(e => String(e.token_id) === String(emissaryId));
-        if (!emissary) {
-            alert('Emissary not found.');
+        if (!currentWallet) {
+            alert('Please connect your wallet first');
             return;
         }
 
-        // Check if emissary is on a mission (state can be "ON_MISSION" or "IN_PROGRESS")
-        const onMission = emissary.state === 'ON_MISSION' || emissary.state === 'IN_PROGRESS';
-        if (!onMission) {
-            alert('This emissary is not currently on a mission.');
+        const modal = document.getElementById('push-modal');
+        if (!modal) return;
+
+        // Get emissary data from server
+        let emissary = null;
+        try {
+            const response = await fetch(`/api/player/${currentWallet}`);
+            const playerData = await response.json();
+
+            // Find the emissary
+            emissary = (playerData.heroes || []).find(h => String(h.token_id) === String(emissaryId));
+
+            if (!emissary) {
+                alert('Emissary not found.');
+                return;
+            }
+
+            const ds = emissary.dynamic_state || {};
+            const state = ds.state || 'READY';
+
+            // Check if emissary is on a mission
+            if (state !== 'ON_MISSION') {
+                alert('This emissary is not currently on a mission.');
+                return;
+            }
+
+            // Get mission data
+            const missionId = ds.current_mission_id;
+            const missionStart = ds.mission_start_time;
+
+            if (!missionId || !missionStart) {
+                alert('Mission data not found.');
+                return;
+            }
+
+            // Get mission details
+            const missionsResponse = await fetch('/api/missions');
+            const missionsData = await missionsResponse.json();
+            const missionInfo = missionsData.find(m => m.id === missionId);
+
+            if (!missionInfo) {
+                alert('Mission information not found.');
+                return;
+            }
+
+            // Add mission info to emissary object for the rest of the function
+            emissary.mission_start = missionStart;
+            emissary.mission_duration = missionInfo.duration_hours;
+            emissary.state = state;
+            emissary.state_message = `${missionInfo.name} - ${missionInfo.difficulty}`;
+
+        } catch (error) {
+            console.error('Error loading emissary data:', error);
+            alert('Failed to load emissary data');
             return;
         }
 
