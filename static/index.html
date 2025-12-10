@@ -212,6 +212,8 @@
             <button class="cmd-link" data-target="missions">[MISSIONS]</button>
             <button class="cmd-link" data-target="profile">[PROFILE]</button>
             <button class="cmd-link" data-target="vault">[VAULT]</button>
+            <button class="cmd-link" data-target="ember-roll">[EMBER ROLL]</button>
+            <button class="cmd-link" data-target="marketplace">[MARKETPLACE]</button>
             <button class="cmd-link" data-target="tutorial">[HELP/TUTORIAL]</button>
             <button class="cmd-link" data-target="lore">[LORE]</button>
             <button class="cmd-link" data-target="announcements">[ANNOUNCEMENTS]</button>
@@ -503,6 +505,201 @@
             <div id="vault-items-container">
                 <div class="mono-block" style="text-align:center; padding:40px;">
                     <p style="color:var(--dim-green);">Connect your wallet to view your vault.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- EMBER ROLL -->
+    <section class="screen" data-screen="ember-roll">
+        <div class="section-block">
+            <div class="section-title">🎲 EMBER ROLL // D20 MISSION BONUSES</div>
+
+            <div class="mono-block">
+                <h3 style="color: var(--gold); margin-bottom: 15px;">¿Qué es EMBER ROLL?</h3>
+                <p style="color: var(--text-primary); line-height: 1.8; margin-bottom: 20px;">
+                    EMBER ROLL es un sistema de bonificación diaria que te permite lanzar un D20 virtual para obtener
+                    buffs temporales que afectan <strong>TODAS las misiones</strong> que realices durante ese día.
+                </p>
+
+                <h3 style="color: var(--gold); margin-bottom: 15px;">Mecánica del Sistema</h3>
+                <ul style="color: var(--text-primary); line-height: 1.8; margin-bottom: 20px; list-style: none; padding-left: 20px;">
+                    <li style="margin-bottom: 10px;">📅 <strong>5 Rolls por día:</strong> Cada jugador tiene 5 intentos diarios para lanzar el dado</li>
+                    <li style="margin-bottom: 10px;">🎲 <strong>D20 Virtual:</strong> Lanza un dado de 20 caras y obtén recompensas según el resultado</li>
+                    <li style="margin-bottom: 10px;">🌍 <strong>Efecto Global:</strong> Los buffs afectan a TODAS las misiones del día, no solo a un emisario</li>
+                    <li style="margin-bottom: 10px;">⏰ <strong>Duración:</strong> Los buffs expiran al final del día (reseteo a las 00:00 UTC)</li>
+                    <li style="margin-bottom: 10px;">🔥 <strong>Primer roll gratis:</strong> El primer roll del día es gratuito, los siguientes cuestan $EMBER</li>
+                </ul>
+
+                <h3 style="color: var(--gold); margin-bottom: 15px;">Tabla de Recompensas (D20)</h3>
+                <div style="border: 1px solid var(--border-primary); padding: 15px; background: rgba(0,0,0,0.3); margin-bottom: 20px;">
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <thead>
+                            <tr style="border-bottom: 1px solid var(--border-primary);">
+                                <th style="padding: 10px; text-align: left; color: var(--gold);">Roll</th>
+                                <th style="padding: 10px; text-align: left; color: var(--gold);">Resultado</th>
+                                <th style="padding: 10px; text-align: left; color: var(--gold);">Bonificaciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr style="background: rgba(239,68,68,0.1);">
+                                <td style="padding: 10px; color: #ef4444;">1 (Critical Fail)</td>
+                                <td style="padding: 10px; color: #ef4444;">💀 Desastre</td>
+                                <td style="padding: 10px; color: #ef4444;">-20% XP, -10% Éxito</td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 10px; color: #9ca3af;">2-5</td>
+                                <td style="padding: 10px;">😕 Mala Suerte</td>
+                                <td style="padding: 10px;">-10% XP, -5% Éxito</td>
+                            </tr>
+                            <tr style="background: rgba(156,163,175,0.1);">
+                                <td style="padding: 10px;">6-10</td>
+                                <td style="padding: 10px;">😐 Normal</td>
+                                <td style="padding: 10px;">Sin efecto</td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 10px; color: #4ade80;">11-15</td>
+                                <td style="padding: 10px; color: #4ade80;">🙂 Buena Suerte</td>
+                                <td style="padding: 10px; color: #4ade80;">+10% XP, +5% Éxito, -5% Energy</td>
+                            </tr>
+                            <tr style="background: rgba(74,222,128,0.1);">
+                                <td style="padding: 10px; color: #22c55e;">16-19</td>
+                                <td style="padding: 10px; color: #22c55e;">😃 Gran Éxito</td>
+                                <td style="padding: 10px; color: #22c55e;">+20% XP, +10% Éxito, -10% Energy</td>
+                            </tr>
+                            <tr style="background: rgba(255,215,0,0.1);">
+                                <td style="padding: 10px; color: var(--gold);">20 (Natural 20)</td>
+                                <td style="padding: 10px; color: var(--gold);">✨ ¡CRÍTICO!</td>
+                                <td style="padding: 10px; color: var(--gold);">+50% XP, +20% Éxito, -20% Energy, +10% $EMBER</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h3 style="color: var(--gold); margin-bottom: 15px;">Costos</h3>
+                <ul style="color: var(--text-primary); line-height: 1.8; margin-bottom: 20px; list-style: none; padding-left: 20px;">
+                    <li style="margin-bottom: 10px;">🆓 <strong>Roll #1:</strong> GRATIS</li>
+                    <li style="margin-bottom: 10px;">🔥 <strong>Roll #2-5:</strong> 75 $EMBER por roll</li>
+                </ul>
+
+                <div style="border: 2px solid #f59e0b; padding: 20px; background: rgba(245,158,11,0.1); margin-top: 30px; text-align: center;">
+                    <h3 style="color: #f59e0b; font-size: 18px; margin-bottom: 10px;">⚠️ FUNCIÓN TEMPORALMENTE DESACTIVADA</h3>
+                    <p style="color: #888; font-size: 14px;">
+                        El sistema EMBER ROLL se encuentra actualmente en desarrollo y no está disponible.<br/>
+                        Será activado en una futura actualización del portal.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- MARKETPLACE -->
+    <section class="screen" data-screen="marketplace">
+        <div class="section-block">
+            <div class="section-title">🏪 MARKETPLACE // TRADING HUB</div>
+
+            <div class="mono-block">
+                <h3 style="color: var(--gold); margin-bottom: 15px;">¿Qué es el Marketplace?</h3>
+                <p style="color: var(--text-primary); line-height: 1.8; margin-bottom: 20px;">
+                    El Marketplace es el centro de comercio de Emberholm donde los jugadores pueden comprar, vender e
+                    intercambiar recursos, equipamiento y NFTs de forma descentralizada.
+                </p>
+
+                <h3 style="color: var(--gold); margin-bottom: 15px;">Funcionalidades Planeadas</h3>
+
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-bottom: 25px;">
+                    <div style="border: 1px solid var(--border-primary); padding: 15px; background: rgba(0,0,0,0.3);">
+                        <h4 style="color: #4ade80; margin-bottom: 10px;">⚔️ Equipamiento</h4>
+                        <ul style="color: var(--text-primary); font-size: 13px; line-height: 1.6; list-style: none; padding-left: 0;">
+                            <li>→ Armas (Común, Rara, Épica, Legendaria)</li>
+                            <li>→ Armaduras y Cascos</li>
+                            <li>→ Accesorios y Amuletos</li>
+                            <li>→ Runas de poder</li>
+                        </ul>
+                    </div>
+
+                    <div style="border: 1px solid var(--border-primary); padding: 15px; background: rgba(0,0,0,0.3);">
+                        <h4 style="color: #4ade80; margin-bottom: 10px;">💎 Recursos</h4>
+                        <ul style="color: var(--text-primary); font-size: 13px; line-height: 1.6; list-style: none; padding-left: 0;">
+                            <li>→ $EMBER (token principal)</li>
+                            <li>→ $AURA (experiencia transferible)</li>
+                            <li>→ Materiales de crafteo</li>
+                            <li>→ Pociones y consumibles</li>
+                        </ul>
+                    </div>
+
+                    <div style="border: 1px solid var(--border-primary); padding: 15px; background: rgba(0,0,0,0.3);">
+                        <h4 style="color: #4ade80; margin-bottom: 10px;">🎴 NFTs</h4>
+                        <ul style="color: var(--text-primary); font-size: 13px; line-height: 1.6; list-style: none; padding-left: 0;">
+                            <li>→ Emissaries (héroes completos)</li>
+                            <li>→ Lands (territorios stake-ables)</li>
+                            <li>→ Items especiales limitados</li>
+                            <li>→ Cosméticos y skins</li>
+                        </ul>
+                    </div>
+
+                    <div style="border: 1px solid var(--border-primary); padding: 15px; background: rgba(0,0,0,0.3);">
+                        <h4 style="color: #4ade80; margin-bottom: 10px;">🤝 Trading</h4>
+                        <ul style="color: var(--text-primary); font-size: 13px; line-height: 1.6; list-style: none; padding-left: 0;">
+                            <li>→ Ofertas de compra/venta</li>
+                            <li>→ Subastas temporales</li>
+                            <li>→ Intercambios directos P2P</li>
+                            <li>→ Sistema de reputación</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <h3 style="color: var(--gold); margin-bottom: 15px;">Características del Sistema</h3>
+                <ul style="color: var(--text-primary); line-height: 1.8; margin-bottom: 20px; list-style: none; padding-left: 20px;">
+                    <li style="margin-bottom: 10px;">🔗 <strong>Blockchain-based:</strong> Todas las transacciones se registran on-chain</li>
+                    <li style="margin-bottom: 10px;">💰 <strong>Fee Structure:</strong> Comisión del 2.5% por transacción (va al treasury)</li>
+                    <li style="margin-bottom: 10px;">🔍 <strong>Filtros Avanzados:</strong> Busca por rareza, tipo, stats, precio, etc.</li>
+                    <li style="margin-bottom: 10px;">📊 <strong>Historial de Precios:</strong> Gráficos y estadísticas de mercado</li>
+                    <li style="margin-bottom: 10px;">⚡ <strong>Instant Trade:</strong> Compras instantáneas o negociación por oferta</li>
+                    <li style="margin-bottom: 10px;">🛡️ <strong>Escrow System:</strong> Sistema de garantía para intercambios seguros</li>
+                </ul>
+
+                <h3 style="color: var(--gold); margin-bottom: 15px;">Tipos de Listados</h3>
+                <div style="border: 1px solid var(--border-primary); padding: 15px; background: rgba(0,0,0,0.3); margin-bottom: 20px;">
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <thead>
+                            <tr style="border-bottom: 1px solid var(--border-primary);">
+                                <th style="padding: 10px; text-align: left; color: var(--gold);">Tipo</th>
+                                <th style="padding: 10px; text-align: left; color: var(--gold);">Descripción</th>
+                                <th style="padding: 10px; text-align: left; color: var(--gold);">Duración</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td style="padding: 10px; color: #4ade80;">Fixed Price</td>
+                                <td style="padding: 10px;">Precio fijo, compra instantánea</td>
+                                <td style="padding: 10px;">7 días</td>
+                            </tr>
+                            <tr style="background: rgba(0,0,0,0.2);">
+                                <td style="padding: 10px; color: #3b82f6;">Auction</td>
+                                <td style="padding: 10px;">Subasta al mejor postor</td>
+                                <td style="padding: 10px;">3-7 días</td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 10px; color: #a855f7;">Trade Offer</td>
+                                <td style="padding: 10px;">Intercambio por otros items</td>
+                                <td style="padding: 10px;">14 días</td>
+                            </tr>
+                            <tr style="background: rgba(0,0,0,0.2);">
+                                <td style="padding: 10px; color: #f59e0b;">Bundle</td>
+                                <td style="padding: 10px;">Paquete de múltiples items</td>
+                                <td style="padding: 10px;">7 días</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div style="border: 2px solid #f59e0b; padding: 20px; background: rgba(245,158,11,0.1); margin-top: 30px; text-align: center;">
+                    <h3 style="color: #f59e0b; font-size: 18px; margin-bottom: 10px;">⚠️ MARKETPLACE TEMPORALMENTE DESACTIVADO</h3>
+                    <p style="color: #888; font-size: 14px;">
+                        El Marketplace se encuentra actualmente en desarrollo y no está disponible.<br/>
+                        Será activado en una futura actualización del portal una vez completadas las auditorías de seguridad.
+                    </p>
                 </div>
             </div>
         </div>
@@ -2694,9 +2891,6 @@ async function loadPlayerAndRender(){
                         <button class="action-btn inventory" onclick="showInventoryModal('${h.token_id}')" title="Manage Equipment">
                             [INVENTORY]
                         </button>
-                        <button class="action-btn ember-roll" onclick="showEmberRoll('${h.token_id}')" title="Roll D20 for mission bonuses">
-                            [EMBER ROLL]
-                        </button>
                         <button class="action-btn send" onclick="openMissionListModal('${h.token_id}')">
                             [SEND MISSION]
                         </button>
@@ -2710,9 +2904,6 @@ async function loadPlayerAndRender(){
                         <div class="actions-cell">
                             <button class="action-btn inventory" onclick="showInventoryModal('${h.token_id}')">
                                 [INVENTORY]
-                            </button>
-                            <button class="action-btn ember-roll" onclick="showEmberRoll('${h.token_id}')">
-                                [EMBER ROLL]
                             </button>
                             <button class="action-btn claim complete-btn" data-hero="${h.token_id}">
                                 [CLAIM]
@@ -2728,7 +2919,7 @@ async function loadPlayerAndRender(){
                                 [INVENTORY]
                             </button>
                             <button class="action-btn push" onclick="showPushModal('${h.token_id}')">
-                                [PUSH]
+                                [$EMBER PUSH]
                             </button>
                             <button class="action-btn disabled">
                                 [--]

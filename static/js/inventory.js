@@ -1299,58 +1299,24 @@ window.performEmberRoll = async function(emissaryId) {
                 </div>
             </div>
 
-            <!-- Push Options -->
-            <div class="subheading" style="margin-top: 20px;">ACCELERATION OPTIONS</div>
+            <!-- Push Option -->
+            <div class="subheading" style="margin-top: 20px;">$EMBER PUSH - COMPLETE MISSION NOW</div>
             <p style="font-size: 11px; color: #888; margin: 8px 0 15px 0;">
-                Costs scaled to remaining time (${remainingPercent.toFixed(0)}% of base cost)
+                Cost based on difficulty (${difficulty.toUpperCase()}) and remaining time (${remainingPercent.toFixed(0)}%)
             </p>
 
-            <div style="display: grid; gap: 12px; margin: 15px 0;">
-                <!-- 25% Option -->
-                <div style="border: 1px solid #f59e0b; padding: 12px; background: rgba(245,158,11,0.05);">
+            <div style="margin: 15px 0;">
+                <!-- 100% Option (Complete Mission) -->
+                <div style="border: 2px solid #f59e0b; padding: 20px; background: rgba(245,158,11,0.1);">
                     <div style="display: flex; justify-content: space-between; align-items: center;">
                         <div>
-                            <div style="font-size: 14px; color: #f59e0b; font-weight: bold;">[25% FASTER]</div>
-                            <div style="font-size: 11px; color: #888; margin-top: 4px;">
-                                Reduce time by ${timeReductions.push25}h
+                            <div style="font-size: 16px; color: #f59e0b; font-weight: bold;">🚀 COMPLETE MISSION</div>
+                            <div style="font-size: 12px; color: #888; margin-top: 6px;">
+                                Finish mission immediately and collect rewards
                             </div>
                         </div>
                         <div style="text-align: right;">
-                            <div style="font-size: 13px; color: var(--text-primary);">
-                                ${costs.push25} $EMBER
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- 50% Option -->
-                <div style="border: 1px solid #f59e0b; padding: 12px; background: rgba(245,158,11,0.05);">
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <div>
-                            <div style="font-size: 14px; color: #f59e0b; font-weight: bold;">[50% FASTER]</div>
-                            <div style="font-size: 11px; color: #888; margin-top: 4px;">
-                                Reduce time by ${timeReductions.push50}h
-                            </div>
-                        </div>
-                        <div style="text-align: right;">
-                            <div style="font-size: 13px; color: var(--text-primary);">
-                                ${costs.push50} $EMBER
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- 100% Option (Instant) -->
-                <div style="border: 1px solid #f59e0b; padding: 12px; background: rgba(245,158,11,0.1);">
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <div>
-                            <div style="font-size: 14px; color: #f59e0b; font-weight: bold;">[100% INSTANT]</div>
-                            <div style="font-size: 11px; color: #888; margin-top: 4px;">
-                                Complete mission immediately
-                            </div>
-                        </div>
-                        <div style="text-align: right;">
-                            <div style="font-size: 13px; color: var(--text-primary);">
+                            <div style="font-size: 18px; color: var(--gold); font-weight: bold;">
                                 ${costs.push100} $EMBER
                             </div>
                         </div>
@@ -1359,15 +1325,9 @@ window.performEmberRoll = async function(emissaryId) {
             </div>
 
             <!-- Action Buttons -->
-            <div class="modal-buttons" style="margin-top: 20px;">
-                <button class="modal-btn btn-push" onclick="performPush('${emissaryId}', 25, ${costs.push25})">
-                    [PUSH 25%]
-                </button>
-                <button class="modal-btn btn-push" onclick="performPush('${emissaryId}', 50, ${costs.push50})">
-                    [PUSH 50%]
-                </button>
-                <button class="modal-btn btn-push" onclick="performPush('${emissaryId}', 100, ${costs.push100})">
-                    [PUSH 100%]
+            <div class="modal-buttons" style="margin-top: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <button class="modal-btn btn-push" onclick="performPush('${emissaryId}', 100, ${costs.push100})" style="background: #f59e0b; border-color: #f59e0b; color: #000; font-weight: bold;">
+                    [$EMBER PUSH - ${costs.push100} 🔥]
                 </button>
                 <button class="modal-btn" onclick="closePushModal()">
                     [CANCEL]
