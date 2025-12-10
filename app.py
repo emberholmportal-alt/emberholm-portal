@@ -4027,26 +4027,44 @@ REVIVE_COSTS = {
 BURN_RATE = 100  # 100 EMBER = 1 ASH
 
 D20_REWARDS = {
-    1: {"type": "critical_fail", "ember": -100, "item": None},
-    2: {"type": "nothing", "ember": 0, "item": None},
-    3: {"type": "nothing", "ember": 0, "item": None},
-    4: {"type": "nothing", "ember": 0, "item": None},
-    5: {"type": "nothing", "ember": 0, "item": None},
-    6: {"type": "ember", "ember": 50, "item": None},
-    7: {"type": "ember", "ember": 50, "item": None},
-    8: {"type": "ember", "ember": 50, "item": None},
-    9: {"type": "ember", "ember": 100, "item": None},
-    10: {"type": "ember", "ember": 100, "item": None},
-    11: {"type": "ember", "ember": 100, "item": None},
-    12: {"type": "ember", "ember": 200, "item": None},
-    13: {"type": "ember", "ember": 200, "item": None},
-    14: {"type": "ember", "ember": 200, "item": None},
-    15: {"type": "ember", "ember": 350, "item": None},
-    16: {"type": "ember", "ember": 350, "item": None},
-    17: {"type": "ember", "ember": 350, "item": None},
-    18: {"type": "ember_and_item", "ember": 500, "item": "random_common"},
-    19: {"type": "ember_and_item", "ember": 500, "item": "random_common"},
-    20: {"type": "natural_20", "ember": 1000, "item": "random_rare_or_epic"}
+    # [1] Critical Fail: Lose EMBER + Mission penalties
+    1: {
+        "type": "critical_fail",
+        "name": "CRITICAL FAIL",
+        "ember": -100,
+        "success_bonus": -20,  # -20% success rate in missions
+        "xp_bonus": -10,  # -10% XP gained
+        "energy_cost_reduction": 0,
+        "duration_hours": 24,
+        "item": None
+    },
+    # [2-5] Nothing: No effects
+    2: {"type": "nothing", "name": "NOTHING", "ember": 0, "success_bonus": 0, "xp_bonus": 0, "energy_cost_reduction": 0, "duration_hours": 0, "item": None},
+    3: {"type": "nothing", "name": "NOTHING", "ember": 0, "success_bonus": 0, "xp_bonus": 0, "energy_cost_reduction": 0, "duration_hours": 0, "item": None},
+    4: {"type": "nothing", "name": "NOTHING", "ember": 0, "success_bonus": 0, "xp_bonus": 0, "energy_cost_reduction": 0, "duration_hours": 0, "item": None},
+    5: {"type": "nothing", "name": "NOTHING", "ember": 0, "success_bonus": 0, "xp_bonus": 0, "energy_cost_reduction": 0, "duration_hours": 0, "item": None},
+    # [6-8] Graze: Small EMBER + minor mission boost
+    6: {"type": "graze", "name": "GRAZE", "ember": 50, "success_bonus": 5, "xp_bonus": 0, "energy_cost_reduction": 0, "duration_hours": 12, "item": None},
+    7: {"type": "graze", "name": "GRAZE", "ember": 50, "success_bonus": 5, "xp_bonus": 0, "energy_cost_reduction": 0, "duration_hours": 12, "item": None},
+    8: {"type": "graze", "name": "GRAZE", "ember": 50, "success_bonus": 5, "xp_bonus": 0, "energy_cost_reduction": 0, "duration_hours": 12, "item": None},
+    # [9-11] Hit: Medium EMBER + moderate mission boost
+    9: {"type": "hit", "name": "HIT", "ember": 100, "success_bonus": 10, "xp_bonus": 5, "energy_cost_reduction": 0, "duration_hours": 24, "item": None},
+    10: {"type": "hit", "name": "HIT", "ember": 100, "success_bonus": 10, "xp_bonus": 5, "energy_cost_reduction": 0, "duration_hours": 24, "item": None},
+    11: {"type": "hit", "name": "HIT", "ember": 100, "success_bonus": 10, "xp_bonus": 5, "energy_cost_reduction": 0, "duration_hours": 24, "item": None},
+    # [12-14] Solid Hit: Good EMBER + good mission boost
+    12: {"type": "solid_hit", "name": "SOLID HIT", "ember": 200, "success_bonus": 15, "xp_bonus": 10, "energy_cost_reduction": 0, "duration_hours": 24, "item": None},
+    13: {"type": "solid_hit", "name": "SOLID HIT", "ember": 200, "success_bonus": 15, "xp_bonus": 10, "energy_cost_reduction": 0, "duration_hours": 24, "item": None},
+    14: {"type": "solid_hit", "name": "SOLID HIT", "ember": 200, "success_bonus": 15, "xp_bonus": 10, "energy_cost_reduction": 0, "duration_hours": 24, "item": None},
+    # [15-17] Great Hit: Great EMBER + strong mission boost
+    15: {"type": "great_hit", "name": "GREAT HIT", "ember": 350, "success_bonus": 20, "xp_bonus": 15, "energy_cost_reduction": 0, "duration_hours": 24, "item": None},
+    16: {"type": "great_hit", "name": "GREAT HIT", "ember": 350, "success_bonus": 20, "xp_bonus": 15, "energy_cost_reduction": 0, "duration_hours": 24, "item": None},
+    17: {"type": "great_hit", "name": "GREAT HIT", "ember": 350, "success_bonus": 20, "xp_bonus": 15, "energy_cost_reduction": 0, "duration_hours": 24, "item": None},
+    # [18] Critical: Excellent EMBER + excellent mission boost + item
+    18: {"type": "critical", "name": "CRITICAL!", "ember": 500, "success_bonus": 25, "xp_bonus": 20, "energy_cost_reduction": 10, "duration_hours": 48, "item": "random_common"},
+    # [19] Superior: Excellent EMBER + superior mission boost + item
+    19: {"type": "superior", "name": "SUPERIOR", "ember": 500, "success_bonus": 30, "xp_bonus": 25, "energy_cost_reduction": 15, "duration_hours": 48, "item": "random_common"},
+    # [20] Natural 20: Maximum EMBER + maximum boosts + rare item
+    20: {"type": "natural_20", "name": "NATURAL 20!", "ember": 1000, "success_bonus": 35, "xp_bonus": 30, "energy_cost_reduction": 25, "duration_hours": 72, "item": "random_rare_or_epic"}
 }
 
 # ---------------------------------
@@ -4673,10 +4691,14 @@ def gambit_roll():
     try:
         data = request.get_json()
         wallet = data.get('wallet', '').lower()
+        emissary_id = data.get('emissary_id')
         cost = data.get('cost', 75)  # Get cost from frontend (0 for free roll, 75 otherwise)
 
         if not wallet:
             return jsonify({"error": "Wallet required"}), 400
+
+        if not emissary_id:
+            return jsonify({"error": "Emissary ID required"}), 400
 
         if not POSTGRESQL_AVAILABLE:
             # PostgreSQL not available - still allow free roll for testing
@@ -4819,15 +4841,54 @@ def gambit_roll():
 
             print(f"✅ Roll complete: result={roll_result}, type={reward['type']}, ember_change={ember_change}, new_balance={new_balance}, new_rolls_today={new_rolls_today}")
 
+            # 🎯 SAVE BUFF TO EMISSARY - Apply buff to the specific emissary
+            buff_expires_at = None
+            if reward["duration_hours"] > 0:
+                buff_expires_at = datetime.now(timezone.utc) + timedelta(hours=reward["duration_hours"])
+                print(f"🔮 Applying buff to emissary {emissary_id}: +{reward['success_bonus']}% success, +{reward['xp_bonus']}% XP, expires {buff_expires_at}")
+
+                try:
+                    player_obj, player_path = load_or_init_player(wallet)
+                    heroes = player_obj.get("heroes", [])
+
+                    for hero in heroes:
+                        if str(hero.get("token_id")) == str(emissary_id):
+                            ds = hero.setdefault("dynamic_state", {})
+                            ds["last_gambit_roll"] = {
+                                "roll": roll_result,
+                                "name": reward["name"],
+                                "ember_gained": ember_change,
+                                "success_bonus": reward["success_bonus"],
+                                "xp_bonus": reward["xp_bonus"],
+                                "energy_cost_reduction": reward["energy_cost_reduction"],
+                                "expires_at": buff_expires_at.isoformat() if buff_expires_at else None,
+                                "rolled_at": datetime.now(timezone.utc).isoformat()
+                            }
+                            save_player(wallet, player_obj)
+                            print(f"✅ Buff saved to emissary {emissary_id}")
+                            break
+                except Exception as e:
+                    print(f"⚠️ Warning: Failed to save buff to emissary: {e}")
+                    # Don't fail the whole request if buff saving fails
+
             return jsonify({
                 "success": True,
                 "roll": roll_result,
                 "reward_type": reward["type"],
+                "reward_name": reward["name"],
                 "ember_change": ember_change,
                 "item": reward["item"],
                 "new_balance": new_balance,
                 "rolls_remaining": max(0, rolls_max - new_rolls_today),
-                "gambit_rolls_max": rolls_max
+                "gambit_rolls_max": rolls_max,
+                # Buff info for frontend display
+                "buff": {
+                    "success_bonus": reward["success_bonus"],
+                    "xp_bonus": reward["xp_bonus"],
+                    "energy_cost_reduction": reward["energy_cost_reduction"],
+                    "duration_hours": reward["duration_hours"],
+                    "expires_at": buff_expires_at.isoformat() if buff_expires_at else None
+                }
             })
 
         except Exception as e:

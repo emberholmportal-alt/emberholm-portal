@@ -1233,12 +1233,33 @@
         let outcomeText = '';
         let rewardsHtml = '';
 
+        // Build buff display if buff exists
+        const buff = result.buff || {};
+        let buffHtml = '';
+        if (buff.duration_hours && buff.duration_hours > 0) {
+            const buffs = [];
+            if (buff.success_bonus > 0) buffs.push(`<span style="color:#4ade80;">+${buff.success_bonus}% Success Rate</span>`);
+            if (buff.success_bonus < 0) buffs.push(`<span style="color:#ef4444;">${buff.success_bonus}% Success Rate</span>`);
+            if (buff.xp_bonus > 0) buffs.push(`<span style="color:#60a5fa;">+${buff.xp_bonus}% XP</span>`);
+            if (buff.xp_bonus < 0) buffs.push(`<span style="color:#ef4444;">${buff.xp_bonus}% XP</span>`);
+            if (buff.energy_cost_reduction > 0) buffs.push(`<span style="color:#a78bfa;">-${buff.energy_cost_reduction}% Energy Cost</span>`);
+
+            if (buffs.length > 0) {
+                buffHtml = `
+                    <div style="margin-top:12px; padding:10px; border-top:1px solid rgba(255,255,255,0.1); font-size:13px; line-height:1.8;">
+                        <div style="color:#888; margin-bottom:6px;">🔮 Mission Buffs (${buff.duration_hours}h):</div>
+                        ${buffs.join(' • ')}
+                    </div>
+                `;
+            }
+        }
+
         // Determine outcome based on roll
         if (roll === 1) {
             title = '✗ CRITICAL FAIL!';
             diceStyle = 'color:#ef4444; animation: shake 0.5s;';
             outcomeText = 'CRITICAL FAIL';
-            rewardsHtml = `<div style="color:#ef4444; font-size:16px;">${emberChange} $EMBER</div>`;
+            rewardsHtml = `<div style="color:#ef4444; font-size:16px;">${emberChange} $EMBER</div>${buffHtml}`;
         } else if (roll >= 2 && roll <= 5) {
             title = 'NOTHING';
             diceStyle = 'color:#666;';
@@ -1248,22 +1269,22 @@
             title = 'GRAZE!';
             diceStyle = 'color:#888;';
             outcomeText = 'GRAZE';
-            rewardsHtml = `<div style="color:#4ade80; font-size:18px;">+${emberChange} $EMBER</div>`;
+            rewardsHtml = `<div style="color:#4ade80; font-size:18px;">+${emberChange} $EMBER</div>${buffHtml}`;
         } else if (roll >= 9 && roll <= 11) {
             title = 'HIT!';
             diceStyle = 'color:#888;';
             outcomeText = 'HIT';
-            rewardsHtml = `<div style="color:#4ade80; font-size:18px;">+${emberChange} $EMBER</div>`;
+            rewardsHtml = `<div style="color:#4ade80; font-size:18px;">+${emberChange} $EMBER</div>${buffHtml}`;
         } else if (roll >= 12 && roll <= 14) {
             title = '✓ SOLID HIT!';
             diceStyle = 'color:var(--primary-green);';
             outcomeText = 'SOLID HIT';
-            rewardsHtml = `<div style="color:#4ade80; font-size:18px;">+${emberChange} $EMBER</div>`;
+            rewardsHtml = `<div style="color:#4ade80; font-size:18px;">+${emberChange} $EMBER</div>${buffHtml}`;
         } else if (roll >= 15 && roll <= 17) {
             title = '✓✓ GREAT HIT!';
             diceStyle = 'color:var(--primary-green);';
             outcomeText = 'GREAT HIT';
-            rewardsHtml = `<div style="color:#4ade80; font-size:18px;">+${emberChange} $EMBER</div>`;
+            rewardsHtml = `<div style="color:#4ade80; font-size:18px;">+${emberChange} $EMBER</div>${buffHtml}`;
         } else if (roll === 18) {
             title = '⚡ CRITICAL!';
             diceStyle = 'color:#3b82f6; animation: pulse 1s infinite;';
@@ -1271,6 +1292,7 @@
             rewardsHtml = `
                 <div style="color:#4ade80; font-size:18px;">+${emberChange} $EMBER</div>
                 ${result.item ? `<div style="color:#9ca3af; font-size:14px; margin-top:8px;">📦 ${result.item}</div>` : ''}
+                ${buffHtml}
             `;
         } else if (roll === 19) {
             title = '⭐ SUPERIOR!';
@@ -1279,6 +1301,7 @@
             rewardsHtml = `
                 <div style="color:#4ade80; font-size:18px;">+${emberChange} $EMBER</div>
                 ${result.item ? `<div style="color:#9ca3af; font-size:14px; margin-top:8px;">📦 ${result.item}</div>` : ''}
+                ${buffHtml}
             `;
         } else if (roll === 20) {
             title = '★ NATURAL 20! ★';
@@ -1287,6 +1310,7 @@
             rewardsHtml = `
                 <div style="color:#4ade80; font-size:20px; font-weight:bold;">+${emberChange} $EMBER</div>
                 ${result.item ? `<div style="color:#a855f7; font-size:14px; margin-top:8px;">📦 ${result.item}</div>` : ''}
+                ${buffHtml}
             `;
         }
 
