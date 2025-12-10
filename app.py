@@ -4729,6 +4729,8 @@ def gambit_status():
             rolls_used = 0
 
         return jsonify({
+            "rolls_today": rolls_used,
+            "rolls_max": rolls_max,
             "rolls_remaining": max(0, rolls_max - rolls_used),
             "next_reset": next_reset.isoformat() if next_reset else None
         })
@@ -4936,8 +4938,9 @@ def gambit_roll():
                 "ember_change": ember_change,
                 "item": reward["item"],
                 "new_balance": new_balance,
+                "rolls_today": new_rolls_today,
+                "rolls_max": rolls_max,
                 "rolls_remaining": max(0, rolls_max - new_rolls_today),
-                "gambit_rolls_max": rolls_max,
                 # Buff info for frontend display
                 "buff": {
                     "success_bonus": reward["success_bonus"],

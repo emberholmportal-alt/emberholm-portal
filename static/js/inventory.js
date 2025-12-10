@@ -98,8 +98,9 @@
             document.getElementById('ash-balance-display').style.display = 'inline';
         }
         if (gambitRollsEl) {
-            const remaining = currentBalance.gambit_rolls_max - currentBalance.gambit_rolls_today;
-            gambitRollsEl.textContent = `${remaining}/${currentBalance.gambit_rolls_max}`;
+            const rollsToday = currentBalance.gambit_rolls_today || 0;
+            const maxRolls = currentBalance.gambit_rolls_max || 5;
+            gambitRollsEl.textContent = `${rollsToday}/${maxRolls}`;
         }
     }
 
@@ -1364,15 +1365,15 @@
             console.log('💰 Updated balance display:', result.new_balance);
         }
 
-        // Update rolls counter
+        // Update rolls counter - use rolls_today and rolls_max from backend
+        const rollsToday = result.rolls_today || 0;
+        const maxRolls = result.rolls_max || 5;
         const rollsRemaining = result.rolls_remaining || 0;
-        const maxRolls = result.gambit_rolls_max || 5;
-        const rollsUsed = maxRolls - rollsRemaining;
 
-        console.log(`🔢 Roll calculation: rollsRemaining=${rollsRemaining}, maxRolls=${maxRolls}, rollsUsed=${rollsUsed}`);
+        console.log(`🔢 Roll data from backend: rollsToday=${rollsToday}, maxRolls=${maxRolls}, rollsRemaining=${rollsRemaining}`);
 
         if (rollsCountElem) {
-            const newCounterText = `${rollsUsed}/${maxRolls}`;
+            const newCounterText = `${rollsToday}/${maxRolls}`;
             console.log(`📊 Setting rolls counter to: "${newCounterText}"`);
             rollsCountElem.textContent = newCounterText;
             console.log(`✅ Rolls counter updated. Current textContent: "${rollsCountElem.textContent}"`);
@@ -1380,9 +1381,9 @@
             console.error('❌ rolls-count element NOT FOUND!');
         }
 
-        // Update next roll cost display
+        // Update next roll cost display - first roll is always free
         if (nextRollCostElem) {
-            const nextCost = rollsRemaining === maxRolls - 1 ? 0 : 75;
+            const nextCost = rollsToday === 0 ? 0 : 75;
             nextRollCostElem.innerHTML = nextCost === 0
                 ? '<span style="color:#4ade80;">FREE!</span>'
                 : `<span style="color:var(--gold);">${nextCost} $EMBER</span>`;
@@ -1391,9 +1392,9 @@
 
         // Update button - enable for next roll if available
         if (rollBtn) {
-            if (result.rolls_remaining && result.rolls_remaining > 0) {
+            if (rollsRemaining > 0) {
                 rollBtn.disabled = false;
-                const nextCost = result.rolls_remaining === (result.gambit_rolls_max || 5) - 1 ? 0 : 75;
+                const nextCost = rollsToday === 0 ? 0 : 75;
                 rollBtn.textContent = `[ROLL THE D20${nextCost === 0 ? ' - FREE' : ' - ' + nextCost + ' $EMBER'}]`;
                 console.log(`🔄 Button updated for next roll: ${nextCost} $EMBER`);
             } else {
