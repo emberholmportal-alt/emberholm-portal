@@ -2,7 +2,7 @@ import json
 import os
 import time
 import random
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from flask import Flask, jsonify, send_from_directory, request, abort, render_template
 from flask_cors import CORS
 
@@ -4710,15 +4710,14 @@ def gambit_roll():
             # First, ensure user row exists and get current state using UPSERT
             print(f"🔍 Getting/creating balance for wallet: {wallet[:6]}...{wallet[-4:]}")
             cursor.execute("""
-                INSERT INTO user_balances (wallet, ember_balance, ash_balance, gambit_rolls_today, gambit_rolls_max)
-                VALUES (%s, 0, 0, 0, 5)
+                INSERT INTO user_balances (wallet, ember_balance, ash_balance, gambit_rolls_today, gambit_rolls_max, gambit_next_reset)
+                VALUES (%s, 0, 0, 0, 5, NOW() + INTERVAL '1 day')
                 ON CONFLICT (wallet) DO NOTHING
-                RETURNING ember_balance, gambit_rolls_today, gambit_rolls_max
             """, (wallet,))
 
             # Get the current state (either newly inserted or existing)
             cursor.execute("""
-                SELECT ember_balance, gambit_rolls_today, gambit_rolls_max
+                SELECT ember_balance, gambit_rolls_today, gambit_rolls_max, gambit_next_reset
                 FROM user_balances
                 WHERE wallet = %s
             """, (wallet,))
@@ -4732,8 +4731,24 @@ def gambit_roll():
             ember_balance = row[0]
             rolls_today = row[1]
             rolls_max = row[2]
+            next_reset = row[3]
 
-            print(f"📊 Current state: balance={ember_balance}, rolls={rolls_today}/{rolls_max}")
+            print(f"📊 Current state: balance={ember_balance}, rolls={rolls_today}/{rolls_max}, next_reset={next_reset}")
+
+            # 🔄 DAILY RESET LOGIC - Reset rolls if it's a new day
+            if next_reset is None or datetime.now(timezone.utc) >= next_reset:
+                print(f"🔄 Daily reset triggered! Resetting rolls to 0")
+                cursor.execute("""
+                    UPDATE user_balances
+                    SET gambit_rolls_today = 0,
+                        gambit_next_reset = NOW() + INTERVAL '1 day',
+                        last_update = NOW()
+                    WHERE wallet = %s
+                """, (wallet,))
+                rolls_today = 0  # Update local variable
+                print(f"✅ Rolls reset complete. New reset time: tomorrow")
+
+            print(f"📊 After reset check: rolls={rolls_today}/{rolls_max}")
 
             # Check if can roll
             if rolls_today >= rolls_max:
@@ -4825,6 +4840,75 @@ def gambit_roll():
 
     except Exception as e:
         print(f"❌ Error rolling gambit: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
+
+# ---------------------------------
+# GAMBIT DEBUG ENDPOINT (temporary)
+# ---------------------------------
+
+@app.route('/api/gambit/debug/<wallet>', methods=['GET', 'POST'])
+def gambit_debug(wallet):
+    """
+    Debug endpoint to check/reset gambit rolls status
+    GET: Show current status
+    POST with {action: 'reset'}: Force reset rolls to 0
+    """
+    wallet = wallet.lower()
+
+    if not POSTGRESQL_AVAILABLE or not db:
+        return jsonify({"error": "Database not available"}), 503
+
+    try:
+        conn = db.get_connection()
+        cursor = conn.cursor()
+
+        # Get current state
+        cursor.execute("""
+            SELECT ember_balance, gambit_rolls_today, gambit_rolls_max, gambit_next_reset
+            FROM user_balances
+            WHERE wallet = %s
+        """, (wallet,))
+
+        row = cursor.fetchone()
+
+        if not row:
+            db.release_connection(conn)
+            return jsonify({
+                "status": "not_found",
+                "message": f"No user_balances entry for wallet {wallet[:6]}...{wallet[-4:]}"
+            })
+
+        current_status = {
+            "wallet": f"{wallet[:6]}...{wallet[-4:]}",
+            "ember_balance": row[0],
+            "gambit_rolls_today": row[1],
+            "gambit_rolls_max": row[2],
+            "gambit_next_reset": str(row[3]) if row[3] else None,
+            "reset_needed": row[3] is None or datetime.now(timezone.utc) >= row[3]
+        }
+
+        # If POST with action=reset, force reset
+        if request.method == 'POST':
+            data = request.get_json() or {}
+            if data.get('action') == 'reset':
+                cursor.execute("""
+                    UPDATE user_balances
+                    SET gambit_rolls_today = 0,
+                        gambit_next_reset = NOW() + INTERVAL '1 day',
+                        last_update = NOW()
+                    WHERE wallet = %s
+                """, (wallet,))
+                conn.commit()
+                current_status['message'] = '✅ Rolls manually reset to 0'
+                current_status['gambit_rolls_today'] = 0
+
+        db.release_connection(conn)
+        return jsonify(current_status)
+
+    except Exception as e:
+        print(f"❌ Error in gambit debug: {e}")
         import traceback
         traceback.print_exc()
         return jsonify({"error": str(e)}), 500
