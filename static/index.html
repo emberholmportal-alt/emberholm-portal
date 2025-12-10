@@ -2782,7 +2782,7 @@ async function loadPlayerAndRender(){
 
                                 // Determine color based on roll
                                 const roll = lastRoll.roll;
-                                let color = '#888'; // default gray
+                                let color = '#888';
                                 let bgColor = 'rgba(136,136,136,0.15)';
                                 if (roll === 1) {
                                     color = '#ef4444'; bgColor = 'rgba(239,68,68,0.15)';
@@ -2802,25 +2802,28 @@ async function loadPlayerAndRender(){
 
                                 // Build buff text
                                 const buffs = [];
-                                if (lastRoll.success_bonus) buffs.push(\`\${lastRoll.success_bonus > 0 ? '+' : ''}\${lastRoll.success_bonus}% Success\`);
-                                if (lastRoll.xp_bonus) buffs.push(\`\${lastRoll.xp_bonus > 0 ? '+' : ''}\${lastRoll.xp_bonus}% XP\`);
-                                if (lastRoll.energy_cost_reduction) buffs.push(\`-\${lastRoll.energy_cost_reduction}% Energy\`);
+                                if (lastRoll.success_bonus) buffs.push((lastRoll.success_bonus > 0 ? '+' : '') + lastRoll.success_bonus + '% Success');
+                                if (lastRoll.xp_bonus) buffs.push((lastRoll.xp_bonus > 0 ? '+' : '') + lastRoll.xp_bonus + '% XP');
+                                if (lastRoll.energy_cost_reduction) buffs.push('-' + lastRoll.energy_cost_reduction + '% Energy');
                                 const buffText = buffs.join(', ');
 
                                 // Calculate time remaining
                                 let timeText = '';
                                 if (!isExpired && expiresAt) {
                                     const hoursLeft = Math.ceil((expiresAt - now) / (1000 * 60 * 60));
-                                    timeText = \`\${hoursLeft}h left\`;
+                                    timeText = hoursLeft + 'h left';
                                 }
 
-                                return \`
-                                    <div style="margin-top:4px; padding:3px 6px; border-radius:3px; background:\${bgColor}; border:1px solid \${color}; font-size:0.65rem; color:\${color}; \${isExpired ? 'opacity:0.5;' : ''}">
-                                        <div style="font-weight:600;">\${isExpired ? '⏰' : '🎲'} \${lastRoll.name || 'Roll ' + roll}</div>
-                                        \${buffText ? \`<div style="font-size:0.6rem; opacity:0.8;">\${buffText}\${timeText ? ' • ' + timeText : ''}</div>\` : ''}
-                                        \${isExpired ? '<div style="font-size:0.55rem; opacity:0.7;">(Expired)</div>' : ''}
-                                    </div>
-                                \`;
+                                let html = '<div style="margin-top:4px; padding:3px 6px; border-radius:3px; background:' + bgColor + '; border:1px solid ' + color + '; font-size:0.65rem; color:' + color + ';' + (isExpired ? ' opacity:0.5;' : '') + '">';
+                                html += '<div style="font-weight:600;">' + (isExpired ? '⏰' : '🎲') + ' ' + (lastRoll.name || 'Roll ' + roll) + '</div>';
+                                if (buffText) {
+                                    html += '<div style="font-size:0.6rem; opacity:0.8;">' + buffText + (timeText ? ' • ' + timeText : '') + '</div>';
+                                }
+                                if (isExpired) {
+                                    html += '<div style="font-size:0.55rem; opacity:0.7;">(Expired)</div>';
+                                }
+                                html += '</div>';
+                                return html;
                             })()}
                         </div>
                     </div>
