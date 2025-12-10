@@ -1149,8 +1149,15 @@ window.performEmberRoll = async function(emissaryId) {
 
         // Find emissary in current roster
         const emissary = currentEmissaries.find(e => String(e.token_id) === String(emissaryId));
-        if (!emissary || emissary.state !== 'IN_PROGRESS') {
-            alert('No active mission found for this emissary.');
+        if (!emissary) {
+            alert('Emissary not found.');
+            return;
+        }
+
+        // Check if emissary is on a mission (state can be "ON_MISSION" or "IN_PROGRESS")
+        const onMission = emissary.state === 'ON_MISSION' || emissary.state === 'IN_PROGRESS';
+        if (!onMission) {
+            alert('This emissary is not currently on a mission.');
             return;
         }
 
