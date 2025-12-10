@@ -247,6 +247,24 @@ def calculate_mission_success_rate(hero, mission):
     aura_bonus = (hero_aura // 100) * BONUSES.get("aura_per_100", 1)
     bonus += aura_bonus
 
+    # 🔮 EMBER ROLL BUFF: Success bonus
+    ds = hero.get("dynamic_state", {})
+    last_roll = ds.get("last_gambit_roll")
+    if last_roll:
+        expires_at = last_roll.get("expires_at")
+        if expires_at:
+            try:
+                expires_dt = datetime.fromisoformat(expires_at.replace('Z', '+00:00'))
+                now = datetime.now(timezone.utc)
+                if now < expires_dt:
+                    # Buff is active
+                    success_bonus = last_roll.get("success_bonus", 0)
+                    if success_bonus != 0:
+                        bonus += success_bonus
+                        print(f"🔮 EMBER ROLL success buff applied: {'+' if success_bonus > 0 else ''}{success_bonus}%")
+            except Exception as e:
+                print(f"⚠️ Error parsing buff expiration: {e}")
+
     # Cap at 98% (never 100%)
     total_success_rate = min(98, base_rate + bonus)
 
@@ -314,6 +332,25 @@ def roll_mission_outcome(hero, mission):
 
         xp_reward = int(mission["reward_xp"] * reward_multiplier)
         aura_reward = int(mission["reward_aura"] * reward_multiplier)
+
+        # 🔮 EMBER ROLL BUFF: XP bonus
+        ds = hero.get("dynamic_state", {})
+        last_roll = ds.get("last_gambit_roll")
+        if last_roll:
+            expires_at = last_roll.get("expires_at")
+            if expires_at:
+                try:
+                    expires_dt = datetime.fromisoformat(expires_at.replace('Z', '+00:00'))
+                    now = datetime.now(timezone.utc)
+                    if now < expires_dt:
+                        # Buff is active
+                        xp_bonus = last_roll.get("xp_bonus", 0)
+                        if xp_bonus != 0:
+                            original_xp = xp_reward
+                            xp_reward = int(xp_reward * (100 + xp_bonus) / 100)
+                            print(f"🔮 EMBER ROLL XP buff applied: {original_xp} → {xp_reward} ({'+' if xp_bonus > 0 else ''}{xp_bonus}%)")
+                except Exception as e:
+                    print(f"⚠️ Error parsing buff expiration: {e}")
 
         return ("SUCCESS", {
             "xp_gain": xp_reward,
@@ -2131,9 +2168,29 @@ def api_mission_start():
     if ds.get("state") == "ON_MISSION":
         abort(400, "Hero is already on a mission")
 
-    # Check energy
+    # Check energy (with potential buff reduction)
     cost_energy = mission["energy_cost"]
     energy_current = ds.get("energy_current", 0)
+
+    # 🔮 APPLY ENERGY COST REDUCTION BUFF
+    last_roll = ds.get("last_gambit_roll")
+    energy_reduction = 0
+    if last_roll:
+        expires_at = last_roll.get("expires_at")
+        if expires_at:
+            try:
+                expires_dt = datetime.fromisoformat(expires_at.replace('Z', '+00:00'))
+                now = datetime.now(timezone.utc)
+                if now < expires_dt:
+                    # Buff is active
+                    energy_reduction = last_roll.get("energy_cost_reduction", 0)
+                    if energy_reduction > 0:
+                        original_cost = cost_energy
+                        cost_energy = int(cost_energy * (100 - energy_reduction) / 100)
+                        print(f"🔮 Energy cost reduction buff active: {original_cost} → {cost_energy} (-{energy_reduction}%)")
+            except Exception as e:
+                print(f"⚠️ Error parsing buff expiration: {e}")
+
     if energy_current < cost_energy:
         abort(400, f"Not enough energy. Required: {cost_energy}, Available: {energy_current}")
 

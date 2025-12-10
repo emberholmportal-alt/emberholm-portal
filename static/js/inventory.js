@@ -1006,43 +1006,61 @@
                     <!-- RIGHT COLUMN: Possible Outcomes -->
                     <div class="mono-block" style="padding:15px; border-left:3px solid #a855f7; background:rgba(168,85,247,0.05); max-height:600px; overflow-y:auto;">
                         <div class="subheading" style="margin-bottom:10px;">POSSIBLE OUTCOMES</div>
-                        <div style="font-size:11px; line-height:2; font-family:monospace;">
-                            <div style="display:grid; grid-template-columns:80px 140px 1fr; gap:10px;">
+                        <div style="font-size:10px; line-height:1.6; font-family:monospace;">
+                            <!-- Header -->
+                            <div style="display:grid; grid-template-columns:50px 110px 90px 1fr; gap:8px; padding-bottom:8px; border-bottom:1px solid rgba(168,85,247,0.3); margin-bottom:8px; font-weight:600; color:#a855f7;">
+                                <div>ROLL</div>
+                                <div>RESULT</div>
+                                <div>$EMBER</div>
+                                <div>MISSION BUFFS (Duration)</div>
+                            </div>
+
+                            <!-- Rows -->
+                            <div style="display:grid; grid-template-columns:50px 110px 90px 1fr; gap:8px; align-items:start;">
                                 <div style="color:#ef4444;">[1]</div>
                                 <div style="color:#ef4444;">CRITICAL FAIL</div>
-                                <div style="color:#888;">-100 $EMBER</div>
+                                <div style="color:#ef4444;">-100</div>
+                                <div style="color:#ef4444; font-size:9px;">-20% Success, -10% XP (24h)</div>
 
                                 <div style="color:#666;">[2-5]</div>
                                 <div style="color:#666;">NOTHING</div>
-                                <div style="color:#888;">Nothing happens</div>
+                                <div style="color:#666;">0</div>
+                                <div style="color:#666; font-size:9px;">No effects</div>
 
-                                <div style="color:#888;">[6-8]</div>
-                                <div style="color:#888;">GRAZE</div>
-                                <div style="color:#4ade80;">+50 $EMBER</div>
+                                <div style="color:#eab308;">[6-8]</div>
+                                <div style="color:#eab308;">GRAZE</div>
+                                <div style="color:#4ade80;">+50</div>
+                                <div style="color:#888; font-size:9px;">+5% Success (12h)</div>
 
-                                <div style="color:#888;">[9-11]</div>
-                                <div style="color:#888;">HIT</div>
-                                <div style="color:#4ade80;">+100 $EMBER</div>
+                                <div style="color:#eab308;">[9-11]</div>
+                                <div style="color:#eab308;">HIT</div>
+                                <div style="color:#4ade80;">+100</div>
+                                <div style="color:#888; font-size:9px;">+10% Success, +5% XP (24h)</div>
 
                                 <div style="color:var(--primary-green);">[12-14]</div>
                                 <div style="color:var(--primary-green);">SOLID HIT</div>
-                                <div style="color:#4ade80;">+200 $EMBER</div>
+                                <div style="color:#4ade80;">+200</div>
+                                <div style="color:#888; font-size:9px;">+15% Success, +10% XP (24h)</div>
 
                                 <div style="color:var(--primary-green);">[15-17]</div>
                                 <div style="color:var(--primary-green);">GREAT HIT</div>
-                                <div style="color:#4ade80;">+350 $EMBER</div>
+                                <div style="color:#4ade80;">+350</div>
+                                <div style="color:#888; font-size:9px;">+20% Success, +15% XP (24h)</div>
 
                                 <div style="color:#3b82f6;">[18]</div>
                                 <div style="color:#3b82f6;">CRITICAL!</div>
-                                <div style="color:#4ade80;">+500 $EMBER + Item</div>
+                                <div style="color:#4ade80;">+500</div>
+                                <div style="color:#888; font-size:9px;">+25% Success, +20% XP, -10% Energy (48h) + Item</div>
 
                                 <div style="color:#a855f7;">[19]</div>
                                 <div style="color:#a855f7;">SUPERIOR</div>
-                                <div style="color:#4ade80;">+500 $EMBER + Item</div>
+                                <div style="color:#4ade80;">+500</div>
+                                <div style="color:#888; font-size:9px;">+30% Success, +25% XP, -15% Energy (48h) + Item</div>
 
                                 <div style="color:var(--gold); font-weight:bold;">[20]</div>
                                 <div style="color:var(--gold); font-weight:bold;">NATURAL 20!</div>
-                                <div style="color:#4ade80;">+500 $EMBER + Item</div>
+                                <div style="color:#4ade80; font-weight:bold;">+1000</div>
+                                <div style="color:#888; font-size:9px; font-weight:600;">+35% Success, +30% XP, -25% Energy (72h) + Item</div>
                             </div>
                         </div>
                     </div>
