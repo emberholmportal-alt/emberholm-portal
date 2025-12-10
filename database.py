@@ -555,8 +555,123 @@ def save_json_or_db(filepath, data):
             return False
 
 # =========================================================================
+# USER BALANCES - EMBER GAMBIT ECONOMY
+# =========================================================================
+
+def ensure_user_balances_table():
+    """
+    Ensure user_balances table exists. Create it if it doesn't.
+    """
+    if not is_postgresql_available():
+        return False
+
+    conn = get_connection()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS user_balances (
+                    wallet VARCHAR(42) PRIMARY KEY,
+                    ember_balance INTEGER DEFAULT 0,
+                    ash_balance INTEGER DEFAULT 0,
+                    gambit_rolls_today INTEGER DEFAULT 0,
+                    gambit_rolls_max INTEGER DEFAULT 5,
+                    gambit_next_reset TIMESTAMP,
+                    last_update TIMESTAMP DEFAULT NOW(),
+                    created_at TIMESTAMP DEFAULT NOW()
+                )
+            """)
+
+            # Create index if doesn't exist
+            cur.execute("""
+                CREATE INDEX IF NOT EXISTS idx_balances_wallet
+                ON user_balances(wallet)
+            """)
+
+        conn.commit()
+        print("✅ user_balances table verified/created")
+        return True
+    except Exception as e:
+        print(f"❌ Error ensuring user_balances table: {e}")
+        conn.rollback()
+        return False
+    finally:
+        release_connection(conn)
+
+def get_or_create_user_balance(wallet):
+    """
+    Get user balance, creating entry if doesn't exist.
+    Returns dict with balance info or None on error.
+    """
+    if not is_postgresql_available():
+        return {
+            "ember_balance": 0,
+            "ash_balance": 0,
+            "gambit_rolls_today": 0,
+            "gambit_rolls_max": 5,
+            "gambit_next_reset": None
+        }
+
+    # Ensure table exists first
+    ensure_user_balances_table()
+
+    conn = get_connection()
+    try:
+        with conn.cursor() as cur:
+            # Try to get existing balance
+            cur.execute("""
+                SELECT ember_balance, ash_balance, gambit_rolls_today,
+                       gambit_rolls_max, gambit_next_reset
+                FROM user_balances
+                WHERE wallet = %s
+            """, (wallet,))
+
+            row = cur.fetchone()
+
+            if row:
+                return {
+                    "ember_balance": row[0],
+                    "ash_balance": row[1],
+                    "gambit_rolls_today": row[2],
+                    "gambit_rolls_max": row[3],
+                    "gambit_next_reset": row[4]
+                }
+
+            # Create new entry with starting balance
+            cur.execute("""
+                INSERT INTO user_balances
+                (wallet, ember_balance, ash_balance, gambit_rolls_today, gambit_rolls_max)
+                VALUES (%s, 0, 0, 0, 5)
+                RETURNING ember_balance, ash_balance, gambit_rolls_today,
+                          gambit_rolls_max, gambit_next_reset
+            """, (wallet,))
+
+            row = cur.fetchone()
+            conn.commit()
+
+            return {
+                "ember_balance": row[0],
+                "ash_balance": row[1],
+                "gambit_rolls_today": row[2],
+                "gambit_rolls_max": row[3],
+                "gambit_next_reset": row[4]
+            }
+
+    except Exception as e:
+        print(f"❌ Error getting/creating user balance: {e}")
+        import traceback
+        traceback.print_exc()
+        conn.rollback()
+        return None
+    finally:
+        release_connection(conn)
+
+# =========================================================================
 # INICIALIZACIÓN
 # =========================================================================
 
 # Auto-inicializar pool al importar el módulo
 init_connection_pool()
+
+# Initialize critical tables
+if is_postgresql_available():
+    ensure_user_balances_table()
