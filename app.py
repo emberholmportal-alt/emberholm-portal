@@ -696,18 +696,18 @@ def populate_database_on_startup(max_nfts=100):
 # ---------------------------------
 
 def now_utc_str():
-    return datetime.utcnow().isoformat() + "Z"
+    return datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z')
 
 def hours_since(ts_str):
     """Devuelve cuántas horas pasaron desde ts_str (ISO) hasta ahora."""
     if not ts_str:
         return 999999
     try:
-        clean = ts_str.replace("Z", "")
+        clean = ts_str.replace("Z", "+00:00")
         t = datetime.fromisoformat(clean)
     except Exception:
         return 999999
-    delta = datetime.utcnow() - t
+    delta = datetime.now(timezone.utc) - t
     return delta.total_seconds() / 3600.0
 
 # ---------------------------------
@@ -1163,7 +1163,7 @@ def api_events():
     from datetime import datetime
 
     active_events = []
-    current_time = datetime.utcnow()
+    current_time = datetime.now(timezone.utc)
 
     for event in EVENTS:
         available_from_str = event.get("available_from")
@@ -1304,7 +1304,7 @@ def get_time_ago(timestamp_str):
     """
     try:
         timestamp = datetime.fromisoformat(timestamp_str.replace('Z', '+00:00'))
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         delta = now - timestamp
 
         if delta.days > 0:
@@ -1328,7 +1328,7 @@ def get_realm_feed():
     """
     try:
         feed_items = []
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
 
         # 1. EVENTOS REALES - Cargar datos de NFTs para obtener misiones recientes (20% del feed)
         nfts_data = load_nfts_database()
@@ -4158,7 +4158,7 @@ def get_balance():
             })
 
         # Check if need to reset gambit rolls
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         next_reset = balance_info["gambit_next_reset"]
         gambit_rolls = balance_info["gambit_rolls_today"]
 
@@ -4725,7 +4725,7 @@ def gambit_status():
         next_reset = balance_info["gambit_next_reset"]
 
         # Check if reset needed
-        if next_reset and datetime.utcnow() >= next_reset:
+        if next_reset and datetime.now(timezone.utc) >= next_reset:
             rolls_used = 0
 
         return jsonify({

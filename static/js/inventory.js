@@ -1004,11 +1004,11 @@
                     </div>
 
                     <!-- RIGHT COLUMN: Possible Outcomes -->
-                    <div class="mono-block" style="padding:15px; border-left:3px solid #a855f7; background:rgba(168,85,247,0.05); max-height:600px; overflow-y:auto;">
+                    <div class="mono-block" style="padding:15px; border-left:3px solid #a855f7; background:rgba(168,85,247,0.05); max-height:600px; overflow-y:auto; min-width:0;">
                         <div class="subheading" style="margin-bottom:10px;">POSSIBLE OUTCOMES</div>
-                        <div style="font-size:10px; line-height:1.6; font-family:monospace;">
+                        <div style="font-size:10px; line-height:1.6; font-family:monospace; overflow-x:auto;">
                             <!-- Header -->
-                            <div style="display:grid; grid-template-columns:50px 110px 90px 1fr; gap:8px; padding-bottom:8px; border-bottom:1px solid rgba(168,85,247,0.3); margin-bottom:8px; font-weight:600; color:#a855f7;">
+                            <div style="display:grid; grid-template-columns:50px 110px 90px minmax(200px, 1fr); gap:8px; padding-bottom:8px; border-bottom:1px solid rgba(168,85,247,0.3); margin-bottom:8px; font-weight:600; color:#a855f7; min-width:450px;">
                                 <div>ROLL</div>
                                 <div>RESULT</div>
                                 <div>$EMBER</div>
@@ -1016,7 +1016,7 @@
                             </div>
 
                             <!-- Rows -->
-                            <div style="display:grid; grid-template-columns:50px 110px 90px 1fr; gap:8px; align-items:start;">
+                            <div style="display:grid; grid-template-columns:50px 110px 90px minmax(200px, 1fr); gap:8px; align-items:start; min-width:450px;">
                                 <div style="color:#ef4444;">[1]</div>
                                 <div style="color:#ef4444;">CRITICAL FAIL</div>
                                 <div style="color:#ef4444;">-100</div>
