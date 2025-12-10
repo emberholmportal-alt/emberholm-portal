@@ -1778,6 +1778,7 @@ let connectedWallet = null;
 
 /* --------- BASIC NAV --------- */
 function switchScreen(screenName){
+    console.log("🔘 switchScreen called:", screenName);
     document.querySelectorAll(".screen").forEach(s=>{
         if(s.getAttribute("data-screen") === screenName){
             s.classList.add("active");
@@ -1788,15 +1789,18 @@ function switchScreen(screenName){
 }
 // --- BASIC NAV with active state ---
 const navButtons = document.querySelectorAll(".cmd-link");
+console.log("🔘 Navigation buttons found:", navButtons.length);
 
 function setActiveButton(btn) {
     navButtons.forEach(b => b.classList.remove("is-active"));
     if (btn) btn.classList.add("is-active");
 }
 
-navButtons.forEach(btn => {
+navButtons.forEach((btn, index) => {
+    console.log("🔘 Attaching listener to button", index, ":", btn.getAttribute("data-target"));
     btn.addEventListener("click", () => {
         const target = btn.getAttribute("data-target");
+        console.log("🔘 Button clicked:", target);
 
         // si es un botón que navega interno (tiene data-target)
         if (target) {
@@ -2772,58 +2776,63 @@ async function loadPlayerAndRender(){
                                 [↓ IMG]
                             </button>
                             ${(() => {
-                                const lastRoll = ds.last_gambit_roll;
-                                if (!lastRoll) return '';
+                                try {
+                                    const lastRoll = ds.last_gambit_roll;
+                                    if (!lastRoll) return '';
 
-                                // Check if buff expired
-                                const now = new Date();
-                                const expiresAt = lastRoll.expires_at ? new Date(lastRoll.expires_at) : null;
-                                const isExpired = expiresAt && now >= expiresAt;
+                                    // Check if buff expired
+                                    const now = new Date();
+                                    const expiresAt = lastRoll.expires_at ? new Date(lastRoll.expires_at) : null;
+                                    const isExpired = expiresAt && now >= expiresAt;
 
-                                // Determine color based on roll
-                                const roll = lastRoll.roll;
-                                let color = '#888';
-                                let bgColor = 'rgba(136,136,136,0.15)';
-                                if (roll === 1) {
-                                    color = '#ef4444'; bgColor = 'rgba(239,68,68,0.15)';
-                                } else if (roll <= 5) {
-                                    color = '#6b7280'; bgColor = 'rgba(107,114,128,0.15)';
-                                } else if (roll <= 11) {
-                                    color = '#eab308'; bgColor = 'rgba(234,179,8,0.15)';
-                                } else if (roll <= 17) {
-                                    color = '#22c55e'; bgColor = 'rgba(34,197,94,0.15)';
-                                } else if (roll === 18) {
-                                    color = '#3b82f6'; bgColor = 'rgba(59,130,246,0.15)';
-                                } else if (roll === 19) {
-                                    color = '#a855f7'; bgColor = 'rgba(168,85,247,0.15)';
-                                } else if (roll === 20) {
-                                    color = 'var(--gold)'; bgColor = 'rgba(255,215,0,0.15)';
+                                    // Determine color based on roll
+                                    const roll = lastRoll.roll;
+                                    let color = '#888';
+                                    let bgColor = 'rgba(136,136,136,0.15)';
+                                    if (roll === 1) {
+                                        color = '#ef4444'; bgColor = 'rgba(239,68,68,0.15)';
+                                    } else if (roll <= 5) {
+                                        color = '#6b7280'; bgColor = 'rgba(107,114,128,0.15)';
+                                    } else if (roll <= 11) {
+                                        color = '#eab308'; bgColor = 'rgba(234,179,8,0.15)';
+                                    } else if (roll <= 17) {
+                                        color = '#22c55e'; bgColor = 'rgba(34,197,94,0.15)';
+                                    } else if (roll === 18) {
+                                        color = '#3b82f6'; bgColor = 'rgba(59,130,246,0.15)';
+                                    } else if (roll === 19) {
+                                        color = '#a855f7'; bgColor = 'rgba(168,85,247,0.15)';
+                                    } else if (roll === 20) {
+                                        color = 'var(--gold)'; bgColor = 'rgba(255,215,0,0.15)';
+                                    }
+
+                                    // Build buff text
+                                    const buffs = [];
+                                    if (lastRoll.success_bonus) buffs.push((lastRoll.success_bonus > 0 ? '+' : '') + lastRoll.success_bonus + '% Success');
+                                    if (lastRoll.xp_bonus) buffs.push((lastRoll.xp_bonus > 0 ? '+' : '') + lastRoll.xp_bonus + '% XP');
+                                    if (lastRoll.energy_cost_reduction) buffs.push('-' + lastRoll.energy_cost_reduction + '% Energy');
+                                    const buffText = buffs.join(', ');
+
+                                    // Calculate time remaining
+                                    let timeText = '';
+                                    if (!isExpired && expiresAt) {
+                                        const hoursLeft = Math.ceil((expiresAt - now) / (1000 * 60 * 60));
+                                        timeText = hoursLeft + 'h left';
+                                    }
+
+                                    let html = '<div style="margin-top:4px; padding:3px 6px; border-radius:3px; background:' + bgColor + '; border:1px solid ' + color + '; font-size:0.65rem; color:' + color + ';' + (isExpired ? ' opacity:0.5;' : '') + '">';
+                                    html += '<div style="font-weight:600;">' + (isExpired ? '⏰' : '🎲') + ' ' + (lastRoll.name || 'Roll ' + roll) + '</div>';
+                                    if (buffText) {
+                                        html += '<div style="font-size:0.6rem; opacity:0.8;">' + buffText + (timeText ? ' • ' + timeText : '') + '</div>';
+                                    }
+                                    if (isExpired) {
+                                        html += '<div style="font-size:0.55rem; opacity:0.7;">(Expired)</div>';
+                                    }
+                                    html += '</div>';
+                                    return html;
+                                } catch (error) {
+                                    console.error('🎲 Error rendering EMBER ROLL buff badge:', error);
+                                    return '';
                                 }
-
-                                // Build buff text
-                                const buffs = [];
-                                if (lastRoll.success_bonus) buffs.push((lastRoll.success_bonus > 0 ? '+' : '') + lastRoll.success_bonus + '% Success');
-                                if (lastRoll.xp_bonus) buffs.push((lastRoll.xp_bonus > 0 ? '+' : '') + lastRoll.xp_bonus + '% XP');
-                                if (lastRoll.energy_cost_reduction) buffs.push('-' + lastRoll.energy_cost_reduction + '% Energy');
-                                const buffText = buffs.join(', ');
-
-                                // Calculate time remaining
-                                let timeText = '';
-                                if (!isExpired && expiresAt) {
-                                    const hoursLeft = Math.ceil((expiresAt - now) / (1000 * 60 * 60));
-                                    timeText = hoursLeft + 'h left';
-                                }
-
-                                let html = '<div style="margin-top:4px; padding:3px 6px; border-radius:3px; background:' + bgColor + '; border:1px solid ' + color + '; font-size:0.65rem; color:' + color + ';' + (isExpired ? ' opacity:0.5;' : '') + '">';
-                                html += '<div style="font-weight:600;">' + (isExpired ? '⏰' : '🎲') + ' ' + (lastRoll.name || 'Roll ' + roll) + '</div>';
-                                if (buffText) {
-                                    html += '<div style="font-size:0.6rem; opacity:0.8;">' + buffText + (timeText ? ' • ' + timeText : '') + '</div>';
-                                }
-                                if (isExpired) {
-                                    html += '<div style="font-size:0.55rem; opacity:0.7;">(Expired)</div>';
-                                }
-                                html += '</div>';
-                                return html;
                             })()}
                         </div>
                     </div>
