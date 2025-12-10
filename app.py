@@ -4811,7 +4811,8 @@ def gambit_roll():
                 "ember_change": ember_change,
                 "item": reward["item"],
                 "new_balance": new_balance,
-                "rolls_remaining": max(0, rolls_max - new_rolls_today)
+                "rolls_remaining": max(0, rolls_max - new_rolls_today),
+                "gambit_rolls_max": rolls_max
             })
 
         except Exception as e:

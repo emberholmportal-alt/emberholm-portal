@@ -971,15 +971,15 @@
                             </div>
                         </div>
 
-                        <div style="width:100%; text-align:center; padding:15px; border:1px solid var(--border-primary); background:rgba(0,0,0,0.3);">
+                        <div id="gambit-rolls-info" style="width:100%; text-align:center; padding:15px; border:1px solid var(--border-primary); background:rgba(0,0,0,0.3);">
                             <div style="font-size:14px;">
-                                <strong>Rolls today:</strong> ${rollsToday}/${maxRolls}<br/>
-                                <strong>Next roll:</strong> ${isFreeRoll ? '<span style="color:#4ade80;">FREE!</span>' : `<span style="color:var(--gold);">${costPerRoll} $EMBER</span>`}
+                                <strong>Rolls today:</strong> <span id="rolls-count">${rollsToday}/${maxRolls}</span><br/>
+                                <strong>Next roll:</strong> <span id="next-roll-cost">${isFreeRoll ? '<span style="color:#4ade80;">FREE!</span>' : `<span style="color:var(--gold);">${costPerRoll} $EMBER</span>`}</span>
                             </div>
                         </div>
 
-                        <div style="width:100%; text-align:center; font-size:14px; margin-bottom:10px;">
-                            Your Balance: <span style="color:var(--gold); font-weight:600;">[E] ${currentBalance.ember_balance.toLocaleString()} $EMBER</span>
+                        <div id="balance-display" style="width:100%; text-align:center; font-size:14px; margin-bottom:10px;">
+                            Your Balance: <span style="color:var(--gold); font-weight:600;">[E] <span id="ember-balance">${currentBalance.ember_balance.toLocaleString()}</span> $EMBER</span>
                         </div>
 
                         ${rollsRemaining > 0 ? `
@@ -992,9 +992,9 @@
                             </button>
                         `}
 
-                        <!-- RESULT DISPLAY AREA -->
-                        <div id="gambit-result-display" style="width:100%; min-height:100px; padding:20px; border:2px solid var(--gold); background:rgba(0,0,0,0.7); text-align:center; display:none !important; margin-top:20px; border-radius:4px;">
-                            <div id="result-content" style="color:#fff; font-size:16px;"></div>
+                        <!-- RESULT DISPLAY AREA - Initially hidden by being empty -->
+                        <div id="gambit-result-display" style="width:100%; padding:20px; border:2px solid var(--gold); background:rgba(0,0,0,0.7); text-align:center; margin-top:20px; border-radius:4px;">
+                            <div id="result-content" style="color:#888; font-size:14px; font-style:italic;">Roll the dice to see your result here...</div>
                         </div>
 
                         <button class="modal-btn" onclick="closeGambitModal()" style="width:100%; margin-top:10px;">[CLOSE]</button>
@@ -1068,11 +1068,12 @@
     // Test function to verify result display works
     window.testGambitResultDisplay = function() {
         console.log('🧪 Testing result display area...');
-        const resultDisplay = document.getElementById('gambit-result-display');
         const resultContent = document.getElementById('result-content');
+        const rollsCountElem = document.getElementById('rolls-count');
+        const emberBalanceElem = document.getElementById('ember-balance');
 
-        if (!resultDisplay || !resultContent) {
-            console.error('❌ Elements not found!');
+        if (!resultContent) {
+            console.error('❌ result-content element not found!');
             return;
         }
 
@@ -1082,15 +1083,13 @@
                 🧪 TEST RESULT
             </div>
             <div style="color:#4ade80; font-size:18px;">+999 $EMBER (TEST)</div>
-            <div style="margin-top:15px; padding-top:15px; border-top:1px solid var(--border-primary); font-size:14px; color:#888;">
-                This is a test result display
-            </div>
         `;
-        resultDisplay.style.setProperty('display', 'block', 'important');
-        resultDisplay.style.visibility = 'visible';
-        resultDisplay.style.opacity = '1';
-        console.log('✅ Test content inserted and display set to block');
-        console.log('Computed style:', window.getComputedStyle(resultDisplay).display);
+
+        // Test updating counters
+        if (rollsCountElem) rollsCountElem.textContent = '1/5';
+        if (emberBalanceElem) emberBalanceElem.textContent = '999';
+
+        console.log('✅ Test content inserted successfully');
     };
 
     window.rollGambitDice = async function(emissaryId, cost) {
@@ -1137,20 +1136,16 @@
 
             if (data.error) {
                 console.error('❌ Backend error:', data.error);
-                // Show error in result area instead of closing modal
-                const resultDisplay = document.getElementById('gambit-result-display');
+                // Show error in result area
                 const resultContent = document.getElementById('result-content');
 
-                if (resultDisplay && resultContent) {
+                if (resultContent) {
                     resultContent.innerHTML = `
                         <div style="font-size:18px; color:#ef4444; margin-bottom:15px; font-weight:600;">
                             ❌ ERROR
                         </div>
                         <div style="color:#888; font-size:14px;">${data.error}</div>
                     `;
-                    resultDisplay.style.setProperty('display', 'block', 'important');
-                    resultDisplay.style.visibility = 'visible';
-                    resultDisplay.style.opacity = '1';
                 } else {
                     alert('Error: ' + data.error);
                 }
@@ -1175,19 +1170,15 @@
         } catch (error) {
             console.error('❌ Error rolling dice:', error);
             // Show error in result area
-            const resultDisplay = document.getElementById('gambit-result-display');
             const resultContent = document.getElementById('result-content');
 
-            if (resultDisplay && resultContent) {
+            if (resultContent) {
                 resultContent.innerHTML = `
                     <div style="font-size:18px; color:#ef4444; margin-bottom:15px; font-weight:600;">
                         ❌ NETWORK ERROR
                     </div>
                     <div style="color:#888; font-size:14px;">${error.message}</div>
                 `;
-                resultDisplay.style.setProperty('display', 'block', 'important');
-                resultDisplay.style.visibility = 'visible';
-                resultDisplay.style.opacity = '1';
             } else {
                 alert('Error rolling dice. Please try again.');
             }
@@ -1205,18 +1196,22 @@
         console.log('🎲 showGambitResult called with:', result);
 
         const diceDisplay = document.getElementById('dice-display');
-        const resultDisplay = document.getElementById('gambit-result-display');
         const resultContent = document.getElementById('result-content');
         const rollBtn = document.querySelector('.btn-gambit');
+        const rollsCountElem = document.getElementById('rolls-count');
+        const nextRollCostElem = document.getElementById('next-roll-cost');
+        const emberBalanceElem = document.getElementById('ember-balance');
 
         console.log('Elements found:', {
             diceDisplay: !!diceDisplay,
-            resultDisplay: !!resultDisplay,
             resultContent: !!resultContent,
-            rollBtn: !!rollBtn
+            rollBtn: !!rollBtn,
+            rollsCountElem: !!rollsCountElem,
+            nextRollCostElem: !!nextRollCostElem,
+            emberBalanceElem: !!emberBalanceElem
         });
 
-        if (!diceDisplay || !resultDisplay || !resultContent) {
+        if (!diceDisplay || !resultContent) {
             console.error('❌ Missing required elements for result display');
             return;
         }
@@ -1295,12 +1290,6 @@
                 ${title}
             </div>
             ${rewardsHtml}
-            ${result.new_balance ? `
-                <div style="margin-top:15px; padding-top:15px; border-top:1px solid var(--border-primary); font-size:14px; color:#888;">
-                    New Balance: <span style="color:var(--gold);">${result.new_balance.toLocaleString()} $EMBER</span><br/>
-                    Rolls Remaining: <span style="color:#4ade80;">${result.rolls_remaining || 0}</span>
-                </div>
-            ` : ''}
 
             <style>
                 @keyframes shake {
@@ -1315,17 +1304,32 @@
             </style>
         `;
 
-        // Display the result area with !important to override inline styles
-        console.log('📦 Showing result display...');
-        console.log('Current display style:', resultDisplay.style.display);
-        resultDisplay.style.setProperty('display', 'block', 'important');
-        resultDisplay.style.visibility = 'visible';
-        resultDisplay.style.opacity = '1';
-        console.log('✅ Result display shown, innerHTML length:', resultContent.innerHTML.length);
-        console.log('New display style:', resultDisplay.style.display);
+        console.log('✅ Result content updated, innerHTML length:', resultContent.innerHTML.length);
 
-        // Force a reflow to ensure the display change takes effect
-        resultDisplay.offsetHeight;
+        // Update the roll counter and balance display
+        if (result.new_balance !== undefined && emberBalanceElem) {
+            emberBalanceElem.textContent = result.new_balance.toLocaleString();
+            console.log('💰 Updated balance display:', result.new_balance);
+        }
+
+        // Update rolls counter
+        const rollsRemaining = result.rolls_remaining || 0;
+        const maxRolls = result.gambit_rolls_max || 5;
+        const rollsUsed = maxRolls - rollsRemaining;
+
+        if (rollsCountElem) {
+            rollsCountElem.textContent = `${rollsUsed}/${maxRolls}`;
+            console.log(`📊 Updated rolls counter: ${rollsUsed}/${maxRolls}`);
+        }
+
+        // Update next roll cost display
+        if (nextRollCostElem) {
+            const nextCost = rollsRemaining === maxRolls - 1 ? 0 : 75;
+            nextRollCostElem.innerHTML = nextCost === 0
+                ? '<span style="color:#4ade80;">FREE!</span>'
+                : `<span style="color:var(--gold);">${nextCost} $EMBER</span>`;
+            console.log(`💵 Updated next roll cost: ${nextCost === 0 ? 'FREE' : nextCost + ' $EMBER'}`);
+        }
 
         // Update button - enable for next roll if available
         if (rollBtn) {
