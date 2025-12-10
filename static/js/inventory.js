@@ -960,8 +960,16 @@
 
             const content = `
                 <div style="display:grid; grid-template-columns:1fr 1fr; gap:30px; margin-top:20px;">
-                    <!-- LEFT COLUMN: Dice & Actions -->
+                    <!-- LEFT COLUMN: Result Display (TOP), then Dice & Actions -->
                     <div style="display:flex; flex-direction:column; align-items:center; gap:15px;">
+
+                        <!-- RESULT DISPLAY AREA - MOVED TO TOP FOR VISIBILITY -->
+                        <div id="gambit-result-display" style="width:100%; min-height:90px; padding:18px; border:3px solid var(--gold); background:linear-gradient(135deg, rgba(255,215,0,0.15) 0%, rgba(168,85,247,0.1) 100%); text-align:center; border-radius:8px; box-shadow: 0 0 20px rgba(255,215,0,0.3);">
+                            <div id="result-content" style="color:#888; font-size:13px; font-style:italic; line-height:1.6;">
+                                🎲 Your result will appear here after rolling the dice...
+                            </div>
+                        </div>
+
                         <div style="text-align:center;">
                             <div class="dice-display" id="dice-display" style="font-size:40px; font-family:'Alagard',serif; color:var(--gold); text-shadow: 0 0 15px var(--gold); line-height:1.2;">
                                 ╔═╗<br/>
@@ -991,11 +999,6 @@
                                 [NO ROLLS REMAINING TODAY]
                             </button>
                         `}
-
-                        <!-- RESULT DISPLAY AREA - Initially hidden by being empty -->
-                        <div id="gambit-result-display" style="width:100%; padding:20px; border:2px solid var(--gold); background:rgba(0,0,0,0.7); text-align:center; margin-top:20px; border-radius:4px;">
-                            <div id="result-content" style="color:#888; font-size:14px; font-style:italic;">Roll the dice to see your result here...</div>
-                        </div>
 
                         <button class="modal-btn" onclick="closeGambitModal()" style="width:100%; margin-top:10px;">[CLOSE]</button>
                     </div>
@@ -1166,7 +1169,14 @@
             }
 
             console.log('✅ Roll successful, showing result');
+            console.log('📊 Data received from server:', JSON.stringify(data, null, 2));
+            console.log('🔍 Checking if result elements exist...');
+            const checkResultContent = document.getElementById('result-content');
+            const checkRollsCount = document.getElementById('rolls-count');
+            console.log('📦 result-content exists:', !!checkResultContent);
+            console.log('📦 rolls-count exists:', !!checkRollsCount);
             showGambitResult(data, emissaryId);
+            console.log('🎯 showGambitResult() completed');
         } catch (error) {
             console.error('❌ Error rolling dice:', error);
             // Show error in result area
@@ -1317,9 +1327,15 @@
         const maxRolls = result.gambit_rolls_max || 5;
         const rollsUsed = maxRolls - rollsRemaining;
 
+        console.log(`🔢 Roll calculation: rollsRemaining=${rollsRemaining}, maxRolls=${maxRolls}, rollsUsed=${rollsUsed}`);
+
         if (rollsCountElem) {
-            rollsCountElem.textContent = `${rollsUsed}/${maxRolls}`;
-            console.log(`📊 Updated rolls counter: ${rollsUsed}/${maxRolls}`);
+            const newCounterText = `${rollsUsed}/${maxRolls}`;
+            console.log(`📊 Setting rolls counter to: "${newCounterText}"`);
+            rollsCountElem.textContent = newCounterText;
+            console.log(`✅ Rolls counter updated. Current textContent: "${rollsCountElem.textContent}"`);
+        } else {
+            console.error('❌ rolls-count element NOT FOUND!');
         }
 
         // Update next roll cost display

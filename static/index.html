@@ -2378,7 +2378,7 @@ async function fetchMissionsAndRender(){
                     </div>
                     <div style="margin-left:20px;">
                         ${connectedWallet
-                            ? `<button class="cmd-link" onclick="openMissionSendModal('${m.id}')">[SEND]</button>`
+                            ? `<button class="cmd-link" onclick="openMissionSendModal('${m.id}')">[SEND MISSION]</button>`
                             : `<button class="cmd-link" style="opacity:0.5;" onclick="showInfoModal('WALLET REQUIRED', 'Please connect your wallet using the [CONNECT WALLET] button in the PROFILE section.')">[WALLET REQUIRED]</button>`
                         }
                     </div>
@@ -2694,7 +2694,7 @@ async function loadPlayerAndRender(){
                             [EMBER ROLL]
                         </button>
                         <button class="action-btn send" onclick="openMissionListModal('${h.token_id}')">
-                            [SEND]
+                            [SEND MISSION]
                         </button>
                         <button class="action-btn recover" onclick="showRecoverModal('${h.token_id}')">
                             [RECOVER]
