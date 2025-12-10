@@ -928,488 +928,214 @@
     };
 
     // ===============================================================
-    // GAMBIT D20
+    // EMBER ROLL - Reconstruido desde cero
     // ===============================================================
 
-    window.showGambitModal = async function(emissaryId) {
-        if (!FEATURES.EMBER_GAMBIT_ENABLED) {
-            alert('EMBER ROLL is not available yet.');
+// ============================================================================
+// EMBER ROLL FRONTEND - Reconstruido desde cero
+// ============================================================================
+
+// Show EMBER ROLL modal
+window.showEmberRoll = async function(emissaryId) {
+    if (!currentWallet) {
+        alert('Please connect your wallet first');
+        return;
+    }
+
+    try {
+        // Get status
+        const response = await fetch(`/api/ember-roll/status?wallet=${currentWallet}`);
+        const data = await response.json();
+
+        if (data.error) {
+            alert(`Error: ${data.error}`);
             return;
         }
 
-        if (!currentWallet) {
-            alert('Please connect your wallet first.');
+        const rolls_used = data.rolls_used || 0;
+        const rolls_max = data.rolls_max || 5;
+        const rolls_remaining = data.rolls_remaining || 0;
+        const cost = rolls_used === 0 ? 0 : 75;
+
+        // Build modal HTML
+        const modalHTML = `
+            <div style="max-width:600px; margin:0 auto;">
+                <h2 style="text-align:center; color:var(--gold); margin-bottom:20px;">
+                    🎲 EMBER ROLL
+                </h2>
+
+                <div id="ember-roll-dice" style="text-align:center; font-size:80px; margin:30px 0; color:var(--gold);">
+                    <div style="font-family:'Alagard',serif;">D20</div>
+                </div>
+
+                <div id="ember-roll-result" style="text-align:center; min-height:100px; margin:20px 0; padding:20px; border:2px solid var(--gold); background:rgba(255,215,0,0.1);">
+                    <p style="color:#888; font-style:italic;">Roll the dice to test your fate...</p>
+                </div>
+
+                <div style="text-align:center; margin:20px 0; padding:15px; background:rgba(0,0,0,0.3); border:1px solid var(--border-primary);">
+                    <div><strong>Rolls today:</strong> ${rolls_used}/${rolls_max}</div>
+                    <div><strong>Next roll cost:</strong> ${cost === 0 ? '<span style="color:#4ade80;">FREE</span>' : `<span style="color:var(--gold);">${cost} $EMBER</span>`}</div>
+                </div>
+
+                ${rolls_remaining > 0 ? `
+                    <button class="modal-btn" id="ember-roll-btn" onclick="performEmberRoll('${emissaryId}')" style="width:100%; padding:15px; font-size:16px; background:#a855f7; border-color:#a855f7; color:#fff; margin-bottom:10px;">
+                        [ROLL D20${cost === 0 ? ' - FREE!' : ' - ' + cost + ' $EMBER'}]
+                    </button>
+                ` : `
+                    <button class="modal-btn" disabled style="width:100%; padding:15px; opacity:0.3; cursor:not-allowed; margin-bottom:10px;">
+                        [NO ROLLS REMAINING TODAY]
+                    </button>
+                `}
+
+                <button class="modal-btn" onclick="closeModal('ember-roll-modal')" style="width:100%;">
+                    [CLOSE]
+                </button>
+            </div>
+        `;
+
+        // Show modal
+        const modal = document.getElementById('ember-roll-modal');
+        if (!modal) {
+            console.error('ember-roll-modal not found');
             return;
         }
 
-        // Check status
-        try {
-            const response = await fetch(`/api/gambit/status?wallet=${currentWallet}`);
-            const data = await response.json();
+        const modalBody = modal.querySelector('.terminal-modal-body');
+        if (modalBody) {
+            modalBody.innerHTML = modalHTML;
+        }
 
-            const rollsToday = data.rolls_today || 0;
-            const maxRolls = data.rolls_max || 5;
-            const rollsRemaining = maxRolls - rollsToday;
-            const isFreeRoll = rollsToday === 0;
-            const costPerRoll = isFreeRoll ? 0 : 75;
+        modal.classList.add('active');
 
-            const modal = document.getElementById('gambit-modal');
-            if (!modal) {
-                console.error('Gambit modal not found');
+    } catch (error) {
+        console.error('Error showing EMBER ROLL:', error);
+        alert('Failed to load EMBER ROLL');
+    }
+};
+
+// Perform roll
+window.performEmberRoll = async function(emissaryId) {
+    const btn = document.getElementById('ember-roll-btn');
+    const dice = document.getElementById('ember-roll-dice');
+    const resultDiv = document.getElementById('ember-roll-result');
+
+    if (!btn || !dice || !resultDiv) return;
+
+    // Disable button
+    btn.disabled = true;
+    btn.textContent = '[ROLLING...]';
+
+    // Animate dice
+    let count = 0;
+    const animation = setInterval(() => {
+        const random = Math.floor(Math.random() * 20) + 1;
+        dice.innerHTML = `<div style="font-family:'Alagard',serif; font-size:120px; color:var(--gold);">${random}</div>`;
+        count++;
+        if (count > 20) clearInterval(animation);
+    }, 80);
+
+    try {
+        // Perform roll
+        const response = await fetch('/api/ember-roll/perform', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                wallet: currentWallet,
+                emissary_id: emissaryId
+            })
+        });
+
+        const data = await response.json();
+
+        // Stop animation
+        setTimeout(() => {
+            clearInterval(animation);
+
+            if (data.error) {
+                // Show error
+                dice.innerHTML = `<div style="font-family:'Alagard',serif; font-size:80px; color:#ef4444;">✗</div>`;
+                resultDiv.innerHTML = `
+                    <div style="color:#ef4444; font-size:18px; font-weight:600;">ERROR</div>
+                    <p style="color:#888; margin-top:10px;">${data.error}</p>
+                `;
+                btn.disabled = false;
+                btn.textContent = '[RETRY]';
                 return;
             }
 
-            const content = `
-                <div style="display:grid; grid-template-columns:1fr 1fr; gap:30px; margin-top:20px;">
-                    <!-- LEFT COLUMN: Result Display (TOP), then Dice & Actions -->
-                    <div style="display:flex; flex-direction:column; align-items:center; gap:15px;">
+            // Show result
+            const roll = data.roll;
+            const name = data.name;
+            const ember_change = data.ember_change;
+            const buff = data.buff || {};
 
-                        <!-- RESULT DISPLAY AREA - MOVED TO TOP FOR VISIBILITY -->
-                        <div id="gambit-result-display" style="width:100%; min-height:90px; padding:18px; border:3px solid var(--gold); background:linear-gradient(135deg, rgba(255,215,0,0.15) 0%, rgba(168,85,247,0.1) 100%); text-align:center; border-radius:8px; box-shadow: 0 0 20px rgba(255,215,0,0.3);">
-                            <div id="result-content" style="color:#888; font-size:13px; font-style:italic; line-height:1.6;">
-                                🎲 Your result will appear here after rolling the dice...
-                            </div>
-                        </div>
+            // Update dice
+            dice.innerHTML = `<div style="font-family:'Alagard',serif; font-size:120px; color:var(--gold);">${roll}</div>`;
 
-                        <div style="text-align:center;">
-                            <div class="dice-display" id="dice-display" style="font-size:40px; font-family:'Alagard',serif; color:var(--gold); text-shadow: 0 0 15px var(--gold); line-height:1.2;">
-                                ╔═╗<br/>
-                                ║?║<br/>
-                                ╚═╝<br/>
-                                <span style="font-size:20px;">D20</span>
-                            </div>
-                        </div>
-
-                        <div id="gambit-rolls-info" style="width:100%; text-align:center; padding:15px; border:1px solid var(--border-primary); background:rgba(0,0,0,0.3);">
-                            <div style="font-size:14px;">
-                                <strong>Rolls today:</strong> <span id="rolls-count">${rollsToday}/${maxRolls}</span><br/>
-                                <strong>Next roll:</strong> <span id="next-roll-cost">${isFreeRoll ? '<span style="color:#4ade80;">FREE!</span>' : `<span style="color:var(--gold);">${costPerRoll} $EMBER</span>`}</span>
-                            </div>
-                        </div>
-
-                        <div id="balance-display" style="width:100%; text-align:center; font-size:14px; margin-bottom:10px;">
-                            Your Balance: <span style="color:var(--gold); font-weight:600;">[E] <span id="ember-balance">${currentBalance.ember_balance.toLocaleString()}</span> $EMBER</span>
-                        </div>
-
-                        ${rollsRemaining > 0 ? `
-                            <button class="modal-btn btn-gambit" onclick="rollGambitDice('${emissaryId}', ${costPerRoll})" style="width:100%; background:#a855f7; border-color:#a855f7; color:#fff; padding:15px; font-size:14px;">
-                                [ROLL THE D20${isFreeRoll ? ' - FREE' : ' - ' + costPerRoll + ' $EMBER'}]
-                            </button>
-                        ` : `
-                            <button class="modal-btn" disabled style="width:100%; opacity:0.3; cursor:not-allowed; padding:15px;">
-                                [NO ROLLS REMAINING TODAY]
-                            </button>
-                        `}
-
-                        <button class="modal-btn" onclick="closeGambitModal()" style="width:100%; margin-top:10px;">[CLOSE]</button>
-                    </div>
-
-                    <!-- RIGHT COLUMN: Possible Outcomes -->
-                    <div class="mono-block" style="padding:15px; border-left:3px solid #a855f7; background:rgba(168,85,247,0.05); max-height:600px; overflow-y:auto; min-width:0;">
-                        <div class="subheading" style="margin-bottom:10px;">POSSIBLE OUTCOMES</div>
-                        <div style="font-size:10px; line-height:1.6; font-family:monospace; overflow-x:auto;">
-                            <!-- Header -->
-                            <div style="display:grid; grid-template-columns:50px 110px 90px minmax(200px, 1fr); gap:8px; padding-bottom:8px; border-bottom:1px solid rgba(168,85,247,0.3); margin-bottom:8px; font-weight:600; color:#a855f7; min-width:450px;">
-                                <div>ROLL</div>
-                                <div>RESULT</div>
-                                <div>$EMBER</div>
-                                <div>MISSION BUFFS (Duration)</div>
-                            </div>
-
-                            <!-- Rows -->
-                            <div style="display:grid; grid-template-columns:50px 110px 90px minmax(200px, 1fr); gap:8px; align-items:start; min-width:450px;">
-                                <div style="color:#ef4444;">[1]</div>
-                                <div style="color:#ef4444;">CRITICAL FAIL</div>
-                                <div style="color:#ef4444;">-100</div>
-                                <div style="color:#ef4444; font-size:9px;">-20% Success, -10% XP (24h)</div>
-
-                                <div style="color:#666;">[2-5]</div>
-                                <div style="color:#666;">NOTHING</div>
-                                <div style="color:#666;">0</div>
-                                <div style="color:#666; font-size:9px;">No effects</div>
-
-                                <div style="color:#eab308;">[6-8]</div>
-                                <div style="color:#eab308;">GRAZE</div>
-                                <div style="color:#4ade80;">+50</div>
-                                <div style="color:#888; font-size:9px;">+5% Success (12h)</div>
-
-                                <div style="color:#eab308;">[9-11]</div>
-                                <div style="color:#eab308;">HIT</div>
-                                <div style="color:#4ade80;">+100</div>
-                                <div style="color:#888; font-size:9px;">+10% Success, +5% XP (24h)</div>
-
-                                <div style="color:var(--primary-green);">[12-14]</div>
-                                <div style="color:var(--primary-green);">SOLID HIT</div>
-                                <div style="color:#4ade80;">+200</div>
-                                <div style="color:#888; font-size:9px;">+15% Success, +10% XP (24h)</div>
-
-                                <div style="color:var(--primary-green);">[15-17]</div>
-                                <div style="color:var(--primary-green);">GREAT HIT</div>
-                                <div style="color:#4ade80;">+350</div>
-                                <div style="color:#888; font-size:9px;">+20% Success, +15% XP (24h)</div>
-
-                                <div style="color:#3b82f6;">[18]</div>
-                                <div style="color:#3b82f6;">CRITICAL!</div>
-                                <div style="color:#4ade80;">+500</div>
-                                <div style="color:#888; font-size:9px;">+25% Success, +20% XP, -10% Energy (48h) + Item</div>
-
-                                <div style="color:#a855f7;">[19]</div>
-                                <div style="color:#a855f7;">SUPERIOR</div>
-                                <div style="color:#4ade80;">+500</div>
-                                <div style="color:#888; font-size:9px;">+30% Success, +25% XP, -15% Energy (48h) + Item</div>
-
-                                <div style="color:var(--gold); font-weight:bold;">[20]</div>
-                                <div style="color:var(--gold); font-weight:bold;">NATURAL 20!</div>
-                                <div style="color:#4ade80; font-weight:bold;">+1000</div>
-                                <div style="color:#888; font-size:9px; font-weight:600;">+35% Success, +30% XP, -25% Energy (72h) + Item</div>
-                            </div>
-                        </div>
-                    </div>
+            // Build result HTML
+            let resultHTML = `
+                <div style="font-size:24px; font-weight:600; color:var(--gold); margin-bottom:15px;">
+                    ${name}
                 </div>
             `;
 
-            const modalBody = modal.querySelector('.terminal-modal-body');
-            if (modalBody) {
-                modalBody.innerHTML = content;
+            if (ember_change > 0) {
+                resultHTML += `<div style="font-size:20px; color:#4ade80;">+${ember_change} $EMBER</div>`;
+            } else if (ember_change < 0) {
+                resultHTML += `<div style="font-size:20px; color:#ef4444;">${ember_change} $EMBER</div>`;
+            } else {
+                resultHTML += `<div style="font-size:16px; color:#888;">No EMBER change</div>`;
             }
 
-            modal.classList.add('active');
-        } catch (error) {
-            console.error('Error showing gambit modal:', error);
-            alert('Failed to load EMBER ROLL status');
-        }
-    };
+            // Show buffs if any
+            if (buff.duration_hours > 0) {
+                const buffs = [];
+                if (buff.success_bonus !== 0) buffs.push(`${buff.success_bonus > 0 ? '+' : ''}${buff.success_bonus}% Success`);
+                if (buff.xp_bonus !== 0) buffs.push(`${buff.xp_bonus > 0 ? '+' : ''}${buff.xp_bonus}% XP`);
+                if (buff.energy_reduction > 0) buffs.push(`-${buff.energy_reduction}% Energy`);
 
-    window.closeGambitModal = function() {
-        const modal = document.getElementById('gambit-modal');
-        if (modal) {
-            modal.classList.remove('active');
-        }
-    };
-
-    // Test function to verify result display works
-    window.testGambitResultDisplay = function() {
-        console.log('🧪 Testing result display area...');
-        const resultContent = document.getElementById('result-content');
-        const rollsCountElem = document.getElementById('rolls-count');
-        const emberBalanceElem = document.getElementById('ember-balance');
-
-        if (!resultContent) {
-            console.error('❌ result-content element not found!');
-            return;
-        }
-
-        console.log('✅ Elements found');
-        resultContent.innerHTML = `
-            <div style="font-size:18px; color:var(--gold); margin-bottom:15px; font-weight:600;">
-                🧪 TEST RESULT
-            </div>
-            <div style="color:#4ade80; font-size:18px;">+999 $EMBER (TEST)</div>
-        `;
-
-        // Test updating counters
-        if (rollsCountElem) rollsCountElem.textContent = '1/5';
-        if (emberBalanceElem) emberBalanceElem.textContent = '999';
-
-        console.log('✅ Test content inserted successfully');
-    };
-
-    window.rollGambitDice = async function(emissaryId, cost) {
-        const diceDisplay = document.getElementById('dice-display');
-        if (!diceDisplay) return;
-
-        // Disable button during roll
-        const rollBtn = document.querySelector('.btn-gambit');
-        if (rollBtn) {
-            rollBtn.disabled = true;
-            rollBtn.textContent = '[ROLLING...]';
-            rollBtn.style.color = '#fff'; // Keep text visible during roll
-        }
-
-        // Animate dice - faster animation
-        let counter = 0;
-        const interval = setInterval(() => {
-            const randomNum = Math.floor(Math.random() * 20) + 1;
-            diceDisplay.innerHTML = `╔═╗<br/>║${randomNum}║<br/>╚═╝<br/><span style="font-size:20px;">D20</span>`;
-            counter++;
-            if (counter > 25) {
-                clearInterval(interval);
-                performGambitRoll(emissaryId, cost);
-            }
-        }, 80);
-    };
-
-    async function performGambitRoll(emissaryId, cost) {
-        try {
-            console.log('📡 Sending roll request:', { wallet: currentWallet, cost });
-            const response = await fetch('/api/gambit/roll', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    wallet: currentWallet,
-                    emissary_id: emissaryId,
-                    cost: cost
-                })
-            });
-
-            console.log('📨 Response status:', response.status);
-            const data = await response.json();
-            console.log('📦 Response data:', data);
-
-            if (data.error) {
-                console.error('❌ Backend error:', data.error);
-                // Show error in result area
-                const resultContent = document.getElementById('result-content');
-
-                if (resultContent) {
-                    resultContent.innerHTML = `
-                        <div style="font-size:18px; color:#ef4444; margin-bottom:15px; font-weight:600;">
-                            ❌ ERROR
+                if (buffs.length > 0) {
+                    resultHTML += `
+                        <div style="margin-top:15px; padding-top:15px; border-top:1px solid rgba(255,255,255,0.1);">
+                            <div style="color:#888; font-size:14px; margin-bottom:8px;">🔮 Mission Buffs (${buff.duration_hours}h):</div>
+                            <div style="color:var(--primary-green); font-size:14px;">${buffs.join(' • ')}</div>
                         </div>
-                        <div style="color:#888; font-size:14px;">${data.error}</div>
                     `;
-                } else {
-                    alert('Error: ' + data.error);
                 }
-
-                // Re-enable button
-                const rollBtn = document.querySelector('.btn-gambit');
-                if (rollBtn) {
-                    rollBtn.disabled = false;
-                    rollBtn.textContent = '[RETRY]';
-                }
-                return;
             }
 
-            if (!data.success) {
-                console.error('❌ Roll failed:', data);
-                alert('Roll failed. Please try again.');
-                return;
-            }
+            resultDiv.innerHTML = resultHTML;
 
-            console.log('✅ Roll successful, showing result');
-            console.log('📊 Data received from server:', JSON.stringify(data, null, 2));
-            console.log('🔍 Checking if result elements exist...');
-            const checkResultContent = document.getElementById('result-content');
-            const checkRollsCount = document.getElementById('rolls-count');
-            console.log('📦 result-content exists:', !!checkResultContent);
-            console.log('📦 rolls-count exists:', !!checkRollsCount);
-            showGambitResult(data, emissaryId);
-            console.log('🎯 showGambitResult() completed');
-        } catch (error) {
-            console.error('❌ Error rolling dice:', error);
-            // Show error in result area
-            const resultContent = document.getElementById('result-content');
-
-            if (resultContent) {
-                resultContent.innerHTML = `
-                    <div style="font-size:18px; color:#ef4444; margin-bottom:15px; font-weight:600;">
-                        ❌ NETWORK ERROR
-                    </div>
-                    <div style="color:#888; font-size:14px;">${error.message}</div>
-                `;
+            // Update button
+            if (data.rolls_used >= data.rolls_max) {
+                btn.disabled = true;
+                btn.textContent = '[NO ROLLS REMAINING TODAY]';
+                btn.style.opacity = '0.3';
             } else {
-                alert('Error rolling dice. Please try again.');
+                btn.disabled = false;
+                const next_cost = data.rolls_used === 0 ? 0 : 75;
+                btn.textContent = `[ROLL AGAIN${next_cost === 0 ? ' - FREE' : ' - ' + next_cost + ' $EMBER'}]`;
             }
 
-            // Re-enable button
-            const rollBtn = document.querySelector('.btn-gambit');
-            if (rollBtn) {
-                rollBtn.disabled = false;
-                rollBtn.textContent = '[RETRY]';
+            // Reload balance
+            if (typeof loadBalance === 'function') {
+                loadBalance(currentWallet);
             }
-        }
-    }
 
-    function showGambitResult(result, emissaryId) {
-        console.log('🎲 showGambitResult called with:', result);
+        }, 1500); // Wait for animation to finish
 
-        const diceDisplay = document.getElementById('dice-display');
-        const resultContent = document.getElementById('result-content');
-        const rollBtn = document.querySelector('.btn-gambit');
-        const rollsCountElem = document.getElementById('rolls-count');
-        const nextRollCostElem = document.getElementById('next-roll-cost');
-        const emberBalanceElem = document.getElementById('ember-balance');
-
-        console.log('Elements found:', {
-            diceDisplay: !!diceDisplay,
-            resultContent: !!resultContent,
-            rollBtn: !!rollBtn,
-            rollsCountElem: !!rollsCountElem,
-            nextRollCostElem: !!nextRollCostElem,
-            emberBalanceElem: !!emberBalanceElem
-        });
-
-        if (!diceDisplay || !resultContent) {
-            console.error('❌ Missing required elements for result display');
-            return;
-        }
-
-        const roll = result.roll || result.result;
-        const emberChange = result.ember_change || 0;
-        let title = '';
-        let diceStyle = '';
-        let outcomeText = '';
-        let rewardsHtml = '';
-
-        // Build buff display if buff exists
-        const buff = result.buff || {};
-        let buffHtml = '';
-        if (buff.duration_hours && buff.duration_hours > 0) {
-            const buffs = [];
-            if (buff.success_bonus > 0) buffs.push(`<span style="color:#4ade80;">+${buff.success_bonus}% Success Rate</span>`);
-            if (buff.success_bonus < 0) buffs.push(`<span style="color:#ef4444;">${buff.success_bonus}% Success Rate</span>`);
-            if (buff.xp_bonus > 0) buffs.push(`<span style="color:#60a5fa;">+${buff.xp_bonus}% XP</span>`);
-            if (buff.xp_bonus < 0) buffs.push(`<span style="color:#ef4444;">${buff.xp_bonus}% XP</span>`);
-            if (buff.energy_cost_reduction > 0) buffs.push(`<span style="color:#a78bfa;">-${buff.energy_cost_reduction}% Energy Cost</span>`);
-
-            if (buffs.length > 0) {
-                buffHtml = `
-                    <div style="margin-top:12px; padding:10px; border-top:1px solid rgba(255,255,255,0.1); font-size:13px; line-height:1.8;">
-                        <div style="color:#888; margin-bottom:6px;">🔮 Mission Buffs (${buff.duration_hours}h):</div>
-                        ${buffs.join(' • ')}
-                    </div>
-                `;
-            }
-        }
-
-        // Determine outcome based on roll
-        if (roll === 1) {
-            title = '✗ CRITICAL FAIL!';
-            diceStyle = 'color:#ef4444; animation: shake 0.5s;';
-            outcomeText = 'CRITICAL FAIL';
-            rewardsHtml = `<div style="color:#ef4444; font-size:16px;">${emberChange} $EMBER</div>${buffHtml}`;
-        } else if (roll >= 2 && roll <= 5) {
-            title = 'NOTHING';
-            diceStyle = 'color:#666;';
-            outcomeText = 'NOTHING';
-            rewardsHtml = `<div style="color:#888; font-size:14px;">Nothing happens</div>`;
-        } else if (roll >= 6 && roll <= 8) {
-            title = 'GRAZE!';
-            diceStyle = 'color:#888;';
-            outcomeText = 'GRAZE';
-            rewardsHtml = `<div style="color:#4ade80; font-size:18px;">+${emberChange} $EMBER</div>${buffHtml}`;
-        } else if (roll >= 9 && roll <= 11) {
-            title = 'HIT!';
-            diceStyle = 'color:#888;';
-            outcomeText = 'HIT';
-            rewardsHtml = `<div style="color:#4ade80; font-size:18px;">+${emberChange} $EMBER</div>${buffHtml}`;
-        } else if (roll >= 12 && roll <= 14) {
-            title = '✓ SOLID HIT!';
-            diceStyle = 'color:var(--primary-green);';
-            outcomeText = 'SOLID HIT';
-            rewardsHtml = `<div style="color:#4ade80; font-size:18px;">+${emberChange} $EMBER</div>${buffHtml}`;
-        } else if (roll >= 15 && roll <= 17) {
-            title = '✓✓ GREAT HIT!';
-            diceStyle = 'color:var(--primary-green);';
-            outcomeText = 'GREAT HIT';
-            rewardsHtml = `<div style="color:#4ade80; font-size:18px;">+${emberChange} $EMBER</div>${buffHtml}`;
-        } else if (roll === 18) {
-            title = '⚡ CRITICAL!';
-            diceStyle = 'color:#3b82f6; animation: pulse 1s infinite;';
-            outcomeText = 'CRITICAL';
-            rewardsHtml = `
-                <div style="color:#4ade80; font-size:18px;">+${emberChange} $EMBER</div>
-                ${result.item ? `<div style="color:#9ca3af; font-size:14px; margin-top:8px;">📦 ${result.item}</div>` : ''}
-                ${buffHtml}
-            `;
-        } else if (roll === 19) {
-            title = '⭐ SUPERIOR!';
-            diceStyle = 'color:#a855f7; animation: pulse 1s infinite;';
-            outcomeText = 'SUPERIOR';
-            rewardsHtml = `
-                <div style="color:#4ade80; font-size:18px;">+${emberChange} $EMBER</div>
-                ${result.item ? `<div style="color:#9ca3af; font-size:14px; margin-top:8px;">📦 ${result.item}</div>` : ''}
-                ${buffHtml}
-            `;
-        } else if (roll === 20) {
-            title = '★ NATURAL 20! ★';
-            diceStyle = 'color:var(--gold); animation: pulse 1s infinite; text-shadow: 0 0 30px var(--gold);';
-            outcomeText = 'NATURAL 20!';
-            rewardsHtml = `
-                <div style="color:#4ade80; font-size:20px; font-weight:bold;">+${emberChange} $EMBER</div>
-                ${result.item ? `<div style="color:#a855f7; font-size:14px; margin-top:8px;">📦 ${result.item}</div>` : ''}
-                ${buffHtml}
-            `;
-        }
-
-        // Update dice display with result
-        diceDisplay.innerHTML = `╔═╗<br/>║${roll}║<br/>╚═╝<br/><span style="font-size:20px;">${outcomeText}</span>`;
-        diceDisplay.style = `font-size:60px; font-family:'Alagard',serif; ${diceStyle} line-height:1.2;`;
-
-        // Show result in dedicated area
-        resultContent.innerHTML = `
-            <div style="font-size:18px; color:var(--gold); margin-bottom:15px; font-weight:600;">
-                ${title}
-            </div>
-            ${rewardsHtml}
-
-            <style>
-                @keyframes shake {
-                    0%, 100% { transform: translateX(0); }
-                    25% { transform: translateX(-10px); }
-                    75% { transform: translateX(10px); }
-                }
-                @keyframes pulse {
-                    0%, 100% { transform: scale(1); }
-                    50% { transform: scale(1.05); }
-                }
-            </style>
+    } catch (error) {
+        clearInterval(animation);
+        console.error('Error performing roll:', error);
+        dice.innerHTML = `<div style="font-family:'Alagard',serif; font-size:80px; color:#ef4444;">✗</div>`;
+        resultDiv.innerHTML = `
+            <div style="color:#ef4444; font-size:18px; font-weight:600;">NETWORK ERROR</div>
+            <p style="color:#888; margin-top:10px;">${error.message}</p>
         `;
-
-        console.log('✅ Result content updated, innerHTML length:', resultContent.innerHTML.length);
-
-        // Update the roll counter and balance display
-        if (result.new_balance !== undefined && emberBalanceElem) {
-            emberBalanceElem.textContent = result.new_balance.toLocaleString();
-            console.log('💰 Updated balance display:', result.new_balance);
-        }
-
-        // Update rolls counter - use rolls_today and rolls_max from backend
-        const rollsToday = result.rolls_today || 0;
-        const maxRolls = result.rolls_max || 5;
-        const rollsRemaining = result.rolls_remaining || 0;
-
-        console.log(`🔢 Roll data from backend: rollsToday=${rollsToday}, maxRolls=${maxRolls}, rollsRemaining=${rollsRemaining}`);
-
-        if (rollsCountElem) {
-            const newCounterText = `${rollsToday}/${maxRolls}`;
-            console.log(`📊 Setting rolls counter to: "${newCounterText}"`);
-            rollsCountElem.textContent = newCounterText;
-            console.log(`✅ Rolls counter updated. Current textContent: "${rollsCountElem.textContent}"`);
-        } else {
-            console.error('❌ rolls-count element NOT FOUND!');
-        }
-
-        // Update next roll cost display - first roll is always free
-        if (nextRollCostElem) {
-            const nextCost = rollsToday === 0 ? 0 : 75;
-            nextRollCostElem.innerHTML = nextCost === 0
-                ? '<span style="color:#4ade80;">FREE!</span>'
-                : `<span style="color:var(--gold);">${nextCost} $EMBER</span>`;
-            console.log(`💵 Updated next roll cost: ${nextCost === 0 ? 'FREE' : nextCost + ' $EMBER'}`);
-        }
-
-        // Update button - enable for next roll if available
-        if (rollBtn) {
-            if (rollsRemaining > 0) {
-                rollBtn.disabled = false;
-                const nextCost = rollsToday === 0 ? 0 : 75;
-                rollBtn.textContent = `[ROLL THE D20${nextCost === 0 ? ' - FREE' : ' - ' + nextCost + ' $EMBER'}]`;
-                console.log(`🔄 Button updated for next roll: ${nextCost} $EMBER`);
-            } else {
-                rollBtn.disabled = true;
-                rollBtn.textContent = '[NO ROLLS REMAINING TODAY]';
-                rollBtn.style.opacity = '0.3';
-                rollBtn.style.cursor = 'not-allowed';
-                console.log('🚫 No more rolls available');
-            }
-        }
-
-        // Reload balance
-        console.log('💰 Reloading balance...');
-        loadBalance(currentWallet);
+        btn.disabled = false;
+        btn.textContent = '[RETRY]';
     }
+};
 
     // ===============================================================
     // PUSH MODAL (Mission Acceleration)

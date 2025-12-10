@@ -1603,12 +1603,12 @@
     </div>
 </div>
 
-<!-- GAMBIT MODAL -->
-<div class="modal-overlay" id="gambit-modal">
+<!-- EMBER ROLL MODAL -->
+<div class="modal-overlay" id="ember-roll-modal">
     <div class="terminal-modal">
         <div class="terminal-modal-header">
             EMBER ROLL // TEST YOUR FATE
-            <button class="terminal-modal-close" onclick="closeGambitModal()">×</button>
+            <button class="terminal-modal-close" onclick="closeModal('ember-roll-modal')">×</button>
         </div>
         <div class="terminal-modal-body">
             <!-- Content loaded dynamically by inventory.js -->
@@ -2694,7 +2694,7 @@ async function loadPlayerAndRender(){
                         <button class="action-btn inventory" onclick="showInventoryModal('${h.token_id}')" title="Manage Equipment">
                             [INVENTORY]
                         </button>
-                        <button class="action-btn ember-roll" onclick="showGambitModal('${h.token_id}')" title="Roll D20 for mission bonuses">
+                        <button class="action-btn ember-roll" onclick="showEmberRoll('${h.token_id}')" title="Roll D20 for mission bonuses">
                             [EMBER ROLL]
                         </button>
                         <button class="action-btn send" onclick="openMissionListModal('${h.token_id}')">
@@ -2711,7 +2711,7 @@ async function loadPlayerAndRender(){
                             <button class="action-btn inventory" onclick="showInventoryModal('${h.token_id}')">
                                 [INVENTORY]
                             </button>
-                            <button class="action-btn ember-roll" onclick="showGambitModal('${h.token_id}')">
+                            <button class="action-btn ember-roll" onclick="showEmberRoll('${h.token_id}')">
                                 [EMBER ROLL]
                             </button>
                             <button class="action-btn claim complete-btn" data-hero="${h.token_id}">
