@@ -249,16 +249,16 @@ def calculate_mission_success_rate(hero, mission):
 
     # 🔮 EMBER ROLL BUFF: Success bonus
     ds = hero.get("dynamic_state", {})
-    last_roll = ds.get("last_gambit_roll")
-    if last_roll:
-        expires_at = last_roll.get("expires_at")
+    buff = ds.get("ember_roll_buff")
+    if buff:
+        expires_at = buff.get("expires_at")
         if expires_at:
             try:
                 expires_dt = datetime.fromisoformat(expires_at.replace('Z', '+00:00'))
                 now = datetime.now(timezone.utc)
                 if now < expires_dt:
                     # Buff is active
-                    success_bonus = last_roll.get("success_bonus", 0)
+                    success_bonus = buff.get("success_bonus", 0)
                     if success_bonus != 0:
                         bonus += success_bonus
                         print(f"🔮 EMBER ROLL success buff applied: {'+' if success_bonus > 0 else ''}{success_bonus}%")
@@ -335,16 +335,16 @@ def roll_mission_outcome(hero, mission):
 
         # 🔮 EMBER ROLL BUFF: XP bonus
         ds = hero.get("dynamic_state", {})
-        last_roll = ds.get("last_gambit_roll")
-        if last_roll:
-            expires_at = last_roll.get("expires_at")
+        buff = ds.get("ember_roll_buff")
+        if buff:
+            expires_at = buff.get("expires_at")
             if expires_at:
                 try:
                     expires_dt = datetime.fromisoformat(expires_at.replace('Z', '+00:00'))
                     now = datetime.now(timezone.utc)
                     if now < expires_dt:
                         # Buff is active
-                        xp_bonus = last_roll.get("xp_bonus", 0)
+                        xp_bonus = buff.get("xp_bonus", 0)
                         if xp_bonus != 0:
                             original_xp = xp_reward
                             xp_reward = int(xp_reward * (100 + xp_bonus) / 100)
@@ -2173,17 +2173,17 @@ def api_mission_start():
     energy_current = ds.get("energy_current", 0)
 
     # 🔮 APPLY ENERGY COST REDUCTION BUFF
-    last_roll = ds.get("last_gambit_roll")
+    buff = ds.get("ember_roll_buff")
     energy_reduction = 0
-    if last_roll:
-        expires_at = last_roll.get("expires_at")
+    if buff:
+        expires_at = buff.get("expires_at")
         if expires_at:
             try:
                 expires_dt = datetime.fromisoformat(expires_at.replace('Z', '+00:00'))
                 now = datetime.now(timezone.utc)
                 if now < expires_dt:
                     # Buff is active
-                    energy_reduction = last_roll.get("energy_cost_reduction", 0)
+                    energy_reduction = buff.get("energy_reduction", 0)
                     if energy_reduction > 0:
                         original_cost = cost_energy
                         cost_energy = int(cost_energy * (100 - energy_reduction) / 100)
@@ -4083,47 +4083,6 @@ REVIVE_COSTS = {
 
 BURN_RATE = 100  # 100 EMBER = 1 ASH
 
-D20_REWARDS = {
-    # [1] Critical Fail: Lose EMBER + Mission penalties
-    1: {
-        "type": "critical_fail",
-        "name": "CRITICAL FAIL",
-        "ember": -100,
-        "success_bonus": -20,  # -20% success rate in missions
-        "xp_bonus": -10,  # -10% XP gained
-        "energy_cost_reduction": 0,
-        "duration_hours": 24,
-        "item": None
-    },
-    # [2-5] Nothing: No effects
-    2: {"type": "nothing", "name": "NOTHING", "ember": 0, "success_bonus": 0, "xp_bonus": 0, "energy_cost_reduction": 0, "duration_hours": 0, "item": None},
-    3: {"type": "nothing", "name": "NOTHING", "ember": 0, "success_bonus": 0, "xp_bonus": 0, "energy_cost_reduction": 0, "duration_hours": 0, "item": None},
-    4: {"type": "nothing", "name": "NOTHING", "ember": 0, "success_bonus": 0, "xp_bonus": 0, "energy_cost_reduction": 0, "duration_hours": 0, "item": None},
-    5: {"type": "nothing", "name": "NOTHING", "ember": 0, "success_bonus": 0, "xp_bonus": 0, "energy_cost_reduction": 0, "duration_hours": 0, "item": None},
-    # [6-8] Graze: Small EMBER + minor mission boost
-    6: {"type": "graze", "name": "GRAZE", "ember": 50, "success_bonus": 5, "xp_bonus": 0, "energy_cost_reduction": 0, "duration_hours": 12, "item": None},
-    7: {"type": "graze", "name": "GRAZE", "ember": 50, "success_bonus": 5, "xp_bonus": 0, "energy_cost_reduction": 0, "duration_hours": 12, "item": None},
-    8: {"type": "graze", "name": "GRAZE", "ember": 50, "success_bonus": 5, "xp_bonus": 0, "energy_cost_reduction": 0, "duration_hours": 12, "item": None},
-    # [9-11] Hit: Medium EMBER + moderate mission boost
-    9: {"type": "hit", "name": "HIT", "ember": 100, "success_bonus": 10, "xp_bonus": 5, "energy_cost_reduction": 0, "duration_hours": 24, "item": None},
-    10: {"type": "hit", "name": "HIT", "ember": 100, "success_bonus": 10, "xp_bonus": 5, "energy_cost_reduction": 0, "duration_hours": 24, "item": None},
-    11: {"type": "hit", "name": "HIT", "ember": 100, "success_bonus": 10, "xp_bonus": 5, "energy_cost_reduction": 0, "duration_hours": 24, "item": None},
-    # [12-14] Solid Hit: Good EMBER + good mission boost
-    12: {"type": "solid_hit", "name": "SOLID HIT", "ember": 200, "success_bonus": 15, "xp_bonus": 10, "energy_cost_reduction": 0, "duration_hours": 24, "item": None},
-    13: {"type": "solid_hit", "name": "SOLID HIT", "ember": 200, "success_bonus": 15, "xp_bonus": 10, "energy_cost_reduction": 0, "duration_hours": 24, "item": None},
-    14: {"type": "solid_hit", "name": "SOLID HIT", "ember": 200, "success_bonus": 15, "xp_bonus": 10, "energy_cost_reduction": 0, "duration_hours": 24, "item": None},
-    # [15-17] Great Hit: Great EMBER + strong mission boost
-    15: {"type": "great_hit", "name": "GREAT HIT", "ember": 350, "success_bonus": 20, "xp_bonus": 15, "energy_cost_reduction": 0, "duration_hours": 24, "item": None},
-    16: {"type": "great_hit", "name": "GREAT HIT", "ember": 350, "success_bonus": 20, "xp_bonus": 15, "energy_cost_reduction": 0, "duration_hours": 24, "item": None},
-    17: {"type": "great_hit", "name": "GREAT HIT", "ember": 350, "success_bonus": 20, "xp_bonus": 15, "energy_cost_reduction": 0, "duration_hours": 24, "item": None},
-    # [18] Critical: Excellent EMBER + excellent mission boost + item
-    18: {"type": "critical", "name": "CRITICAL!", "ember": 500, "success_bonus": 25, "xp_bonus": 20, "energy_cost_reduction": 10, "duration_hours": 48, "item": "random_common"},
-    # [19] Superior: Excellent EMBER + superior mission boost + item
-    19: {"type": "superior", "name": "SUPERIOR", "ember": 500, "success_bonus": 30, "xp_bonus": 25, "energy_cost_reduction": 15, "duration_hours": 48, "item": "random_common"},
-    # [20] Natural 20: Maximum EMBER + maximum boosts + rare item
-    20: {"type": "natural_20", "name": "NATURAL 20!", "ember": 1000, "success_bonus": 35, "xp_bonus": 30, "energy_cost_reduction": 25, "duration_hours": 72, "item": "random_rare_or_epic"}
-}
-
 # ---------------------------------
 # BALANCE API
 # ---------------------------------
@@ -4695,348 +4654,190 @@ def recover_energy():
         return jsonify({"error": str(e)}), 500
 
 # ---------------------------------
-# EMBER GAMBIT (D20 Dice Roll)
+# ============================================================================
+# EMBER ROLL SYSTEM - Sistema Simple de D20
+# ============================================================================
+# - 5 rolls máximo por día
+# - Primer roll GRATIS, resto 75 $EMBER
+# - Reset diario automático
+# - Buffs guardados en hero.dynamic_state.ember_roll_buff
+# ============================================================================
+
+# Tabla de recompensas D20 (simplificada)
+EMBER_ROLL_REWARDS = {
+    1:  {"name": "CRITICAL FAIL", "ember": -100, "success": -20, "xp": -10, "energy": 0, "hours": 24},
+    2:  {"name": "NOTHING", "ember": 0, "success": 0, "xp": 0, "energy": 0, "hours": 0},
+    3:  {"name": "NOTHING", "ember": 0, "success": 0, "xp": 0, "energy": 0, "hours": 0},
+    4:  {"name": "NOTHING", "ember": 0, "success": 0, "xp": 0, "energy": 0, "hours": 0},
+    5:  {"name": "NOTHING", "ember": 0, "success": 0, "xp": 0, "energy": 0, "hours": 0},
+    6:  {"name": "GRAZE", "ember": 50, "success": 5, "xp": 0, "energy": 0, "hours": 12},
+    7:  {"name": "GRAZE", "ember": 50, "success": 5, "xp": 0, "energy": 0, "hours": 12},
+    8:  {"name": "GRAZE", "ember": 50, "success": 5, "xp": 0, "energy": 0, "hours": 12},
+    9:  {"name": "HIT", "ember": 100, "success": 10, "xp": 5, "energy": 0, "hours": 24},
+    10: {"name": "HIT", "ember": 100, "success": 10, "xp": 5, "energy": 0, "hours": 24},
+    11: {"name": "HIT", "ember": 100, "success": 10, "xp": 5, "energy": 0, "hours": 24},
+    12: {"name": "SOLID HIT", "ember": 200, "success": 15, "xp": 10, "energy": 0, "hours": 24},
+    13: {"name": "SOLID HIT", "ember": 200, "success": 15, "xp": 10, "energy": 0, "hours": 24},
+    14: {"name": "SOLID HIT", "ember": 200, "success": 15, "xp": 10, "energy": 0, "hours": 24},
+    15: {"name": "GREAT HIT", "ember": 350, "success": 20, "xp": 15, "energy": 0, "hours": 24},
+    16: {"name": "GREAT HIT", "ember": 350, "success": 20, "xp": 15, "energy": 0, "hours": 24},
+    17: {"name": "GREAT HIT", "ember": 350, "success": 20, "xp": 15, "energy": 0, "hours": 24},
+    18: {"name": "CRITICAL", "ember": 500, "success": 25, "xp": 20, "energy": 10, "hours": 48},
+    19: {"name": "SUPERIOR", "ember": 500, "success": 30, "xp": 25, "energy": 15, "hours": 48},
+    20: {"name": "NATURAL 20", "ember": 1000, "success": 35, "xp": 30, "energy": 25, "hours": 72}
+}
+
+# ---------------------------------
+# EMBER ROLL API
 # ---------------------------------
 
-@app.route('/api/gambit/status', methods=['GET'])
-def gambit_status():
-    """Get gambit roll status"""
-    if not FEATURES["EMBER_GAMBIT_ENABLED"]:
-        return jsonify({"error": "Feature not enabled"}), 403
-
+@app.route('/api/ember-roll/status', methods=['GET'])
+def ember_roll_status():
+    """Get EMBER ROLL status for today"""
     wallet = request.args.get('wallet', '').lower()
 
     if not wallet:
         return jsonify({"error": "Wallet required"}), 400
 
-    if not POSTGRESQL_AVAILABLE:
-        return jsonify({"rolls_remaining": 5, "next_reset": None})
-
     try:
-        # Use the new helper function
-        balance_info = db.get_or_create_user_balance(wallet)
+        balance = db.get_or_create_user_balance(wallet)
+        if not balance:
+            return jsonify({"rolls_used": 0, "rolls_max": 5, "rolls_remaining": 5})
 
-        if balance_info is None:
-            # Return default on error
-            return jsonify({"rolls_remaining": 5, "next_reset": None})
-
-        rolls_used = balance_info["gambit_rolls_today"]
-        rolls_max = balance_info["gambit_rolls_max"]
-        next_reset = balance_info["gambit_next_reset"]
+        rolls_used = balance["gambit_rolls_today"]
+        rolls_max = balance["gambit_rolls_max"]
+        next_reset = balance["gambit_next_reset"]
 
         # Check if reset needed
-        if next_reset and datetime.now(timezone.utc) >= next_reset:
+        now = datetime.now(timezone.utc)
+        if next_reset and now >= next_reset:
             rolls_used = 0
 
         return jsonify({
-            "rolls_today": rolls_used,
+            "rolls_used": rolls_used,
             "rolls_max": rolls_max,
-            "rolls_remaining": max(0, rolls_max - rolls_used),
-            "next_reset": next_reset.isoformat() if next_reset else None
+            "rolls_remaining": rolls_max - rolls_used
         })
 
     except Exception as e:
-        print(f"Error getting gambit status: {e}")
-        import traceback
-        traceback.print_exc()
+        print(f"❌ Error getting EMBER ROLL status: {e}")
         return jsonify({"error": str(e)}), 500
 
-@app.route('/api/gambit/roll', methods=['POST'])
-def gambit_roll():
-    """Roll the D20 gambit dice"""
-    if not FEATURES["EMBER_GAMBIT_ENABLED"]:
-        return jsonify({"error": "Feature not enabled"}), 403
+@app.route('/api/ember-roll/perform', methods=['POST'])
+def ember_roll_perform():
+    """Perform an EMBER ROLL"""
+    data = request.get_json()
+    wallet = data.get('wallet', '').lower()
+    emissary_id = data.get('emissary_id')
 
+    if not wallet or not emissary_id:
+        return jsonify({"error": "Wallet and emissary_id required"}), 400
+
+    conn = None
     try:
-        data = request.get_json()
-        wallet = data.get('wallet', '').lower()
-        emissary_id = data.get('emissary_id')
-        cost = data.get('cost', 75)  # Get cost from frontend (0 for free roll, 75 otherwise)
+        # Get status
+        balance = db.get_or_create_user_balance(wallet)
+        if not balance:
+            return jsonify({"error": "User not found"}), 404
 
-        if not wallet:
-            return jsonify({"error": "Wallet required"}), 400
+        rolls_used = balance["gambit_rolls_today"]
+        rolls_max = balance["gambit_rolls_max"]
 
-        if not emissary_id:
-            return jsonify({"error": "Emissary ID required"}), 400
+        if rolls_used >= rolls_max:
+            return jsonify({"error": "No rolls remaining today"}), 400
 
-        if not POSTGRESQL_AVAILABLE:
-            # PostgreSQL not available - still allow free roll for testing
-            if cost == 0:
-                roll_result = random.randint(1, 20)
-                reward = D20_REWARDS[roll_result]
-                return jsonify({
-                    "success": True,
-                    "roll": roll_result,
-                    "reward_type": reward["type"],
-                    "ember_change": reward["ember"],
-                    "item": reward["item"],
-                    "message": "Free roll (database offline)"
-                })
-            return jsonify({"success": False, "message": "Database not available"}), 503
+        # Calculate cost (first roll free)
+        cost = 0 if rolls_used == 0 else 75
 
-        # Ensure user_balances table exists
-        print(f"🔍 Ensuring user_balances table exists...")
-        db.ensure_user_balances_table()
+        # Check balance
+        current_balance = balance["ember_balance"]
+        if current_balance < cost:
+            return jsonify({"error": f"Insufficient EMBER (need {cost}, have {current_balance})"}), 400
 
-        # Get database connection for atomic operations
-        print(f"💾 Getting database connection...")
-        conn = db.get_connection()
-        if not conn:
-            print("❌ CRITICAL: Failed to get database connection")
-            return jsonify({"error": "Database connection failed"}), 500
-
-        cursor = conn.cursor()
-
-        try:
-            # First, ensure user row exists and get current state using UPSERT
-            print(f"🔍 Getting/creating balance for wallet: {wallet[:6]}...{wallet[-4:]}")
-            cursor.execute("""
-                INSERT INTO user_balances (wallet, ember_balance, ash_balance, gambit_rolls_today, gambit_rolls_max, gambit_next_reset)
-                VALUES (%s, 0, 0, 0, 5, NOW() + INTERVAL '1 day')
-                ON CONFLICT (wallet) DO NOTHING
-            """, (wallet,))
-
-            # Get the current state (either newly inserted or existing)
-            cursor.execute("""
-                SELECT ember_balance, gambit_rolls_today, gambit_rolls_max, gambit_next_reset
-                FROM user_balances
-                WHERE wallet = %s
-            """, (wallet,))
-
-            row = cursor.fetchone()
-            if not row:
-                print("❌ CRITICAL: Failed to get user balance after UPSERT")
-                conn.rollback()
-                return jsonify({"error": "Database error"}), 500
-
-            ember_balance = row[0]
-            rolls_today = row[1]
-            rolls_max = row[2]
-            next_reset = row[3]
-
-            print(f"📊 Current state: balance={ember_balance}, rolls={rolls_today}/{rolls_max}, next_reset={next_reset}")
-
-            # 🔄 DAILY RESET LOGIC - Reset rolls if it's a new day
-            if next_reset is None or datetime.now(timezone.utc) >= next_reset:
-                print(f"🔄 Daily reset triggered! Resetting rolls to 0")
-                cursor.execute("""
-                    UPDATE user_balances
-                    SET gambit_rolls_today = 0,
-                        gambit_next_reset = NOW() + INTERVAL '1 day',
-                        last_update = NOW()
-                    WHERE wallet = %s
-                """, (wallet,))
-                rolls_today = 0  # Update local variable
-                print(f"✅ Rolls reset complete. New reset time: tomorrow")
-
-            print(f"📊 After reset check: rolls={rolls_today}/{rolls_max}")
-
-            # Check if can roll
-            if rolls_today >= rolls_max:
-                conn.rollback()
-                return jsonify({"error": "No rolls remaining today"}), 400
-
-            # 🔥 IMPORTANT: First roll is ALWAYS free (cost = 0)
-            # Only check balance if cost > 0
-            if cost > 0 and ember_balance < cost:
-                conn.rollback()
-                return jsonify({"error": f"Insufficient EMBER (need {cost}, have {ember_balance})"}), 400
-
-            # Atomically deduct cost and increment roll counter
-            print(f"📝 Updating rolls_today counter: {rolls_today} -> {rolls_today + 1}")
-            if cost > 0:
-                print(f"💰 Deducting {cost} EMBER from balance: {ember_balance} -> {ember_balance - cost}")
-                cursor.execute("""
-                    UPDATE user_balances
-                    SET ember_balance = ember_balance - %s,
-                        gambit_rolls_today = gambit_rolls_today + 1,
-                        last_update = NOW()
-                    WHERE wallet = %s
-                """, (cost, wallet))
-            else:
-                print(f"🆓 Free roll - only incrementing counter")
-                cursor.execute("""
-                    UPDATE user_balances
-                    SET gambit_rolls_today = gambit_rolls_today + 1,
-                        last_update = NOW()
-                    WHERE wallet = %s
-                """, (wallet,))
-
-            affected_rows = cursor.rowcount
-            print(f"📊 Rows affected by UPDATE: {affected_rows}")
-
-            if affected_rows == 0:
-                print(f"❌ CRITICAL: UPDATE affected 0 rows for wallet {wallet}")
-                conn.rollback()
-                return jsonify({"error": "Failed to update roll counter"}), 500
-
-            # Roll D20
-            roll_result = random.randint(1, 20)
-            reward = D20_REWARDS[roll_result]
-            print(f"🎲 Rolled: {roll_result}, Reward type: {reward['type']}")
-
-            # Apply reward
-            ember_change = reward["ember"]
-            print(f"💎 Applying ember reward: {ember_change}")
-
-            cursor.execute("""
-                UPDATE user_balances
-                SET ember_balance = ember_balance + %s,
-                    last_update = NOW()
-                WHERE wallet = %s
-            """, (ember_change, wallet))
-
-            print(f"💾 Committing transaction...")
-            conn.commit()
-            print(f"✅ Transaction committed successfully")
-
-            # Get updated balance
-            cursor.execute("""
-                SELECT ember_balance, gambit_rolls_today FROM user_balances WHERE wallet = %s
-            """, (wallet,))
-            row = cursor.fetchone()
-            new_balance = row[0]
-            new_rolls_today = row[1]
-
-            print(f"✅ Roll complete: result={roll_result}, type={reward['type']}, ember_change={ember_change}, new_balance={new_balance}, new_rolls_today={new_rolls_today}")
-
-            # 🎯 SAVE BUFF TO EMISSARY - Apply buff to the specific emissary
-            buff_expires_at = None
-            if reward["duration_hours"] > 0:
-                buff_expires_at = datetime.now(timezone.utc) + timedelta(hours=reward["duration_hours"])
-                print(f"🔮 Applying buff to emissary {emissary_id}: +{reward['success_bonus']}% success, +{reward['xp_bonus']}% XP, expires {buff_expires_at}")
-
-                try:
-                    player_obj, player_path = load_or_init_player(wallet)
-                    heroes = player_obj.get("heroes", [])
-
-                    for hero in heroes:
-                        if str(hero.get("token_id")) == str(emissary_id):
-                            ds = hero.setdefault("dynamic_state", {})
-                            ds["last_gambit_roll"] = {
-                                "roll": roll_result,
-                                "name": reward["name"],
-                                "ember_gained": ember_change,
-                                "success_bonus": reward["success_bonus"],
-                                "xp_bonus": reward["xp_bonus"],
-                                "energy_cost_reduction": reward["energy_cost_reduction"],
-                                "expires_at": buff_expires_at.isoformat() if buff_expires_at else None,
-                                "rolled_at": datetime.now(timezone.utc).isoformat()
-                            }
-                            save_player(wallet, player_obj)
-                            print(f"✅ Buff saved to emissary {emissary_id}")
-                            break
-                except Exception as e:
-                    print(f"⚠️ Warning: Failed to save buff to emissary: {e}")
-                    # Don't fail the whole request if buff saving fails
-
-            return jsonify({
-                "success": True,
-                "roll": roll_result,
-                "reward_type": reward["type"],
-                "reward_name": reward["name"],
-                "ember_change": ember_change,
-                "item": reward["item"],
-                "new_balance": new_balance,
-                "rolls_today": new_rolls_today,
-                "rolls_max": rolls_max,
-                "rolls_remaining": max(0, rolls_max - new_rolls_today),
-                # Buff info for frontend display
-                "buff": {
-                    "success_bonus": reward["success_bonus"],
-                    "xp_bonus": reward["xp_bonus"],
-                    "energy_cost_reduction": reward["energy_cost_reduction"],
-                    "duration_hours": reward["duration_hours"],
-                    "expires_at": buff_expires_at.isoformat() if buff_expires_at else None
-                }
-            })
-
-        except Exception as e:
-            print(f"❌ ERROR during roll transaction: {e}")
-            print(f"🔄 Rolling back transaction...")
-            conn.rollback()
-            raise e
-        finally:
-            db.release_connection(conn)
-
-    except Exception as e:
-        print(f"❌ Error rolling gambit: {e}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({"error": str(e)}), 500
-
-# ---------------------------------
-# GAMBIT DEBUG ENDPOINT (temporary)
-# ---------------------------------
-
-@app.route('/api/gambit/debug/<wallet>', methods=['GET', 'POST'])
-def gambit_debug(wallet):
-    """
-    Debug endpoint to check/reset gambit rolls status
-    GET: Show current status
-    POST with {action: 'reset'}: Force reset rolls to 0
-    """
-    wallet = wallet.lower()
-
-    if not POSTGRESQL_AVAILABLE or not db:
-        return jsonify({"error": "Database not available"}), 503
-
-    try:
+        # Start transaction
         conn = db.get_connection()
         cursor = conn.cursor()
 
-        # Get current state
+        # Deduct cost and increment counter
         cursor.execute("""
-            SELECT ember_balance, gambit_rolls_today, gambit_rolls_max, gambit_next_reset
-            FROM user_balances
+            UPDATE user_balances
+            SET ember_balance = ember_balance - %s,
+                gambit_rolls_today = gambit_rolls_today + 1
             WHERE wallet = %s
-        """, (wallet,))
+        """, (cost, wallet))
 
-        row = cursor.fetchone()
+        # Roll D20
+        roll = random.randint(1, 20)
+        reward = EMBER_ROLL_REWARDS[roll]
 
-        if not row:
-            db.release_connection(conn)
-            return jsonify({
-                "status": "not_found",
-                "message": f"No user_balances entry for wallet {wallet[:6]}...{wallet[-4:]}"
-            })
+        # Apply EMBER change
+        cursor.execute("""
+            UPDATE user_balances
+            SET ember_balance = ember_balance + %s
+            WHERE wallet = %s
+            RETURNING ember_balance
+        """, (reward["ember"], wallet))
 
-        current_status = {
-            "wallet": f"{wallet[:6]}...{wallet[-4:]}",
-            "ember_balance": row[0],
-            "gambit_rolls_today": row[1],
-            "gambit_rolls_max": row[2],
-            "gambit_next_reset": str(row[3]) if row[3] else None,
-            "reset_needed": row[3] is None or datetime.now(timezone.utc) >= row[3]
-        }
+        new_balance = cursor.fetchone()[0]
+        conn.commit()
 
-        # If POST with action=reset, force reset
-        if request.method == 'POST':
-            data = request.get_json() or {}
-            if data.get('action') == 'reset':
-                cursor.execute("""
-                    UPDATE user_balances
-                    SET gambit_rolls_today = 0,
-                        gambit_next_reset = NOW() + INTERVAL '1 day',
-                        last_update = NOW()
-                    WHERE wallet = %s
-                """, (wallet,))
-                conn.commit()
-                current_status['message'] = '✅ Rolls manually reset to 0'
-                current_status['gambit_rolls_today'] = 0
+        # Save buff to emissary
+        buff_saved = False
+        if reward["hours"] > 0:
+            try:
+                player, _ = load_or_init_player(wallet)
+                for hero in player.get("heroes", []):
+                    if str(hero.get("token_id")) == str(emissary_id):
+                        ds = hero.setdefault("dynamic_state", {})
+                        expires = datetime.now(timezone.utc) + timedelta(hours=reward["hours"])
 
-        db.release_connection(conn)
-        return jsonify(current_status)
+                        ds["ember_roll_buff"] = {
+                            "roll": roll,
+                            "name": reward["name"],
+                            "success_bonus": reward["success"],
+                            "xp_bonus": reward["xp"],
+                            "energy_reduction": reward["energy"],
+                            "expires_at": expires.isoformat()
+                        }
+
+                        save_player(wallet, player)
+                        buff_saved = True
+                        print(f"✅ Buff saved to emissary {emissary_id}")
+                        break
+            except Exception as e:
+                print(f"⚠️ Failed to save buff: {e}")
+
+        # Return result
+        return jsonify({
+            "success": True,
+            "roll": roll,
+            "name": reward["name"],
+            "ember_change": reward["ember"],
+            "new_balance": new_balance,
+            "cost_paid": cost,
+            "rolls_used": rolls_used + 1,
+            "rolls_max": rolls_max,
+            "buff": {
+                "success_bonus": reward["success"],
+                "xp_bonus": reward["xp"],
+                "energy_reduction": reward["energy"],
+                "duration_hours": reward["hours"],
+                "saved": buff_saved
+            }
+        })
 
     except Exception as e:
-        print(f"❌ Error in gambit debug: {e}")
+        if conn:
+            conn.rollback()
+        print(f"❌ Error performing EMBER ROLL: {e}")
         import traceback
         traceback.print_exc()
         return jsonify({"error": str(e)}), 500
 
-# ---------------------------------
-# ENERGY RESTORE
-# ---------------------------------
+    finally:
+        if conn:
+            db.release_connection(conn)
+
 
 @app.route('/api/energy/restore', methods=['POST'])
 def restore_energy():
