@@ -338,7 +338,7 @@
             }
         }
 
-        const ds = emissary.dynamic_state || {};
+        // ds already declared at line 232
         const state = ds.state || "READY";
         const totalBoosts = calculateTotalBoosts(emissary, availableItems);
 
