@@ -1342,7 +1342,7 @@ table th {
 .roster-table th:nth-child(7),
 .roster-table td:nth-child(7) { width: 160px; } /* STATE */
 .roster-table th:nth-child(8),
-.roster-table td:nth-child(8) { width: auto; } /* ACTIONS */
+.roster-table td:nth-child(8) { width: 170px; } /* ACTIONS - fixed width */
 
 /* MODALS */
 .modal-overlay {
@@ -2415,17 +2415,17 @@ button:disabled {
 
 .actions-cell {
     display: grid;
-    grid-template-columns: repeat(2, 95px);
-    gap: 4px;
-    justify-content: center;
+    grid-template-columns: repeat(2, 80px);
+    gap: 3px;
+    justify-content: start;
 }
 
 .action-btn {
     font-family: 'Pixelify Sans', 'Classic Console Neue', monospace;
     font-size: 9px;
     font-weight: 600;
-    padding: 6px 8px;
-    width: 100px;
+    padding: 5px 4px;
+    width: 80px;
     text-align: center;
     border: 1px solid;
     background: transparent;
