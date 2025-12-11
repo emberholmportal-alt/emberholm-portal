@@ -11,7 +11,7 @@
 @import url('https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;500;600;700&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&display=swap');
 @import url('https://fonts.cdnfonts.com/css/classic-console-neue');
-@import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;500;600;700&display=swap');
 
 /* ===============================================================
    VARIABLES CSS
@@ -69,7 +69,7 @@ body {
         radial-gradient(circle at 20% 50%, rgba(255, 136, 0, 0.03) 0%, transparent 50%),
         radial-gradient(circle at 80% 80%, rgba(255, 204, 0, 0.02) 0%, transparent 50%);
     color: var(--primary-green);
-    font-family: 'VT323', 'Classic Console Neue', monospace;
+    font-family: 'Pixelify Sans', 'Classic Console Neue', monospace;
     font-size: 13px;
     line-height: 1.6;
     min-height: 100vh;
@@ -337,7 +337,7 @@ body::before {
 }
 
 .console-subtitle {
-    font-family: 'VT323', 'Classic Console Neue', monospace;
+    font-family: 'Pixelify Sans', 'Classic Console Neue', monospace;
     font-size: 11px;
     color: var(--dim-green);
     text-transform: uppercase;
@@ -366,7 +366,7 @@ body::before {
     border: 1px solid var(--border-primary);
     color: var(--primary-green);
     padding: 5px 12px;
-    font-family: 'VT323', 'Classic Console Neue', monospace;
+    font-family: 'Pixelify Sans', 'Classic Console Neue', monospace;
     font-size: 11px;
     font-weight: 600;
     cursor: pointer;
@@ -411,7 +411,7 @@ h1 {
     display: flex;
     justify-content: space-around;
     font-size: 12px;
-    font-family: 'VT323', 'Classic Console Neue', monospace;
+    font-family: 'Pixelify Sans', 'Classic Console Neue', monospace;
     color: var(--dim-green);
 }
 
@@ -455,7 +455,7 @@ h1 {
     border: 1px solid var(--border-primary);
     color: var(--primary-green);
     padding: 10px 15px;
-    font-family: 'VT323', 'Classic Console Neue', monospace;
+    font-family: 'Pixelify Sans', 'Classic Console Neue', monospace;
     font-size: 11px;
     font-weight: 600;
     cursor: pointer;
@@ -496,7 +496,7 @@ h1 {
     text-align: center;
     font-size: 11px;
     color: var(--dim-green);
-    font-family: 'VT323', 'Classic Console Neue', monospace;
+    font-family: 'Pixelify Sans', 'Classic Console Neue', monospace;
     text-transform: uppercase;
     letter-spacing: 1.5px;
     margin: 0;
@@ -636,7 +636,7 @@ h1 {
 
 .alert-title,
 .warning-title {
-    font-family: 'VT323', 'Classic Console Neue', monospace;
+    font-family: 'Pixelify Sans', 'Classic Console Neue', monospace;
     font-size: 12px;
     font-weight: 700;
     text-transform: uppercase;
@@ -652,7 +652,7 @@ h1 {
 .campaign-text,
 .block-content,
 p {
-    font-family: 'VT323', 'Classic Console Neue', monospace;
+    font-family: 'Pixelify Sans', 'Classic Console Neue', monospace;
     font-size: 13px;
     color: var(--primary-green);
     line-height: 1.8;
@@ -680,7 +680,7 @@ strong {
 
 .monitor-title,
 .status-panel-title {
-    font-family: 'VT323', 'Classic Console Neue', monospace;
+    font-family: 'Pixelify Sans', 'Classic Console Neue', monospace;
     font-size: 14px;
     font-weight: 700;
     text-transform: uppercase;
@@ -695,7 +695,7 @@ strong {
     font-size: 12px;
     color: var(--primary-green);
     margin: 8px 0;
-    font-family: 'VT323', 'Classic Console Neue', monospace;
+    font-family: 'Pixelify Sans', 'Classic Console Neue', monospace;
 }
 
 .monitor-line .critical,
@@ -721,7 +721,7 @@ strong {
 
 .log-header,
 .feed-title {
-    font-family: 'VT323', 'Classic Console Neue', monospace;
+    font-family: 'Pixelify Sans', 'Classic Console Neue', monospace;
     font-size: 14px;
     font-weight: 700;
     text-transform: uppercase;
@@ -749,7 +749,7 @@ strong {
     padding: 8px 12px;
     border-left: 2px solid rgba(255, 136, 0, 0.2);
     transition: all 0.2s;
-    font-family: 'VT323', 'Classic Console Neue', monospace;
+    font-family: 'Pixelify Sans', 'Classic Console Neue', monospace;
 }
 
 .log-entry:hover,
@@ -929,7 +929,7 @@ strong {
     justify-content: space-between;
     align-items: center;
     gap: 10px;
-    font-family: 'VT323', 'Classic Console Neue', monospace;
+    font-family: 'Pixelify Sans', 'Classic Console Neue', monospace;
     font-size: 13px;
     color: var(--primary-green);
     flex-wrap: wrap;
@@ -952,7 +952,7 @@ strong {
     border: none;                           /* Sin borde */
     color: #000;                            /* Texto NEGRO */
     padding: 6px 10px;
-    font-family: 'VT323', 'Classic Console Neue', monospace;
+    font-family: 'Pixelify Sans', 'Classic Console Neue', monospace;
     font-size: 11px;
     font-weight: 600;
     cursor: pointer;
@@ -1084,7 +1084,7 @@ strong {
     border: 1px solid var(--border-primary);
     color: var(--primary-green);
     padding: 8px 16px;
-    font-family: 'VT323', 'Classic Console Neue', monospace;
+    font-family: 'Pixelify Sans', 'Classic Console Neue', monospace;
     font-size: 12px;
     font-weight: 600;
     cursor: pointer;
@@ -1113,7 +1113,7 @@ strong {
     border-left: 3px solid var(--primary-green);
     padding: 15px;
     margin-bottom: 15px;
-    font-family: 'VT323', 'Classic Console Neue', monospace;
+    font-family: 'Pixelify Sans', 'Classic Console Neue', monospace;
     font-size: 13px;
     color: var(--primary-green);
 }
@@ -1121,12 +1121,12 @@ strong {
 .mono-small-note {
     font-size: 11px;
     color: var(--dim-green);
-    font-family: 'VT323', 'Classic Console Neue', monospace;
+    font-family: 'Pixelify Sans', 'Classic Console Neue', monospace;
 }
 
 .center-text-line {
     text-align: center;
-    font-family: 'VT323', 'Classic Console Neue', monospace;
+    font-family: 'Pixelify Sans', 'Classic Console Neue', monospace;
     font-size: 13px;
     color: var(--primary-green);
     margin: 8px 0;
@@ -1157,7 +1157,7 @@ strong {
     padding: 15px;
     margin-bottom: 15px;
     color: var(--error-red);
-    font-family: 'VT323', 'Classic Console Neue', monospace;
+    font-family: 'Pixelify Sans', 'Classic Console Neue', monospace;
 }
 
 .status-block {
@@ -1166,7 +1166,7 @@ strong {
     border-left: 3px solid var(--primary-green);
     padding: 15px;
     margin-top: 15px;
-    font-family: 'VT323', 'Classic Console Neue', monospace;
+    font-family: 'Pixelify Sans', 'Classic Console Neue', monospace;
     color: var(--primary-green);
 }
 
@@ -1207,7 +1207,7 @@ strong {
     justify-content: space-between;
     gap: 10px;
     margin-bottom: 10px;
-    font-family: 'VT323', 'Classic Console Neue', monospace;
+    font-family: 'Pixelify Sans', 'Classic Console Neue', monospace;
     color: var(--primary-green);
 }
 
@@ -1295,7 +1295,7 @@ table {
     border-collapse: collapse;
     background: var(--bg-primary);
     margin: 15px 0;
-    font-family: 'VT323', 'Classic Console Neue', monospace;
+    font-family: 'Pixelify Sans', 'Classic Console Neue', monospace;
 }
 
 /* Roster table uses fixed layout for consistent column widths */
@@ -1452,20 +1452,20 @@ table th {
     font-weight: 600;
     margin-bottom: 6px;
     color: var(--gold);
-    font-family: 'VT323', 'Classic Console Neue', monospace;
+    font-family: 'Pixelify Sans', 'Classic Console Neue', monospace;
 }
 
 .modal-item-details {
     font-size: 13px;
     color: var(--dim-green);
-    font-family: 'VT323', 'Classic Console Neue', monospace;
+    font-family: 'Pixelify Sans', 'Classic Console Neue', monospace;
 }
 
 .modal-no-items {
     text-align: center;
     padding: 40px 20px;
     color: var(--dim-green);
-    font-family: 'VT323', 'Classic Console Neue', monospace;
+    font-family: 'Pixelify Sans', 'Classic Console Neue', monospace;
 }
 
 .modal-message {
@@ -1474,7 +1474,7 @@ table th {
     white-space: pre-wrap;
     margin-bottom: 20px;
     color: var(--primary-green);
-    font-family: 'VT323', 'Classic Console Neue', monospace;
+    font-family: 'Pixelify Sans', 'Classic Console Neue', monospace;
 }
 
 .modal-buttons {
@@ -1489,7 +1489,7 @@ table th {
     border: 1px solid var(--border-primary);
     color: var(--primary-green);
     padding: 10px 24px;
-    font-family: 'VT323', 'Classic Console Neue', monospace;
+    font-family: 'Pixelify Sans', 'Classic Console Neue', monospace;
     font-size: 13px;
     font-weight: 600;
     cursor: pointer;
@@ -1523,7 +1523,7 @@ textarea {
     background: var(--bg-secondary);
     border: 1px solid var(--border-primary);
     color: var(--primary-green);
-    font-family: 'VT323', 'Classic Console Neue', monospace;
+    font-family: 'Pixelify Sans', 'Classic Console Neue', monospace;
     padding: 10px 12px;
     font-size: 13px;
 }
@@ -1575,7 +1575,7 @@ a.social-link:hover {
     align-items: center;
     gap: 15px;
     z-index: 9999;
-    font-family: 'VT323', 'Classic Console Neue', monospace;
+    font-family: 'Pixelify Sans', 'Classic Console Neue', monospace;
 }
 
 /* Console Sections */
@@ -1622,7 +1622,7 @@ a.social-link:hover {
     background: var(--bg-panel);
     border: 1px solid var(--border-primary);
     color: var(--primary-green);
-    font-family: 'VT323', 'Classic Console Neue', monospace;
+    font-family: 'Pixelify Sans', 'Classic Console Neue', monospace;
     font-size: 11px;
     font-weight: 600;
     padding: 5px 8px;
@@ -1844,7 +1844,7 @@ body {
     border: 1px solid var(--border-primary);
     color: var(--primary-green);
     text-decoration: none;
-    font-family: 'VT323', 'Classic Console Neue', monospace;
+    font-family: 'Pixelify Sans', 'Classic Console Neue', monospace;
     font-size: 12px;
     transition: all 0.2s;
 }
@@ -1893,7 +1893,7 @@ body {
     padding: 8px 16px;
     margin-top: 20px;
     margin-bottom: 10px;
-    font-family: 'VT323', 'Classic Console Neue', monospace;
+    font-family: 'Pixelify Sans', 'Classic Console Neue', monospace;
     font-size: 11px;
     font-weight: 600;
     text-transform: uppercase;
@@ -1934,7 +1934,7 @@ body {
 .equipment-indicators {
     font-size: 11px;
     margin-top: 5px;
-    font-family: 'VT323', 'Classic Console Neue', monospace;
+    font-family: 'Pixelify Sans', 'Classic Console Neue', monospace;
     letter-spacing: 0.5px;
 }
 
@@ -1958,7 +1958,7 @@ body {
     padding: 15px;
     margin-bottom: 15px;
     transition: all 0.2s;
-    font-family: 'VT323', 'Classic Console Neue', monospace;
+    font-family: 'Pixelify Sans', 'Classic Console Neue', monospace;
     position: relative;
 }
 
@@ -2016,7 +2016,7 @@ body {
     background: transparent;
     padding: 6px 12px;
     font-size: 11px;
-    font-family: 'VT323', 'Classic Console Neue', monospace;
+    font-family: 'Pixelify Sans', 'Classic Console Neue', monospace;
     cursor: pointer;
     transition: all 0.2s;
     text-transform: uppercase;
@@ -2034,7 +2034,7 @@ body {
     background: transparent;
     padding: 6px 12px;
     font-size: 11px;
-    font-family: 'VT323', 'Classic Console Neue', monospace;
+    font-family: 'Pixelify Sans', 'Classic Console Neue', monospace;
     cursor: pointer;
     transition: all 0.2s;
     text-transform: uppercase;
@@ -2051,7 +2051,7 @@ body {
     background: transparent;
     padding: 6px 12px;
     font-size: 11px;
-    font-family: 'VT323', 'Classic Console Neue', monospace;
+    font-family: 'Pixelify Sans', 'Classic Console Neue', monospace;
     cursor: pointer;
     transition: all 0.2s;
     text-transform: uppercase;
@@ -2068,7 +2068,7 @@ body {
     background: transparent;
     padding: 6px 12px;
     font-size: 11px;
-    font-family: 'VT323', 'Classic Console Neue', monospace;
+    font-family: 'Pixelify Sans', 'Classic Console Neue', monospace;
     cursor: pointer;
     transition: all 0.2s;
     text-transform: uppercase;
@@ -2085,7 +2085,7 @@ body {
     background: transparent;
     padding: 6px 12px;
     font-size: 11px;
-    font-family: 'VT323', 'Classic Console Neue', monospace;
+    font-family: 'Pixelify Sans', 'Classic Console Neue', monospace;
     cursor: pointer;
     transition: all 0.2s;
     text-transform: uppercase;
@@ -2102,7 +2102,7 @@ body {
     background: transparent;
     padding: 6px 12px;
     font-size: 11px;
-    font-family: 'VT323', 'Classic Console Neue', monospace;
+    font-family: 'Pixelify Sans', 'Classic Console Neue', monospace;
     cursor: pointer;
     transition: all 0.2s;
     text-transform: uppercase;
@@ -2186,7 +2186,7 @@ body {
     display: flex;
     align-items: center;
     gap: 15px;
-    font-family: 'VT323', 'Classic Console Neue', monospace;
+    font-family: 'Pixelify Sans', 'Classic Console Neue', monospace;
     font-size: 12px;
     font-weight: 600;
 }
@@ -2421,7 +2421,7 @@ button:disabled {
 }
 
 .action-btn {
-    font-family: 'VT323', 'Classic Console Neue', monospace;
+    font-family: 'Pixelify Sans', 'Classic Console Neue', monospace;
     font-size: 9px;
     font-weight: 600;
     padding: 5px 4px;
@@ -2582,7 +2582,7 @@ button:disabled {
 
 /* Loading text container */
 .crt-loading-text {
-    font-family: 'VT323', 'Classic Console Neue', monospace;
+    font-family: 'Pixelify Sans', 'Classic Console Neue', monospace;
     font-size: 24px;
     font-weight: 700;
     color: var(--primary-green);
@@ -2624,7 +2624,7 @@ button:disabled {
 
 /* Subtext */
 .crt-loading-subtext {
-    font-family: 'VT323', 'Classic Console Neue', monospace;
+    font-family: 'Pixelify Sans', 'Classic Console Neue', monospace;
     font-size: 14px;
     color: #888;
     margin-top: 20px;
