@@ -533,6 +533,12 @@ h1 {
     );
 }
 
+/* Console to Header Divider */
+.console-header-divider {
+    height: 6px;
+    background: transparent;
+}
+
 /* ===============================================================
    CONTENT SECTIONS
    =============================================================== */
@@ -1322,19 +1328,19 @@ table th {
 
 /* Roster Table Column Widths - Optimized */
 .roster-table th:nth-child(1),
-.roster-table td:nth-child(1) { width: 250px; } /* NAME */
+.roster-table td:nth-child(1) { width: 280px; } /* NAME - más ancho */
 .roster-table th:nth-child(2),
-.roster-table td:nth-child(2) { width: 120px; } /* CLASS */
+.roster-table td:nth-child(2) { width: 110px; } /* CLASS */
 .roster-table th:nth-child(3),
-.roster-table td:nth-child(3) { width: 50px; text-align: center; } /* XP */
+.roster-table td:nth-child(3) { width: 45px; text-align: center; } /* XP */
 .roster-table th:nth-child(4),
-.roster-table td:nth-child(4) { width: 50px; text-align: center; } /* AURA */
+.roster-table td:nth-child(4) { width: 45px; text-align: center; } /* AURA */
 .roster-table th:nth-child(5),
-.roster-table td:nth-child(5) { width: 70px; text-align: center; } /* ENERGY */
+.roster-table td:nth-child(5) { width: 65px; text-align: center; } /* ENERGY */
 .roster-table th:nth-child(6),
-.roster-table td:nth-child(6) { width: 80px; } /* GUILD */
+.roster-table td:nth-child(6) { width: 75px; } /* GUILD */
 .roster-table th:nth-child(7),
-.roster-table td:nth-child(7) { width: 180px; } /* STATE */
+.roster-table td:nth-child(7) { width: 160px; } /* STATE */
 .roster-table th:nth-child(8),
 .roster-table td:nth-child(8) { width: auto; } /* ACTIONS */
 
@@ -2409,8 +2415,8 @@ button:disabled {
 
 .actions-cell {
     display: grid;
-    grid-template-columns: repeat(4, 100px);
-    gap: 6px;
+    grid-template-columns: repeat(2, 95px);
+    gap: 4px;
     justify-content: center;
 }
 
