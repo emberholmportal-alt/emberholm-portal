@@ -167,31 +167,62 @@
 <div class="noise"></div>
 <div class="crt-overlay"></div>
 
+<!-- CRT GLITCH LOADING OVERLAY -->
+<div class="crt-glitch-overlay" id="crt-glitch-overlay">
+    <div class="crt-loading-text" data-text="ESTABLISHING UPLINK">ESTABLISHING UPLINK</div>
+    <div class="crt-loading-subtext" id="crt-loading-subtext">Connecting to Base Sepolia...</div>
+    <div class="crt-progress-container">
+        <div class="crt-progress-bar" id="crt-progress-bar"></div>
+    </div>
+</div>
+
 <!-- REMOVED: All gothic-medieval inline CSS styles -->
 <!-- Design now controlled entirely by css/hacknet-clean.css -->
 
-<!-- EMBERHOLM CONSOLE // REALM AMBIENCE CHANNEL (HORIZONTAL BAR) -->
+<!-- EMBERHOLM CONSOLE // REALM AMBIENCE + TIME SYSTEM (HORIZONTAL BAR) -->
 <div class="ember-console-bar" id="ember-console">
-    <div class="console-block-label">
-        EMBERHOLM CONSOLE<br/>
-        <span style="font-size:10px;">// REALM AMBIENCE CHANNEL //</span>
+    <!-- SECTION 1: MUSIC -->
+    <div class="console-section console-music">
+        <div class="console-block-label">
+            EMBERHOLM CONSOLE<br/>
+            <span style="font-size:10px;">// REALM AMBIENCE //</span>
+        </div>
+        <div class="console-track-now" id="console-trackbox">
+            Track: (loading)
+        </div>
+        <div class="console-music-controls">
+            <button class="console-btn" id="console-mute-btn">[MUTE]</button>
+            <button class="console-btn" id="console-next-btn">[NEXT]</button>
+            <div class="console-vol-wrap">
+                <div class="console-vol-label">VOL</div>
+                <input type="range" class="console-volume-slider" id="console-volume" min="0" max="100" value="70"/>
+            </div>
+        </div>
     </div>
 
-    <div class="console-track-now" id="console-trackbox">
-        Track: (loading)
+    <!-- SECTION 2: CALENDAR -->
+    <div class="console-section console-calendar">
+        <div class="calendar-era" id="calendar-era">Era of the Last Ember</div>
+        <div class="calendar-year" id="calendar-year">YEAR 0</div>
+        <div class="calendar-day" id="calendar-day">Day 1 of 360</div>
     </div>
 
-    <button class="console-btn" id="console-mute-btn">[MUTE]</button>
-    <button class="console-btn" id="console-next-btn">[NEXT]</button>
-
-    <div class="console-vol-wrap">
-        <div class="console-vol-label">VOL</div>
-        <input  type="range"
-                class="console-volume-slider"
-                id="console-volume"
-                min="0"
-                max="100"
-                value="70"/>
+    <!-- SECTION 3: PHASE + WEATHER -->
+    <div class="console-section console-time">
+        <div class="weather-display">
+            <span class="weather-icon" id="weather-icon">✧</span>
+            <span class="weather-name" id="weather-name">CLEAR SKIES</span>
+        </div>
+        <div class="phase-display">
+            <span class="phase-icon" id="phase-icon">☀</span>
+            <div class="phase-info">
+                <span class="phase-name" id="phase-name">DAWN</span>
+                <span class="phase-timer" id="phase-timer">ZENITH in 0h 0m</span>
+            </div>
+        </div>
+        <div class="phase-bar">
+            <div class="phase-progress" id="phase-progress"></div>
+        </div>
     </div>
 </div>
 
@@ -205,6 +236,7 @@
             <span>STATUS: FLAME WEAKENING // MISSIONS REQUIRED</span>
         </div>
 
+        <!-- Navigation Row 1 -->
         <div class="top-command-bar" id="nav-bar">
             <button class="cmd-link cmd-link-mint" onclick="window.location.href='/mint'">MINT / INVOKE</button>
             <button class="cmd-link" data-target="home">[HOME]</button>
@@ -212,12 +244,17 @@
             <button class="cmd-link" data-target="missions">[MISSIONS]</button>
             <button class="cmd-link" data-target="profile">[PROFILE]</button>
             <button class="cmd-link" data-target="vault">[VAULT]</button>
+            <button class="cmd-link cmd-link-disabled" data-target="ember-roll">[EMBER ROLL]</button>
+        </div>
+        <!-- Navigation Row 2 -->
+        <div class="top-command-bar" id="nav-bar-2">
+            <button class="cmd-link cmd-link-disabled" data-target="marketplace">[MARKETPLACE]</button>
             <button class="cmd-link" data-target="tutorial">[HELP/TUTORIAL]</button>
             <button class="cmd-link" data-target="lore">[LORE]</button>
             <button class="cmd-link" data-target="announcements">[ANNOUNCEMENTS]</button>
             <button class="cmd-link" data-target="events">[EVENTS]</button>
             <button class="cmd-link" data-target="credits">[SOCIAL/CREDITS]</button>
-            <button class="cmd-link" data-target="whitepaper">[WHITEPAPER / CONTRACT]</button>
+            <button class="cmd-link" data-target="whitepaper">[WHITEPAPER]</button>
         </div>
 
         <!-- PROGRESS BAR -->
@@ -1584,6 +1621,120 @@
         </div>
     </div>
 </section>
+
+<!-- EMBER ROLL SECTION -->
+<section class="screen" data-screen="ember-roll">
+    <div class="section-block">
+        <div class="section-title">EMBER ROLL // GAMBIT SYSTEM</div>
+
+        <div class="warning-block" style="margin-bottom: 20px;">
+            <span class="glow-yellow">⚠ COMING SOON</span><br/>
+            The EMBER ROLL system is currently under development and will be available in a future update.
+        </div>
+
+        <div class="mono-block">
+            <div class="subheading">WHAT IS EMBER ROLL?</div>
+            <p>
+                EMBER ROLL is a D20 dice system that allows you to test your luck for mission bonuses.
+                Each roll can grant temporary buffs to your Emissaries, increasing success rates,
+                XP gains, or reducing energy costs.
+            </p>
+
+            <div class="subheading" style="margin-top: 20px;">ROLL MECHANICS</div>
+            <p>
+                • First roll each day is <span style="color: #4ade80;">FREE</span><br/>
+                • Additional rolls cost <span style="color: var(--gold);">75 $EMBER</span> each<br/>
+                • Maximum 5 rolls per day per wallet<br/>
+                • Results range from Critical Fail (1) to Natural 20 (jackpot)<br/>
+                • Buffs last 12-72 hours depending on roll result
+            </p>
+
+            <div class="subheading" style="margin-top: 20px;">POSSIBLE OUTCOMES</div>
+            <div style="font-size: 12px; line-height: 1.8;">
+                <span style="color: #ef4444;">1</span> - CRITICAL FAIL: -100 $EMBER, -20% Success<br/>
+                <span style="color: #888;">2-5</span> - NOTHING: No effect<br/>
+                <span style="color: #4ade80;">6-8</span> - GRAZE: +50 $EMBER, +5% Success (12h)<br/>
+                <span style="color: #4ade80;">9-11</span> - HIT: +100 $EMBER, +10% Success (24h)<br/>
+                <span style="color: #3b82f6;">12-14</span> - SOLID HIT: +200 $EMBER, +15% Success (36h)<br/>
+                <span style="color: #a855f7;">15-17</span> - GREAT HIT: +350 $EMBER, +20% Success (48h)<br/>
+                <span style="color: #ff6b00;">18</span> - CRITICAL: +500 $EMBER, +25% Success, -10% Energy (60h)<br/>
+                <span style="color: #ff6b00;">19</span> - SUPERIOR: +500 $EMBER, +30% Success, -15% Energy (72h)<br/>
+                <span style="color: #ffd700;">20</span> - NATURAL 20: +1000 $EMBER, +35% Success, -20% Energy (72h)
+            </div>
+        </div>
+
+        <div class="mono-small-note" style="margin-top: 20px;">
+            Access EMBER ROLL from your Emissary's action buttons in [PROFILE] once enabled.
+        </div>
+    </div>
+</section>
+
+<!-- MARKETPLACE SECTION -->
+<section class="screen" data-screen="marketplace">
+    <div class="section-block">
+        <div class="section-title">MARKETPLACE // TRADING HUB</div>
+
+        <div class="warning-block" style="margin-bottom: 20px;">
+            <span class="glow-yellow">⚠ COMING SOON</span><br/>
+            The MARKETPLACE is currently under development and will be available in a future update.
+        </div>
+
+        <div class="mono-block">
+            <div class="subheading">WHAT IS THE MARKETPLACE?</div>
+            <p>
+                The Marketplace is the official trading hub for Emberholm.
+                Buy and sell assets to strengthen your position in the realm.
+            </p>
+
+            <div class="subheading" style="margin-top: 20px;">TRADEABLE ASSETS</div>
+            <p>
+                <span style="color: #4ade80;">✓ LANDS</span> - Territorial plots in Emberholm<br/>
+                <span style="color: #4ade80;">✓ EMISSARIES</span> - Trade your NFT heroes<br/>
+                <span style="color: #4ade80;">✓ ITEMS</span> - Equipment and consumables<br/>
+                <span style="color: #4ade80;">✓ RUNES</span> - Magical enhancements<br/>
+                <span style="color: #ef4444;">✗ RESOURCES</span> - Not available for trading
+            </p>
+
+            <div class="subheading" style="margin-top: 20px;">LAND RARITIES</div>
+            <div style="font-size: 12px; line-height: 1.8;">
+                <span style="color: #9ca3af;">● COMMON</span> - Basic territorial plots<br/>
+                <span style="color: #3b82f6;">● RARE</span> - Strategic locations with bonus yields<br/>
+                <span style="color: #a855f7;">● EPIC</span> - Prime real estate with passive income<br/>
+                <span style="color: #ff6b00;">● LEGENDARY</span> - Unique landmarks with special abilities
+            </div>
+
+            <div class="subheading" style="margin-top: 20px;">ITEM RARITIES</div>
+            <div style="font-size: 12px; line-height: 1.8;">
+                <span style="color: #9ca3af;">● COMMON</span> - Basic equipment<br/>
+                <span style="color: #3b82f6;">● RARE</span> - Enhanced gear with bonuses<br/>
+                <span style="color: #a855f7;">● EPIC</span> - Powerful artifacts<br/>
+                <span style="color: #ff6b00;">● LEGENDARY</span> - Unique items with special abilities
+            </div>
+
+            <div class="subheading" style="margin-top: 20px;">RUNE RARITIES</div>
+            <div style="font-size: 12px; line-height: 1.8;">
+                <span style="color: #9ca3af;">● COMMON</span> - Minor magical effects<br/>
+                <span style="color: #3b82f6;">● RARE</span> - Moderate enhancements<br/>
+                <span style="color: #a855f7;">● EPIC</span> - Strong magical properties<br/>
+                <span style="color: #ff6b00;">● LEGENDARY</span> - Ancient runes with unique powers
+            </div>
+
+            <div class="subheading" style="margin-top: 20px;">TRADING RULES</div>
+            <p>
+                • All trades use $EMBER as currency<br/>
+                • 5% marketplace fee on all transactions<br/>
+                • Sellers set their own prices<br/>
+                • Instant delivery upon purchase<br/>
+                • Trade history logged by Ember Protocol
+            </p>
+        </div>
+
+        <div class="mono-small-note" style="margin-top: 20px;">
+            Full marketplace features will be announced in [ANNOUNCEMENTS].
+        </div>
+    </div>
+</section>
+
 </div><!-- /.wrapper -->
 
 <!-- ===============================================================
@@ -1772,6 +1923,175 @@
 <!-- 🔥 CONTRACT CONFIG -->
 <script src="/contract-config.js"></script>
 
+<!-- 🔥 EMBERHOLM TIME SYSTEM -->
+<script>
+// ==================== EMBERHOLM TIME SYSTEM ====================
+// Calendar, Day Phases, and Weather - Purely aesthetic/immersive
+
+const EMBERHOLM_CALENDAR = {
+    epoch: new Date('2025-01-01T00:00:00-03:00'),  // Argentina UTC-3
+    hoursPerYear: 24,      // 24 real hours = 1 Emberholm year
+    daysPerYear: 360,
+    currentEra: "Era of the Last Ember"
+};
+
+const EMBERHOLM_PHASES = {
+    DAWN:   { id: 'dawn',   name: 'DAWN',   icon: '☀', startHour: 6,  endHour: 12, color: '#FF9966', nextPhase: 'ZENITH' },
+    ZENITH: { id: 'zenith', name: 'ZENITH', icon: '☀', startHour: 12, endHour: 18, color: '#FFD700', nextPhase: 'DUSK' },
+    DUSK:   { id: 'dusk',   name: 'DUSK',   icon: '◐', startHour: 18, endHour: 24, color: '#FF6B35', nextPhase: 'VOID' },
+    VOID:   { id: 'void',   name: 'VOID',   icon: '☽', startHour: 0,  endHour: 6,  color: '#6B5B95', nextPhase: 'DAWN' }
+};
+
+const EMBERHOLM_WEATHER = {
+    CLEAR:         { id: 'clear',         name: 'CLEAR SKIES',    icon: '✧', weight: 20, color: '#87CEEB' },
+    OVERCAST:      { id: 'overcast',      name: 'ASHEN CLOUDS',   icon: '☁', weight: 20, color: '#708090' },
+    FOGGY:         { id: 'foggy',         name: 'EMBER MIST',     icon: '░', weight: 20, color: '#A9A9A9' },
+    ASH_RAIN:      { id: 'ash_rain',      name: 'ASH RAIN',       icon: '▒', weight: 15, color: '#4A4A4A' },
+    BLOOD_RAIN:    { id: 'blood_rain',    name: 'BLOOD RAIN',     icon: '▓', weight: 10, color: '#8B0000' },
+    THUNDER_STORM: { id: 'thunder_storm', name: 'THUNDER STORM',  icon: '⚡', weight: 5,  color: '#4B0082' },
+    EMBER_STORM:   { id: 'ember_storm',   name: 'EMBER STORM',    icon: '🔥', weight: 3,  color: '#FF4500' },
+    VOID_STORM:    { id: 'void_storm',    name: 'VOID STORM',     icon: '◎', weight: 2,  color: '#1a1a2e' },
+    SOLAR_FLARE:   { id: 'solar_flare',   name: 'SOLAR FLARE',    icon: '✹', weight: 2,  color: '#FFD700' },
+    SHADOW_ECLIPSE:{ id: 'shadow_eclipse',name: 'SHADOW ECLIPSE', icon: '●', weight: 1.5,color: '#0D0D0D' },
+    CRYSTAL_SNOW:  { id: 'crystal_snow',  name: 'CRYSTAL SNOW',   icon: '❄', weight: 1,  color: '#E0FFFF' },
+    SPIRIT_WIND:   { id: 'spirit_wind',   name: 'SPIRIT WIND',    icon: '≋', weight: 0.5,color: '#98FB98' }
+};
+
+// Get Argentina hour (UTC-3)
+function getArgentinaTime() {
+    const now = new Date();
+    return new Date(now.toLocaleString('en-US', { timeZone: 'America/Buenos_Aires' }));
+}
+
+// Calendar calculation
+function getEmberholmCalendar() {
+    const now = new Date();
+    const msElapsed = now - EMBERHOLM_CALENDAR.epoch;
+    const hoursElapsed = msElapsed / (1000 * 60 * 60);
+
+    const year = Math.floor(hoursElapsed / EMBERHOLM_CALENDAR.hoursPerYear);
+    const hourInYear = hoursElapsed % EMBERHOLM_CALENDAR.hoursPerYear;
+    const day = Math.floor((hourInYear / EMBERHOLM_CALENDAR.hoursPerYear) * EMBERHOLM_CALENDAR.daysPerYear) + 1;
+
+    return {
+        era: EMBERHOLM_CALENDAR.currentEra,
+        year: Math.max(0, year),
+        day: Math.min(Math.max(1, day), 360)
+    };
+}
+
+// Current phase based on Argentina time
+function getCurrentPhase() {
+    const hour = getArgentinaTime().getHours();
+    if (hour >= 6 && hour < 12) return EMBERHOLM_PHASES.DAWN;
+    if (hour >= 12 && hour < 18) return EMBERHOLM_PHASES.ZENITH;
+    if (hour >= 18 && hour < 24) return EMBERHOLM_PHASES.DUSK;
+    return EMBERHOLM_PHASES.VOID;
+}
+
+// Time until next phase
+function getPhaseTimeRemaining() {
+    const argTime = getArgentinaTime();
+    const hour = argTime.getHours();
+    const minutes = argTime.getMinutes();
+    const phase = getCurrentPhase();
+
+    let targetHour = phase.endHour;
+    if (phase.id === 'dusk') targetHour = 24;
+    if (phase.id === 'void') targetHour = 6;
+
+    let hoursLeft = targetHour - hour - 1;
+    let minutesLeft = 60 - minutes;
+    if (minutesLeft === 60) { minutesLeft = 0; hoursLeft++; }
+
+    return { hours: Math.max(0, hoursLeft), minutes: minutesLeft, nextPhase: phase.nextPhase };
+}
+
+// Phase progress (0-100%)
+function getPhaseProgress() {
+    const argTime = getArgentinaTime();
+    const hour = argTime.getHours();
+    const minutes = argTime.getMinutes();
+    const phase = getCurrentPhase();
+
+    let minutesIntoPhase = phase.id === 'void'
+        ? hour * 60 + minutes
+        : (hour - phase.startHour) * 60 + minutes;
+
+    return Math.min(100, (minutesIntoPhase / (6 * 60)) * 100);
+}
+
+// Seeded random for synchronized weather
+function seededRandom(seed) {
+    const x = Math.sin(seed) * 10000;
+    return x - Math.floor(x);
+}
+
+// Weather - changes every ~45 min, synced for all users
+function getCurrentWeather() {
+    const now = new Date();
+    const period = Math.floor((now.getUTCHours() * 60 + now.getUTCMinutes()) / 45);
+    const seed = now.getUTCDate() * 1000 + now.getUTCMonth() * 100 + period;
+    const random = seededRandom(seed);
+
+    const weathers = Object.values(EMBERHOLM_WEATHER);
+    const totalWeight = weathers.reduce((sum, w) => sum + w.weight, 0);
+
+    let cumulative = 0;
+    const target = random * totalWeight;
+
+    for (const weather of weathers) {
+        cumulative += weather.weight;
+        if (target <= cumulative) return weather;
+    }
+    return EMBERHOLM_WEATHER.CLEAR;
+}
+
+// Update all displays
+function updateEmberholmTime() {
+    // Calendar
+    const cal = getEmberholmCalendar();
+    const calEra = document.getElementById('calendar-era');
+    const calYear = document.getElementById('calendar-year');
+    const calDay = document.getElementById('calendar-day');
+    if (calEra) calEra.textContent = cal.era;
+    if (calYear) calYear.textContent = `YEAR ${cal.year}`;
+    if (calDay) calDay.textContent = `Day ${cal.day} of 360`;
+
+    // Phase
+    const phase = getCurrentPhase();
+    const phaseTime = getPhaseTimeRemaining();
+    const phaseProgress = getPhaseProgress();
+
+    const phaseIcon = document.getElementById('phase-icon');
+    const phaseName = document.getElementById('phase-name');
+    const phaseTimer = document.getElementById('phase-timer');
+    const phaseBar = document.getElementById('phase-progress');
+
+    if (phaseIcon) { phaseIcon.textContent = phase.icon; phaseIcon.style.color = phase.color; }
+    if (phaseName) { phaseName.textContent = phase.name; phaseName.style.color = phase.color; }
+    if (phaseTimer) phaseTimer.textContent = `${phaseTime.nextPhase} in ${phaseTime.hours}h ${phaseTime.minutes}m`;
+    if (phaseBar) {
+        phaseBar.style.width = `${phaseProgress}%`;
+        phaseBar.className = `phase-progress phase-${phase.id}`;
+    }
+
+    // Weather
+    const weather = getCurrentWeather();
+    const weatherIcon = document.getElementById('weather-icon');
+    const weatherName = document.getElementById('weather-name');
+
+    if (weatherIcon) { weatherIcon.textContent = weather.icon; weatherIcon.style.color = weather.color; }
+    if (weatherName) { weatherName.textContent = weather.name; weatherName.style.color = weather.color; }
+}
+
+// Initialize and update every minute
+document.addEventListener('DOMContentLoaded', function() {
+    updateEmberholmTime();
+    setInterval(updateEmberholmTime, 60000);  // Update every 60 seconds
+});
+</script>
+
 <script>
 /* --------- GLOBAL STATE --------- */
 let connectedWallet = null;
@@ -1804,6 +2124,11 @@ navButtons.forEach((btn, index) => {
 
         // si es un botón que navega interno (tiene data-target)
         if (target) {
+            // Show "coming soon" info for disabled sections but still navigate
+            if (btn.classList.contains('cmd-link-disabled')) {
+                // Still navigate to show the info page
+            }
+
             switchScreen(target);
             setActiveButton(btn);
 
@@ -1863,12 +2188,96 @@ async function fetchJSON(url, opts={}){
     return await res.json();
 }
 
+/* --------- 🔥 CRT GLITCH LOADING OVERLAY FUNCTIONS --------- */
+const glitchMessages = [
+    "ESTABLISHING UPLINK",
+    "DECRYPTING CHAIN DATA",
+    "SYNCING EMISSARIES",
+    "LOADING NFT METADATA",
+    "VERIFYING OWNERSHIP",
+    "INITIALIZING PORTAL"
+];
+
+let glitchMessageInterval = null;
+let glitchProgressInterval = null;
+
+function showGlitchOverlay(initialMessage = "ESTABLISHING UPLINK") {
+    const overlay = document.getElementById('crt-glitch-overlay');
+    const textEl = document.querySelector('.crt-loading-text');
+    const subtextEl = document.getElementById('crt-loading-subtext');
+    const progressBar = document.getElementById('crt-progress-bar');
+
+    if (!overlay) return;
+
+    // Set initial text
+    textEl.textContent = initialMessage;
+    textEl.setAttribute('data-text', initialMessage);
+    subtextEl.textContent = "Connecting to Base Sepolia...";
+    progressBar.style.width = '0%';
+
+    // Show overlay
+    overlay.classList.add('active');
+
+    // Cycle through messages
+    let msgIndex = 0;
+    glitchMessageInterval = setInterval(() => {
+        msgIndex = (msgIndex + 1) % glitchMessages.length;
+        textEl.textContent = glitchMessages[msgIndex];
+        textEl.setAttribute('data-text', glitchMessages[msgIndex]);
+    }, 1500);
+
+    // Animate progress bar
+    let progress = 0;
+    glitchProgressInterval = setInterval(() => {
+        progress += Math.random() * 15;
+        if (progress > 90) progress = 90; // Cap at 90% until complete
+        progressBar.style.width = progress + '%';
+    }, 300);
+}
+
+function updateGlitchSubtext(message) {
+    const subtextEl = document.getElementById('crt-loading-subtext');
+    if (subtextEl) {
+        subtextEl.textContent = message;
+    }
+}
+
+function hideGlitchOverlay() {
+    const overlay = document.getElementById('crt-glitch-overlay');
+    const progressBar = document.getElementById('crt-progress-bar');
+
+    // Clear intervals
+    if (glitchMessageInterval) {
+        clearInterval(glitchMessageInterval);
+        glitchMessageInterval = null;
+    }
+    if (glitchProgressInterval) {
+        clearInterval(glitchProgressInterval);
+        glitchProgressInterval = null;
+    }
+
+    // Complete progress bar animation
+    if (progressBar) {
+        progressBar.style.width = '100%';
+    }
+
+    // Hide after short delay
+    setTimeout(() => {
+        if (overlay) {
+            overlay.classList.remove('active');
+        }
+    }, 300);
+}
+
 /* --------- 🔥 METAMASK CONNECTION + BLOCKCHAIN QUERY --------- */
 async function connectWallet() {
     if (!window.ethereum) {
         alert("MetaMask not detected! Please install MetaMask or Coinbase Wallet.");
         return null;
     }
+
+    // 🔥 Show glitch overlay immediately
+    showGlitchOverlay("ESTABLISHING UPLINK");
 
     try {
         // 🔥 FIRST: Check network BEFORE asking for accounts
@@ -1929,6 +2338,7 @@ async function connectWallet() {
                               "Explorer: https://sepolia.basescan.org");
                         document.getElementById("connect-wallet-btn").textContent = "[CONNECT WALLET]";
                         document.getElementById("connect-wallet-btn").disabled = false;
+                        hideGlitchOverlay();
                         return null;
                     }
                 } else if (switchError.code === 4001) {
@@ -1936,12 +2346,14 @@ async function connectWallet() {
                     alert("🛑 DEBES cambiar a Base Sepolia para ver tus NFTs.\n\nEste proyecto SOLO funciona en Base Sepolia testnet.\n\nIntenta de nuevo y APRUEBA el cambio de red.");
                     document.getElementById("connect-wallet-btn").textContent = "[CONNECT WALLET]";
                     document.getElementById("connect-wallet-btn").disabled = false;
+                    hideGlitchOverlay();
                     return null;
                 } else {
                     console.error("❌ Unexpected switch error:", switchError);
                     alert("❌ Error al cambiar de red.\n\nPor favor cambia MANUALMENTE a Base Sepolia en MetaMask y vuelve a conectar.");
                     document.getElementById("connect-wallet-btn").textContent = "[CONNECT WALLET]";
                     document.getElementById("connect-wallet-btn").disabled = false;
+                    hideGlitchOverlay();
                     return null;
                 }
             }
@@ -1967,6 +2379,7 @@ async function connectWallet() {
                       `4. Haz clic en CONNECT WALLET de nuevo`);
                 document.getElementById("connect-wallet-btn").textContent = "[WRONG NETWORK!]";
                 document.getElementById("connect-wallet-btn").disabled = false;
+                hideGlitchOverlay();
                 return null;
             }
 
@@ -1977,6 +2390,7 @@ async function connectWallet() {
 
         // NOW request account access
         console.log("🔑 Requesting account access...");
+        updateGlitchSubtext("Requesting wallet access...");
         const provider = new ethers.providers.Web3Provider(window.ethereum);
         await provider.send("eth_requestAccounts", []);
         const signer = provider.getSigner();
@@ -1996,10 +2410,12 @@ async function connectWallet() {
             alert(`🛑 ERROR: La red cambió!\n\nEstás en Chain ID ${finalChainId} pero necesitas Base Sepolia (${BASE_SEPOLIA_CHAIN_ID}).\n\nPor favor actualiza la página e intenta de nuevo.`);
             document.getElementById("connect-wallet-btn").textContent = "[WRONG NETWORK!]";
             document.getElementById("connect-wallet-btn").disabled = false;
+            hideGlitchOverlay();
             return null;
         }
 
         document.getElementById("connect-wallet-btn").textContent = "[QUERYING BLOCKCHAIN...]";
+        updateGlitchSubtext("Querying blockchain for NFTs...");
 
         // 🔥 Query NFT contract on Base Sepolia to get user's NFTs
         try {
@@ -2076,6 +2492,7 @@ async function connectWallet() {
             // 🔥 CONEXIÓN AL SERVIDOR - Mostrar claramente en UI
             console.log("📤 Sending NFT data to backend...");
             document.getElementById("connect-wallet-btn").textContent = "[CONNECTING TO SERVER...]";
+            updateGlitchSubtext("Syncing data with server...");
 
             const response = await fetch(`/api/player/${encodeURIComponent(address)}`, {
                 method: "POST",
@@ -2091,6 +2508,7 @@ async function connectWallet() {
                 alert(`⚠️ ERROR: Server connection failed!\n\nStatus: ${response.status}\n\nPlease try again.`);
                 document.getElementById("connect-wallet-btn").textContent = "[ERROR - RETRY]";
                 document.getElementById("connect-wallet-btn").disabled = false;
+                hideGlitchOverlay();
                 return null;
             } else {
                 const result = await response.json();
@@ -2127,14 +2545,19 @@ async function connectWallet() {
             alert(`❌ ERROR al consultar blockchain:\n\n${blockchainError.message}\n\nRevisa la consola (F12) para más detalles.`);
             document.getElementById("connect-wallet-btn").textContent = "[ERROR - Check Console]";
             document.getElementById("connect-wallet-btn").disabled = false;
+            hideGlitchOverlay();
             return null;
         }
 
         // Load profile immediately after connecting
+        updateGlitchSubtext("Loading your emissaries...");
         await loadPlayerAndRender();
 
         // Update button visibility
         updateWalletButtonsVisibility();
+
+        // 🔥 Hide glitch overlay on success
+        hideGlitchOverlay();
 
         return address;
     } catch (error) {
@@ -2142,6 +2565,7 @@ async function connectWallet() {
         alert("Failed to connect wallet: " + error.message);
         document.getElementById("connect-wallet-btn").textContent = "[CONNECT WALLET]";
         document.getElementById("connect-wallet-btn").disabled = false;
+        hideGlitchOverlay();
         return null;
     }
 }
@@ -2564,6 +2988,24 @@ async function loadPlayerAndRender(){
     try {
         const player = await fetchJSON(`/api/player/${encodeURIComponent(wallet)}`);
 
+        // 🔥 Expose heroes globally for inventory.js PUSH/RECOVER/EMBER ROLL functionality
+        window.currentEmissaries = (player.heroes || []).map(h => ({
+            ...h,
+            token_id: h.token_id,
+            name: h.name,
+            state: h.dynamic_state?.state || 'READY',
+            state_message: h.dynamic_state?.current_mission_id || '',
+            mission_start: h.dynamic_state?.mission_start_time || null,
+            mission_duration: (() => {
+                const missionId = h.dynamic_state?.current_mission_id;
+                if (missionId && cachedMissionsData) {
+                    const m = cachedMissionsData.find(mission => mission.id === missionId);
+                    return m ? m.duration_hours : 0;
+                }
+                return 0;
+            })()
+        }));
+
         const totals = player.totals || {};
         const walletSummaryEl = document.getElementById("wallet-summary");
         walletSummaryEl.innerHTML = `
@@ -2694,9 +3136,6 @@ async function loadPlayerAndRender(){
                         <button class="action-btn inventory" onclick="showInventoryModal('${h.token_id}')" title="Manage Equipment">
                             [INVENTORY]
                         </button>
-                        <button class="action-btn ember-roll" onclick="showEmberRoll('${h.token_id}')" title="Roll D20 for mission bonuses">
-                            [EMBER ROLL]
-                        </button>
                         <button class="action-btn send" onclick="openMissionListModal('${h.token_id}')">
                             [SEND MISSION]
                         </button>
@@ -2710,9 +3149,6 @@ async function loadPlayerAndRender(){
                         <div class="actions-cell">
                             <button class="action-btn inventory" onclick="showInventoryModal('${h.token_id}')">
                                 [INVENTORY]
-                            </button>
-                            <button class="action-btn ember-roll" onclick="showEmberRoll('${h.token_id}')">
-                                [EMBER ROLL]
                             </button>
                             <button class="action-btn claim complete-btn" data-hero="${h.token_id}">
                                 [CLAIM]
