@@ -1000,6 +1000,28 @@ strong {
     filter: blur(0.3px);
 }
 
+/* DISABLED BUTTONS - Soft orange for coming soon features */
+.cmd-link-disabled {
+    /* Soft orange background - indicates disabled/coming soon */
+    background: #d4956a;              /* Softer orange tone */
+    color: #1a1a1a;
+    font-weight: 700;
+    opacity: 0.7;
+    cursor: not-allowed;
+    /* Subtle glow */
+    box-shadow: 0 0 8px rgba(212, 149, 106, 0.4);
+    filter: blur(0.3px);
+}
+
+.cmd-link-disabled:hover {
+    /* Slightly brighter on hover but still muted */
+    background: #e0a77a;
+    color: #1a1a1a;
+    transform: none;                   /* No lift effect */
+    box-shadow: 0 0 10px rgba(224, 167, 122, 0.5);
+    filter: blur(0.3px);
+}
+
 /* NAV PROGRESS BAR - ESTILO RETRO BLOCKY */
 .nav-progress-bar {
     width: calc(100% - 80px);             /* No tocar bordes */

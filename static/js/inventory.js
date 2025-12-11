@@ -23,6 +23,10 @@
     };
     let vaultItems = [];
 
+    // Reference to global currentEmissaries (populated by index.html)
+    // This getter ensures we always access the latest data
+    const getCurrentEmissaries = () => window.currentEmissaries || [];
+
     // ===============================================================
     // UTILITY FUNCTIONS
     // ===============================================================
@@ -769,7 +773,7 @@
         }
 
         // Get READY emissaries from current roster
-        const readyEmissaries = currentEmissaries.filter(e => e.state === 'READY');
+        const readyEmissaries = getCurrentEmissaries().filter(e => e.state === 'READY');
 
         if (readyEmissaries.length === 0) {
             alert('No READY emissaries available to equip items.\n\nEmissaries must be in READY state to equip items.');
@@ -1148,9 +1152,9 @@ window.performEmberRoll = async function(emissaryId) {
         if (!modal) return;
 
         // Find emissary in current roster
-        const emissary = currentEmissaries.find(e => String(e.token_id) === String(emissaryId));
+        const emissary = getCurrentEmissaries().find(e => String(e.token_id) === String(emissaryId));
         if (!emissary) {
-            alert('Emissary not found.');
+            alert('Emissary not found. Please refresh the page and try again.');
             return;
         }
 
@@ -1396,9 +1400,9 @@ window.performEmberRoll = async function(emissaryId) {
         if (!modal) return;
 
         // Find emissary in current roster
-        const emissary = currentEmissaries.find(e => String(e.token_id) === String(emissaryId));
+        const emissary = getCurrentEmissaries().find(e => String(e.token_id) === String(emissaryId));
         if (!emissary) {
-            alert('Emissary not found.');
+            alert('Emissary not found. Please refresh the page and try again.');
             return;
         }
 
