@@ -492,7 +492,7 @@ h1 {
     background: rgba(255, 136, 0, 0.05);
     border-top: 1px solid var(--border-primary);
     border-bottom: 1px solid var(--border-primary);
-    padding: 6px 20px;  /* Reducido de 10px a 6px */
+    padding: 4px 15px;
     text-align: center;
     font-size: 11px;
     color: var(--dim-green);
@@ -519,7 +519,7 @@ h1 {
 .double-line {
     height: 1px;
     background: linear-gradient(90deg, transparent, var(--border-primary), transparent);
-    margin: 20px 0;
+    margin: 8px 0;
 }
 
 .divider.double {
@@ -912,10 +912,10 @@ strong {
 .top-header {
     background: linear-gradient(180deg, var(--bg-elevated) 0%, var(--bg-panel) 100%);
     border-bottom: 1px solid var(--border-primary);
-    padding: 20px;
+    padding: 10px 15px;
     display: flex;
     flex-direction: column;
-    gap: 15px;
+    gap: 4px;
 }
 
 .top-status-row {
@@ -934,8 +934,8 @@ strong {
     flex-wrap: nowrap;
     gap: 4px;
     justify-content: center;
-    padding: 8px 15px;  /* Reducido de 15px 60px */
-    border-top: 1px solid var(--border-primary);
+    padding: 4px 10px;
+    border-top: none;
     overflow-x: auto;
 }
 
@@ -1032,8 +1032,8 @@ strong {
 
 /* NAV PROGRESS BAR - ESTILO RETRO BLOCKY */
 .nav-progress-bar {
-    width: calc(100% - 80px);             /* No tocar bordes */
-    margin: 12px auto 0;                  /* Centrada */
+    width: calc(100% - 40px);             /* No tocar bordes */
+    margin: 6px auto 0;                   /* Centrada - reducido */
     height: 8px;                          /* Más gruesa - estilo retro */
     background: #222;                     /* Fondo oscuro */
     border: 2px solid var(--orange-medium); /* Borde naranja */
@@ -1290,7 +1290,11 @@ table {
     background: var(--bg-primary);
     margin: 15px 0;
     font-family: 'Pixelify Sans', 'Classic Console Neue', monospace;
-    table-layout: fixed;
+}
+
+/* Roster table uses auto layout for flexible column sizing */
+.roster-table {
+    table-layout: auto;
 }
 
 .roster-table th,
