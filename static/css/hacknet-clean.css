@@ -1000,25 +1000,24 @@ strong {
     filter: blur(0.3px);
 }
 
-/* DISABLED BUTTONS - Soft orange for coming soon features */
+/* COMING SOON BUTTONS - Light orange, clickable to preview features */
 .cmd-link-disabled {
-    /* Soft orange background - indicates disabled/coming soon */
-    background: #d4956a;              /* Softer orange tone */
-    color: #1a1a1a;
+    /* Light cream/peach orange - indicates preview/coming soon */
+    background: #f5dcc4;              /* Very light peach */
+    color: #5a5a5a;                   /* Medium gray text */
     font-weight: 700;
-    opacity: 0.7;
-    cursor: not-allowed;
+    cursor: pointer;                  /* Clickable */
     /* Subtle glow */
-    box-shadow: 0 0 8px rgba(212, 149, 106, 0.4);
+    box-shadow: 0 0 6px rgba(245, 220, 196, 0.5);
     filter: blur(0.3px);
 }
 
 .cmd-link-disabled:hover {
-    /* Slightly brighter on hover but still muted */
-    background: #e0a77a;
-    color: #1a1a1a;
-    transform: none;                   /* No lift effect */
-    box-shadow: 0 0 10px rgba(224, 167, 122, 0.5);
+    /* Brighter on hover - invites clicking */
+    background: #ffe8d4;              /* Lighter cream on hover */
+    color: #4a4a4a;
+    transform: translateY(-1px);      /* Normal lift effect */
+    box-shadow: 0 0 12px rgba(255, 232, 212, 0.7);
     filter: blur(0.3px);
 }
 
