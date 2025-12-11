@@ -167,6 +167,15 @@
 <div class="noise"></div>
 <div class="crt-overlay"></div>
 
+<!-- CRT GLITCH LOADING OVERLAY -->
+<div class="crt-glitch-overlay" id="crt-glitch-overlay">
+    <div class="crt-loading-text" data-text="ESTABLISHING UPLINK">ESTABLISHING UPLINK</div>
+    <div class="crt-loading-subtext" id="crt-loading-subtext">Connecting to Base Sepolia...</div>
+    <div class="crt-progress-container">
+        <div class="crt-progress-bar" id="crt-progress-bar"></div>
+    </div>
+</div>
+
 <!-- REMOVED: All gothic-medieval inline CSS styles -->
 <!-- Design now controlled entirely by css/hacknet-clean.css -->
 
@@ -2179,12 +2188,96 @@ async function fetchJSON(url, opts={}){
     return await res.json();
 }
 
+/* --------- 🔥 CRT GLITCH LOADING OVERLAY FUNCTIONS --------- */
+const glitchMessages = [
+    "ESTABLISHING UPLINK",
+    "DECRYPTING CHAIN DATA",
+    "SYNCING EMISSARIES",
+    "LOADING NFT METADATA",
+    "VERIFYING OWNERSHIP",
+    "INITIALIZING PORTAL"
+];
+
+let glitchMessageInterval = null;
+let glitchProgressInterval = null;
+
+function showGlitchOverlay(initialMessage = "ESTABLISHING UPLINK") {
+    const overlay = document.getElementById('crt-glitch-overlay');
+    const textEl = document.querySelector('.crt-loading-text');
+    const subtextEl = document.getElementById('crt-loading-subtext');
+    const progressBar = document.getElementById('crt-progress-bar');
+
+    if (!overlay) return;
+
+    // Set initial text
+    textEl.textContent = initialMessage;
+    textEl.setAttribute('data-text', initialMessage);
+    subtextEl.textContent = "Connecting to Base Sepolia...";
+    progressBar.style.width = '0%';
+
+    // Show overlay
+    overlay.classList.add('active');
+
+    // Cycle through messages
+    let msgIndex = 0;
+    glitchMessageInterval = setInterval(() => {
+        msgIndex = (msgIndex + 1) % glitchMessages.length;
+        textEl.textContent = glitchMessages[msgIndex];
+        textEl.setAttribute('data-text', glitchMessages[msgIndex]);
+    }, 1500);
+
+    // Animate progress bar
+    let progress = 0;
+    glitchProgressInterval = setInterval(() => {
+        progress += Math.random() * 15;
+        if (progress > 90) progress = 90; // Cap at 90% until complete
+        progressBar.style.width = progress + '%';
+    }, 300);
+}
+
+function updateGlitchSubtext(message) {
+    const subtextEl = document.getElementById('crt-loading-subtext');
+    if (subtextEl) {
+        subtextEl.textContent = message;
+    }
+}
+
+function hideGlitchOverlay() {
+    const overlay = document.getElementById('crt-glitch-overlay');
+    const progressBar = document.getElementById('crt-progress-bar');
+
+    // Clear intervals
+    if (glitchMessageInterval) {
+        clearInterval(glitchMessageInterval);
+        glitchMessageInterval = null;
+    }
+    if (glitchProgressInterval) {
+        clearInterval(glitchProgressInterval);
+        glitchProgressInterval = null;
+    }
+
+    // Complete progress bar animation
+    if (progressBar) {
+        progressBar.style.width = '100%';
+    }
+
+    // Hide after short delay
+    setTimeout(() => {
+        if (overlay) {
+            overlay.classList.remove('active');
+        }
+    }, 300);
+}
+
 /* --------- 🔥 METAMASK CONNECTION + BLOCKCHAIN QUERY --------- */
 async function connectWallet() {
     if (!window.ethereum) {
         alert("MetaMask not detected! Please install MetaMask or Coinbase Wallet.");
         return null;
     }
+
+    // 🔥 Show glitch overlay immediately
+    showGlitchOverlay("ESTABLISHING UPLINK");
 
     try {
         // 🔥 FIRST: Check network BEFORE asking for accounts
@@ -2245,6 +2338,7 @@ async function connectWallet() {
                               "Explorer: https://sepolia.basescan.org");
                         document.getElementById("connect-wallet-btn").textContent = "[CONNECT WALLET]";
                         document.getElementById("connect-wallet-btn").disabled = false;
+                        hideGlitchOverlay();
                         return null;
                     }
                 } else if (switchError.code === 4001) {
@@ -2252,12 +2346,14 @@ async function connectWallet() {
                     alert("🛑 DEBES cambiar a Base Sepolia para ver tus NFTs.\n\nEste proyecto SOLO funciona en Base Sepolia testnet.\n\nIntenta de nuevo y APRUEBA el cambio de red.");
                     document.getElementById("connect-wallet-btn").textContent = "[CONNECT WALLET]";
                     document.getElementById("connect-wallet-btn").disabled = false;
+                    hideGlitchOverlay();
                     return null;
                 } else {
                     console.error("❌ Unexpected switch error:", switchError);
                     alert("❌ Error al cambiar de red.\n\nPor favor cambia MANUALMENTE a Base Sepolia en MetaMask y vuelve a conectar.");
                     document.getElementById("connect-wallet-btn").textContent = "[CONNECT WALLET]";
                     document.getElementById("connect-wallet-btn").disabled = false;
+                    hideGlitchOverlay();
                     return null;
                 }
             }
@@ -2283,6 +2379,7 @@ async function connectWallet() {
                       `4. Haz clic en CONNECT WALLET de nuevo`);
                 document.getElementById("connect-wallet-btn").textContent = "[WRONG NETWORK!]";
                 document.getElementById("connect-wallet-btn").disabled = false;
+                hideGlitchOverlay();
                 return null;
             }
 
@@ -2293,6 +2390,7 @@ async function connectWallet() {
 
         // NOW request account access
         console.log("🔑 Requesting account access...");
+        updateGlitchSubtext("Requesting wallet access...");
         const provider = new ethers.providers.Web3Provider(window.ethereum);
         await provider.send("eth_requestAccounts", []);
         const signer = provider.getSigner();
@@ -2312,10 +2410,12 @@ async function connectWallet() {
             alert(`🛑 ERROR: La red cambió!\n\nEstás en Chain ID ${finalChainId} pero necesitas Base Sepolia (${BASE_SEPOLIA_CHAIN_ID}).\n\nPor favor actualiza la página e intenta de nuevo.`);
             document.getElementById("connect-wallet-btn").textContent = "[WRONG NETWORK!]";
             document.getElementById("connect-wallet-btn").disabled = false;
+            hideGlitchOverlay();
             return null;
         }
 
         document.getElementById("connect-wallet-btn").textContent = "[QUERYING BLOCKCHAIN...]";
+        updateGlitchSubtext("Querying blockchain for NFTs...");
 
         // 🔥 Query NFT contract on Base Sepolia to get user's NFTs
         try {
@@ -2392,6 +2492,7 @@ async function connectWallet() {
             // 🔥 CONEXIÓN AL SERVIDOR - Mostrar claramente en UI
             console.log("📤 Sending NFT data to backend...");
             document.getElementById("connect-wallet-btn").textContent = "[CONNECTING TO SERVER...]";
+            updateGlitchSubtext("Syncing data with server...");
 
             const response = await fetch(`/api/player/${encodeURIComponent(address)}`, {
                 method: "POST",
@@ -2407,6 +2508,7 @@ async function connectWallet() {
                 alert(`⚠️ ERROR: Server connection failed!\n\nStatus: ${response.status}\n\nPlease try again.`);
                 document.getElementById("connect-wallet-btn").textContent = "[ERROR - RETRY]";
                 document.getElementById("connect-wallet-btn").disabled = false;
+                hideGlitchOverlay();
                 return null;
             } else {
                 const result = await response.json();
@@ -2443,14 +2545,19 @@ async function connectWallet() {
             alert(`❌ ERROR al consultar blockchain:\n\n${blockchainError.message}\n\nRevisa la consola (F12) para más detalles.`);
             document.getElementById("connect-wallet-btn").textContent = "[ERROR - Check Console]";
             document.getElementById("connect-wallet-btn").disabled = false;
+            hideGlitchOverlay();
             return null;
         }
 
         // Load profile immediately after connecting
+        updateGlitchSubtext("Loading your emissaries...");
         await loadPlayerAndRender();
 
         // Update button visibility
         updateWalletButtonsVisibility();
+
+        // 🔥 Hide glitch overlay on success
+        hideGlitchOverlay();
 
         return address;
     } catch (error) {
@@ -2458,6 +2565,7 @@ async function connectWallet() {
         alert("Failed to connect wallet: " + error.message);
         document.getElementById("connect-wallet-btn").textContent = "[CONNECT WALLET]";
         document.getElementById("connect-wallet-btn").disabled = false;
+        hideGlitchOverlay();
         return null;
     }
 }
