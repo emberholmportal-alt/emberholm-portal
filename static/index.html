@@ -170,28 +170,50 @@
 <!-- REMOVED: All gothic-medieval inline CSS styles -->
 <!-- Design now controlled entirely by css/hacknet-clean.css -->
 
-<!-- EMBERHOLM CONSOLE // REALM AMBIENCE CHANNEL (HORIZONTAL BAR) -->
+<!-- EMBERHOLM CONSOLE // REALM AMBIENCE + TIME SYSTEM (HORIZONTAL BAR) -->
 <div class="ember-console-bar" id="ember-console">
-    <div class="console-block-label">
-        EMBERHOLM CONSOLE<br/>
-        <span style="font-size:10px;">// REALM AMBIENCE CHANNEL //</span>
+    <!-- SECTION 1: MUSIC -->
+    <div class="console-section console-music">
+        <div class="console-block-label">
+            EMBERHOLM CONSOLE<br/>
+            <span style="font-size:10px;">// REALM AMBIENCE //</span>
+        </div>
+        <div class="console-track-now" id="console-trackbox">
+            Track: (loading)
+        </div>
+        <div class="console-music-controls">
+            <button class="console-btn" id="console-mute-btn">[MUTE]</button>
+            <button class="console-btn" id="console-next-btn">[NEXT]</button>
+            <div class="console-vol-wrap">
+                <div class="console-vol-label">VOL</div>
+                <input type="range" class="console-volume-slider" id="console-volume" min="0" max="100" value="70"/>
+            </div>
+        </div>
     </div>
 
-    <div class="console-track-now" id="console-trackbox">
-        Track: (loading)
+    <!-- SECTION 2: CALENDAR -->
+    <div class="console-section console-calendar">
+        <div class="calendar-era" id="calendar-era">Era of the Last Ember</div>
+        <div class="calendar-year" id="calendar-year">YEAR 0</div>
+        <div class="calendar-day" id="calendar-day">Day 1 of 360</div>
     </div>
 
-    <button class="console-btn" id="console-mute-btn">[MUTE]</button>
-    <button class="console-btn" id="console-next-btn">[NEXT]</button>
-
-    <div class="console-vol-wrap">
-        <div class="console-vol-label">VOL</div>
-        <input  type="range"
-                class="console-volume-slider"
-                id="console-volume"
-                min="0"
-                max="100"
-                value="70"/>
+    <!-- SECTION 3: PHASE + WEATHER -->
+    <div class="console-section console-time">
+        <div class="weather-display">
+            <span class="weather-icon" id="weather-icon">✧</span>
+            <span class="weather-name" id="weather-name">CLEAR SKIES</span>
+        </div>
+        <div class="phase-display">
+            <span class="phase-icon" id="phase-icon">☀</span>
+            <div class="phase-info">
+                <span class="phase-name" id="phase-name">DAWN</span>
+                <span class="phase-timer" id="phase-timer">ZENITH in 0h 0m</span>
+            </div>
+        </div>
+        <div class="phase-bar">
+            <div class="phase-progress" id="phase-progress"></div>
+        </div>
     </div>
 </div>
 
@@ -1873,6 +1895,175 @@
 
 <!-- 🔥 CONTRACT CONFIG -->
 <script src="/contract-config.js"></script>
+
+<!-- 🔥 EMBERHOLM TIME SYSTEM -->
+<script>
+// ==================== EMBERHOLM TIME SYSTEM ====================
+// Calendar, Day Phases, and Weather - Purely aesthetic/immersive
+
+const EMBERHOLM_CALENDAR = {
+    epoch: new Date('2025-01-01T00:00:00-03:00'),  // Argentina UTC-3
+    hoursPerYear: 24,      // 24 real hours = 1 Emberholm year
+    daysPerYear: 360,
+    currentEra: "Era of the Last Ember"
+};
+
+const EMBERHOLM_PHASES = {
+    DAWN:   { id: 'dawn',   name: 'DAWN',   icon: '☀', startHour: 6,  endHour: 12, color: '#FF9966', nextPhase: 'ZENITH' },
+    ZENITH: { id: 'zenith', name: 'ZENITH', icon: '☀', startHour: 12, endHour: 18, color: '#FFD700', nextPhase: 'DUSK' },
+    DUSK:   { id: 'dusk',   name: 'DUSK',   icon: '◐', startHour: 18, endHour: 24, color: '#FF6B35', nextPhase: 'VOID' },
+    VOID:   { id: 'void',   name: 'VOID',   icon: '☽', startHour: 0,  endHour: 6,  color: '#6B5B95', nextPhase: 'DAWN' }
+};
+
+const EMBERHOLM_WEATHER = {
+    CLEAR:         { id: 'clear',         name: 'CLEAR SKIES',    icon: '✧', weight: 20, color: '#87CEEB' },
+    OVERCAST:      { id: 'overcast',      name: 'ASHEN CLOUDS',   icon: '☁', weight: 20, color: '#708090' },
+    FOGGY:         { id: 'foggy',         name: 'EMBER MIST',     icon: '░', weight: 20, color: '#A9A9A9' },
+    ASH_RAIN:      { id: 'ash_rain',      name: 'ASH RAIN',       icon: '▒', weight: 15, color: '#4A4A4A' },
+    BLOOD_RAIN:    { id: 'blood_rain',    name: 'BLOOD RAIN',     icon: '▓', weight: 10, color: '#8B0000' },
+    THUNDER_STORM: { id: 'thunder_storm', name: 'THUNDER STORM',  icon: '⚡', weight: 5,  color: '#4B0082' },
+    EMBER_STORM:   { id: 'ember_storm',   name: 'EMBER STORM',    icon: '🔥', weight: 3,  color: '#FF4500' },
+    VOID_STORM:    { id: 'void_storm',    name: 'VOID STORM',     icon: '◎', weight: 2,  color: '#1a1a2e' },
+    SOLAR_FLARE:   { id: 'solar_flare',   name: 'SOLAR FLARE',    icon: '✹', weight: 2,  color: '#FFD700' },
+    SHADOW_ECLIPSE:{ id: 'shadow_eclipse',name: 'SHADOW ECLIPSE', icon: '●', weight: 1.5,color: '#0D0D0D' },
+    CRYSTAL_SNOW:  { id: 'crystal_snow',  name: 'CRYSTAL SNOW',   icon: '❄', weight: 1,  color: '#E0FFFF' },
+    SPIRIT_WIND:   { id: 'spirit_wind',   name: 'SPIRIT WIND',    icon: '≋', weight: 0.5,color: '#98FB98' }
+};
+
+// Get Argentina hour (UTC-3)
+function getArgentinaTime() {
+    const now = new Date();
+    return new Date(now.toLocaleString('en-US', { timeZone: 'America/Buenos_Aires' }));
+}
+
+// Calendar calculation
+function getEmberholmCalendar() {
+    const now = new Date();
+    const msElapsed = now - EMBERHOLM_CALENDAR.epoch;
+    const hoursElapsed = msElapsed / (1000 * 60 * 60);
+
+    const year = Math.floor(hoursElapsed / EMBERHOLM_CALENDAR.hoursPerYear);
+    const hourInYear = hoursElapsed % EMBERHOLM_CALENDAR.hoursPerYear;
+    const day = Math.floor((hourInYear / EMBERHOLM_CALENDAR.hoursPerYear) * EMBERHOLM_CALENDAR.daysPerYear) + 1;
+
+    return {
+        era: EMBERHOLM_CALENDAR.currentEra,
+        year: Math.max(0, year),
+        day: Math.min(Math.max(1, day), 360)
+    };
+}
+
+// Current phase based on Argentina time
+function getCurrentPhase() {
+    const hour = getArgentinaTime().getHours();
+    if (hour >= 6 && hour < 12) return EMBERHOLM_PHASES.DAWN;
+    if (hour >= 12 && hour < 18) return EMBERHOLM_PHASES.ZENITH;
+    if (hour >= 18 && hour < 24) return EMBERHOLM_PHASES.DUSK;
+    return EMBERHOLM_PHASES.VOID;
+}
+
+// Time until next phase
+function getPhaseTimeRemaining() {
+    const argTime = getArgentinaTime();
+    const hour = argTime.getHours();
+    const minutes = argTime.getMinutes();
+    const phase = getCurrentPhase();
+
+    let targetHour = phase.endHour;
+    if (phase.id === 'dusk') targetHour = 24;
+    if (phase.id === 'void') targetHour = 6;
+
+    let hoursLeft = targetHour - hour - 1;
+    let minutesLeft = 60 - minutes;
+    if (minutesLeft === 60) { minutesLeft = 0; hoursLeft++; }
+
+    return { hours: Math.max(0, hoursLeft), minutes: minutesLeft, nextPhase: phase.nextPhase };
+}
+
+// Phase progress (0-100%)
+function getPhaseProgress() {
+    const argTime = getArgentinaTime();
+    const hour = argTime.getHours();
+    const minutes = argTime.getMinutes();
+    const phase = getCurrentPhase();
+
+    let minutesIntoPhase = phase.id === 'void'
+        ? hour * 60 + minutes
+        : (hour - phase.startHour) * 60 + minutes;
+
+    return Math.min(100, (minutesIntoPhase / (6 * 60)) * 100);
+}
+
+// Seeded random for synchronized weather
+function seededRandom(seed) {
+    const x = Math.sin(seed) * 10000;
+    return x - Math.floor(x);
+}
+
+// Weather - changes every ~45 min, synced for all users
+function getCurrentWeather() {
+    const now = new Date();
+    const period = Math.floor((now.getUTCHours() * 60 + now.getUTCMinutes()) / 45);
+    const seed = now.getUTCDate() * 1000 + now.getUTCMonth() * 100 + period;
+    const random = seededRandom(seed);
+
+    const weathers = Object.values(EMBERHOLM_WEATHER);
+    const totalWeight = weathers.reduce((sum, w) => sum + w.weight, 0);
+
+    let cumulative = 0;
+    const target = random * totalWeight;
+
+    for (const weather of weathers) {
+        cumulative += weather.weight;
+        if (target <= cumulative) return weather;
+    }
+    return EMBERHOLM_WEATHER.CLEAR;
+}
+
+// Update all displays
+function updateEmberholmTime() {
+    // Calendar
+    const cal = getEmberholmCalendar();
+    const calEra = document.getElementById('calendar-era');
+    const calYear = document.getElementById('calendar-year');
+    const calDay = document.getElementById('calendar-day');
+    if (calEra) calEra.textContent = cal.era;
+    if (calYear) calYear.textContent = `YEAR ${cal.year}`;
+    if (calDay) calDay.textContent = `Day ${cal.day} of 360`;
+
+    // Phase
+    const phase = getCurrentPhase();
+    const phaseTime = getPhaseTimeRemaining();
+    const phaseProgress = getPhaseProgress();
+
+    const phaseIcon = document.getElementById('phase-icon');
+    const phaseName = document.getElementById('phase-name');
+    const phaseTimer = document.getElementById('phase-timer');
+    const phaseBar = document.getElementById('phase-progress');
+
+    if (phaseIcon) { phaseIcon.textContent = phase.icon; phaseIcon.style.color = phase.color; }
+    if (phaseName) { phaseName.textContent = phase.name; phaseName.style.color = phase.color; }
+    if (phaseTimer) phaseTimer.textContent = `${phaseTime.nextPhase} in ${phaseTime.hours}h ${phaseTime.minutes}m`;
+    if (phaseBar) {
+        phaseBar.style.width = `${phaseProgress}%`;
+        phaseBar.className = `phase-progress phase-${phase.id}`;
+    }
+
+    // Weather
+    const weather = getCurrentWeather();
+    const weatherIcon = document.getElementById('weather-icon');
+    const weatherName = document.getElementById('weather-name');
+
+    if (weatherIcon) { weatherIcon.textContent = weather.icon; weatherIcon.style.color = weather.color; }
+    if (weatherName) { weatherName.textContent = weather.name; weatherName.style.color = weather.color; }
+}
+
+// Initialize and update every minute
+document.addEventListener('DOMContentLoaded', function() {
+    updateEmberholmTime();
+    setInterval(updateEmberholmTime, 60000);  // Update every 60 seconds
+});
+</script>
 
 <script>
 /* --------- GLOBAL STATE --------- */

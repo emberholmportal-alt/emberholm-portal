@@ -1525,7 +1525,7 @@ a.social-link:hover {
     text-decoration: none;
 }
 
-/* EMBER CONSOLE BAR (Top floating bar) - CONTROLES A LA DERECHA */
+/* EMBER CONSOLE BAR (Top floating bar) - 3 SECTIONS: Music | Calendar | Phase+Weather */
 .ember-console-bar {
     position: fixed;
     top: 6px;
@@ -1535,24 +1535,34 @@ a.social-link:hover {
     border: 1px solid var(--border-primary);
     border-left: 3px solid var(--gold);
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.8);
-    padding: 10px 15px;
-    display: flex;
-    flex-wrap: wrap;
+    padding: 8px 12px;
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
     align-items: center;
-    gap: 12px;
+    gap: 15px;
     z-index: 9999;
     font-family: 'Classic Console Neue', 'IBM Plex Mono', 'Share Tech Mono', monospace;
-    justify-content: space-between;  /* Distribuir espacio */
+}
+
+/* Console Sections */
+.console-section {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+/* SECTION 1: MUSIC */
+.console-music {
+    justify-content: flex-start;
 }
 
 .console-block-label {
     font-weight: 600;
     text-transform: uppercase;
     border-right: 1px solid var(--border-primary);
-    padding-right: 12px;
-    margin-right: 8px;
+    padding-right: 10px;
     white-space: nowrap;
-    font-size: 12px;
+    font-size: 11px;
     color: var(--gold);
     font-family: 'Alagard', serif;
     letter-spacing: 1px;
@@ -1560,17 +1570,18 @@ a.social-link:hover {
 }
 
 .console-track-now {
-    min-width: 180px;
-    font-size: 12px;
+    font-size: 11px;
     color: var(--primary-green);
     white-space: nowrap;
-    flex-shrink: 0;
+    max-width: 150px;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
-/* Grupo de controles a la derecha */
-.console-btn,
-.console-vol-wrap {
-    margin-left: auto;  /* Empujar a la derecha */
+.console-music-controls {
+    display: flex;
+    align-items: center;
+    gap: 6px;
 }
 
 .console-btn {
@@ -1578,9 +1589,9 @@ a.social-link:hover {
     border: 1px solid var(--border-primary);
     color: var(--primary-green);
     font-family: 'Classic Console Neue', 'IBM Plex Mono', 'Share Tech Mono', monospace;
-    font-size: 11px;
+    font-size: 10px;
     font-weight: 600;
-    padding: 5px 10px;
+    padding: 4px 8px;
     cursor: pointer;
     text-transform: uppercase;
     transition: all 0.2s;
@@ -1595,17 +1606,115 @@ a.social-link:hover {
 .console-vol-wrap {
     display: flex;
     align-items: center;
-    gap: 8px;
-    font-size: 12px;
-    white-space: nowrap;
+    gap: 6px;
 }
 
 .console-vol-label {
     text-transform: uppercase;
-    font-size: 11px;
+    font-size: 10px;
     color: var(--primary-green);
     font-weight: 600;
 }
+
+/* SECTION 2: CALENDAR */
+.console-calendar {
+    justify-content: center;
+    flex-direction: column;
+    gap: 2px;
+    text-align: center;
+    border-left: 1px solid var(--border-primary);
+    border-right: 1px solid var(--border-primary);
+    padding: 0 20px;
+}
+
+.calendar-era {
+    font-size: 8px;
+    color: #666;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.calendar-year {
+    font-size: 12px;
+    color: var(--gold);
+    font-weight: bold;
+    font-family: 'Alagard', serif;
+}
+
+.calendar-day {
+    font-size: 9px;
+    color: #888;
+}
+
+/* SECTION 3: PHASE + WEATHER */
+.console-time {
+    justify-content: flex-end;
+    gap: 15px;
+}
+
+.weather-display {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding-right: 12px;
+    border-right: 1px solid var(--border-primary);
+}
+
+.weather-icon {
+    font-size: 14px;
+    filter: drop-shadow(0 0 3px currentColor);
+}
+
+.weather-name {
+    font-size: 9px;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+.phase-display {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.phase-icon {
+    font-size: 16px;
+    filter: drop-shadow(0 0 4px currentColor);
+}
+
+.phase-info {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+}
+
+.phase-name {
+    font-size: 10px;
+    font-weight: bold;
+}
+
+.phase-timer {
+    font-size: 8px;
+    color: #666;
+}
+
+.phase-bar {
+    width: 60px;
+    height: 6px;
+    background: #1a1a1a;
+    border: 1px solid #333;
+    overflow: hidden;
+}
+
+.phase-progress {
+    height: 100%;
+    transition: width 1s linear;
+}
+
+.phase-progress.phase-dawn   { background: linear-gradient(90deg, #FF9966, #FFCC99); }
+.phase-progress.phase-zenith { background: linear-gradient(90deg, #FFD700, #FFA500); }
+.phase-progress.phase-dusk   { background: linear-gradient(90deg, #FF6B35, #8B0000); }
+.phase-progress.phase-void   { background: linear-gradient(90deg, #6B5B95, #2D1B4E); }
 
 .console-volume-slider {
     -webkit-appearance: none;
@@ -1638,17 +1747,57 @@ a.social-link:hover {
 
 /* Push body content down for console bar */
 body {
-    padding-top: 60px;
+    padding-top: 65px;
+}
+
+/* Responsive console bar */
+@media (max-width: 900px) {
+    .ember-console-bar {
+        grid-template-columns: 1fr;
+        gap: 8px;
+        padding: 8px 10px;
+    }
+
+    .console-section {
+        justify-content: center;
+    }
+
+    .console-calendar {
+        border-left: none;
+        border-right: none;
+        border-top: 1px solid var(--border-primary);
+        border-bottom: 1px solid var(--border-primary);
+        padding: 6px 0;
+    }
+
+    .console-time {
+        justify-content: center;
+    }
+
+    body {
+        padding-top: 140px;
+    }
 }
 
 @media (max-width: 600px) {
-    body {
-        padding-top: 80px;
+    .console-music {
+        flex-wrap: wrap;
+        justify-content: center;
     }
 
-    .ember-console-bar {
-        font-size: 11px;
-        padding: 8px 10px;
+    .console-block-label {
+        border-right: none;
+        text-align: center;
+        width: 100%;
+    }
+
+    .weather-display {
+        border-right: none;
+        padding-right: 0;
+    }
+
+    body {
+        padding-top: 180px;
     }
 }
 
