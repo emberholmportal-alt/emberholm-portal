@@ -2470,26 +2470,26 @@ button:disabled {
     text-shadow: none;
 }
 
-/* SEND - Grey (subtle) */
+/* SEND - Red (action) */
 .action-btn.send {
+    border-color: #ef4444;
+    color: #ef4444;
+}
+.action-btn.send:hover {
+    background: #ef4444;
+    color: #0a0a0a;
+    text-shadow: none;
+}
+
+/* PUSH - Grey (disabled) */
+.action-btn.push {
     border-color: #666;
     color: #888;
 }
-.action-btn.send:hover {
-    border-color: #ff9500;
-    color: #ff9500;
-    background: transparent;
-}
-
-/* PUSH - Yellow/Amber */
-.action-btn.push {
-    border-color: #f59e0b;
-    color: #f59e0b;
-}
 .action-btn.push:hover {
-    background: #f59e0b;
-    color: #0a0a0a;
-    text-shadow: none;
+    border-color: #888;
+    color: #aaa;
+    background: transparent;
 }
 
 /* CLAIM - Blue */
