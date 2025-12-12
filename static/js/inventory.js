@@ -1142,7 +1142,7 @@ window.performEmberRoll = async function(emissaryId) {
 };
 
     // ===============================================================
-    // PUSH MODAL (Mission Acceleration)
+    // PUSH MODAL (Mission Acceleration) - TEMPORARILY DISABLED
     // ===============================================================
 
     window.showPushModal = async function(emissaryId) {
@@ -1151,182 +1151,36 @@ window.performEmberRoll = async function(emissaryId) {
         const modal = document.getElementById('push-modal');
         if (!modal) return;
 
-        // Find emissary in current roster
-        const emissary = getCurrentEmissaries().find(e => String(e.token_id) === String(emissaryId));
-        if (!emissary) {
-            alert('Emissary not found. Please refresh the page and try again.');
-            return;
-        }
-
-        // Check if emissary is on a mission (state can be "ON_MISSION" or "IN_PROGRESS")
-        const onMission = emissary.state === 'ON_MISSION' || emissary.state === 'IN_PROGRESS';
-        if (!onMission) {
-            alert('This emissary is not currently on a mission.');
-            return;
-        }
-
-        // Calculate mission progress
-        const now = new Date();
-        const startTime = new Date(emissary.mission_start);
-        const durationMs = emissary.mission_duration * 60 * 60 * 1000; // hours to ms
-        const endTime = new Date(startTime.getTime() + durationMs);
-
-        const elapsedMs = now - startTime;
-        const remainingMs = Math.max(0, endTime - now);
-        const totalMs = durationMs;
-
-        const progressPercent = Math.min(100, (elapsedMs / totalMs) * 100);
-        const remainingPercent = Math.max(0, (remainingMs / totalMs) * 100);
-
-        // Format time remaining
-        const remainingHours = Math.floor(remainingMs / (1000 * 60 * 60));
-        const remainingMinutes = Math.floor((remainingMs % (1000 * 60 * 60)) / (1000 * 60));
-        const timeRemainingStr = remainingHours > 0
-            ? `${remainingHours}h ${remainingMinutes}m`
-            : `${remainingMinutes}m`;
-
-        // Get mission difficulty (from state message or default to medium)
-        let difficulty = 'medium';
-        if (emissary.state_message) {
-            const msg = emissary.state_message.toLowerCase();
-            if (msg.includes('easy')) difficulty = 'easy';
-            else if (msg.includes('hard')) difficulty = 'hard';
-            else if (msg.includes('legendary')) difficulty = 'legendary';
-        }
-
-        // Base costs by difficulty
-        const baseCosts = {
-            easy: { push25: 50, push50: 150, push100: 400 },
-            medium: { push25: 100, push50: 300, push100: 800 },
-            hard: { push25: 200, push50: 600, push100: 1500 },
-            legendary: { push25: 500, push50: 1500, push100: 4000 }
-        };
-
-        // Scale costs based on REMAINING time (not total time)
-        const costMultiplier = remainingPercent / 100;
-        const costs = {
-            push25: Math.ceil(baseCosts[difficulty].push25 * costMultiplier),
-            push50: Math.ceil(baseCosts[difficulty].push50 * costMultiplier),
-            push100: Math.ceil(baseCosts[difficulty].push100 * costMultiplier)
-        };
-
-        // Calculate time reductions
-        const remainingHoursFloat = remainingMs / (1000 * 60 * 60);
-        const timeReductions = {
-            push25: (remainingHoursFloat * 0.25).toFixed(1),
-            push50: (remainingHoursFloat * 0.50).toFixed(1),
-            push100: remainingHoursFloat.toFixed(1)
-        };
-
-        // Build modal content
+        // Build disabled modal content
         const content = `
-            <div class="subheading">MISSION ACCELERATION</div>
-
-            <!-- Mission Info Card -->
-            <div style="border: 1px solid var(--border-primary); padding: 12px; margin: 15px 0; background: rgba(0,0,0,0.3);">
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 12px;">
-                    <div>
-                        <span style="color: #888;">EMISSARY:</span><br/>
-                        <span style="color: var(--text-primary);">${emissary.name || `#${emissary.token_id}`}</span>
-                    </div>
-                    <div>
-                        <span style="color: #888;">DIFFICULTY:</span><br/>
-                        <span style="color: var(--text-primary); text-transform: uppercase;">${difficulty}</span>
-                    </div>
-                    <div>
-                        <span style="color: #888;">TIME REMAINING:</span><br/>
-                        <span style="color: var(--text-primary);">${timeRemainingStr}</span>
-                    </div>
-                    <div>
-                        <span style="color: #888;">PROGRESS:</span><br/>
-                        <span style="color: var(--text-primary);">${progressPercent.toFixed(1)}%</span>
-                    </div>
-                </div>
-
-                <!-- Progress Bar -->
-                <div style="margin-top: 12px;">
-                    <div style="background: #1a1a1a; border: 1px solid var(--border-primary); height: 20px; position: relative; overflow: hidden;">
-                        <div style="background: linear-gradient(90deg, var(--text-primary) 0%, #ffb84d 100%); height: 100%; width: ${progressPercent}%; transition: width 0.3s ease;"></div>
-                        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 11px; color: #fff; text-shadow: 0 0 3px #000;">
-                            ${progressPercent.toFixed(1)}% COMPLETE
-                        </div>
-                    </div>
-                </div>
+            <!-- DISABLED NOTICE -->
+            <div class="warning-block" style="margin-bottom: 20px;">
+                <span class="glow-yellow">⚠ TEMPORARILY DISABLED</span><br/>
+                The EMBER PUSH system has been temporarily disabled by joint decision of the Guilds.<br/>
+                It will be activated in the next phase of Emberholm.
             </div>
 
-            <!-- Push Options -->
-            <div class="subheading" style="margin-top: 20px;">ACCELERATION OPTIONS</div>
-            <p style="font-size: 11px; color: #888; margin: 8px 0 15px 0;">
-                Costs scaled to remaining time (${remainingPercent.toFixed(0)}% of base cost)
+            <div class="subheading">WHAT IS EMBER PUSH?</div>
+            <p style="margin: 10px 0;">
+                EMBER PUSH allows you to accelerate your missions by spending $EMBER to skip time.
             </p>
 
-            <div style="display: grid; gap: 12px; margin: 15px 0;">
-                <!-- 25% Option -->
-                <div style="border: 1px solid #f59e0b; padding: 12px; background: rgba(245,158,11,0.05);">
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <div>
-                            <div style="font-size: 14px; color: #f59e0b; font-weight: bold;">[25% FASTER]</div>
-                            <div style="font-size: 11px; color: #888; margin-top: 4px;">
-                                Reduce time by ${timeReductions.push25}h
-                            </div>
-                        </div>
-                        <div style="text-align: right;">
-                            <div style="font-size: 13px; color: var(--text-primary);">
-                                ${costs.push25} $EMBER
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- 50% Option -->
-                <div style="border: 1px solid #f59e0b; padding: 12px; background: rgba(245,158,11,0.05);">
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <div>
-                            <div style="font-size: 14px; color: #f59e0b; font-weight: bold;">[50% FASTER]</div>
-                            <div style="font-size: 11px; color: #888; margin-top: 4px;">
-                                Reduce time by ${timeReductions.push50}h
-                            </div>
-                        </div>
-                        <div style="text-align: right;">
-                            <div style="font-size: 13px; color: var(--text-primary);">
-                                ${costs.push50} $EMBER
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- 100% Option (Instant) -->
-                <div style="border: 1px solid #f59e0b; padding: 12px; background: rgba(245,158,11,0.1);">
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <div>
-                            <div style="font-size: 14px; color: #f59e0b; font-weight: bold;">[100% INSTANT]</div>
-                            <div style="font-size: 11px; color: #888; margin-top: 4px;">
-                                Complete mission immediately
-                            </div>
-                        </div>
-                        <div style="text-align: right;">
-                            <div style="font-size: 13px; color: var(--text-primary);">
-                                ${costs.push100} $EMBER
-                            </div>
-                        </div>
-                    </div>
+            <div class="mono-block" style="margin: 20px 0;">
+                <div class="subheading">OPTIONS (When Active)</div>
+                <div style="font-size: 12px; line-height: 1.8; padding: 10px 0;">
+                    [25%]  → Reduce remaining time by 25% — <span style="color:#ffaa00;">45 $EMBER/hour</span><br/>
+                    [50%]  → Reduce remaining time by 50% — <span style="color:#ffaa00;">180 $EMBER/4h</span><br/>
+                    [100%] → Complete mission instantly — <span style="color:#ffaa00;">Up to 7,200 $EMBER</span>
                 </div>
             </div>
 
-            <!-- Action Buttons -->
+            <p style="color:#888; font-size: 12px;">
+                Cost scales with remaining mission time. Useful for time-sensitive events.
+            </p>
+
+            <!-- Close Button -->
             <div class="modal-buttons" style="margin-top: 20px;">
-                <button class="modal-btn btn-push" onclick="performPush('${emissaryId}', 25, ${costs.push25})">
-                    [PUSH 25%]
-                </button>
-                <button class="modal-btn btn-push" onclick="performPush('${emissaryId}', 50, ${costs.push50})">
-                    [PUSH 50%]
-                </button>
-                <button class="modal-btn btn-push" onclick="performPush('${emissaryId}', 100, ${costs.push100})">
-                    [PUSH 100%]
-                </button>
-                <button class="modal-btn" onclick="closePushModal()">
-                    [CANCEL]
-                </button>
+                <button class="modal-btn" onclick="closePushModal()">[CLOSE]</button>
             </div>
         `;
 
