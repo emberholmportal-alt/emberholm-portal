@@ -2708,3 +2708,275 @@ button:disabled {
     0%, 100% { box-shadow: 0 0 5px var(--primary-green); }
     50% { box-shadow: 0 0 20px var(--primary-green), 0 0 30px var(--primary-green); }
 }
+
+/* ===============================================================
+   CHARACTER SHEET - D&D STYLE (TOP EMISSARY)
+   =============================================================== */
+
+.emissary-character-sheet {
+    border: 2px solid var(--border-primary);
+    background: rgba(0, 0, 0, 0.4);
+    padding: 15px;
+    position: relative;
+}
+
+.emissary-character-sheet::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    border: 1px solid rgba(255, 153, 0, 0.1);
+    pointer-events: none;
+}
+
+.character-sheet-empty {
+    text-align: center;
+    color: #666;
+    padding: 40px 20px;
+    font-size: 14px;
+}
+
+/* Header Section - Portrait + Identity */
+.cs-header {
+    display: grid;
+    grid-template-columns: 100px 1fr;
+    gap: 15px;
+    margin-bottom: 15px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border-primary);
+}
+
+.cs-portrait {
+    width: 100px;
+    height: 100px;
+    border: 2px solid var(--primary-green);
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.cs-portrait img {
+    max-width: 96px;
+    max-height: 96px;
+    image-rendering: pixelated;
+    object-fit: contain;
+}
+
+.cs-no-img {
+    color: #666;
+    font-size: 12px;
+    text-align: center;
+}
+
+.cs-identity {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.cs-name {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--primary-green);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 4px;
+    text-shadow: 0 0 10px var(--primary-green);
+}
+
+.cs-subtitle {
+    font-size: 11px;
+    color: #888;
+    margin-bottom: 6px;
+}
+
+.cs-guild {
+    font-size: 13px;
+    color: var(--gold);
+    font-weight: 600;
+}
+
+/* Attributes Row - Race, Class, Status */
+.cs-attributes {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
+.cs-attr-box {
+    border: 1px solid var(--border-primary);
+    padding: 8px 10px;
+    text-align: center;
+    background: rgba(0, 0, 0, 0.3);
+}
+
+.cs-attr-label {
+    font-size: 9px;
+    color: #666;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 3px;
+}
+
+.cs-attr-value {
+    font-size: 12px;
+    color: var(--primary-green);
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.cs-status {
+    border-width: 2px;
+}
+
+/* Stats Grid - XP, Aura, Energy, Deaths */
+.cs-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.cs-stat {
+    border: 1px solid var(--border-primary);
+    padding: 8px;
+    background: rgba(0, 0, 0, 0.3);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+}
+
+.cs-stat-icon {
+    font-size: 16px;
+}
+
+.cs-stat-info {
+    text-align: center;
+}
+
+.cs-stat-label {
+    font-size: 8px;
+    color: #666;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.cs-stat-value {
+    font-size: 14px;
+    color: var(--primary-green);
+    font-weight: 700;
+}
+
+/* Energy Bar */
+.cs-energy-bar {
+    width: 100%;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 2px;
+    overflow: hidden;
+    margin-top: 4px;
+}
+
+.cs-energy-fill {
+    height: 100%;
+    transition: width 0.3s ease, background 0.3s ease;
+}
+
+/* Equipment Summary */
+.cs-equipment {
+    border: 1px solid var(--border-primary);
+    padding: 10px;
+    background: rgba(0, 0, 0, 0.3);
+}
+
+.cs-equip-label {
+    font-size: 9px;
+    color: #666;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+    text-align: center;
+}
+
+.cs-equip-slots {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 8px;
+}
+
+.cs-slot {
+    width: 28px;
+    height: 28px;
+    border: 1px solid #444;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    opacity: 0.4;
+    transition: all 0.2s ease;
+}
+
+.cs-slot.equipped {
+    opacity: 1;
+    border-color: var(--gold);
+    background: rgba(255, 204, 0, 0.1);
+    box-shadow: 0 0 5px rgba(255, 204, 0, 0.3);
+}
+
+.cs-slot-divider {
+    color: #333;
+    font-size: 16px;
+}
+
+.cs-equip-count {
+    font-size: 10px;
+    color: #888;
+    text-align: center;
+    letter-spacing: 0.5px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 600px) {
+    .cs-header {
+        grid-template-columns: 80px 1fr;
+    }
+
+    .cs-portrait {
+        width: 80px;
+        height: 80px;
+    }
+
+    .cs-portrait img {
+        max-width: 76px;
+        max-height: 76px;
+    }
+
+    .cs-name {
+        font-size: 15px;
+    }
+
+    .cs-attributes {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .cs-attributes .cs-status {
+        grid-column: span 2;
+    }
+
+    .cs-stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .cs-equip-slots {
+        flex-wrap: wrap;
+    }
+}

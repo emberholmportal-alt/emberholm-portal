@@ -485,11 +485,9 @@
 
                 <div class="profile-col-right">
                     <div class="subheading">TOP EMISSARY</div>
-                    <div class="top-emissary-grid">
-                        <div style="text-align: center;">
-                            <div id="prime-emissary-img" class="profile-emissary-img">NO DATA</div>
-                        </div>
-                        <div id="prime-emissary-desc" style="font-size:13px;text-align:left;padding:10px;"></div>
+                    <div id="prime-emissary-card" class="emissary-character-sheet">
+                        <!-- Character sheet content populated by JS -->
+                        <div class="character-sheet-empty">NO DATA</div>
                     </div>
                 </div>
             </div>
@@ -3005,8 +3003,7 @@ function disconnectWallet() {
 
     // Clear profile data
     document.getElementById("wallet-summary").innerHTML = "";
-    document.getElementById("prime-emissary-img").textContent = "NO DATA";
-    document.getElementById("prime-emissary-desc").innerHTML = "";
+    document.getElementById("prime-emissary-card").innerHTML = `<div class="character-sheet-empty">NO DATA</div>`;
     document.getElementById("roster-table-wrap").innerHTML = "";
 
     console.log("✅ Wallet disconnected");
@@ -3386,8 +3383,7 @@ async function loadPlayerAndRender(){
     if (!connectedWallet) {
         document.getElementById("wallet-summary").innerHTML =
             `<div class="mono-small-note">Please connect your MetaMask wallet first.</div>`;
-        document.getElementById("prime-emissary-img").textContent = "NO DATA";
-        document.getElementById("prime-emissary-desc").innerHTML = "No wallet connected.";
+        document.getElementById("prime-emissary-card").innerHTML = `<div class="character-sheet-empty">No wallet connected.</div>`;
         document.getElementById("roster-table-wrap").innerHTML = "";
         return;
     }
@@ -3440,36 +3436,133 @@ async function loadPlayerAndRender(){
             }
         });
 
-        const primeImgEl  = document.getElementById("prime-emissary-img");
-        const primeDescEl = document.getElementById("prime-emissary-desc");
+        const primeCardEl = document.getElementById("prime-emissary-card");
 
         if(prime){
-            primeImgEl.innerHTML = "";
-            primeImgEl.style.display="flex";
-            primeImgEl.style.alignItems="center";
-            primeImgEl.style.justifyContent="center";
+            const ds = prime.dynamic_state || {};
 
-            if(prime.image_url){
-                primeImgEl.innerHTML = `<img src="${prime.image_url}"
-                    style="max-width:128px;max-height:128px;image-rendering:pixelated;object-fit:contain;"
-                    alt="${prime.name}"/>`;
-            } else {
-                primeImgEl.textContent = prime.token_id || "NO IMG";
+            // Calculate equipment count
+            let equipCount = 0;
+            if (prime.weapon_id) equipCount++;
+            if (prime.armor_id) equipCount++;
+            if (prime.helmet_id) equipCount++;
+            if (prime.accessory_id) equipCount++;
+            if (prime.amulet_id) equipCount++;
+            const runeCount = prime.rune_ids ? prime.rune_ids.length : 0;
+            const hasLand = prime.land_id ? true : false;
+
+            // Status styling
+            let statusColor = "#44ff44";
+            let statusIcon = "✓";
+            let statusText = ds.state || "READY";
+            if (statusText === "ON_MISSION") {
+                statusColor = "#ffaa00";
+                statusIcon = "⏳";
+                statusText = "ON MISSION";
+            } else if (statusText === "FALLEN") {
+                statusColor = "#ff4444";
+                statusIcon = "💀";
             }
 
-            const ds = prime.dynamic_state || {};
-            primeDescEl.innerHTML = `
-                <div>Id: ${prime.token_id}</div>
-                <div><b>${prime.name || prime.token_id}</b></div>
-                <div>${prime.race_class || ""}</div>
-                <div>Guild: ${prime.guild || ds.current_guild || "UNKNOWN"}</div>
-                <div>XP: ${ds.xp_total || 0} | Aura: ${ds.aura_level || 0}</div>
-                <div>Energy: ${ds.energy_current || 0}/${ds.energy_max || 100}</div>
-                <div>Status: ${ds.state || "READY"}</div>
+            // Energy bar percentage
+            const energyCurrent = ds.energy_current || 0;
+            const energyMax = ds.energy_max || 100;
+            const energyPercent = Math.round((energyCurrent / energyMax) * 100);
+            let energyColor = "#44ff44";
+            if (energyPercent < 30) energyColor = "#ff4444";
+            else if (energyPercent < 60) energyColor = "#ffaa00";
+
+            // Parse race and class from race_class if needed
+            const raceClass = prime.race_class || "";
+            const racePart = prime.race || raceClass.split(" ")[0] || "Unknown";
+            const classPart = prime.class || prime.class_type || raceClass.split(" ").slice(1).join(" ") || "Unknown";
+
+            primeCardEl.innerHTML = `
+                <!-- CHARACTER SHEET HEADER -->
+                <div class="cs-header">
+                    <div class="cs-portrait">
+                        ${prime.image_url
+                            ? `<img src="${prime.image_url}" alt="${prime.name}"/>`
+                            : `<div class="cs-no-img">${prime.token_id || "?"}</div>`}
+                    </div>
+                    <div class="cs-identity">
+                        <div class="cs-name">${prime.name || prime.token_id}</div>
+                        <div class="cs-subtitle">ID: #${prime.token_id} | RANK: ${prime.rank || "Tier 1"}</div>
+                        <div class="cs-guild">⚔ ${prime.guild || ds.current_guild || "UNKNOWN GUILD"}</div>
+                    </div>
+                </div>
+
+                <!-- ATTRIBUTES ROW -->
+                <div class="cs-attributes">
+                    <div class="cs-attr-box">
+                        <div class="cs-attr-label">RACE</div>
+                        <div class="cs-attr-value">${racePart}</div>
+                    </div>
+                    <div class="cs-attr-box">
+                        <div class="cs-attr-label">CLASS</div>
+                        <div class="cs-attr-value">${classPart}</div>
+                    </div>
+                    <div class="cs-attr-box cs-status" style="border-color: ${statusColor};">
+                        <div class="cs-attr-label">STATUS</div>
+                        <div class="cs-attr-value" style="color: ${statusColor};">${statusIcon} ${statusText}</div>
+                    </div>
+                </div>
+
+                <!-- STATS GRID -->
+                <div class="cs-stats-grid">
+                    <div class="cs-stat">
+                        <div class="cs-stat-icon">⚔</div>
+                        <div class="cs-stat-info">
+                            <div class="cs-stat-label">XP</div>
+                            <div class="cs-stat-value">${(ds.xp_total || 0).toLocaleString()}</div>
+                        </div>
+                    </div>
+                    <div class="cs-stat">
+                        <div class="cs-stat-icon">✨</div>
+                        <div class="cs-stat-info">
+                            <div class="cs-stat-label">AURA</div>
+                            <div class="cs-stat-value" style="color: var(--gold);">Lv.${ds.aura_level || 0}</div>
+                        </div>
+                    </div>
+                    <div class="cs-stat">
+                        <div class="cs-stat-icon">⚡</div>
+                        <div class="cs-stat-info">
+                            <div class="cs-stat-label">ENERGY</div>
+                            <div class="cs-stat-value">${energyCurrent}/${energyMax}</div>
+                        </div>
+                        <div class="cs-energy-bar">
+                            <div class="cs-energy-fill" style="width: ${energyPercent}%; background: ${energyColor};"></div>
+                        </div>
+                    </div>
+                    <div class="cs-stat">
+                        <div class="cs-stat-icon">💀</div>
+                        <div class="cs-stat-info">
+                            <div class="cs-stat-label">DEATHS</div>
+                            <div class="cs-stat-value" style="color: #ff6b6b;">${ds.death_count || 0}</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- EQUIPMENT SUMMARY -->
+                <div class="cs-equipment">
+                    <div class="cs-equip-label">EQUIPMENT</div>
+                    <div class="cs-equip-slots">
+                        <div class="cs-slot ${prime.weapon_id ? 'equipped' : ''}" title="Weapon">🗡️</div>
+                        <div class="cs-slot ${prime.armor_id ? 'equipped' : ''}" title="Armor">🛡️</div>
+                        <div class="cs-slot ${prime.helmet_id ? 'equipped' : ''}" title="Helmet">⛑️</div>
+                        <div class="cs-slot ${prime.accessory_id ? 'equipped' : ''}" title="Accessory">💍</div>
+                        <div class="cs-slot ${prime.amulet_id ? 'equipped' : ''}" title="Amulet">📿</div>
+                        <div class="cs-slot-divider">|</div>
+                        <div class="cs-slot ${runeCount >= 1 ? 'equipped' : ''}" title="Rune 1">💎</div>
+                        <div class="cs-slot ${runeCount >= 2 ? 'equipped' : ''}" title="Rune 2">💎</div>
+                        <div class="cs-slot-divider">|</div>
+                        <div class="cs-slot ${hasLand ? 'equipped' : ''}" title="Land">🏰</div>
+                    </div>
+                    <div class="cs-equip-count">${equipCount}/5 GEAR | ${runeCount}/2 RUNES | ${hasLand ? '1' : '0'}/1 LAND</div>
+                </div>
             `;
         } else {
-            primeImgEl.textContent = "NO DATA";
-            primeDescEl.innerHTML = "No Emissaries registered.";
+            primeCardEl.innerHTML = `<div class="character-sheet-empty">No Emissaries registered.</div>`;
         }
 
         // roster table
@@ -3868,8 +3961,7 @@ async function loadPlayerAndRender(){
         console.error(e);
         document.getElementById("wallet-summary").innerHTML =
             `<div class="mono-small-note">Wallet not found / invalid.</div>`;
-        document.getElementById("prime-emissary-img").textContent = "NO DATA";
-        document.getElementById("prime-emissary-desc").innerHTML = "No Emissaries registered.";
+        document.getElementById("prime-emissary-card").innerHTML = `<div class="character-sheet-empty">No Emissaries registered.</div>`;
         document.getElementById("roster-table-wrap").innerHTML =
             `<div class="mono-small-note">No roster data.</div>`;
     }
