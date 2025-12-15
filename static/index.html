@@ -3823,6 +3823,14 @@ async function loadPlayerAndRender(){
                     "CLAIM MISSION REWARDS",
                     "Complete mission and claim rewards for Emissary #" + heroId + "?",
                     async () => {
+                        // Show processing modal while API call is in progress
+                        showProcessingModal(
+                            "CLAIMING REWARDS",
+                            "COMPLETING MISSION",
+                            "Calculating rewards...",
+                            "🎯"
+                        );
+
                         try {
                             const res = await fetch("/api/mission/complete", {
                                 method: "POST",
@@ -3832,6 +3840,8 @@ async function loadPlayerAndRender(){
                                     hero_id: heroId
                                 })
                             });
+
+                            hideProcessingModal();
 
                             if(!res.ok){
                                 const errText = await res.text();
@@ -3878,6 +3888,7 @@ async function loadPlayerAndRender(){
                             loadPlayerAndRender();
                             fetchStatsAndRender();
                         } catch(e){
+                            hideProcessingModal();
                             console.error(e);
                             showInfoModal("CONNECTION ERROR", "MISSION COMPLETE ERROR: Connection issue.");
                         }
