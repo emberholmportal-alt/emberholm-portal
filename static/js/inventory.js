@@ -149,10 +149,18 @@
         const modalBody = modal.querySelector('.terminal-modal-body');
         if (!modalBody) return;
 
-        // Show loading state
+        // Show loading state with animation
         modalBody.innerHTML = `
-            <div class="mono-block" style="text-align:center; padding:40px;">
-                <p>Loading inventory...</p>
+            <div class="terminal-loading-container">
+                <div class="terminal-loading-spinner">
+                    <div class="spinner-ring"></div>
+                    <div class="spinner-core">⚔</div>
+                </div>
+                <div class="terminal-loading-text">LOADING INVENTORY</div>
+                <div class="terminal-loading-dots">
+                    <span>.</span><span>.</span><span>.</span>
+                </div>
+                <div class="terminal-loading-subtext">Fetching equipment data...</div>
             </div>
         `;
         modal.classList.add('active');

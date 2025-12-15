@@ -3991,6 +3991,14 @@ async function startMission(heroId, missionId, missionName) {
         "START MISSION",
         `Send Emissary #${heroId} on ${missionName}?\n\nYour emissary will be locked during the mission.\n\nEnergy will be consumed and the emissary will enter ON_MISSION state.`,
         async () => {
+            // Show processing modal while API call is in progress
+            showProcessingModal(
+                "DEPLOYING EMISSARY",
+                "STARTING MISSION",
+                "Dispatching your emissary...",
+                "🔥"
+            );
+
             try {
                 // Start mission in backend (no blockchain staking)
                 const res = await fetch("/api/mission/start", {
@@ -4002,6 +4010,8 @@ async function startMission(heroId, missionId, missionName) {
                         mission_id: missionId
                     })
                 });
+
+                hideProcessingModal();
 
                 if (!res.ok) {
                     const errText = await res.text();
@@ -4024,6 +4034,7 @@ async function startMission(heroId, missionId, missionName) {
                 loadPlayerAndRender();
                 fetchStatsAndRender();
             } catch(e) {
+                hideProcessingModal();
                 console.error(e);
                 showInfoModal("CONNECTION ERROR", "MISSION START ERROR: " + (e.message || "Connection issue."));
             }
@@ -4365,6 +4376,19 @@ function showConfirmModal(title, message, onConfirm) {
 function closeConfirmModal() {
     hideModal('confirm-modal');
     confirmCallback = null;
+}
+
+// Show Processing Modal (for async operations)
+function showProcessingModal(title = "PROCESSING", text = "PROCESSING", subtext = "Please wait...", icon = "⚔") {
+    document.getElementById('processing-modal-title').textContent = title;
+    document.getElementById('processing-text').textContent = text;
+    document.getElementById('processing-subtext').textContent = subtext;
+    document.getElementById('processing-icon').textContent = icon;
+    showModal('processing-modal');
+}
+
+function hideProcessingModal() {
+    hideModal('processing-modal');
 }
 
 // Open Mission Selection Modal (from PROFILE)
@@ -4734,6 +4758,14 @@ async function startPartyMission(missionId, missionName) {
         `Successful heroes get +20% bonus rewards!\n\n` +
         `Energy will be consumed for all heroes.`,
         async () => {
+            // Show processing modal while API call is in progress
+            showProcessingModal(
+                "DEPLOYING PARTY",
+                "STARTING PARTY MISSION",
+                "Dispatching 5 emissaries...",
+                "⚔"
+            );
+
             try {
                 const res = await fetch("/api/mission/start", {
                     method: "POST",
@@ -4744,6 +4776,8 @@ async function startPartyMission(missionId, missionName) {
                         mission_id: missionId
                     })
                 });
+
+                hideProcessingModal();
 
                 if (!res.ok) {
                     const errText = await res.text();
@@ -4767,6 +4801,7 @@ async function startPartyMission(missionId, missionName) {
                 loadPlayerAndRender();
                 fetchStatsAndRender();
             } catch(e) {
+                hideProcessingModal();
                 console.error(e);
                 showInfoModal("CONNECTION ERROR", "PARTY MISSION START ERROR: " + (e.message || "Connection issue."));
             }
@@ -4842,6 +4877,28 @@ async function startPartyMission(missionId, missionName) {
             <div class="modal-buttons">
                 <button class="modal-btn" id="confirm-yes-btn">YES</button>
                 <button class="modal-btn danger" onclick="closeConfirmModal()">NO</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- PROCESSING MODAL -->
+<div id="processing-modal" class="modal-overlay">
+    <div class="terminal-modal" style="max-width: 450px;">
+        <div class="terminal-modal-header">
+            <span id="processing-modal-title">PROCESSING</span>
+        </div>
+        <div class="terminal-modal-body">
+            <div class="terminal-loading-container">
+                <div class="terminal-loading-spinner">
+                    <div class="spinner-ring"></div>
+                    <div class="spinner-core" id="processing-icon">⚔</div>
+                </div>
+                <div class="terminal-loading-text" id="processing-text">PROCESSING</div>
+                <div class="terminal-loading-dots">
+                    <span>.</span><span>.</span><span>.</span>
+                </div>
+                <div class="terminal-loading-subtext" id="processing-subtext">Please wait...</div>
             </div>
         </div>
     </div>
