@@ -3845,7 +3845,7 @@ async function loadPlayerAndRender(){
 
                             if(!res.ok){
                                 const errText = await res.text();
-                                showInfoModal("MISSION COMPLETE FAILED", errText);
+                                showInfoModal("MISSION COMPLETE FAILED", parseErrorMessage(errText));
                                 return;
                             }
 
@@ -3942,7 +3942,7 @@ async function loadPlayerAndRender(){
 
                     if(!res.ok){
                         const errText = await res.text();
-                        alert("RECOVERY FAILED:\n" + errText);
+                        showInfoModal("RECOVERY FAILED", parseErrorMessage(errText));
                         return;
                     }
 
@@ -4026,7 +4026,7 @@ async function startMission(heroId, missionId, missionName) {
 
                 if (!res.ok) {
                     const errText = await res.text();
-                    showInfoModal("MISSION START FAILED", errText);
+                    showInfoModal("MISSION START FAILED", parseErrorMessage(errText));
                     return;
                 }
 
@@ -4172,7 +4172,7 @@ async function openReinvokeModal(fallenHeroId) {
 
                 if (!res.ok) {
                     const errText = await res.text();
-                    showInfoModal("REINVOCATION FAILED", errText);
+                    showInfoModal("REINVOCATION FAILED", parseErrorMessage(errText));
                     return;
                 }
 
@@ -4400,6 +4400,68 @@ function showProcessingModal(title = "PROCESSING", text = "PROCESSING", subtext 
 
 function hideProcessingModal() {
     hideModal('processing-modal');
+}
+
+// Parse API error response into user-friendly message
+function parseErrorMessage(errorText) {
+    // Map of technical messages to lore-friendly messages
+    const errorMappings = {
+        'hero is not on a mission': '⚠️ This emissary is not currently on a mission.\n\nOnly emissaries with active missions can claim rewards.',
+        'not on a mission': '⚠️ This emissary is not currently on a mission.',
+        'mission not found': '⚠️ The mission could not be found in the realm records.',
+        'not enough energy': '⚠️ Your emissary lacks the energy required for this endeavor.\n\nWait for energy to regenerate or use [RECOVER].',
+        'hero not found': '⚠️ Emissary not found in the realm registry.',
+        'wallet not found': '⚠️ Your wallet is not registered in Emberholm.',
+        'already on mission': '⚠️ This emissary is already deployed on a mission.',
+        'insufficient xp': '⚠️ Insufficient XP for this action.',
+        'insufficient aura': '⚠️ Insufficient Aura for this action.',
+        'hero is fallen': '⚠️ This emissary has fallen and must be reinvoked first.',
+        'invalid hero': '⚠️ Invalid emissary selection.',
+        'invalid mission': '⚠️ Invalid mission selection.'
+    };
+
+    // Try to extract message from HTML response
+    let message = errorText;
+
+    // Check if it's HTML (contains doctype or html tags)
+    if (errorText.includes('<!doctype') || errorText.includes('<html')) {
+        // Try to extract content from <p> tag
+        const pMatch = errorText.match(/<p>([^<]+)<\/p>/i);
+        if (pMatch) {
+            message = pMatch[1];
+        } else {
+            // Try to extract from <h1> tag
+            const h1Match = errorText.match(/<h1>([^<]+)<\/h1>/i);
+            if (h1Match) {
+                message = h1Match[1];
+            }
+        }
+    }
+
+    // Try to parse as JSON
+    try {
+        const jsonError = JSON.parse(errorText);
+        if (jsonError.error) message = jsonError.error;
+        if (jsonError.message) message = jsonError.message;
+    } catch (e) {
+        // Not JSON, continue with extracted text
+    }
+
+    // Check against known error mappings (case-insensitive)
+    const lowerMessage = message.toLowerCase();
+    for (const [key, friendlyMessage] of Object.entries(errorMappings)) {
+        if (lowerMessage.includes(key)) {
+            return friendlyMessage;
+        }
+    }
+
+    // If we still have HTML artifacts, provide generic message
+    if (message.includes('<') || message.includes('>')) {
+        return '⚠️ An error occurred while processing your request.\n\nPlease try again or check your emissary status.';
+    }
+
+    // Return cleaned message with icon
+    return '⚠️ ' + message;
 }
 
 // Open Mission Selection Modal (from PROFILE)
@@ -4821,7 +4883,7 @@ async function startPartyMission(missionId, missionName) {
 
                 if (!res.ok) {
                     const errText = await res.text();
-                    showInfoModal("PARTY MISSION START FAILED", errText);
+                    showInfoModal("PARTY MISSION START FAILED", parseErrorMessage(errText));
                     return;
                 }
 
