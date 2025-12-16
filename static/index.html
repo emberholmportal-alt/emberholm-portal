@@ -3870,11 +3870,33 @@ async function loadPlayerAndRender(){
 
                                 showInfoModal("MISSION SUCCESS", msg);
                             } else if (result.outcome === "FAILURE") {
+                                // Epic narrative failure messages
+                                const failureIntros = [
+                                    "The shadows proved too fierce...",
+                                    "Fortune did not favor this expedition...",
+                                    "The enemy was more cunning than anticipated...",
+                                    "The realm's forces proved overwhelming...",
+                                    "Fate had other plans this day..."
+                                ];
+                                const failureQuotes = [
+                                    "Even the mightiest warriors know when to withdraw.",
+                                    "A tactical retreat is not defeat, but wisdom.",
+                                    "Live to fight another day, emissary.",
+                                    "The realm still needs your strength.",
+                                    "Every setback forges a stronger warrior."
+                                ];
+                                const randomIntro = failureIntros[Math.floor(Math.random() * failureIntros.length)];
+                                const randomQuote = failureQuotes[Math.floor(Math.random() * failureQuotes.length)];
+
                                 showInfoModal("MISSION FAILED",
-                                    "⚠️ " + result.mission_name + "\n\n" +
-                                    "XP Lost: " + result.xp_lost + "\n\n" +
-                                    "Current XP: " + result.hero_xp_now + "\n\n" +
-                                    "Better luck next time!");
+                                    "⚔️ " + randomIntro + "\n\n" +
+                                    "Your emissary ventured into " + result.mission_name + " but was forced to retreat before completing the objective.\n\n" +
+                                    "Though defeated, they return wiser from the ordeal.\n\n" +
+                                    "━━━━━━━━━━━━━━━━━━━━━━\n" +
+                                    "XP Lost: " + result.xp_lost + "\n" +
+                                    "Current XP: " + (result.hero_xp_now || 0).toLocaleString() + "\n" +
+                                    "━━━━━━━━━━━━━━━━━━━━━━\n\n" +
+                                    "\"" + randomQuote + "\"");
                             } else if (result.outcome === "DEATH") {
                                 showInfoModal("EMISSARY FALLEN",
                                     "💀 Your emissary has fallen in " + result.mission_name + "!\n\n" +
