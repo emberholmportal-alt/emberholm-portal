@@ -4738,8 +4738,9 @@ async function openPartyMissionModal(missionId) {
 
 // Update party selection count and enable/disable button
 function updatePartySelection() {
-    const checkboxes = document.querySelectorAll('[id^="party-hero-"]:checked');
-    const count = checkboxes.length;
+    const allCheckboxes = document.querySelectorAll('[id^="party-hero-"]');
+    const checkedCheckboxes = document.querySelectorAll('[id^="party-hero-"]:checked');
+    const count = checkedCheckboxes.length;
 
     document.getElementById('party-count').textContent = count;
 
@@ -4749,15 +4750,35 @@ function updatePartySelection() {
         startBtn.style.opacity = '1';
         startBtn.style.cursor = 'pointer';
         document.getElementById('party-selection-count').style.color = '#44ff44';
+
+        // Disable unchecked checkboxes when 5 are selected
+        allCheckboxes.forEach(cb => {
+            if (!cb.checked) {
+                cb.disabled = true;
+                cb.closest('.modal-list-item').style.opacity = '0.4';
+                cb.closest('.modal-list-item').dataset.disabledByLimit = 'true';
+            }
+        });
     } else {
         startBtn.disabled = true;
         startBtn.style.opacity = '0.5';
         startBtn.style.cursor = 'not-allowed';
         document.getElementById('party-selection-count').style.color = count > 5 ? '#ff4444' : '#ffaa00';
+
+        // Re-enable checkboxes that were disabled due to selection limit
+        // (but NOT those disabled due to insufficient energy)
+        allCheckboxes.forEach(cb => {
+            const listItem = cb.closest('.modal-list-item');
+            if (listItem.dataset.disabledByLimit === 'true') {
+                cb.disabled = false;
+                listItem.style.opacity = '1';
+                delete listItem.dataset.disabledByLimit;
+            }
+        });
     }
 
     // Store selected hero IDs (keep as strings - token_ids like "00003")
-    selectedPartyHeroes = Array.from(checkboxes).map(cb => cb.value);
+    selectedPartyHeroes = Array.from(checkedCheckboxes).map(cb => cb.value);
 }
 
 // Start party mission with 5 heroes
