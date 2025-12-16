@@ -4428,7 +4428,7 @@ async function openMissionListModal(heroId) {
         // Check if it's a party mission
         const isPartyMission = mission.party_size && mission.party_size === 5;
         const clickHandler = isPartyMission
-            ? `onclick="showPartyMissionWarning('${mission.name}')"`
+            ? `onclick="hideModal('mission-select-modal'); openPartyMissionModal('${mission.id}')"`
             : `onclick="selectMission('${mission.id}', '${heroId}', '${mission.name}')"`;
 
         const partyLabel = isPartyMission ? ' <span style="color:#ffaa00;">[PARTY]</span>' : '';
@@ -4458,17 +4458,6 @@ async function openMissionListModal(heroId) {
 async function selectMission(missionId, heroId, missionName) {
     hideModal('mission-select-modal');
     await startMission(heroId, missionId, missionName);
-}
-
-// Show warning for party missions selected from PROFILE
-function showPartyMissionWarning(missionName) {
-    hideModal('mission-select-modal');
-    showInfoModal(
-        "PARTY MISSION",
-        `${missionName} is a PARTY MISSION requiring exactly 5 Emissaries.\n\n` +
-        `Party missions cannot be started from the PROFILE panel.\n\n` +
-        `Please access the [MISSIONS] panel to select 5 heroes for this coordinated operation.`
-    );
 }
 
 // Open Hero Selection Modal (from MISSIONS)
@@ -4636,14 +4625,32 @@ async function openPartyMissionModal(missionId) {
         return;
     }
 
-    const missions = await loadMissionsData();
-    const mission = missions.find(m => m.id === missionId);
-    if (!mission) {
-        showInfoModal("ERROR", "⚠️ Mission not found");
-        return;
-    }
+    // Show modal immediately with loading state
+    document.getElementById('party-select-title').textContent = 'PARTY MISSION';
+    document.getElementById('party-select-body').innerHTML = `
+        <div class="terminal-loading-container">
+            <div class="terminal-loading-spinner">
+                <div class="spinner-ring"></div>
+                <div class="spinner-core">⚔</div>
+            </div>
+            <div class="terminal-loading-text">LOADING PARTY</div>
+            <div class="terminal-loading-dots">
+                <span>.</span><span>.</span><span>.</span>
+            </div>
+            <div class="terminal-loading-subtext">Gathering available emissaries...</div>
+        </div>
+    `;
+    showModal('party-select-modal');
 
     try {
+        const missions = await loadMissionsData();
+        const mission = missions.find(m => m.id === missionId);
+        if (!mission) {
+            hideModal('party-select-modal');
+            showInfoModal("ERROR", "⚠️ Mission not found");
+            return;
+        }
+
         const player = await fetchJSON(`/api/player/${encodeURIComponent(connectedWallet)}`);
         const readyHeroes = (player.heroes || []).filter(h => {
             const ds = h.dynamic_state || {};
@@ -4651,6 +4658,7 @@ async function openPartyMissionModal(missionId) {
         });
 
         if (readyHeroes.length < 5) {
+            hideModal('party-select-modal');
             showInfoModal("NOT ENOUGH EMISSARIES",
                 `⚠️ This is a PARTY MISSION requiring exactly 5 emissaries!\n\n` +
                 `You currently have ${readyHeroes.length} emissaries in READY state.\n\n` +
@@ -4720,9 +4728,9 @@ async function openPartyMissionModal(missionId) {
         document.getElementById('party-select-title').textContent =
             `SELECT 5 EMISSARIES FOR: ${mission.name}`;
         document.getElementById('party-select-body').innerHTML = modalHTML;
-        showModal('party-select-modal');
 
     } catch (e) {
+        hideModal('party-select-modal');
         console.error(e);
         showInfoModal("ERROR", "❌ Error loading emissaries: " + e.message);
     }
