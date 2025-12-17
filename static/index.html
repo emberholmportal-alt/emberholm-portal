@@ -3841,15 +3841,20 @@ async function loadPlayerAndRender(){
                                 })
                             });
 
-                            hideProcessingModal();
-
                             if(!res.ok){
+                                hideProcessingModal();
                                 const errText = await res.text();
                                 showInfoModal("MISSION COMPLETE FAILED", parseErrorMessage(errText));
                                 return;
                             }
 
                             const result = await res.json();
+
+                            // Update UI BEFORE hiding loading modal to prevent double-clicks
+                            await loadPlayerAndRender();
+                            fetchStatsAndRender();
+
+                            hideProcessingModal();
 
                             // Display result based on outcome
                             if (result.outcome === "SUCCESS") {
@@ -3906,9 +3911,6 @@ async function loadPlayerAndRender(){
                                     "Aura: " + result.reinvocation_cost.aura + "\n\n" +
                                     "Use [REINVOKE] button to bring them back.");
                             }
-
-                            loadPlayerAndRender();
-                            fetchStatsAndRender();
                         } catch(e){
                             hideProcessingModal();
                             console.error(e);
@@ -4044,15 +4046,20 @@ async function startMission(heroId, missionId, missionName) {
                     })
                 });
 
-                hideProcessingModal();
-
                 if (!res.ok) {
+                    hideProcessingModal();
                     const errText = await res.text();
                     showInfoModal("MISSION START FAILED", parseErrorMessage(errText));
                     return;
                 }
 
                 const result = await res.json();
+
+                // Update UI BEFORE hiding loading modal to prevent double-clicks
+                await loadPlayerAndRender();
+                fetchStatsAndRender();
+
+                hideProcessingModal();
 
                 showInfoModal("MISSION STARTED",
                     "🔥 " + result.mission_name + "\n\n" +
@@ -4063,9 +4070,6 @@ async function startMission(heroId, missionId, missionName) {
                     "Estimated Success Rate: " + result.estimated_success_rate + "%\n\n" +
                     "Your emissary is now locked and cannot start another mission until this one completes."
                 );
-
-                loadPlayerAndRender();
-                fetchStatsAndRender();
             } catch(e) {
                 hideProcessingModal();
                 console.error(e);
@@ -4901,15 +4905,20 @@ async function startPartyMission(missionId, missionName) {
                     })
                 });
 
-                hideProcessingModal();
-
                 if (!res.ok) {
+                    hideProcessingModal();
                     const errText = await res.text();
                     showInfoModal("PARTY MISSION START FAILED", parseErrorMessage(errText));
                     return;
                 }
 
                 const result = await res.json();
+
+                // Update UI BEFORE hiding loading modal to prevent double-clicks
+                await loadPlayerAndRender();
+                fetchStatsAndRender();
+
+                hideProcessingModal();
 
                 showInfoModal("PARTY MISSION STARTED",
                     "🔥 " + result.mission_name + "\n\n" +
@@ -4921,9 +4930,6 @@ async function startPartyMission(missionId, missionName) {
                     "Each hero will have independent success/failure rolls.\n" +
                     "Successful heroes receive +20% bonus rewards!"
                 );
-
-                loadPlayerAndRender();
-                fetchStatsAndRender();
             } catch(e) {
                 hideProcessingModal();
                 console.error(e);
