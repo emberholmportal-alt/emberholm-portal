@@ -3868,7 +3868,7 @@ async function loadPlayerAndRender(){
                             "CLAIMING REWARDS",
                             "COMPLETING MISSION",
                             "Calculating rewards...",
-                            "/static/img/claim.png"
+                            "/img/claim.png"
                         );
 
                         try {
@@ -3984,7 +3984,7 @@ async function loadPlayerAndRender(){
                             "CLAIMING ALL REWARDS",
                             "PROCESSING MISSIONS",
                             `Claiming 0/${missionsReadyToClaim.length} missions...`,
-                            "/static/img/claim.png"
+                            "/img/claim.png"
                         );
 
                         const results = {
@@ -4176,7 +4176,7 @@ async function startMission(heroId, missionId, missionName) {
                 "DEPLOYING EMISSARY",
                 "STARTING MISSION",
                 "Dispatching your emissary...",
-                "/static/img/starting.png"
+                "/img/starting.png"
             );
 
             try {
@@ -4568,7 +4568,7 @@ function closeConfirmModal() {
 
 // Show Processing Modal (for async operations)
 // Now uses pixel art images instead of emojis
-function showProcessingModal(title = "PROCESSING", text = "PROCESSING", subtext = "Please wait...", imagePath = "/static/img/starting.png") {
+function showProcessingModal(title = "PROCESSING", text = "PROCESSING", subtext = "Please wait...", imagePath = "/img/starting.png") {
     document.getElementById('processing-modal-title').textContent = title;
     document.getElementById('processing-text').textContent = text;
     document.getElementById('processing-subtext').textContent = subtext;
@@ -4580,7 +4580,7 @@ function hideProcessingModal() {
     hideModal('processing-modal');
 }
 
-// Show CLAIM ALL Results Modal with detailed breakdown
+// Show CLAIM ALL Results Modal - Compact consolidated summary
 function showClaimAllResultsModal(results, totalMissions) {
     const successCount = results.success.length;
     const failureCount = results.failure.length;
@@ -4589,106 +4589,30 @@ function showClaimAllResultsModal(results, totalMissions) {
     const netXp = results.totals.xp_gained - results.totals.xp_lost;
     const successRate = totalMissions > 0 ? Math.round((successCount / totalMissions) * 100) : 0;
 
+    // Build compact status line
+    let statusParts = [];
+    if (successCount > 0) statusParts.push(`<span style="color:#44ff44;">✓ ${successCount} Success</span>`);
+    if (failureCount > 0) statusParts.push(`<span style="color:#ffaa00;">✗ ${failureCount} Failed</span>`);
+    if (deathCount > 0) statusParts.push(`<span style="color:#ff4444;">💀 ${deathCount} Fallen</span>`);
+    if (errorCount > 0) statusParts.push(`<span style="color:#ff6666;">⚠ ${errorCount} Errors</span>`);
+
     let modalContent = `
-        <div style="max-height: 60vh; overflow-y: auto; padding-right: 10px;">
-            <div style="text-align: center; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px solid #44ff44;">
-                <div style="font-size: 1.2em; color: #ffaa00;">📜 CLAIM ALL RESULTS - ${totalMissions} MISSION${totalMissions > 1 ? 'S' : ''}</div>
+        <div style="text-align: center;">
+            <div style="font-size: 1.1em; margin-bottom: 12px; color: #888;">
+                ${statusParts.join(' <span style="color:#444;">|</span> ')}
             </div>
-    `;
-
-    // SUCCESS section
-    if (successCount > 0) {
-        modalContent += `
-            <div style="margin-bottom: 15px;">
-                <div style="color: #44ff44; font-weight: bold; margin-bottom: 8px;">✅ SUCCESS (${successCount})</div>
-                <div style="background: #0a1a0a; border: 1px solid #44ff44; padding: 10px;">
-        `;
-        results.success.forEach((r, idx) => {
-            const perfectText = r.perfect_alignment ? ' <span style="color:#ffaa00;">⚡ Perfect!</span>' : '';
-            modalContent += `
-                <div style="padding: 8px 0; ${idx > 0 ? 'border-top: 1px dashed #2a4a2a;' : ''}">
-                    <div style="color: #88ff88;"><b>#${r.hero_id}</b> ${r.hero_name}</div>
-                    <div style="color: #aaaaaa; font-size: 0.9em;">Mission: ${r.mission_name}</div>
-                    <div style="color: #44ff44;">XP: +${r.xp_gained} | Aura: +${r.aura_gained}${perfectText}</div>
+            <div style="background: #0a1a0a; border: 1px solid #44ff44; padding: 15px; margin-bottom: 10px;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; text-align: left;">
+                    <div>XP Gained: <span style="color:#44ff44;">+${results.totals.xp_gained}</span></div>
+                    <div>Aura: <span style="color:#44ff44;">+${results.totals.aura_gained}</span></div>
+                    <div>XP Lost: <span style="color:#ff4444;">-${results.totals.xp_lost}</span></div>
+                    <div>Net XP: <span style="color:${netXp >= 0 ? '#44ff44' : '#ff4444'};">${netXp >= 0 ? '+' : ''}${netXp}</span></div>
                 </div>
-            `;
-        });
-        modalContent += `</div></div>`;
-    }
-
-    // FAILURE section
-    if (failureCount > 0) {
-        modalContent += `
-            <div style="margin-bottom: 15px;">
-                <div style="color: #ffaa00; font-weight: bold; margin-bottom: 8px;">⚔️ FAILED (${failureCount})</div>
-                <div style="background: #1a1a0a; border: 1px solid #ffaa00; padding: 10px;">
-        `;
-        results.failure.forEach((r, idx) => {
-            modalContent += `
-                <div style="padding: 8px 0; ${idx > 0 ? 'border-top: 1px dashed #4a4a2a;' : ''}">
-                    <div style="color: #ffcc88;"><b>#${r.hero_id}</b> ${r.hero_name}</div>
-                    <div style="color: #aaaaaa; font-size: 0.9em;">Mission: ${r.mission_name}</div>
-                    <div style="color: #ffaa00;">XP Lost: -${r.xp_lost}</div>
-                </div>
-            `;
-        });
-        modalContent += `</div></div>`;
-    }
-
-    // DEATH section
-    if (deathCount > 0) {
-        modalContent += `
-            <div style="margin-bottom: 15px;">
-                <div style="color: #ff4444; font-weight: bold; margin-bottom: 8px;">💀 FALLEN (${deathCount})</div>
-                <div style="background: #1a0a0a; border: 1px solid #ff4444; padding: 10px;">
-        `;
-        results.death.forEach((r, idx) => {
-            modalContent += `
-                <div style="padding: 8px 0; ${idx > 0 ? 'border-top: 1px dashed #4a2a2a;' : ''}">
-                    <div style="color: #ff8888;"><b>#${r.hero_id}</b> ${r.hero_name}</div>
-                    <div style="color: #aaaaaa; font-size: 0.9em;">Mission: ${r.mission_name}</div>
-                    <div style="color: #ff4444;">Death Count: ${r.death_count} | Reinvocation Required</div>
-                </div>
-            `;
-        });
-        modalContent += `</div></div>`;
-    }
-
-    // ERRORS section
-    if (errorCount > 0) {
-        modalContent += `
-            <div style="margin-bottom: 15px;">
-                <div style="color: #ff6666; font-weight: bold; margin-bottom: 8px;">⚠️ ERRORS (${errorCount})</div>
-                <div style="background: #1a0a0a; border: 1px solid #ff6666; padding: 10px;">
-        `;
-        results.errors.forEach((r, idx) => {
-            modalContent += `
-                <div style="padding: 8px 0; ${idx > 0 ? 'border-top: 1px dashed #4a2a2a;' : ''}">
-                    <div style="color: #ff8888;"><b>#${r.hero_id}</b> ${r.hero_name}</div>
-                    <div style="color: #aaaaaa; font-size: 0.9em;">${r.error}</div>
-                </div>
-            `;
-        });
-        modalContent += `</div></div>`;
-    }
-
-    // SUMMARY section
-    modalContent += `
-        <div style="margin-top: 15px; padding-top: 15px; border-top: 2px solid #44ff44;">
-            <div style="color: #ffaa00; font-weight: bold; margin-bottom: 10px;">📊 TOTAL SUMMARY</div>
-            <div style="background: #0a0a0a; border: 1px solid #666; padding: 12px;">
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-                    <div>XP Gained: <span style="color: #44ff44;">+${results.totals.xp_gained}</span></div>
-                    <div>XP Lost: <span style="color: #ff4444;">-${results.totals.xp_lost}</span></div>
-                    <div>Net XP: <span style="color: ${netXp >= 0 ? '#44ff44' : '#ff4444'};">${netXp >= 0 ? '+' : ''}${netXp}</span></div>
-                    <div>Aura Gained: <span style="color: #44ff44;">+${results.totals.aura_gained}</span></div>
-                </div>
-                <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #444; text-align: center;">
-                    <span style="color: #ffaa00;">Success Rate: ${successRate}% (${successCount}/${totalMissions})</span>
-                </div>
+            </div>
+            <div style="color: #ffaa00; font-size: 0.9em;">
+                Success Rate: ${successRate}%
             </div>
         </div>
-    </div>
     `;
 
     showInfoModal("CLAIM ALL COMPLETE", modalContent);
@@ -5157,7 +5081,7 @@ async function startPartyMission(missionId, missionName) {
                 "DEPLOYING PARTY",
                 "STARTING PARTY MISSION",
                 "Dispatching 5 emissaries...",
-                "/static/img/party.png"
+                "/img/party.png"
             );
 
             try {
@@ -5289,7 +5213,7 @@ async function startPartyMission(missionId, missionName) {
                 <div class="terminal-loading-spinner">
                     <div class="spinner-ring"></div>
                     <div class="spinner-core" id="processing-icon">
-                        <img id="processing-img" src="/static/img/starting.png" alt="" style="width: 48px; height: 48px; image-rendering: pixelated;">
+                        <img id="processing-img" src="/img/starting.png" alt="" style="width: 48px; height: 48px; image-rendering: pixelated;">
                     </div>
                 </div>
                 <div class="terminal-loading-text" id="processing-text">PROCESSING</div>
