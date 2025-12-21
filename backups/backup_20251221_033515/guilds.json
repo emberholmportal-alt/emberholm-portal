@@ -1,0 +1,74 @@
+[
+    {
+        "name": "Circle of Mist",
+        "flavor": "alchemy, mana, forbidden knowledge",
+        "members": 10599,
+        "avg_xp": 0,
+        "avg_aura": 0,
+        "badge": "img/circle_of_mist.JPG",
+        "total_xp": 0,
+        "total_aura": 0,
+        "total_missions_completed": 0,
+        "total_missions_failed": 0
+    },
+    {
+        "name": "Order of Dawn",
+        "flavor": "clerics and oathbound paladins of the Core",
+        "members": 6341,
+        "avg_xp": 0,
+        "avg_aura": 0,
+        "badge": "img/dawnkeepers.JPG",
+        "total_xp": 0,
+        "total_aura": 0,
+        "total_missions_completed": 0,
+        "total_missions_failed": 0
+    },
+    {
+        "name": "Shadow Guild",
+        "flavor": "information, silence, sanctioned crime",
+        "members": 6234,
+        "avg_xp": 0,
+        "avg_aura": 0,
+        "badge": "img/shadow_guild.JPG",
+        "total_xp": 0,
+        "total_aura": 0,
+        "total_missions_completed": 0,
+        "total_missions_failed": 0
+    },
+    {
+        "name": "Forge Legion",
+        "flavor": "strength, steel, sworn oaths",
+        "members": 4538,
+        "avg_xp": 0,
+        "avg_aura": 0,
+        "badge": "img/forge_legion.JPG",
+        "total_xp": 0,
+        "total_aura": 0,
+        "total_missions_completed": 0,
+        "total_missions_failed": 0
+    },
+    {
+        "name": "Void Echoes",
+        "flavor": "necromancy, spectrals, negotiated death-rights",
+        "members": 4302,
+        "avg_xp": 0,
+        "avg_aura": 0,
+        "badge": "img/echoes_of_the_veil.JPG",
+        "total_xp": 0,
+        "total_aura": 0,
+        "total_missions_completed": 0,
+        "total_missions_failed": 0
+    },
+    {
+        "name": "Horizon Watch",
+        "flavor": "scouts, tideborn, edge-of-world patrols",
+        "members": 2986,
+        "avg_xp": 0,
+        "avg_aura": 0,
+        "badge": "img/horizon_watch.JPG",
+        "total_xp": 0,
+        "total_aura": 0,
+        "total_missions_completed": 0,
+        "total_missions_failed": 0
+    }
+]

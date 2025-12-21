@@ -1,0 +1,24 @@
+===============================================
+EMBERHOLM PORTAL - BACKUP INFO
+===============================================
+
+Date: Sun Dec 21 03:35:48 UTC 2025
+Branch: claude/fix-ember-push-marketplace-013FQ754jzYzHQM8eMErRiwN
+Commit: b8b4058f6 Fix: CLAIM ALL progress indicator and results modal rendering
+Commit Hash: b8b4058f65ecdb336a0124c7288e92161505ddae
+
+Files included:
+- index.html (main frontend)
+- app.py (backend)
+- database.py (PostgreSQL module)
+- css/hacknet-clean.css (styles)
+- js/inventory.js (inventory module)
+- js/hacknet-ui.js (UI interactions)
+- data/*.json (configuration files)
+- requirements.txt
+
+To restore:
+1. Copy files back to their original locations
+2. Or use: git checkout <commit-hash>
+
+===============================================

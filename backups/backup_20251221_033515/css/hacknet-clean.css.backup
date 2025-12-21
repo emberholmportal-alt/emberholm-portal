@@ -1,0 +1,760 @@
+/* ===============================================================
+   EMBERHOLM PORTAL - HACKNET CLEAN + CRT DESIGN
+   Cyan terminal aesthetic with gold accents
+   =============================================================== */
+
+/* ===============================================================
+   FUENTES
+   =============================================================== */
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;600;700&display=swap');
+@import url('https://fonts.cdnfonts.com/css/alagard');
+
+/* ===============================================================
+   VARIABLES CSS
+   =============================================================== */
+:root {
+    /* Hacknet Color Scheme */
+    --primary-green: #4af;              /* Azul cyan principal */
+    --bright-green: #6cf;               /* Cyan brillante */
+    --dim-green: #2a8;                  /* Cyan apagado */
+    --dark-green: #164;                 /* Cyan oscuro */
+
+    /* Emberholm Accents */
+    --gold: #fc0;                       /* Amarillo dorado */
+    --gold-bright: #fd4;                /* Dorado brillante */
+    --gold-dim: #ca0;                   /* Dorado apagado */
+
+    /* System States */
+    --error-red: #f24;                  /* Rojo error */
+    --warning-orange: #f80;             /* Naranja warning */
+    --success-green: #4f8;              /* Verde éxito */
+    --info-cyan: #4df;                  /* Cyan información */
+
+    /* Backgrounds */
+    --bg-primary: #000;                 /* Negro principal */
+    --bg-secondary: #0a0a0f;            /* Negro secundario */
+    --bg-panel: #0f0f14;                /* Paneles */
+    --bg-elevated: #14141a;             /* Elementos elevados */
+
+    /* Borders */
+    --border-primary: rgba(68, 170, 255, 0.3);
+    --border-bright: rgba(68, 170, 255, 0.6);
+    --border-gold: rgba(255, 204, 0, 0.4);
+}
+
+/* ===============================================================
+   RESET Y BODY BASE
+   =============================================================== */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    background: var(--bg-primary);
+    background-image:
+        radial-gradient(circle at 20% 50%, rgba(68, 170, 255, 0.03) 0%, transparent 50%),
+        radial-gradient(circle at 80% 80%, rgba(255, 204, 0, 0.02) 0%, transparent 50%);
+    color: var(--primary-green);
+    font-family: 'Share Tech Mono', 'Courier New', monospace;
+    font-size: 14px;
+    line-height: 1.6;
+    min-height: 100vh;
+    overflow-x: hidden;
+}
+
+/* ===============================================================
+   EFECTOS CRT
+   =============================================================== */
+
+/* 1. SCAN BEAM - La línea que baja */
+.scan-beam {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100px;
+    background: linear-gradient(
+        to bottom,
+        transparent,
+        rgba(68, 170, 255, 0.1),
+        transparent
+    );
+    animation: scan-beam 8s linear infinite;
+    pointer-events: none;
+    z-index: 9996;
+}
+
+@keyframes scan-beam {
+    0% { transform: translateY(-100%); }
+    100% { transform: translateY(100vh); }
+}
+
+/* 2. NOISE OVERLAY */
+.noise {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMDAiIGhlaWdodD0iMzAwIj48ZmlsdGVyIGlkPSJhIj48ZmVUdXJidWxlbmNlIGJhc2VGcmVxdWVuY3k9Ii43NSIgc3RpdGNoVGlsZXM9InN0aXRjaCIgdHlwZT0iZnJhY3RhbE5vaXNlIi8+PGZlQ29sb3JNYXRyaXggdHlwZT0ic2F0dXJhdGUiIHZhbHVlcz0iMCIvPjwvZmlsdGVyPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbHRlcj0idXJsKCNhKSIgb3BhY2l0eT0iLjA1Ii8+PC9zdmc+');
+    opacity: 0.03;
+    pointer-events: none;
+    z-index: 9995;
+}
+
+/* 3. CRT CURVE (Vignette oscura en bordes) */
+.crt-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(
+        ellipse at center,
+        transparent 0%,
+        transparent 60%,
+        rgba(0, 0, 0, 0.3) 85%,
+        rgba(0, 0, 0, 0.6) 95%,
+        rgba(0, 0, 0, 0.9) 100%
+    );
+    pointer-events: none;
+    z-index: 9997;
+}
+
+/* 4. SCANLINES SUTILES */
+body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: repeating-linear-gradient(
+        0deg,
+        transparent 0px,
+        rgba(68, 170, 255, 0.02) 1px,
+        transparent 2px,
+        transparent 4px
+    );
+    pointer-events: none;
+    z-index: 9998;
+}
+
+/* ===============================================================
+   ANIMACIONES
+   =============================================================== */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes slideIn {
+    from { transform: translateX(-100%); }
+    to { transform: translateX(0); }
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+@keyframes glow {
+    0%, 100% {
+        box-shadow: 0 0 5px var(--primary-green), 0 0 10px var(--primary-green);
+    }
+    50% {
+        box-shadow: 0 0 10px var(--primary-green), 0 0 20px var(--primary-green), 0 0 30px var(--primary-green);
+    }
+}
+
+/* ===============================================================
+   CONTAINER PRINCIPAL
+   =============================================================== */
+.app-container,
+.wrapper {
+    max-width: 1800px;
+    margin: 0 auto;
+    padding: 0;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    z-index: 1;
+}
+
+/* ===============================================================
+   TOP MENU BAR (Console Header adaptado)
+   =============================================================== */
+.console-header,
+.menu-bar {
+    background: linear-gradient(180deg, var(--bg-elevated) 0%, var(--bg-panel) 100%);
+    border-bottom: 1px solid var(--border-primary);
+    display: flex;
+    align-items: center;
+    padding: 0 20px;
+    height: 45px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+    position: relative;
+    z-index: 100;
+}
+
+.console-title {
+    font-family: 'Alagard', serif;
+    font-size: 16px;
+    color: var(--gold);
+    letter-spacing: 2px;
+    margin-right: 30px;
+}
+
+.console-subtitle {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 11px;
+    color: var(--dim-green);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.audio-controls {
+    margin-left: auto;
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+
+.console-track-now {
+    font-size: 11px;
+    color: var(--primary-green);
+    max-width: 200px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.terminal-button,
+.audio-btn {
+    background: transparent;
+    border: 1px solid var(--border-primary);
+    color: var(--primary-green);
+    padding: 5px 12px;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: all 0.2s;
+    letter-spacing: 1px;
+}
+
+.terminal-button:hover,
+.audio-btn:hover {
+    background: rgba(68, 170, 255, 0.1);
+    border-color: var(--bright-green);
+    color: var(--bright-green);
+}
+
+.volume-bar {
+    font-size: 12px;
+    color: var(--primary-green);
+    letter-spacing: 0;
+}
+
+/* ===============================================================
+   TITLE BAR (dentro del wrapper)
+   =============================================================== */
+.title-bar {
+    background: var(--bg-elevated);
+    border-bottom: 1px solid var(--border-primary);
+    padding: 12px 20px;
+}
+
+.window-title,
+h1 {
+    font-family: 'Alagard', serif;
+    font-size: 22px;
+    color: var(--gold);
+    letter-spacing: 2px;
+    margin-bottom: 10px;
+    text-align: center;
+}
+
+.status-line {
+    display: flex;
+    justify-content: space-around;
+    font-size: 12px;
+    font-family: 'Rajdhani', sans-serif;
+    color: var(--dim-green);
+}
+
+.status-segment {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.status-segment::before {
+    content: '●';
+    color: var(--primary-green);
+    animation: pulse 2s infinite;
+}
+
+.critical-status {
+    color: var(--error-red);
+    font-weight: 600;
+}
+
+.status-value {
+    color: var(--primary-green);
+    font-weight: 600;
+}
+
+/* ===============================================================
+   COMMAND MENU - NAVIGATION
+   =============================================================== */
+.command-menu {
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border-primary);
+    padding: 10px 15px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 8px;
+}
+
+.cmd,
+.nav-button {
+    background: var(--bg-panel);
+    border: 1px solid var(--border-primary);
+    color: var(--primary-green);
+    padding: 10px 15px;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    transition: all 0.2s;
+    text-align: center;
+}
+
+.cmd:hover,
+.nav-button:hover {
+    background: rgba(68, 170, 255, 0.1);
+    border-color: var(--bright-green);
+    color: var(--bright-green);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(68, 170, 255, 0.3);
+}
+
+.cmd.active,
+.nav-button.active,
+.cmd.is-active,
+.nav-button.is-active {
+    background: rgba(255, 204, 0, 0.1);
+    border-color: var(--border-gold);
+    color: var(--gold);
+    box-shadow: 0 0 15px rgba(255, 204, 0, 0.3);
+}
+
+/* ===============================================================
+   SYSTEM MESSAGE
+   =============================================================== */
+.sys-msg,
+.command-hint {
+    background: rgba(68, 170, 255, 0.05);
+    border-top: 1px solid var(--border-primary);
+    border-bottom: 1px solid var(--border-primary);
+    padding: 10px 20px;
+    text-align: center;
+    font-size: 11px;
+    color: var(--dim-green);
+    font-family: 'Rajdhani', sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+}
+
+.sys-msg::before {
+    content: '>> ';
+    color: var(--primary-green);
+}
+
+.sys-msg::after {
+    content: ' <<';
+    color: var(--primary-green);
+}
+
+/* ===============================================================
+   DIVIDER
+   =============================================================== */
+.divider,
+.double-line {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--border-primary), transparent);
+    margin: 20px 0;
+}
+
+.divider.double {
+    height: 2px;
+    background: repeating-linear-gradient(
+        90deg,
+        var(--border-primary) 0px,
+        var(--border-primary) 4px,
+        transparent 4px,
+        transparent 8px
+    );
+}
+
+/* ===============================================================
+   CONTENT SECTIONS
+   =============================================================== */
+.screen {
+    display: none;
+    padding: 20px;
+}
+
+.screen.active {
+    display: block;
+    animation: fadeIn 0.4s ease-out;
+}
+
+/* ===============================================================
+   TERMINAL BLOCKS
+   =============================================================== */
+.terminal-block,
+.data-panel,
+.campaign-box,
+.section-block {
+    background: var(--bg-panel);
+    border: 1px solid var(--border-primary);
+    border-left: 3px solid var(--primary-green);
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+    animation: fadeIn 0.4s ease-out;
+}
+
+.terminal-block.gold-accent,
+.data-panel,
+.campaign-box {
+    border-left-color: var(--gold);
+}
+
+.terminal-block.critical,
+.alert-box,
+.warning-box {
+    border-left-color: var(--error-red);
+    border-color: var(--error-red);
+    background: linear-gradient(135deg, rgba(255, 34, 68, 0.05) 0%, var(--bg-panel) 100%);
+}
+
+/* ===============================================================
+   BLOCK TITLES
+   =============================================================== */
+.block-title,
+.panel-header,
+.campaign-title,
+.section-title {
+    font-family: 'Alagard', serif;
+    font-size: 18px;
+    color: var(--gold);
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border-gold);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.block-title::before,
+.section-title::before {
+    content: '▮';
+    color: var(--primary-green);
+    font-size: 14px;
+}
+
+/* ===============================================================
+   ALERT BANNER
+   =============================================================== */
+.alert-box,
+.warning-box {
+    display: flex;
+    align-items: flex-start;
+    gap: 15px;
+    padding: 15px 20px;
+}
+
+.alert-box::before,
+.warning-box::before {
+    content: '⚠';
+    font-size: 24px;
+    color: var(--error-red);
+    animation: pulse 1s infinite;
+}
+
+.alert-title,
+.warning-title {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--error-red);
+    margin-bottom: 8px;
+}
+
+/* ===============================================================
+   TEXT CONTENT
+   =============================================================== */
+.terminal-text,
+.campaign-text,
+.block-content,
+p {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 13px;
+    color: var(--primary-green);
+    line-height: 1.8;
+    margin: 12px 0;
+}
+
+.terminal-text strong,
+strong {
+    color: var(--gold);
+    font-weight: 600;
+}
+
+/* ===============================================================
+   STATUS MONITOR
+   =============================================================== */
+.status-monitor,
+.status-panel,
+.realm-status {
+    background: var(--bg-panel);
+    border: 1px solid var(--error-red);
+    border-left: 3px solid var(--error-red);
+    padding: 18px;
+    margin: 20px 0;
+}
+
+.monitor-title,
+.status-panel-title {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--error-red);
+    margin-bottom: 12px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--error-red);
+}
+
+.monitor-line,
+.status-line-item {
+    font-size: 12px;
+    color: var(--primary-green);
+    margin: 8px 0;
+    font-family: 'Share Tech Mono', monospace;
+}
+
+.monitor-line .critical,
+.critical {
+    color: var(--error-red);
+    font-weight: 600;
+}
+
+/* ===============================================================
+   LIVE FEED
+   =============================================================== */
+.activity-log,
+.live-feed,
+.dispatch-feed {
+    background: var(--bg-panel);
+    border: 1px solid var(--border-primary);
+    border-left: 3px solid var(--primary-green);
+    padding: 18px;
+    margin: 20px 0;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.log-header,
+.feed-title {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--primary-green);
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border-primary);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.log-header::before,
+.feed-title::before {
+    content: '▶';
+    color: var(--gold);
+}
+
+.log-entry,
+.feed-entry,
+.feed-item {
+    font-size: 12px;
+    color: var(--primary-green);
+    margin: 10px 0;
+    padding: 8px 12px;
+    border-left: 2px solid rgba(68, 170, 255, 0.2);
+    transition: all 0.2s;
+    font-family: 'Share Tech Mono', monospace;
+}
+
+.log-entry:hover,
+.feed-entry:hover,
+.feed-item:hover {
+    background: rgba(68, 170, 255, 0.05);
+    border-left-color: var(--gold);
+}
+
+/* ===============================================================
+   NOTICES
+   =============================================================== */
+.access-notice,
+.disclaimer {
+    background: rgba(68, 170, 255, 0.05);
+    border: 1px solid var(--border-primary);
+    padding: 12px;
+    text-align: center;
+    font-size: 12px;
+    color: var(--dim-green);
+    margin-top: 15px;
+    font-style: italic;
+}
+
+/* ===============================================================
+   LOGO WRAPPER
+   =============================================================== */
+.logo-wrapper {
+    text-align: center;
+    margin: 20px 0;
+}
+
+.project-logo-img {
+    max-width: 200px;
+    height: auto;
+    filter: drop-shadow(0 0 20px rgba(68, 170, 255, 0.5));
+}
+
+/* ===============================================================
+   PIXEL CORNERS (decorativos)
+   =============================================================== */
+.pixel-corner {
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    background: var(--gold);
+    box-shadow: 0 0 10px var(--gold);
+}
+
+.pixel-corner.tl { top: 8px; left: 8px; }
+.pixel-corner.tr { top: 8px; right: 8px; }
+.pixel-corner.bl { bottom: 8px; left: 8px; }
+.pixel-corner.br { bottom: 8px; right: 8px; }
+
+/* ===============================================================
+   CORNER MARKERS
+   =============================================================== */
+.corner-marker {
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    border: 2px solid var(--gold);
+    z-index: 2;
+}
+
+.corner-marker.corner-tl {
+    top: -2px;
+    left: -2px;
+    border-right: none;
+    border-bottom: none;
+}
+
+.corner-marker.corner-tr {
+    top: -2px;
+    right: -2px;
+    border-left: none;
+    border-bottom: none;
+}
+
+.corner-marker.corner-bl {
+    bottom: -2px;
+    left: -2px;
+    border-right: none;
+    border-top: none;
+}
+
+.corner-marker.corner-br {
+    bottom: -2px;
+    right: -2px;
+    border-left: none;
+    border-top: none;
+}
+
+/* ===============================================================
+   SCROLLBAR PERSONALIZADO
+   =============================================================== */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--bg-primary);
+}
+
+::-webkit-scrollbar-thumb {
+    background: rgba(68, 170, 255, 0.3);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(68, 170, 255, 0.5);
+}
+
+/* ===============================================================
+   RESPONSIVE
+   =============================================================== */
+@media (max-width: 768px) {
+    .console-header {
+        flex-direction: column;
+        height: auto;
+        padding: 10px;
+    }
+
+    .audio-controls {
+        margin-left: 0;
+        margin-top: 10px;
+        width: 100%;
+        justify-content: center;
+    }
+
+    .command-menu {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .window-title,
+    h1 {
+        font-size: 18px;
+    }
+
+    .status-line {
+        flex-direction: column;
+        gap: 8px;
+    }
+}

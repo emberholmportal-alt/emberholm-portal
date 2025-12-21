@@ -1,0 +1,264 @@
+{
+  "items": [
+    {
+      "name": "Worldbreaker Blade",
+      "type": "weapon",
+      "rarity": "legendary",
+      "image_url": "/img/items/worldbreaker-blade.png",
+      "stats": {
+        "ember_boost": 20,
+        "xp_boost": 20,
+        "energy_reduction": 10,
+        "death_protection": 0,
+        "speed_boost": 10
+      }
+    },
+    {
+      "name": "Stormcaller Staff",
+      "type": "weapon",
+      "rarity": "rare",
+      "image_url": "/img/items/stormcaller-staff.png",
+      "stats": {
+        "ember_boost": 5,
+        "xp_boost": 5,
+        "energy_reduction": 3,
+        "death_protection": 0,
+        "speed_boost": 3
+      }
+    },
+    {
+      "name": "Dragon Scale Armor",
+      "type": "armor",
+      "rarity": "epic",
+      "image_url": "/img/items/dragon-armor.png",
+      "stats": {
+        "ember_boost": 10,
+        "xp_boost": 10,
+        "energy_reduction": 5,
+        "death_protection": 3,
+        "speed_boost": 5
+      }
+    },
+    {
+      "name": "Leather Vest",
+      "type": "armor",
+      "rarity": "common",
+      "image_url": "/img/items/leather-vest.png",
+      "stats": {
+        "ember_boost": 2,
+        "xp_boost": 2,
+        "energy_reduction": 1,
+        "death_protection": 0,
+        "speed_boost": 0
+      }
+    },
+    {
+      "name": "Crown of the Ancients",
+      "type": "helmet",
+      "rarity": "legendary",
+      "image_url": "/img/items/crown-ancients.png",
+      "stats": {
+        "ember_boost": 15,
+        "xp_boost": 15,
+        "energy_reduction": 8,
+        "death_protection": 5,
+        "speed_boost": 0
+      }
+    },
+    {
+      "name": "Steel Helmet",
+      "type": "helmet",
+      "rarity": "common",
+      "image_url": "/img/items/steel-helmet.png",
+      "stats": {
+        "ember_boost": 1,
+        "xp_boost": 1,
+        "energy_reduction": 0,
+        "death_protection": 1,
+        "speed_boost": 0
+      }
+    },
+    {
+      "name": "Phoenix Pendant",
+      "type": "accessory",
+      "rarity": "legendary",
+      "image_url": "/img/items/phoenix-pendant.png",
+      "stats": {
+        "ember_boost": 20,
+        "xp_boost": 20,
+        "energy_reduction": 10,
+        "death_protection": 5,
+        "speed_boost": 10
+      }
+    },
+    {
+      "name": "Silver Ring",
+      "type": "accessory",
+      "rarity": "rare",
+      "image_url": "/img/items/silver-ring.png",
+      "stats": {
+        "ember_boost": 6,
+        "xp_boost": 6,
+        "energy_reduction": 3,
+        "death_protection": 2,
+        "speed_boost": 4
+      }
+    },
+    {
+      "name": "Bone Amulet",
+      "type": "amulet",
+      "rarity": "common",
+      "image_url": "/img/items/bone-amulet.png",
+      "stats": {
+        "ember_boost": 2,
+        "xp_boost": 2,
+        "energy_reduction": 0,
+        "death_protection": 0,
+        "speed_boost": 0
+      }
+    },
+    {
+      "name": "Void Crystal Amulet",
+      "type": "amulet",
+      "rarity": "epic",
+      "image_url": "/img/items/void-amulet.png",
+      "stats": {
+        "ember_boost": 12,
+        "xp_boost": 12,
+        "energy_reduction": 6,
+        "death_protection": 3,
+        "speed_boost": 6
+      }
+    },
+    {
+      "name": "Phoenix Ascendant",
+      "type": "rune",
+      "rarity": "epic",
+      "image_url": "/img/items/rune-phoenix.png",
+      "stats": {
+        "ember_boost": 10,
+        "xp_boost": 10,
+        "energy_reduction": 7,
+        "death_protection": 7,
+        "speed_boost": 7
+      }
+    },
+    {
+      "name": "Cinder Shard",
+      "type": "rune",
+      "rarity": "rare",
+      "image_url": "/img/items/rune-cinder.png",
+      "stats": {
+        "ember_boost": 6,
+        "xp_boost": 6,
+        "energy_reduction": 4,
+        "death_protection": 4,
+        "speed_boost": 4
+      }
+    },
+    {
+      "name": "Minor Rune of Fire",
+      "type": "rune",
+      "rarity": "common",
+      "image_url": "/img/items/rune-fire.png",
+      "stats": {
+        "ember_boost": 3,
+        "xp_boost": 3,
+        "energy_reduction": 2,
+        "death_protection": 2,
+        "speed_boost": 2
+      }
+    },
+    {
+      "name": "Void Essence Rune",
+      "type": "rune",
+      "rarity": "legendary",
+      "image_url": "/img/items/rune-void.png",
+      "stats": {
+        "ember_boost": 15,
+        "xp_boost": 15,
+        "energy_reduction": 10,
+        "death_protection": 10,
+        "speed_boost": 10
+      }
+    },
+    {
+      "name": "Hunting Bow",
+      "type": "weapon",
+      "rarity": "common",
+      "image_url": "/img/items/hunting-bow.png",
+      "stats": {
+        "ember_boost": 3,
+        "xp_boost": 3,
+        "energy_reduction": 2,
+        "death_protection": 0,
+        "speed_boost": 2
+      }
+    },
+    {
+      "name": "Flameburst Axe",
+      "type": "weapon",
+      "rarity": "epic",
+      "image_url": "/img/items/flameburst-axe.png",
+      "stats": {
+        "ember_boost": 12,
+        "xp_boost": 12,
+        "energy_reduction": 6,
+        "death_protection": 2,
+        "speed_boost": 8
+      }
+    },
+    {
+      "name": "Shadowsteel Plate",
+      "type": "armor",
+      "rarity": "rare",
+      "image_url": "/img/items/shadowsteel-plate.png",
+      "stats": {
+        "ember_boost": 7,
+        "xp_boost": 7,
+        "energy_reduction": 4,
+        "death_protection": 4,
+        "speed_boost": 3
+      }
+    },
+    {
+      "name": "Mystic Hood",
+      "type": "helmet",
+      "rarity": "epic",
+      "image_url": "/img/items/mystic-hood.png",
+      "stats": {
+        "ember_boost": 10,
+        "xp_boost": 10,
+        "energy_reduction": 5,
+        "death_protection": 3,
+        "speed_boost": 5
+      }
+    },
+    {
+      "name": "Emberstone Bracelet",
+      "type": "accessory",
+      "rarity": "common",
+      "image_url": "/img/items/emberstone-bracelet.png",
+      "stats": {
+        "ember_boost": 2,
+        "xp_boost": 2,
+        "energy_reduction": 1,
+        "death_protection": 1,
+        "speed_boost": 1
+      }
+    },
+    {
+      "name": "Dragonheart Talisman",
+      "type": "amulet",
+      "rarity": "legendary",
+      "image_url": "/img/items/dragonheart-talisman.png",
+      "stats": {
+        "ember_boost": 18,
+        "xp_boost": 18,
+        "energy_reduction": 9,
+        "death_protection": 6,
+        "speed_boost": 9
+      }
+    }
+  ]
+}
