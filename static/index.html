@@ -4002,8 +4002,8 @@ async function loadPlayerAndRender(){
                         for (let i = 0; i < missionsReadyToClaim.length; i++) {
                             const mission = missionsReadyToClaim[i];
 
-                            // Update progress
-                            const progressEl = document.querySelector('.processing-modal-text');
+                            // Update progress in processing modal
+                            const progressEl = document.getElementById('processing-subtext');
                             if (progressEl) {
                                 progressEl.textContent = `Claiming ${i + 1}/${missionsReadyToClaim.length} missions...`;
                             }
@@ -4530,7 +4530,13 @@ function hideModal(modalId) {
 // Show Info Modal (replaces alert())
 function showInfoModal(title, message) {
     document.getElementById('info-modal-title').textContent = title;
-    document.getElementById('info-modal-message').textContent = message;
+    // Use innerHTML if message contains HTML tags, otherwise textContent
+    const messageEl = document.getElementById('info-modal-message');
+    if (message.includes('<div') || message.includes('<span') || message.includes('<br')) {
+        messageEl.innerHTML = message;
+    } else {
+        messageEl.textContent = message;
+    }
     showModal('info-modal');
 }
 
