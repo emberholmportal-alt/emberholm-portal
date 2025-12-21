@@ -3030,8 +3030,9 @@ button:disabled {
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    font-size: 24px;
-    animation: pulseGlow 1.5s ease-in-out infinite;
+    font-size: 28px;
+    filter: grayscale(100%) brightness(1.5) sepia(100%) hue-rotate(-10deg) saturate(5);
+    animation: iconGlitch 2s ease-in-out infinite;
 }
 
 @keyframes spinnerRotate {
@@ -3039,14 +3040,25 @@ button:disabled {
     100% { transform: rotate(360deg); }
 }
 
-@keyframes pulseGlow {
+@keyframes iconGlitch {
     0%, 100% {
-        opacity: 0.6;
-        text-shadow: 0 0 5px var(--primary-green);
+        opacity: 0.8;
+        text-shadow: 0 0 8px #ff9500, 0 0 15px #ff6600;
+        transform: translate(-50%, -50%);
+    }
+    25% {
+        opacity: 1;
+        text-shadow: 0 0 20px #ffaa00, 0 0 35px #ff6600, 0 0 50px #ff4400;
     }
     50% {
+        opacity: 0.9;
+        text-shadow: 0 0 12px #ff9500, 0 0 25px #ff6600;
+        transform: translate(-51%, -50%);
+    }
+    75% {
         opacity: 1;
-        text-shadow: 0 0 20px var(--primary-green), 0 0 30px var(--gold);
+        text-shadow: 0 0 25px #ffaa00, 0 0 40px #ff6600;
+        transform: translate(-49%, -50%);
     }
 }
 
