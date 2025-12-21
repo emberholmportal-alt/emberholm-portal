@@ -3868,7 +3868,7 @@ async function loadPlayerAndRender(){
                             "CLAIMING REWARDS",
                             "COMPLETING MISSION",
                             "Calculating rewards...",
-                            "/static/img/claim.png"
+                            "🎯"
                         );
 
                         try {
@@ -3984,7 +3984,7 @@ async function loadPlayerAndRender(){
                             "CLAIMING ALL REWARDS",
                             "PROCESSING MISSIONS",
                             `Claiming 0/${missionsReadyToClaim.length} missions...`,
-                            "/static/img/claim.png"
+                            "🎯"
                         );
 
                         const results = {
@@ -4176,7 +4176,7 @@ async function startMission(heroId, missionId, missionName) {
                 "DEPLOYING EMISSARY",
                 "STARTING MISSION",
                 "Dispatching your emissary...",
-                "/static/img/starting.png"
+                "🔥"
             );
 
             try {
@@ -4567,12 +4567,11 @@ function closeConfirmModal() {
 }
 
 // Show Processing Modal (for async operations)
-// Now uses pixel art images instead of emojis
-function showProcessingModal(title = "PROCESSING", text = "PROCESSING", subtext = "Please wait...", imagePath = "/static/img/starting.png") {
+function showProcessingModal(title = "PROCESSING", text = "PROCESSING", subtext = "Please wait...", icon = "⚔") {
     document.getElementById('processing-modal-title').textContent = title;
     document.getElementById('processing-text').textContent = text;
     document.getElementById('processing-subtext').textContent = subtext;
-    document.getElementById('processing-img').src = imagePath;
+    document.getElementById('processing-icon').textContent = icon;
     showModal('processing-modal');
 }
 
@@ -5157,7 +5156,7 @@ async function startPartyMission(missionId, missionName) {
                 "DEPLOYING PARTY",
                 "STARTING PARTY MISSION",
                 "Dispatching 5 emissaries...",
-                "/static/img/party.png"
+                "⚔"
             );
 
             try {
@@ -5288,9 +5287,7 @@ async function startPartyMission(missionId, missionName) {
             <div class="terminal-loading-container">
                 <div class="terminal-loading-spinner">
                     <div class="spinner-ring"></div>
-                    <div class="spinner-core" id="processing-icon">
-                        <img id="processing-img" src="/static/img/starting.png" alt="" style="width: 48px; height: 48px; image-rendering: pixelated;">
-                    </div>
+                    <div class="spinner-core" id="processing-icon">⚔</div>
                 </div>
                 <div class="terminal-loading-text" id="processing-text">PROCESSING</div>
                 <div class="terminal-loading-dots">

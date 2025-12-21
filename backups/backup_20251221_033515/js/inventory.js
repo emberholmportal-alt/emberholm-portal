@@ -1,0 +1,1516 @@
+/* ===============================================================
+   EMBERHOLM PORTAL - INVENTORY & VAULT SYSTEM
+   =============================================================== */
+
+(function() {
+    'use strict';
+
+    // Feature Flags (sincronizar con backend)
+    const FEATURES = {
+        ASH_PROTOCOL_ENABLED: false,
+        EMBER_GAMBIT_ENABLED: true,
+        EMBER_PUSH_ENABLED: true,
+        LAND_STAKING_ENABLED: false
+    };
+
+    // Global state
+    let currentWallet = null;
+    let currentBalance = {
+        ember_balance: 0,
+        ash_balance: 0,
+        gambit_rolls_today: 0,
+        gambit_rolls_max: 5
+    };
+    let vaultItems = [];
+
+    // Reference to global currentEmissaries (populated by index.html)
+    // This getter ensures we always access the latest data
+    const getCurrentEmissaries = () => window.currentEmissaries || [];
+
+    // ===============================================================
+    // UTILITY FUNCTIONS
+    // ===============================================================
+
+    function getRarityColor(rarity) {
+        const colors = {
+            'common': '#9ca3af',
+            'rare': '#3b82f6',
+            'epic': '#a855f7',
+            'legendary': '#ff6b00'
+        };
+        return colors[rarity] || '#888';
+    }
+
+    function formatStats(stats) {
+        if (!stats) return '';
+
+        let html = '';
+        if (stats.ember_boost) html += `<span class="stat-positive">+${stats.ember_boost}% EMBER</span> `;
+        if (stats.xp_boost) html += `<span class="stat-positive">+${stats.xp_boost}% XP</span><br/>`;
+        if (stats.energy_reduction) html += `<span class="stat-negative">-${stats.energy_reduction}% Energy</span> `;
+        if (stats.death_protection) html += `<span class="stat-negative">-${stats.death_protection}% Death</span> `;
+        if (stats.speed_boost) html += `<span class="stat-positive">+${stats.speed_boost}% Speed</span>`;
+
+        return html;
+    }
+
+    function calculateEquipmentCount(emissary) {
+        let count = 0;
+        if (emissary.weapon_id) count++;
+        if (emissary.armor_id) count++;
+        if (emissary.helmet_id) count++;
+        if (emissary.accessory_id) count++;
+        if (emissary.amulet_id) count++;
+        return count;
+    }
+
+    function calculateRuneCount(emissary) {
+        return emissary.rune_ids ? emissary.rune_ids.length : 0;
+    }
+
+    // ===============================================================
+    // BALANCE & ECONOMY
+    // ===============================================================
+
+    async function loadBalance(wallet) {
+        if (!wallet) return;
+
+        try {
+            const response = await fetch(`/api/balance?wallet=${wallet}`);
+            const data = await response.json();
+
+            if (data.error) {
+                console.error('Error loading balance:', data.error);
+                return;
+            }
+
+            currentBalance = data;
+            updateBalanceDisplay();
+        } catch (error) {
+            console.error('Error loading balance:', error);
+        }
+    }
+
+    function updateBalanceDisplay() {
+        const emberEl = document.getElementById('ember-balance');
+        const ashEl = document.getElementById('ash-balance');
+        const gambitRollsEl = document.getElementById('gambit-rolls');
+
+        if (emberEl) emberEl.textContent = currentBalance.ember_balance.toLocaleString();
+        if (ashEl && FEATURES.ASH_PROTOCOL_ENABLED) {
+            ashEl.textContent = currentBalance.ash_balance.toLocaleString();
+            document.getElementById('ash-balance-display').style.display = 'inline';
+        }
+        if (gambitRollsEl) {
+            const rollsToday = currentBalance.gambit_rolls_today || 0;
+            const maxRolls = currentBalance.gambit_rolls_max || 5;
+            gambitRollsEl.textContent = `${rollsToday}/${maxRolls}`;
+        }
+    }
+
+    // ===============================================================
+    // EQUIPMENT INDICATORS
+    // ===============================================================
+
+    window.renderEquipmentIndicators = function(emissary) {
+        const itemCount = calculateEquipmentCount(emissary);
+        const runeCount = calculateRuneCount(emissary);
+        const hasLand = emissary.land_id ? true : false;
+
+        let html = '<div class="equipment-indicators">';
+
+        if (itemCount > 0 || runeCount > 0 || hasLand) {
+            html += `<span class="eq-icon">╬</span>[<span class="eq-count">${itemCount}/5 ITM</span>] `;
+            html += `<span class="eq-icon">◈</span>[<span class="eq-count">${runeCount}/2 RUN</span>] `;
+            if (hasLand) {
+                html += `<span class="eq-icon">⌂</span>[<span class="eq-count">LAND</span>]`;
+            }
+        } else {
+            html += `<span class="eq-empty">--</span>`;
+        }
+
+        html += '</div>';
+        return html;
+    };
+
+    // ===============================================================
+    // INVENTORY MODAL
+    // ===============================================================
+
+    window.showInventoryModal = async function(emissaryId) {
+        console.log('Opening inventory for emissary:', emissaryId);
+
+        const modal = document.getElementById('inventory-modal');
+        if (!modal) {
+            console.error('Inventory modal not found');
+            return;
+        }
+
+        const modalBody = modal.querySelector('.terminal-modal-body');
+        if (!modalBody) return;
+
+        // Show loading state with animation
+        modalBody.innerHTML = `
+            <div class="terminal-loading-container">
+                <div class="terminal-loading-spinner">
+                    <div class="spinner-ring"></div>
+                    <div class="spinner-core">⚔</div>
+                </div>
+                <div class="terminal-loading-text">LOADING INVENTORY</div>
+                <div class="terminal-loading-dots">
+                    <span>.</span><span>.</span><span>.</span>
+                </div>
+                <div class="terminal-loading-subtext">Fetching equipment data...</div>
+            </div>
+        `;
+        modal.classList.add('active');
+
+        try {
+            // Fetch emissary data with equipment
+            const emissaryResponse = await fetch(`/api/player/${encodeURIComponent(currentWallet)}`);
+            const playerData = await emissaryResponse.json();
+            const emissary = playerData.heroes?.find(h => h.token_id === emissaryId);
+
+            if (!emissary) {
+                modalBody.innerHTML = `
+                    <div class="mono-block">
+                        <p style="color:#ff4444;">Emissary not found!</p>
+                        <button class="modal-btn" onclick="closeInventoryModal()">[CLOSE]</button>
+                    </div>
+                `;
+                return;
+            }
+
+            // Fetch available vault items
+            const vaultResponse = await fetch(`/api/vault?wallet=${currentWallet}`);
+            const vaultData = await vaultResponse.json();
+            const availableItems = vaultData.items || [];
+
+            // Build inventory HTML
+            const content = buildInventoryContent(emissary, availableItems);
+            modalBody.innerHTML = content;
+
+            // Attach event listeners for equip/unequip buttons
+            attachInventoryListeners(emissaryId);
+
+        } catch (error) {
+            console.error('Error loading inventory:', error);
+            modalBody.innerHTML = `
+                <div class="mono-block">
+                    <p style="color:#ff4444;">Error loading inventory!</p>
+                    <button class="modal-btn" onclick="closeInventoryModal()">[CLOSE]</button>
+                </div>
+            `;
+        }
+    };
+
+    function calculateTotalBoosts(emissary, availableItems) {
+        const totals = {
+            ember_boost: 0,
+            xp_boost: 0,
+            energy_reduction: 0,
+            death_protection: 0,
+            speed_boost: 0
+        };
+
+        // Items equipados
+        ['weapon', 'armor', 'helmet', 'accessory', 'amulet'].forEach(slot => {
+            const itemId = emissary[`${slot}_id`];
+            const item = availableItems.find(i => i.id === itemId);
+            if (item && item.stats) {
+                Object.keys(totals).forEach(key => {
+                    if (item.stats[key]) totals[key] += item.stats[key];
+                });
+            }
+        });
+
+        // Runas equipadas
+        (emissary.rune_ids || []).forEach(runeId => {
+            const rune = availableItems.find(i => i.id === runeId);
+            if (rune && rune.stats) {
+                Object.keys(totals).forEach(key => {
+                    if (rune.stats[key]) totals[key] += rune.stats[key];
+                });
+            }
+        });
+
+        // TODO: Agregar boosts de Land y Rank
+
+        return totals;
+    }
+
+    function buildInventoryContent(emissary, availableItems) {
+        const slots = [
+            { key: 'weapon', label: 'WEAPON', type: 'weapon', icon: '⚔️' },
+            { key: 'armor', label: 'ARMOR', type: 'armor', icon: '🛡️' },
+            { key: 'helmet', label: 'HELMET', type: 'helmet', icon: '⛑️' },
+            { key: 'accessory', label: 'ACCESSORY', type: 'accessory', icon: '💍' },
+            { key: 'amulet', label: 'AMULET', type: 'amulet', icon: '📿' }
+        ];
+
+        let slotsHtml = '';
+        slots.forEach(slot => {
+            const itemId = emissary[`${slot.key}_id`];
+            const equippedItem = availableItems.find(item => item.id === itemId);
+
+            if (equippedItem) {
+                slotsHtml += `
+                    <div class="equipment-slot equipped" data-slot="${slot.key}">
+                        <div class="slot-header">
+                            <span>${slot.icon} ${slot.label}</span>
+                            <span class="rarity-${equippedItem.rarity}">[${equippedItem.rarity.toUpperCase()}]</span>
+                        </div>
+                        <div class="slot-item">
+                            <strong>${equippedItem.name}</strong><br/>
+                            <small>${formatStats(equippedItem.stats)}</small>
+                        </div>
+                        <button class="terminal-btn small-btn btn-unequip" data-item-id="${equippedItem.id}" data-slot="${slot.key}">
+                            [UNEQUIP]
+                        </button>
+                    </div>
+                `;
+            } else {
+                const availableForSlot = availableItems.filter(item =>
+                    item.type === slot.type && !item.equipped_by
+                );
+
+                let optionsHtml = '<option value="">-- Select --</option>';
+                availableForSlot.forEach(item => {
+                    optionsHtml += `<option value="${item.id}">${item.name} [${item.rarity}]</option>`;
+                });
+
+                slotsHtml += `
+                    <div class="equipment-slot empty" data-slot="${slot.key}">
+                        <div class="slot-header">
+                            <span>${slot.icon} ${slot.label}</span>
+                            <span style="color:#666;">[EMPTY]</span>
+                        </div>
+                        <select class="equipment-select" data-slot="${slot.key}" style="width:100%; padding:8px; margin:10px 0; background:var(--bg-panel); color:var(--primary-green); border:1px solid var(--border-primary);">
+                            ${optionsHtml}
+                        </select>
+                        <button class="terminal-btn small-btn btn-equip" data-slot="${slot.key}" ${availableForSlot.length === 0 ? 'disabled' : ''}>
+                            [EQUIP]
+                        </button>
+                    </div>
+                `;
+            }
+        });
+
+        // Rune slots
+        const runeIds = emissary.rune_ids || [];
+        let runesHtml = '';
+        for (let i = 0; i < 2; i++) {
+            const runeId = runeIds[i];
+            const equippedRune = availableItems.find(item => item.id === runeId);
+
+            if (equippedRune) {
+                runesHtml += `
+                    <div class="equipment-slot equipped rune-slot">
+                        <div class="slot-header">
+                            <span>◈ RUNE ${i + 1}</span>
+                            <span class="rarity-${equippedRune.rarity}">[${equippedRune.rarity.toUpperCase()}]</span>
+                        </div>
+                        <div class="slot-item">
+                            <strong>${equippedRune.name}</strong><br/>
+                            <small>${formatStats(equippedRune.stats)}</small>
+                        </div>
+                        <button class="terminal-btn small-btn btn-unequip-rune" data-item-id="${equippedRune.id}" data-rune-index="${i}">
+                            [UNEQUIP]
+                        </button>
+                    </div>
+                `;
+            } else {
+                const availableRunes = availableItems.filter(item =>
+                    item.type === 'rune' && !item.equipped_by
+                );
+
+                let optionsHtml = '<option value="">-- Select --</option>';
+                availableRunes.forEach(item => {
+                    optionsHtml += `<option value="${item.id}">${item.name} [${item.rarity}]</option>`;
+                });
+
+                runesHtml += `
+                    <div class="equipment-slot empty rune-slot">
+                        <div class="slot-header">
+                            <span>◈ RUNE ${i + 1}</span>
+                            <span style="color:#666;">[EMPTY]</span>
+                        </div>
+                        <select class="rune-select" data-rune-index="${i}" style="width:100%; padding:8px; margin:10px 0; background:var(--bg-panel); color:var(--primary-green); border:1px solid var(--border-primary);">
+                            ${optionsHtml}
+                        </select>
+                        <button class="terminal-btn small-btn btn-equip-rune" data-rune-index="${i}" ${availableRunes.length === 0 ? 'disabled' : ''}>
+                            [EQUIP]
+                        </button>
+                    </div>
+                `;
+            }
+        }
+
+        const ds = emissary.dynamic_state || {};
+        const state = ds.state || "READY";
+        const totalBoosts = calculateTotalBoosts(emissary, availableItems);
+
+        // Determine state badge
+        let stateBadge = '✓ READY';
+        if (state === 'ON_MISSION') stateBadge = '⏳ IN PROGRESS';
+        else if (state === 'FALLEN') stateBadge = '💀 FALLEN';
+
+        return `
+            <!-- Emissary Header -->
+            <div style="display:grid; grid-template-columns: 120px 1fr; gap:20px; margin-bottom:20px; padding:15px; border:1px solid var(--border-primary); background:rgba(0,0,0,0.3);">
+                <div style="text-align:center;">
+                    ${emissary.image_url ? `<img src="${emissary.image_url}" style="max-width:100px; max-height:100px; image-rendering:pixelated;" alt="${emissary.name}"/>` : '<div style="width:100px; height:100px; background:#222; display:flex; align-items:center; justify-content:center; color:#666;">NO IMG</div>'}
+                </div>
+                <div>
+                    <div style="font-size:16px; font-weight:600; color:var(--primary-green); margin-bottom:5px;">
+                        ${emissary.name || emissary.token_id}
+                    </div>
+                    <div style="font-size:11px; color:#888; margin-bottom:10px;">
+                        ID: #${emissary.token_id}  <span style="padding:2px 8px; background:rgba(68,170,255,0.2); color:var(--primary-green); border:1px solid var(--primary-green);">${stateBadge}</span>
+                    </div>
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:10px;">
+                        <div style="border:1px solid var(--border-dim); padding:8px; font-size:11px;">
+                            <strong>RACE:</strong> ${emissary.race || 'Unknown'}<br/>
+                            <strong>GUILD:</strong> ${emissary.guild || ds.current_guild || 'None'}
+                        </div>
+                        <div style="border:1px solid var(--border-dim); padding:8px; font-size:11px;">
+                            <strong>CLASS:</strong> ${emissary.class || 'Unknown'}<br/>
+                            <strong>RANK:</strong> ${emissary.rank || 'Tier 1'}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stats Grid -->
+            <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:10px; margin-bottom:20px;">
+                <div style="border:1px solid var(--border-primary); padding:10px; text-align:center;">
+                    <div style="font-size:10px; color:#888;">XP</div>
+                    <div style="font-size:16px; color:var(--primary-green); font-weight:600;">${(ds.xp_total || 0).toLocaleString()}</div>
+                </div>
+                <div style="border:1px solid var(--border-primary); padding:10px; text-align:center;">
+                    <div style="font-size:10px; color:#888;">AURA</div>
+                    <div style="font-size:16px; color:var(--gold); font-weight:600;">${ds.aura_level || 0}</div>
+                </div>
+                <div style="border:1px solid var(--border-primary); padding:10px; text-align:center;">
+                    <div style="font-size:10px; color:#888;">ENERGY</div>
+                    <div style="font-size:16px; color:#22c55e; font-weight:600;">${ds.energy_current || 0}/${ds.energy_max || 100}</div>
+                </div>
+                <div style="border:1px solid var(--border-primary); padding:10px; text-align:center;">
+                    <div style="font-size:10px; color:#888;">DEATHS</div>
+                    <div style="font-size:16px; color:#ef4444; font-weight:600;">${ds.death_count || 0}</div>
+                </div>
+            </div>
+
+            <div class="mono-small-note" style="margin-bottom:20px; padding:10px; background:rgba(255,149,0,0.1); border-left:3px solid #ff9500;">
+                📦 Equip items and runes to boost your emissary's performance in missions.
+            </div>
+
+            <!-- Equipment Slots -->
+            <div style="margin-bottom:20px;">
+                <div class="subheading" style="margin-bottom:10px;">// EQUIPMENT</div>
+                <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:10px;">
+                    ${slotsHtml}
+                </div>
+            </div>
+
+            <!-- Rune Slots -->
+            <div style="margin-bottom:20px;">
+                <div class="subheading" style="margin-bottom:10px;">// RUNES [2 SLOTS]</div>
+                <div style="display:grid; grid-template-columns:repeat(2, 1fr); gap:10px;">
+                    ${runesHtml}
+                </div>
+            </div>
+
+            <!-- Bound Land -->
+            <div style="margin-bottom:20px;">
+                <div class="subheading" style="margin-bottom:10px;">// BOUND LAND</div>
+                ${emissary.land_id ? `
+                    <div style="border:1px solid var(--border-primary); padding:15px; background:rgba(0,0,0,0.2);">
+                        <div style="font-size:14px; font-weight:600; color:var(--primary-green);">⌂ Land #${emissary.land_id}</div>
+                        <div style="font-size:11px; color:#888; margin:5px 0;">Bound • +5% EMBER  +5% XP</div>
+                        <div style="margin-top:10px;">
+                            <button class="terminal-btn small-btn" style="margin-right:5px;">[CHANGE]</button>
+                            <button class="terminal-btn small-btn">[UNBIND]</button>
+                        </div>
+                    </div>
+                ` : `
+                    <div style="border:1px dashed var(--border-dim); padding:15px; text-align:center; color:#666;">
+                        <div>No land bound</div>
+                        <button class="terminal-btn small-btn" style="margin-top:10px;">[BIND LAND]</button>
+                    </div>
+                `}
+            </div>
+
+            <!-- Total Boosts -->
+            <div style="margin-bottom:20px;">
+                <div class="subheading" style="margin-bottom:10px;">// TOTAL BOOSTS</div>
+                <div style="display:grid; grid-template-columns:repeat(5, 1fr); gap:10px;">
+                    <div style="border:1px solid var(--border-primary); padding:10px; text-align:center;">
+                        <div style="font-size:10px; color:#888;">EMBER</div>
+                        <div style="font-size:16px; color:${totalBoosts.ember_boost > 0 ? '#4ade80' : '#888'}; font-weight:600;">+${totalBoosts.ember_boost}%</div>
+                    </div>
+                    <div style="border:1px solid var(--border-primary); padding:10px; text-align:center;">
+                        <div style="font-size:10px; color:#888;">XP</div>
+                        <div style="font-size:16px; color:${totalBoosts.xp_boost > 0 ? '#4ade80' : '#888'}; font-weight:600;">+${totalBoosts.xp_boost}%</div>
+                    </div>
+                    <div style="border:1px solid var(--border-primary); padding:10px; text-align:center;">
+                        <div style="font-size:10px; color:#888;">ENERGY</div>
+                        <div style="font-size:16px; color:${totalBoosts.energy_reduction > 0 ? '#3b82f6' : '#888'}; font-weight:600;">-${totalBoosts.energy_reduction}%</div>
+                    </div>
+                    <div style="border:1px solid var(--border-primary); padding:10px; text-align:center;">
+                        <div style="font-size:10px; color:#888;">DEATH</div>
+                        <div style="font-size:16px; color:${totalBoosts.death_protection > 0 ? '#3b82f6' : '#888'}; font-weight:600;">-${totalBoosts.death_protection}%</div>
+                    </div>
+                    <div style="border:1px solid var(--border-primary); padding:10px; text-align:center;">
+                        <div style="font-size:10px; color:#888;">SPEED</div>
+                        <div style="font-size:16px; color:${totalBoosts.speed_boost > 0 ? '#4ade80' : '#888'}; font-weight:600;">+${totalBoosts.speed_boost}%</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="modal-buttons" style="margin-top:30px; display:flex; gap:10px; justify-content:space-between;">
+                <button class="modal-btn" style="background:#ef4444; border-color:#ef4444;" onclick="unequipAllItems('${emissary.token_id}')">[UNEQUIP ALL]</button>
+                <button class="modal-btn" onclick="closeInventoryModal()">[CLOSE]</button>
+            </div>
+        `;
+    }
+
+    function attachInventoryListeners(emissaryId) {
+        // Unequip item buttons
+        document.querySelectorAll('.btn-unequip').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                const itemId = btn.getAttribute('data-item-id');
+                const slot = btn.getAttribute('data-slot');
+                await unequipItem(emissaryId, slot);
+                window.showInventoryModal(emissaryId); // Reload
+            });
+        });
+
+        // Equip item buttons
+        document.querySelectorAll('.btn-equip').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                const slot = btn.getAttribute('data-slot');
+                const select = document.querySelector(`.equipment-select[data-slot="${slot}"]`);
+                const itemId = select?.value;
+                if (itemId) {
+                    await equipItem(emissaryId, slot, itemId);
+                    window.showInventoryModal(emissaryId); // Reload
+                }
+            });
+        });
+
+        // Unequip rune buttons
+        document.querySelectorAll('.btn-unequip-rune').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                const itemId = btn.getAttribute('data-item-id');
+                await unequipRune(emissaryId, itemId);
+                window.showInventoryModal(emissaryId); // Reload
+            });
+        });
+
+        // Equip rune buttons
+        document.querySelectorAll('.btn-equip-rune').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                const runeIndex = btn.getAttribute('data-rune-index');
+                const select = document.querySelector(`.rune-select[data-rune-index="${runeIndex}"]`);
+                const itemId = select?.value;
+                if (itemId) {
+                    await equipRune(emissaryId, itemId);
+                    window.showInventoryModal(emissaryId); // Reload
+                }
+            });
+        });
+    }
+
+    async function equipItem(emissaryId, slot, itemId) {
+        try {
+            const response = await fetch('/api/equipment/equip', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    wallet: currentWallet,
+                    emissary_id: emissaryId,
+                    item_id: parseInt(itemId),
+                    slot: slot
+                })
+            });
+
+            const data = await response.json();
+            if (data.error) {
+                alert('Error: ' + data.error);
+            }
+        } catch (error) {
+            console.error('Error equipping item:', error);
+            alert('Failed to equip item');
+        }
+    }
+
+    async function unequipItem(emissaryId, slot) {
+        try {
+            const response = await fetch('/api/equipment/unequip', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    wallet: currentWallet,
+                    emissary_id: emissaryId,
+                    slot: slot
+                })
+            });
+
+            const data = await response.json();
+            if (data.error) {
+                alert('Error: ' + data.error);
+            }
+        } catch (error) {
+            console.error('Error unequipping item:', error);
+            alert('Failed to unequip item');
+        }
+    }
+
+    async function equipRune(emissaryId, itemId) {
+        try {
+            const response = await fetch('/api/equipment/equip', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    wallet: currentWallet,
+                    emissary_id: emissaryId,
+                    item_id: parseInt(itemId),
+                    slot: 'rune'
+                })
+            });
+
+            const data = await response.json();
+            if (data.error) {
+                alert('Error: ' + data.error);
+            }
+        } catch (error) {
+            console.error('Error equipping rune:', error);
+            alert('Failed to equip rune');
+        }
+    }
+
+    async function unequipRune(emissaryId, itemId) {
+        try {
+            const response = await fetch('/api/equipment/unequip', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    wallet: currentWallet,
+                    emissary_id: emissaryId,
+                    slot: 'rune',
+                    item_id: parseInt(itemId)
+                })
+            });
+
+            const data = await response.json();
+            if (data.error) {
+                alert('Error: ' + data.error);
+            }
+        } catch (error) {
+            console.error('Error unequipping rune:', error);
+            alert('Failed to unequip rune');
+        }
+    }
+
+    window.unequipAllItems = async function(emissaryId) {
+        if (!confirm('Are you sure you want to unequip all items and runes from this emissary?')) {
+            return;
+        }
+
+        try {
+            const response = await fetch('/api/equipment/unequip-all', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    wallet: currentWallet,
+                    emissary_id: emissaryId
+                })
+            });
+
+            const data = await response.json();
+            if (data.error) {
+                alert('Error: ' + data.error);
+            } else {
+                // Reload the modal
+                window.showInventoryModal(emissaryId);
+            }
+        } catch (error) {
+            console.error('Error unequipping all items:', error);
+            alert('Failed to unequip all items');
+        }
+    };
+
+    window.closeInventoryModal = function() {
+        const modal = document.getElementById('inventory-modal');
+        if (modal) {
+            modal.classList.remove('active');
+        }
+    };
+
+    // ===============================================================
+    // VAULT PAGE
+    // ===============================================================
+
+    async function loadVault(wallet, filterType = null) {
+        if (!wallet) return;
+
+        try {
+            let url = `/api/vault?wallet=${wallet}`;
+            if (filterType) url += `&type=${filterType}`;
+
+            const response = await fetch(url);
+            const data = await response.json();
+
+            if (data.error) {
+                console.error('Error loading vault:', data.error);
+                return;
+            }
+
+            vaultItems = data.items || [];
+            renderVault();
+        } catch (error) {
+            console.error('Error loading vault:', error);
+        }
+    }
+
+    function renderVault() {
+        const container = document.getElementById('vault-items-container');
+        if (!container) return;
+
+        if (vaultItems.length === 0) {
+            container.innerHTML = `
+                <div class="mono-block" style="text-align:center; padding:40px;">
+                    <p style="color:var(--dim-green);">No items in vault.</p>
+                    <p style="margin-top:10px; font-size:11px;">
+                        Complete missions to earn items and rewards.
+                    </p>
+                </div>
+            `;
+            return;
+        }
+
+        // Group by type
+        const grouped = {};
+        vaultItems.forEach(item => {
+            const type = item.type.toUpperCase() + 'S';
+            if (!grouped[type]) grouped[type] = [];
+            grouped[type].push(item);
+        });
+
+        let html = '';
+        for (const [type, items] of Object.entries(grouped)) {
+            html += `
+                <div class="subheading" style="margin-top:30px;">// ${type} (${items.length})</div>
+                <div class="vault-grid">
+            `;
+
+            items.forEach(item => {
+                const rarityClass = `rarity-${item.rarity}`;
+                const equippedClass = item.equipped_by ? 'equipped' : '';
+
+                html += `
+                    <div class="item-card ${rarityClass} ${equippedClass}">
+                        <div style="display:flex; gap:15px; align-items:flex-start;">
+                            <img src="${item.image_url || '/img/items/placeholder.png'}"
+                                 style="width:64px; height:64px; border:1px solid var(--border-primary);"
+                                 onerror="this.src='/img/items/placeholder.png'"/>
+                            <div style="flex:1;">
+                                <div style="font-weight:600; color:${getRarityColor(item.rarity)};">
+                                    ${item.name}
+                                </div>
+                                <div style="font-size:11px; color:var(--dim-green); margin-top:3px;">
+                                    ${item.type.toUpperCase()} · ${item.rarity.toUpperCase()}
+                                </div>
+                                <div class="item-stats" style="margin-top:8px;">
+                                    ${formatStats(item.stats)}
+                                </div>
+                                ${item.equipped_by ? `
+                                    <div style="margin-top:8px; font-size:11px; color:var(--primary-green);">
+                                        <span class="eq-icon">╬</span> Equipped: ${item.equipped_by_name || `#${item.equipped_by}`}
+                                    </div>
+                                ` : ''}
+                            </div>
+                        </div>
+                        <div style="margin-top:15px; display:flex; gap:8px;">
+                            ${item.equipped_by ? `
+                                <button class="terminal-btn small-btn"
+                                        onclick="unequipItem(${item.id})">[UNEQUIP]</button>
+                            ` : `
+                                <button class="terminal-btn small-btn"
+                                        onclick="showEquipModal(${item.id})">[EQUIP]</button>
+                            `}
+                        </div>
+                    </div>
+                `;
+            });
+
+            html += `</div>`;
+        }
+
+        container.innerHTML = html;
+
+        // Update stats
+        const total = vaultItems.length;
+        const equipped = vaultItems.filter(i => i.equipped_by).length;
+        const available = total - equipped;
+        const legendary = vaultItems.filter(i => i.rarity === 'legendary').length;
+
+        document.getElementById('vault-total').textContent = total;
+        document.getElementById('vault-equipped').textContent = equipped;
+        document.getElementById('vault-available').textContent = available;
+        document.getElementById('vault-legendary').textContent = legendary;
+    }
+
+    // Show emissary selection modal when equipping an item
+    window.showEquipModal = function(itemId) {
+        if (!currentWallet) {
+            alert('Please connect your wallet first.');
+            return;
+        }
+
+        const modal = document.getElementById('select-emissary-modal');
+        if (!modal) return;
+
+        // Find the item
+        const item = vaultItems.find(i => i.id === itemId);
+        if (!item) {
+            alert('Item not found.');
+            return;
+        }
+
+        // Get READY emissaries from current roster
+        const readyEmissaries = getCurrentEmissaries().filter(e => e.state === 'READY');
+
+        if (readyEmissaries.length === 0) {
+            alert('No READY emissaries available to equip items.\n\nEmissaries must be in READY state to equip items.');
+            return;
+        }
+
+        // Build modal content
+        let content = `
+            <div class="subheading">SELECT EMISSARY TO EQUIP</div>
+
+            <!-- Item Info Card -->
+            <div style="border: 1px solid ${getRarityColor(item.rarity)}; padding: 12px; margin: 15px 0; background: rgba(0,0,0,0.3);">
+                <div style="display: flex; gap: 12px; align-items: center;">
+                    <img src="${item.image_url || '/img/items/placeholder.png'}"
+                         style="width: 48px; height: 48px; border: 1px solid var(--border-primary);"
+                         onerror="this.src='/img/items/placeholder.png'"/>
+                    <div>
+                        <div style="font-weight: bold; color: ${getRarityColor(item.rarity)};">
+                            ${item.name}
+                        </div>
+                        <div style="font-size: 11px; color: #888; margin-top: 2px;">
+                            ${item.type.toUpperCase()} · ${item.rarity.toUpperCase()}
+                        </div>
+                        <div style="font-size: 11px; margin-top: 4px;">
+                            ${formatStats(item.stats)}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="subheading" style="margin-top: 20px;">AVAILABLE EMISSARIES (${readyEmissaries.length})</div>
+            <p style="font-size: 11px; color: #888; margin: 8px 0 15px 0;">
+                Select an emissary to equip this ${item.type}
+            </p>
+
+            <div style="display: grid; gap: 10px; margin: 15px 0; max-height: 400px; overflow-y: auto;">
+        `;
+
+        // List each READY emissary
+        readyEmissaries.forEach(emissary => {
+            const slotKey = item.type === 'rune' ? 'rune_ids' : `${item.type}_id`;
+            const isSlotFull = item.type === 'rune'
+                ? (emissary.rune_ids && emissary.rune_ids.length >= 2)
+                : emissary[slotKey];
+
+            content += `
+                <div style="border: 1px solid var(--border-primary); padding: 12px; background: rgba(0,0,0,0.2); cursor: pointer; transition: all 0.2s;"
+                     onmouseover="this.style.borderColor='var(--text-primary)'"
+                     onmouseout="this.style.borderColor='var(--border-primary)'"
+                     onclick="selectEmissaryForEquip(${itemId}, '${emissary.token_id}')">
+                    <div style="display: grid; grid-template-columns: 60px 1fr auto; gap: 12px; align-items: center;">
+                        <img src="${emissary.image_url || '/img/emissary_placeholder.png'}"
+                             style="width: 60px; height: 60px; border: 1px solid var(--border-primary);"
+                             onerror="this.src='/img/emissary_placeholder.png'"/>
+                        <div>
+                            <div style="font-weight: bold; color: var(--text-primary);">
+                                ${emissary.name || `#${emissary.token_id}`}
+                            </div>
+                            <div style="font-size: 11px; color: #888; margin-top: 3px;">
+                                ${emissary.race} ${emissary.guild ? `· ${emissary.guild}` : ''}
+                            </div>
+                            <div style="font-size: 11px; margin-top: 3px;">
+                                ${emissary.class_type || 'Unknown Class'} · Rank ${emissary.rank || '?'}
+                            </div>
+                        </div>
+                        <div style="text-align: right;">
+                            ${isSlotFull ? `
+                                <div style="font-size: 11px; color: #f59e0b;">
+                                    ⚠ SLOT FULL
+                                </div>
+                            ` : `
+                                <div style="font-size: 13px; color: var(--primary-green);">
+                                    ✓ AVAILABLE
+                                </div>
+                            `}
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+
+        content += `
+            </div>
+
+            <div class="modal-buttons" style="margin-top: 20px;">
+                <button class="modal-btn" onclick="closeSelectEmissaryModal()">
+                    [CANCEL]
+                </button>
+            </div>
+        `;
+
+        const modalBody = modal.querySelector('.terminal-modal-body');
+        if (modalBody) {
+            modalBody.innerHTML = content;
+        }
+
+        modal.classList.add('active');
+    };
+
+    window.closeSelectEmissaryModal = function() {
+        const modal = document.getElementById('select-emissary-modal');
+        if (modal) {
+            modal.classList.remove('active');
+        }
+    };
+
+    window.selectEmissaryForEquip = async function(itemId, emissaryId) {
+        if (!currentWallet) {
+            alert('Please connect your wallet first.');
+            return;
+        }
+
+        try {
+            const item = vaultItems.find(i => i.id === itemId);
+            if (!item) {
+                alert('Item not found.');
+                return;
+            }
+
+            const endpoint = item.type === 'rune' ? '/api/equipment/equip-rune' : '/api/equipment/equip';
+
+            const response = await fetch(endpoint, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    wallet: currentWallet,
+                    emissary_id: emissaryId,
+                    item_id: itemId
+                })
+            });
+
+            const data = await response.json();
+
+            if (response.ok && data.success) {
+                alert(`✓ ${item.name} equipped successfully!`);
+
+                // Close modal
+                closeSelectEmissaryModal();
+
+                // Reload vault
+                if (window.loadVault) {
+                    await loadVault(currentWallet);
+                }
+
+                // Refresh profile data
+                if (window.loadProfileData) {
+                    await window.loadProfileData();
+                }
+            } else {
+                alert(`✗ Error: ${data.error || 'Failed to equip item'}`);
+            }
+        } catch (error) {
+            console.error('Error equipping item:', error);
+            alert('✗ Network error. Please try again.');
+        }
+    };
+
+    // ===============================================================
+    // EMBER ROLL - Reconstruido desde cero
+    // ===============================================================
+
+// ============================================================================
+// EMBER ROLL FRONTEND - Reconstruido desde cero
+// ============================================================================
+
+// Show EMBER ROLL modal
+window.showEmberRoll = async function(emissaryId) {
+    if (!currentWallet) {
+        alert('Please connect your wallet first');
+        return;
+    }
+
+    try {
+        // Get status
+        const response = await fetch(`/api/ember-roll/status?wallet=${currentWallet}`);
+        const data = await response.json();
+
+        if (data.error) {
+            alert(`Error: ${data.error}`);
+            return;
+        }
+
+        const rolls_used = data.rolls_used || 0;
+        const rolls_max = data.rolls_max || 5;
+        const rolls_remaining = data.rolls_remaining || 0;
+        const cost = rolls_used === 0 ? 0 : 75;
+
+        // Build modal HTML
+        const modalHTML = `
+            <div style="max-width:600px; margin:0 auto;">
+                <h2 style="text-align:center; color:var(--gold); margin-bottom:20px;">
+                    🎲 EMBER ROLL
+                </h2>
+
+                <div id="ember-roll-dice" style="text-align:center; font-size:80px; margin:30px 0; color:var(--gold);">
+                    <div style="font-family:'Alagard',serif;">D20</div>
+                </div>
+
+                <div id="ember-roll-result" style="text-align:center; min-height:100px; margin:20px 0; padding:20px; border:2px solid var(--gold); background:rgba(255,215,0,0.1);">
+                    <p style="color:#888; font-style:italic;">Roll the dice to test your fate...</p>
+                </div>
+
+                <div style="text-align:center; margin:20px 0; padding:15px; background:rgba(0,0,0,0.3); border:1px solid var(--border-primary);">
+                    <div><strong>Rolls today:</strong> ${rolls_used}/${rolls_max}</div>
+                    <div><strong>Next roll cost:</strong> ${cost === 0 ? '<span style="color:#4ade80;">FREE</span>' : `<span style="color:var(--gold);">${cost} $EMBER</span>`}</div>
+                </div>
+
+                ${rolls_remaining > 0 ? `
+                    <button class="modal-btn" id="ember-roll-btn" onclick="performEmberRoll('${emissaryId}')" style="width:100%; padding:15px; font-size:16px; background:#a855f7; border-color:#a855f7; color:#fff; margin-bottom:10px;">
+                        [ROLL D20${cost === 0 ? ' - FREE!' : ' - ' + cost + ' $EMBER'}]
+                    </button>
+                ` : `
+                    <button class="modal-btn" disabled style="width:100%; padding:15px; opacity:0.3; cursor:not-allowed; margin-bottom:10px;">
+                        [NO ROLLS REMAINING TODAY]
+                    </button>
+                `}
+
+                <button class="modal-btn" onclick="closeModal('ember-roll-modal')" style="width:100%;">
+                    [CLOSE]
+                </button>
+            </div>
+        `;
+
+        // Show modal
+        const modal = document.getElementById('ember-roll-modal');
+        if (!modal) {
+            console.error('ember-roll-modal not found');
+            return;
+        }
+
+        const modalBody = modal.querySelector('.terminal-modal-body');
+        if (modalBody) {
+            modalBody.innerHTML = modalHTML;
+        }
+
+        modal.classList.add('active');
+
+    } catch (error) {
+        console.error('Error showing EMBER ROLL:', error);
+        alert('Failed to load EMBER ROLL');
+    }
+};
+
+// Perform roll
+window.performEmberRoll = async function(emissaryId) {
+    const btn = document.getElementById('ember-roll-btn');
+    const dice = document.getElementById('ember-roll-dice');
+    const resultDiv = document.getElementById('ember-roll-result');
+
+    if (!btn || !dice || !resultDiv) return;
+
+    // Disable button
+    btn.disabled = true;
+    btn.textContent = '[ROLLING...]';
+
+    // Animate dice
+    let count = 0;
+    const animation = setInterval(() => {
+        const random = Math.floor(Math.random() * 20) + 1;
+        dice.innerHTML = `<div style="font-family:'Alagard',serif; font-size:120px; color:var(--gold);">${random}</div>`;
+        count++;
+        if (count > 20) clearInterval(animation);
+    }, 80);
+
+    try {
+        // Perform roll
+        const response = await fetch('/api/ember-roll/perform', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                wallet: currentWallet,
+                emissary_id: emissaryId
+            })
+        });
+
+        const data = await response.json();
+
+        // Stop animation
+        setTimeout(() => {
+            clearInterval(animation);
+
+            if (data.error) {
+                // Show error
+                dice.innerHTML = `<div style="font-family:'Alagard',serif; font-size:80px; color:#ef4444;">✗</div>`;
+                resultDiv.innerHTML = `
+                    <div style="color:#ef4444; font-size:18px; font-weight:600;">ERROR</div>
+                    <p style="color:#888; margin-top:10px;">${data.error}</p>
+                `;
+                btn.disabled = false;
+                btn.textContent = '[RETRY]';
+                return;
+            }
+
+            // Show result
+            const roll = data.roll;
+            const name = data.name;
+            const ember_change = data.ember_change;
+            const buff = data.buff || {};
+
+            // Update dice
+            dice.innerHTML = `<div style="font-family:'Alagard',serif; font-size:120px; color:var(--gold);">${roll}</div>`;
+
+            // Build result HTML
+            let resultHTML = `
+                <div style="font-size:24px; font-weight:600; color:var(--gold); margin-bottom:15px;">
+                    ${name}
+                </div>
+            `;
+
+            if (ember_change > 0) {
+                resultHTML += `<div style="font-size:20px; color:#4ade80;">+${ember_change} $EMBER</div>`;
+            } else if (ember_change < 0) {
+                resultHTML += `<div style="font-size:20px; color:#ef4444;">${ember_change} $EMBER</div>`;
+            } else {
+                resultHTML += `<div style="font-size:16px; color:#888;">No EMBER change</div>`;
+            }
+
+            // Show buffs if any
+            if (buff.duration_hours > 0) {
+                const buffs = [];
+                if (buff.success_bonus !== 0) buffs.push(`${buff.success_bonus > 0 ? '+' : ''}${buff.success_bonus}% Success`);
+                if (buff.xp_bonus !== 0) buffs.push(`${buff.xp_bonus > 0 ? '+' : ''}${buff.xp_bonus}% XP`);
+                if (buff.energy_reduction > 0) buffs.push(`-${buff.energy_reduction}% Energy`);
+
+                if (buffs.length > 0) {
+                    resultHTML += `
+                        <div style="margin-top:15px; padding-top:15px; border-top:1px solid rgba(255,255,255,0.1);">
+                            <div style="color:#888; font-size:14px; margin-bottom:8px;">🔮 Mission Buffs (${buff.duration_hours}h):</div>
+                            <div style="color:var(--primary-green); font-size:14px;">${buffs.join(' • ')}</div>
+                        </div>
+                    `;
+                }
+            }
+
+            resultDiv.innerHTML = resultHTML;
+
+            // Update button
+            if (data.rolls_used >= data.rolls_max) {
+                btn.disabled = true;
+                btn.textContent = '[NO ROLLS REMAINING TODAY]';
+                btn.style.opacity = '0.3';
+            } else {
+                btn.disabled = false;
+                const next_cost = data.rolls_used === 0 ? 0 : 75;
+                btn.textContent = `[ROLL AGAIN${next_cost === 0 ? ' - FREE' : ' - ' + next_cost + ' $EMBER'}]`;
+            }
+
+            // Reload balance
+            if (typeof loadBalance === 'function') {
+                loadBalance(currentWallet);
+            }
+
+        }, 1500); // Wait for animation to finish
+
+    } catch (error) {
+        clearInterval(animation);
+        console.error('Error performing roll:', error);
+        dice.innerHTML = `<div style="font-family:'Alagard',serif; font-size:80px; color:#ef4444;">✗</div>`;
+        resultDiv.innerHTML = `
+            <div style="color:#ef4444; font-size:18px; font-weight:600;">NETWORK ERROR</div>
+            <p style="color:#888; margin-top:10px;">${error.message}</p>
+        `;
+        btn.disabled = false;
+        btn.textContent = '[RETRY]';
+    }
+};
+
+    // ===============================================================
+    // PUSH MODAL (Mission Acceleration) - TEMPORARILY DISABLED
+    // ===============================================================
+
+    window.showPushModal = async function(emissaryId) {
+        console.log('Opening PUSH modal for emissary:', emissaryId);
+
+        const modal = document.getElementById('push-modal');
+        if (!modal) return;
+
+        // Build disabled modal content
+        const content = `
+            <!-- DISABLED NOTICE -->
+            <div class="warning-block" style="margin-bottom: 20px;">
+                <span class="glow-yellow">⚠ TEMPORARILY DISABLED</span><br/>
+                The EMBER PUSH system has been temporarily disabled by joint decision of the Guilds.<br/>
+                It will be activated in the next phase of Emberholm.
+            </div>
+
+            <div class="subheading">WHAT IS EMBER PUSH?</div>
+            <p style="margin: 10px 0;">
+                EMBER PUSH allows you to accelerate your missions by spending $EMBER to skip time.
+            </p>
+
+            <div class="mono-block" style="margin: 20px 0;">
+                <div class="subheading">OPTIONS (When Active)</div>
+                <div style="font-size: 12px; line-height: 1.8; padding: 10px 0;">
+                    [25%]  → Reduce remaining time by 25% — <span style="color:#ffaa00;">45 $EMBER/hour</span><br/>
+                    [50%]  → Reduce remaining time by 50% — <span style="color:#ffaa00;">180 $EMBER/4h</span><br/>
+                    [100%] → Complete mission instantly — <span style="color:#ffaa00;">Up to 7,200 $EMBER</span>
+                </div>
+            </div>
+
+            <p style="color:#888; font-size: 12px;">
+                Cost scales with remaining mission time. Useful for time-sensitive events.
+            </p>
+
+            <!-- Close Button -->
+            <div class="modal-buttons" style="margin-top: 20px;">
+                <button class="modal-btn" onclick="closePushModal()">[CLOSE]</button>
+            </div>
+        `;
+
+        const modalBody = modal.querySelector('.terminal-modal-body');
+        if (modalBody) {
+            modalBody.innerHTML = content;
+        }
+
+        modal.classList.add('active');
+    };
+
+    window.closePushModal = function() {
+        const modal = document.getElementById('push-modal');
+        if (modal) {
+            modal.classList.remove('active');
+        }
+    };
+
+    window.performPush = async function(emissaryId, pushPercent, cost) {
+        if (!currentWallet) {
+            alert('Please connect your wallet first.');
+            return;
+        }
+
+        // Confirm action
+        const confirmMsg = `Push mission ${pushPercent}% for ${cost} $EMBER?\n\nThis will reduce the mission time immediately.`;
+        if (!confirm(confirmMsg)) {
+            return;
+        }
+
+        try {
+            const response = await fetch('/api/mission/push', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    emissary_id: emissaryId,
+                    push_percent: pushPercent,
+                    wallet: currentWallet
+                })
+            });
+
+            const data = await response.json();
+
+            if (response.ok && data.success) {
+                alert(`✓ Mission accelerated by ${pushPercent}%!\n\nEMBER spent: ${data.ember_spent}\nTime reduced: ${data.time_reduced_hours}h`);
+
+                // Close modal
+                closePushModal();
+
+                // Refresh data
+                if (window.loadProfileData) {
+                    await window.loadProfileData();
+                }
+            } else {
+                alert(`✗ Error: ${data.error || 'Failed to push mission'}`);
+            }
+        } catch (error) {
+            console.error('Error pushing mission:', error);
+            alert('✗ Network error. Please try again.');
+        }
+    };
+
+    // ===============================================================
+    // RECOVER MODAL (Energy Restoration)
+    // ===============================================================
+
+    window.showRecoverModal = function(emissaryId) {
+        console.log('Opening RECOVER modal for emissary:', emissaryId);
+
+        const modal = document.getElementById('recover-modal');
+        if (!modal) return;
+
+        // Find emissary in current roster
+        const emissary = getCurrentEmissaries().find(e => String(e.token_id) === String(emissaryId));
+        if (!emissary) {
+            alert('Emissary not found. Please refresh the page and try again.');
+            return;
+        }
+
+        // Get energy data
+        const energyCurrent = emissary.energy_current || 0;
+        const energyMax = emissary.energy_max || 100;
+        const energyPercent = (energyCurrent / energyMax) * 100;
+
+        // Calculate time until next natural refresh (48h)
+        const lastRefresh = emissary.last_energy_refresh ? new Date(emissary.last_energy_refresh) : new Date();
+        const nextRefresh = new Date(lastRefresh.getTime() + 48 * 60 * 60 * 1000);
+        const now = new Date();
+        const timeUntilRefresh = Math.max(0, nextRefresh - now);
+
+        const hoursUntilRefresh = Math.floor(timeUntilRefresh / (1000 * 60 * 60));
+        const minutesUntilRefresh = Math.floor((timeUntilRefresh % (1000 * 60 * 60)) / (1000 * 60));
+        const refreshTimeStr = hoursUntilRefresh > 0
+            ? `${hoursUntilRefresh}h ${minutesUntilRefresh}m`
+            : `${minutesUntilRefresh}m`;
+
+        // Energy costs
+        const costs = {
+            25: 30,
+            50: 75,
+            100: 150
+        };
+
+        // Determine energy bar color
+        let energyColor = '#22c55e'; // Green
+        if (energyPercent < 30) energyColor = '#ef4444'; // Red
+        else if (energyPercent < 60) energyColor = '#f59e0b'; // Orange
+
+        // Build modal content
+        const content = `
+            <div class="subheading">ENERGY RESTORATION</div>
+
+            <!-- Emissary Info Card -->
+            <div style="border: 1px solid var(--border-primary); padding: 12px; margin: 15px 0; background: rgba(0,0,0,0.3);">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 12px;">
+                    <div>
+                        <span style="color: #888;">EMISSARY:</span><br/>
+                        <span style="color: var(--text-primary);">${emissary.name || `#${emissary.token_id}`}</span>
+                    </div>
+                    <div>
+                        <span style="color: #888;">STATE:</span><br/>
+                        <span style="color: var(--text-primary); text-transform: uppercase;">${emissary.state || 'READY'}</span>
+                    </div>
+                    <div>
+                        <span style="color: #888;">CURRENT ENERGY:</span><br/>
+                        <span style="color: ${energyColor};">${energyCurrent} / ${energyMax}</span>
+                    </div>
+                    <div>
+                        <span style="color: #888;">NEXT REFRESH:</span><br/>
+                        <span style="color: var(--text-primary);">${refreshTimeStr}</span>
+                    </div>
+                </div>
+
+                <!-- Energy Bar -->
+                <div style="margin-top: 12px;">
+                    <div style="background: #1a1a1a; border: 1px solid var(--border-primary); height: 24px; position: relative; overflow: hidden;">
+                        <div style="background: linear-gradient(90deg, ${energyColor} 0%, ${energyColor}dd 100%); height: 100%; width: ${energyPercent}%; transition: width 0.3s ease;"></div>
+                        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 12px; color: #fff; text-shadow: 0 0 4px #000; font-weight: bold;">
+                            ⚡ ${energyPercent.toFixed(0)}% ENERGY
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recovery Options -->
+            <div class="subheading" style="margin-top: 20px;">RECOVERY OPTIONS</div>
+            <p style="font-size: 11px; color: #888; margin: 8px 0 15px 0;">
+                Restore energy immediately using $EMBER or wait for natural recovery
+            </p>
+
+            <div style="display: grid; gap: 12px; margin: 15px 0;">
+                <!-- +25 Energy Option -->
+                <div style="border: 1px solid #22c55e; padding: 12px; background: rgba(34,197,94,0.05);">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <div style="font-size: 14px; color: #22c55e; font-weight: bold;">[+25 ENERGY]</div>
+                            <div style="font-size: 11px; color: #888; margin-top: 4px;">
+                                Restore 25 energy points
+                            </div>
+                        </div>
+                        <div style="text-align: right;">
+                            <div style="font-size: 13px; color: var(--text-primary);">
+                                ${costs[25]} $EMBER
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- +50 Energy Option -->
+                <div style="border: 1px solid #22c55e; padding: 12px; background: rgba(34,197,94,0.05);">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <div style="font-size: 14px; color: #22c55e; font-weight: bold;">[+50 ENERGY]</div>
+                            <div style="font-size: 11px; color: #888; margin-top: 4px;">
+                                Restore 50 energy points
+                            </div>
+                        </div>
+                        <div style="text-align: right;">
+                            <div style="font-size: 13px; color: var(--text-primary);">
+                                ${costs[50]} $EMBER
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- +100 Energy Option (Full) -->
+                <div style="border: 1px solid #22c55e; padding: 12px; background: rgba(34,197,94,0.1);">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <div style="font-size: 14px; color: #22c55e; font-weight: bold;">[+100 ENERGY] FULL</div>
+                            <div style="font-size: 11px; color: #888; margin-top: 4px;">
+                                Restore to maximum energy
+                            </div>
+                        </div>
+                        <div style="text-align: right;">
+                            <div style="font-size: 13px; color: var(--text-primary);">
+                                ${costs[100]} $EMBER
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- WAIT Option (Free) -->
+                <div style="border: 1px solid #666; padding: 12px; background: rgba(102,102,102,0.05);">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <div style="font-size: 14px; color: #888; font-weight: bold;">[WAIT] FREE RECOVERY</div>
+                            <div style="font-size: 11px; color: #666; margin-top: 4px;">
+                                Natural recovery in ${refreshTimeStr} (48h cycle)
+                            </div>
+                        </div>
+                        <div style="text-align: right;">
+                            <div style="font-size: 13px; color: #666;">
+                                FREE
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="modal-buttons" style="margin-top: 20px;">
+                <button class="modal-btn btn-recover" onclick="performRecover('${emissaryId}', 25, ${costs[25]})">
+                    [+25]
+                </button>
+                <button class="modal-btn btn-recover" onclick="performRecover('${emissaryId}', 50, ${costs[50]})">
+                    [+50]
+                </button>
+                <button class="modal-btn btn-recover" onclick="performRecover('${emissaryId}', 100, ${costs[100]})">
+                    [+100]
+                </button>
+                <button class="modal-btn" onclick="closeRecoverModal()">
+                    [WAIT]
+                </button>
+            </div>
+        `;
+
+        const modalBody = modal.querySelector('.terminal-modal-body');
+        if (modalBody) {
+            modalBody.innerHTML = content;
+        }
+
+        modal.classList.add('active');
+    };
+
+    window.closeRecoverModal = function() {
+        const modal = document.getElementById('recover-modal');
+        if (modal) {
+            modal.classList.remove('active');
+        }
+    };
+
+    window.performRecover = async function(emissaryId, amount, cost) {
+        if (!currentWallet) {
+            alert('Please connect your wallet first.');
+            return;
+        }
+
+        // Confirm action
+        const confirmMsg = `Restore ${amount} energy for ${cost} $EMBER?`;
+        if (!confirm(confirmMsg)) {
+            return;
+        }
+
+        try {
+            const response = await fetch('/api/energy/recover', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    emissary_id: emissaryId,
+                    amount: amount,
+                    wallet: currentWallet
+                })
+            });
+
+            const data = await response.json();
+
+            if (response.ok && data.success) {
+                alert(`✓ Energy restored!\n\n+${amount} energy\nEMBER spent: ${data.ember_spent}\nNew energy: ${data.new_energy}/${data.energy_max}`);
+
+                // Close modal
+                closeRecoverModal();
+
+                // Refresh data
+                if (window.loadProfileData) {
+                    await window.loadProfileData();
+                }
+            } else {
+                alert(`✗ Error: ${data.error || 'Failed to restore energy'}`);
+            }
+        } catch (error) {
+            console.error('Error recovering energy:', error);
+            alert('✗ Network error. Please try again.');
+        }
+    };
+
+    // ===============================================================
+    // INITIALIZATION
+    // ===============================================================
+
+    window.initInventorySystem = function(wallet) {
+        currentWallet = wallet;
+
+        if (wallet) {
+            loadBalance(wallet);
+        }
+
+        console.log('✅ Inventory system initialized');
+    };
+
+    window.switchToVault = function() {
+        if (currentWallet) {
+            loadVault(currentWallet);
+        }
+    };
+
+    // Apply feature flags
+    if (FEATURES.ASH_PROTOCOL_ENABLED) {
+        document.getElementById('ash-balance-display')?.removeAttribute('style');
+        document.getElementById('burn-ember-btn')?.removeAttribute('style');
+    }
+
+    console.log('%c[INVENTORY] System loaded', 'color: #ff9500; font-weight: bold;');
+
+})();
