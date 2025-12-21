@@ -1964,7 +1964,7 @@
                 </div>
                 <div>
                     <a class="social-link" href="https://x.com/emberholmportal" target="_blank">
-                        https://x.com/emberholmportal
+                        x.com/emberholmportal
                     </a>
                 </div>
             </div>
@@ -3575,6 +3575,31 @@ async function loadPlayerAndRender(){
 
         // roster table
         let tbodyRows = "";
+
+        // Count missions ready to claim for CLAIM ALL button
+        let missionsReadyToClaim = [];
+        (player.heroes || []).forEach(h => {
+            const ds = h.dynamic_state || {};
+            const state = ds.state || "READY";
+            const missionStartTime = ds.mission_start_time || "";
+            const currentMission = ds.current_mission_id || "";
+
+            if (state === "ON_MISSION" && missionStartTime && cachedMissionsData) {
+                const startTime = new Date(missionStartTime.replace("Z", "") + "Z");
+                const now = new Date();
+                const elapsed = (now - startTime) / 1000 / 3600;
+                const missionData = cachedMissionsData.find(m => m.id === currentMission);
+                if (missionData && (missionData.duration_hours - elapsed) <= 0) {
+                    missionsReadyToClaim.push({
+                        token_id: h.token_id,
+                        name: h.name,
+                        mission_name: missionData.name,
+                        mission_id: currentMission
+                    });
+                }
+            }
+        });
+
         (player.heroes || []).forEach(h=>{
             const ds = h.dynamic_state || {};
             const state = ds.state || "READY";
@@ -3796,6 +3821,13 @@ async function loadPlayerAndRender(){
             </tr>`;
         });
 
+        // Generate CLAIM ALL button if there are missions ready
+        const claimAllBtn = missionsReadyToClaim.length > 0
+            ? `<button class="action-btn claim" id="claim-all-btn" style="margin-left:10px; font-size:0.75em; padding:4px 8px;" title="Claim all completed missions">
+                   [CLAIM ALL (${missionsReadyToClaim.length})]
+               </button>`
+            : '';
+
         const rosterTableHtml = `
             <table class="roster-table">
                 <thead>
@@ -3807,7 +3839,7 @@ async function loadPlayerAndRender(){
                         <th>ENERGY</th>
                         <th>GUILD</th>
                         <th>STATE</th>
-                        <th>ACTIONS</th>
+                        <th>ACTIONS ${claimAllBtn}</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -3928,6 +3960,111 @@ async function loadPlayerAndRender(){
                 );
             });
         });
+
+        /* CLAIM ALL missions */
+        const claimAllBtnEl = document.getElementById("claim-all-btn");
+        if (claimAllBtnEl) {
+            claimAllBtnEl.addEventListener("click", async () => {
+                if (!connectedWallet) {
+                    showInfoModal("WALLET REQUIRED", "Please connect your wallet first!");
+                    return;
+                }
+
+                if (missionsReadyToClaim.length === 0) {
+                    showInfoModal("NO MISSIONS", "No missions ready to claim.");
+                    return;
+                }
+
+                showConfirmModal(
+                    "CLAIM ALL MISSIONS",
+                    `Claim rewards for ${missionsReadyToClaim.length} completed mission(s)?\n\n` +
+                    missionsReadyToClaim.map(m => `• #${m.token_id} ${m.name}\n  → ${m.mission_name}`).join('\n\n'),
+                    async () => {
+                        showProcessingModal(
+                            "CLAIMING ALL REWARDS",
+                            "PROCESSING MISSIONS",
+                            `Claiming 0/${missionsReadyToClaim.length} missions...`,
+                            "🎯"
+                        );
+
+                        const results = {
+                            success: [],
+                            failure: [],
+                            death: [],
+                            errors: [],
+                            totals: {
+                                xp_gained: 0,
+                                xp_lost: 0,
+                                aura_gained: 0
+                            }
+                        };
+
+                        for (let i = 0; i < missionsReadyToClaim.length; i++) {
+                            const mission = missionsReadyToClaim[i];
+
+                            // Update progress
+                            const progressEl = document.querySelector('.processing-modal-text');
+                            if (progressEl) {
+                                progressEl.textContent = `Claiming ${i + 1}/${missionsReadyToClaim.length} missions...`;
+                            }
+
+                            try {
+                                const res = await fetch("/api/mission/complete", {
+                                    method: "POST",
+                                    headers: { "Content-Type": "application/json" },
+                                    body: JSON.stringify({
+                                        wallet: connectedWallet,
+                                        hero_id: mission.token_id
+                                    })
+                                });
+
+                                if (!res.ok) {
+                                    const errText = await res.text();
+                                    results.errors.push({
+                                        hero_id: mission.token_id,
+                                        hero_name: mission.name,
+                                        mission_name: mission.mission_name,
+                                        error: parseErrorMessage(errText)
+                                    });
+                                    continue;
+                                }
+
+                                const result = await res.json();
+                                result.hero_name = mission.name;
+                                result.hero_id = mission.token_id;
+
+                                if (result.outcome === "SUCCESS") {
+                                    results.success.push(result);
+                                    results.totals.xp_gained += result.xp_gained || 0;
+                                    results.totals.aura_gained += result.aura_gained || 0;
+                                } else if (result.outcome === "FAILURE") {
+                                    results.failure.push(result);
+                                    results.totals.xp_lost += result.xp_lost || 0;
+                                } else if (result.outcome === "DEATH") {
+                                    results.death.push(result);
+                                }
+                            } catch (e) {
+                                results.errors.push({
+                                    hero_id: mission.token_id,
+                                    hero_name: mission.name,
+                                    mission_name: mission.mission_name,
+                                    error: "Connection error"
+                                });
+                            }
+                        }
+
+                        // Update UI before hiding modal
+                        await loadPlayerAndRender();
+                        fetchStatsAndRender();
+
+                        hideProcessingModal();
+
+                        // Build detailed results modal
+                        showClaimAllResultsModal(results, missionsReadyToClaim.length);
+                    }
+                );
+            });
+        }
 
         /* REINVOKE fallen hero */
         document.querySelectorAll(".reinvoke-btn").forEach(btn=>{
@@ -4434,6 +4571,120 @@ function showProcessingModal(title = "PROCESSING", text = "PROCESSING", subtext 
 
 function hideProcessingModal() {
     hideModal('processing-modal');
+}
+
+// Show CLAIM ALL Results Modal with detailed breakdown
+function showClaimAllResultsModal(results, totalMissions) {
+    const successCount = results.success.length;
+    const failureCount = results.failure.length;
+    const deathCount = results.death.length;
+    const errorCount = results.errors.length;
+    const netXp = results.totals.xp_gained - results.totals.xp_lost;
+    const successRate = totalMissions > 0 ? Math.round((successCount / totalMissions) * 100) : 0;
+
+    let modalContent = `
+        <div style="max-height: 60vh; overflow-y: auto; padding-right: 10px;">
+            <div style="text-align: center; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px solid #44ff44;">
+                <div style="font-size: 1.2em; color: #ffaa00;">📜 CLAIM ALL RESULTS - ${totalMissions} MISSION${totalMissions > 1 ? 'S' : ''}</div>
+            </div>
+    `;
+
+    // SUCCESS section
+    if (successCount > 0) {
+        modalContent += `
+            <div style="margin-bottom: 15px;">
+                <div style="color: #44ff44; font-weight: bold; margin-bottom: 8px;">✅ SUCCESS (${successCount})</div>
+                <div style="background: #0a1a0a; border: 1px solid #44ff44; padding: 10px;">
+        `;
+        results.success.forEach((r, idx) => {
+            const perfectText = r.perfect_alignment ? ' <span style="color:#ffaa00;">⚡ Perfect!</span>' : '';
+            modalContent += `
+                <div style="padding: 8px 0; ${idx > 0 ? 'border-top: 1px dashed #2a4a2a;' : ''}">
+                    <div style="color: #88ff88;"><b>#${r.hero_id}</b> ${r.hero_name}</div>
+                    <div style="color: #aaaaaa; font-size: 0.9em;">Mission: ${r.mission_name}</div>
+                    <div style="color: #44ff44;">XP: +${r.xp_gained} | Aura: +${r.aura_gained}${perfectText}</div>
+                </div>
+            `;
+        });
+        modalContent += `</div></div>`;
+    }
+
+    // FAILURE section
+    if (failureCount > 0) {
+        modalContent += `
+            <div style="margin-bottom: 15px;">
+                <div style="color: #ffaa00; font-weight: bold; margin-bottom: 8px;">⚔️ FAILED (${failureCount})</div>
+                <div style="background: #1a1a0a; border: 1px solid #ffaa00; padding: 10px;">
+        `;
+        results.failure.forEach((r, idx) => {
+            modalContent += `
+                <div style="padding: 8px 0; ${idx > 0 ? 'border-top: 1px dashed #4a4a2a;' : ''}">
+                    <div style="color: #ffcc88;"><b>#${r.hero_id}</b> ${r.hero_name}</div>
+                    <div style="color: #aaaaaa; font-size: 0.9em;">Mission: ${r.mission_name}</div>
+                    <div style="color: #ffaa00;">XP Lost: -${r.xp_lost}</div>
+                </div>
+            `;
+        });
+        modalContent += `</div></div>`;
+    }
+
+    // DEATH section
+    if (deathCount > 0) {
+        modalContent += `
+            <div style="margin-bottom: 15px;">
+                <div style="color: #ff4444; font-weight: bold; margin-bottom: 8px;">💀 FALLEN (${deathCount})</div>
+                <div style="background: #1a0a0a; border: 1px solid #ff4444; padding: 10px;">
+        `;
+        results.death.forEach((r, idx) => {
+            modalContent += `
+                <div style="padding: 8px 0; ${idx > 0 ? 'border-top: 1px dashed #4a2a2a;' : ''}">
+                    <div style="color: #ff8888;"><b>#${r.hero_id}</b> ${r.hero_name}</div>
+                    <div style="color: #aaaaaa; font-size: 0.9em;">Mission: ${r.mission_name}</div>
+                    <div style="color: #ff4444;">Death Count: ${r.death_count} | Reinvocation Required</div>
+                </div>
+            `;
+        });
+        modalContent += `</div></div>`;
+    }
+
+    // ERRORS section
+    if (errorCount > 0) {
+        modalContent += `
+            <div style="margin-bottom: 15px;">
+                <div style="color: #ff6666; font-weight: bold; margin-bottom: 8px;">⚠️ ERRORS (${errorCount})</div>
+                <div style="background: #1a0a0a; border: 1px solid #ff6666; padding: 10px;">
+        `;
+        results.errors.forEach((r, idx) => {
+            modalContent += `
+                <div style="padding: 8px 0; ${idx > 0 ? 'border-top: 1px dashed #4a2a2a;' : ''}">
+                    <div style="color: #ff8888;"><b>#${r.hero_id}</b> ${r.hero_name}</div>
+                    <div style="color: #aaaaaa; font-size: 0.9em;">${r.error}</div>
+                </div>
+            `;
+        });
+        modalContent += `</div></div>`;
+    }
+
+    // SUMMARY section
+    modalContent += `
+        <div style="margin-top: 15px; padding-top: 15px; border-top: 2px solid #44ff44;">
+            <div style="color: #ffaa00; font-weight: bold; margin-bottom: 10px;">📊 TOTAL SUMMARY</div>
+            <div style="background: #0a0a0a; border: 1px solid #666; padding: 12px;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                    <div>XP Gained: <span style="color: #44ff44;">+${results.totals.xp_gained}</span></div>
+                    <div>XP Lost: <span style="color: #ff4444;">-${results.totals.xp_lost}</span></div>
+                    <div>Net XP: <span style="color: ${netXp >= 0 ? '#44ff44' : '#ff4444'};">${netXp >= 0 ? '+' : ''}${netXp}</span></div>
+                    <div>Aura Gained: <span style="color: #44ff44;">+${results.totals.aura_gained}</span></div>
+                </div>
+                <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #444; text-align: center;">
+                    <span style="color: #ffaa00;">Success Rate: ${successRate}% (${successCount}/${totalMissions})</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    `;
+
+    showInfoModal("CLAIM ALL COMPLETE", modalContent);
 }
 
 // Parse API error response into user-friendly message
