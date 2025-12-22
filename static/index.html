@@ -4587,55 +4587,32 @@ function showClaimAllResultsModal(results, totalMissions) {
     const errorCount = results.errors.length;
     const netXp = results.totals.xp_gained - results.totals.xp_lost;
 
-    // Compact status icons
-    let statusLine = '';
-    if (successCount > 0) statusLine += `<span style="color:#44ff44;">✓${successCount}</span> `;
-    if (failureCount > 0) statusLine += `<span style="color:#ffaa00;">✗${failureCount}</span> `;
-    if (deathCount > 0) statusLine += `<span style="color:#ff4444;">☠${deathCount}</span> `;
-    if (errorCount > 0) statusLine += `<span style="color:#ff6666;">⚠${errorCount}</span>`;
+    // Status counts
+    let statusParts = [];
+    if (successCount > 0) statusParts.push(`<span style="color:#44ff44">✓${successCount}</span>`);
+    if (failureCount > 0) statusParts.push(`<span style="color:#ffaa00">✗${failureCount}</span>`);
+    if (deathCount > 0) statusParts.push(`<span style="color:#ff4444">☠${deathCount}</span>`);
+    if (errorCount > 0) statusParts.push(`<span style="color:#ff6666">⚠${errorCount}</span>`);
 
-    // Build details section (hidden by default)
-    let detailsHtml = '';
-    if (results.success.length > 0) {
-        detailsHtml += results.success.map(r =>
-            `<div style="color:#44ff44;">✓ #${r.hero_id} +${r.xp_gained}xp +${r.aura_gained}aura${r.perfect_alignment ? ' ⚡' : ''}</div>`
-        ).join('');
-    }
-    if (results.failure.length > 0) {
-        detailsHtml += results.failure.map(r =>
-            `<div style="color:#ffaa00;">✗ #${r.hero_id} -${r.xp_lost}xp</div>`
-        ).join('');
-    }
-    if (results.death.length > 0) {
-        detailsHtml += results.death.map(r =>
-            `<div style="color:#ff4444;">☠ #${r.hero_id} FALLEN</div>`
-        ).join('');
-    }
-    if (results.errors.length > 0) {
-        detailsHtml += results.errors.map(r =>
-            `<div style="color:#ff6666;">⚠ #${r.hero_id} Error</div>`
-        ).join('');
-    }
+    // Build details list
+    let detailsList = [];
+    results.success.forEach(r => detailsList.push(`<span style="color:#44ff44">✓#${r.hero_id} +${r.xp_gained}xp${r.perfect_alignment ? '⚡' : ''}</span>`));
+    results.failure.forEach(r => detailsList.push(`<span style="color:#ffaa00">✗#${r.hero_id} -${r.xp_lost}xp</span>`));
+    results.death.forEach(r => detailsList.push(`<span style="color:#ff4444">☠#${r.hero_id}</span>`));
+    results.errors.forEach(r => detailsList.push(`<span style="color:#ff6666">⚠#${r.hero_id}</span>`));
 
     const modalContent = `
-        <div style="text-align:center;font-size:0.95em;">
-            <div style="margin-bottom:8px;">${statusLine}</div>
-            <div style="border:1px solid #44ff44;padding:10px;background:#0a1a0a;">
-                <span style="color:#44ff44;">+${results.totals.xp_gained}xp</span>
-                <span style="color:#888;"> | </span>
-                <span style="color:#ff4444;">-${results.totals.xp_lost}xp</span>
-                <span style="color:#888;"> | </span>
-                <span style="color:${netXp >= 0 ? '#44ff44' : '#ff4444'};">Net: ${netXp >= 0 ? '+' : ''}${netXp}</span>
-                <span style="color:#888;"> | </span>
-                <span style="color:#44ff44;">+${results.totals.aura_gained} aura</span>
-            </div>
-            ${detailsHtml ? `
-            <details style="margin-top:10px;text-align:left;">
-                <summary style="cursor:pointer;color:#ffaa00;font-size:0.85em;">[VIEW DETAILS]</summary>
-                <div style="margin-top:8px;padding:8px;background:#0a0a0a;border:1px solid #333;font-size:0.85em;max-height:150px;overflow-y:auto;">
-                    ${detailsHtml}
-                </div>
-            </details>` : ''}
+        <div style="font-size:0.9em;line-height:1.6">
+            <div style="text-align:center;margin-bottom:6px">${statusParts.join(' ')}</div>
+            <table style="width:100%;border:1px solid #44ff44;background:#0a1a0a;border-collapse:collapse">
+                <tr>
+                    <td style="padding:6px 10px;border-right:1px solid #333;color:#44ff44">+${results.totals.xp_gained} xp</td>
+                    <td style="padding:6px 10px;border-right:1px solid #333;color:#ff4444">-${results.totals.xp_lost} xp</td>
+                    <td style="padding:6px 10px;color:${netXp >= 0 ? '#44ff44' : '#ff4444'}">= ${netXp >= 0 ? '+' : ''}${netXp} xp</td>
+                </tr>
+            </table>
+            <div style="text-align:center;margin-top:4px;color:#44ff44;font-size:0.85em">+${results.totals.aura_gained} aura</div>
+            ${detailsList.length > 0 ? `<details style="margin-top:8px"><summary style="cursor:pointer;color:#ffaa00;font-size:0.8em">[DETAILS]</summary><div style="margin-top:4px;padding:4px 6px;background:#0a0a0a;border:1px solid #333;font-size:0.8em">${detailsList.join(' | ')}</div></details>` : ''}
         </div>
     `;
 
