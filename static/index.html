@@ -3868,7 +3868,7 @@ async function loadPlayerAndRender(){
                             "CLAIMING REWARDS",
                             "COMPLETING MISSION",
                             "Calculating rewards...",
-                            "/img/claim.png"
+                            "🎯"
                         );
 
                         try {
@@ -3984,7 +3984,7 @@ async function loadPlayerAndRender(){
                             "CLAIMING ALL REWARDS",
                             "PROCESSING MISSIONS",
                             `Claiming 0/${missionsReadyToClaim.length} missions...`,
-                            "/img/claim.png"
+                            "🎯"
                         );
 
                         const results = {
@@ -4176,7 +4176,7 @@ async function startMission(heroId, missionId, missionName) {
                 "DEPLOYING EMISSARY",
                 "STARTING MISSION",
                 "Dispatching your emissary...",
-                "/img/starting.png"
+                "🔥"
             );
 
             try {
@@ -4567,12 +4567,11 @@ function closeConfirmModal() {
 }
 
 // Show Processing Modal (for async operations)
-// Now uses pixel art images instead of emojis
-function showProcessingModal(title = "PROCESSING", text = "PROCESSING", subtext = "Please wait...", imagePath = "/img/starting.png") {
+function showProcessingModal(title = "PROCESSING", text = "PROCESSING", subtext = "Please wait...", icon = "⚔") {
     document.getElementById('processing-modal-title').textContent = title;
     document.getElementById('processing-text').textContent = text;
     document.getElementById('processing-subtext').textContent = subtext;
-    document.getElementById('processing-img').src = imagePath;
+    document.getElementById('processing-icon').textContent = icon;
     showModal('processing-modal');
 }
 
@@ -4580,38 +4579,40 @@ function hideProcessingModal() {
     hideModal('processing-modal');
 }
 
-// Show CLAIM ALL Results Modal - Compact consolidated summary
+// Show CLAIM ALL Results Modal - Compact with expandable details
 function showClaimAllResultsModal(results, totalMissions) {
     const successCount = results.success.length;
     const failureCount = results.failure.length;
     const deathCount = results.death.length;
     const errorCount = results.errors.length;
     const netXp = results.totals.xp_gained - results.totals.xp_lost;
-    const successRate = totalMissions > 0 ? Math.round((successCount / totalMissions) * 100) : 0;
 
-    // Build compact status line
+    // Status counts
     let statusParts = [];
-    if (successCount > 0) statusParts.push(`<span style="color:#44ff44;">✓ ${successCount} Success</span>`);
-    if (failureCount > 0) statusParts.push(`<span style="color:#ffaa00;">✗ ${failureCount} Failed</span>`);
-    if (deathCount > 0) statusParts.push(`<span style="color:#ff4444;">💀 ${deathCount} Fallen</span>`);
-    if (errorCount > 0) statusParts.push(`<span style="color:#ff6666;">⚠ ${errorCount} Errors</span>`);
+    if (successCount > 0) statusParts.push(`<span style="color:#44ff44">✓${successCount}</span>`);
+    if (failureCount > 0) statusParts.push(`<span style="color:#ffaa00">✗${failureCount}</span>`);
+    if (deathCount > 0) statusParts.push(`<span style="color:#ff4444">☠${deathCount}</span>`);
+    if (errorCount > 0) statusParts.push(`<span style="color:#ff6666">⚠${errorCount}</span>`);
 
-    let modalContent = `
-        <div style="text-align: center;">
-            <div style="font-size: 1.1em; margin-bottom: 12px; color: #888;">
-                ${statusParts.join(' <span style="color:#444;">|</span> ')}
-            </div>
-            <div style="background: #0a1a0a; border: 1px solid #44ff44; padding: 15px; margin-bottom: 10px;">
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; text-align: left;">
-                    <div>XP Gained: <span style="color:#44ff44;">+${results.totals.xp_gained}</span></div>
-                    <div>Aura: <span style="color:#44ff44;">+${results.totals.aura_gained}</span></div>
-                    <div>XP Lost: <span style="color:#ff4444;">-${results.totals.xp_lost}</span></div>
-                    <div>Net XP: <span style="color:${netXp >= 0 ? '#44ff44' : '#ff4444'};">${netXp >= 0 ? '+' : ''}${netXp}</span></div>
-                </div>
-            </div>
-            <div style="color: #ffaa00; font-size: 0.9em;">
-                Success Rate: ${successRate}%
-            </div>
+    // Build details list
+    let detailsList = [];
+    results.success.forEach(r => detailsList.push(`<span style="color:#44ff44">✓#${r.hero_id} +${r.xp_gained}xp${r.perfect_alignment ? '⚡' : ''}</span>`));
+    results.failure.forEach(r => detailsList.push(`<span style="color:#ffaa00">✗#${r.hero_id} -${r.xp_lost}xp</span>`));
+    results.death.forEach(r => detailsList.push(`<span style="color:#ff4444">☠#${r.hero_id}</span>`));
+    results.errors.forEach(r => detailsList.push(`<span style="color:#ff6666">⚠#${r.hero_id}</span>`));
+
+    const modalContent = `
+        <div style="font-size:0.9em;line-height:1.6">
+            <div style="text-align:center;margin-bottom:6px">${statusParts.join(' ')}</div>
+            <table style="width:100%;border:1px solid #44ff44;background:#0a1a0a;border-collapse:collapse">
+                <tr>
+                    <td style="padding:6px 10px;border-right:1px solid #333;color:#44ff44">+${results.totals.xp_gained} xp</td>
+                    <td style="padding:6px 10px;border-right:1px solid #333;color:#ff4444">-${results.totals.xp_lost} xp</td>
+                    <td style="padding:6px 10px;color:${netXp >= 0 ? '#44ff44' : '#ff4444'}">= ${netXp >= 0 ? '+' : ''}${netXp} xp</td>
+                </tr>
+            </table>
+            <div style="text-align:center;margin-top:4px;color:#44ff44;font-size:0.85em">+${results.totals.aura_gained} aura</div>
+            ${detailsList.length > 0 ? `<details style="margin-top:8px"><summary style="cursor:pointer;color:#ffaa00;font-size:0.8em">[DETAILS]</summary><div style="margin-top:4px;padding:4px 6px;background:#0a0a0a;border:1px solid #333;font-size:0.8em">${detailsList.join(' | ')}</div></details>` : ''}
         </div>
     `;
 
@@ -5081,7 +5082,7 @@ async function startPartyMission(missionId, missionName) {
                 "DEPLOYING PARTY",
                 "STARTING PARTY MISSION",
                 "Dispatching 5 emissaries...",
-                "/img/party.png"
+                "⚔"
             );
 
             try {
@@ -5212,9 +5213,7 @@ async function startPartyMission(missionId, missionName) {
             <div class="terminal-loading-container">
                 <div class="terminal-loading-spinner">
                     <div class="spinner-ring"></div>
-                    <div class="spinner-core" id="processing-icon">
-                        <img id="processing-img" src="/img/starting.png" alt="" style="width: 48px; height: 48px; image-rendering: pixelated;">
-                    </div>
+                    <div class="spinner-core" id="processing-icon">⚔</div>
                 </div>
                 <div class="terminal-loading-text" id="processing-text">PROCESSING</div>
                 <div class="terminal-loading-dots">

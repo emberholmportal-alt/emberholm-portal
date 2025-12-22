@@ -154,9 +154,7 @@
             <div class="terminal-loading-container">
                 <div class="terminal-loading-spinner">
                     <div class="spinner-ring"></div>
-                    <div class="spinner-core">
-                        <img src="/img/inventory.png" alt="" style="width: 48px; height: 48px; image-rendering: pixelated;">
-                    </div>
+                    <div class="spinner-core">⚔</div>
                 </div>
                 <div class="terminal-loading-text">LOADING INVENTORY</div>
                 <div class="terminal-loading-dots">
