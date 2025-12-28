@@ -273,7 +273,7 @@
 }
 
 .portal-warning-text {
-    font-family: 'Courier New', monospace;
+    font-family: 'Pixelify Sans', 'Classic Console Neue', monospace;
     font-size: 18px;
     color: #ffb000;
     line-height: 1.8;
@@ -283,8 +283,8 @@
 }
 
 .portal-challenge-text {
-    font-family: 'Courier New', monospace;
-    font-size: 20px;
+    font-family: 'Alagard', serif;
+    font-size: 22px;
     color: #ff9500;
     font-weight: bold;
     margin-bottom: 35px;
@@ -293,7 +293,7 @@
 }
 
 .portal-enter-btn {
-    font-family: 'Courier New', monospace;
+    font-family: 'Pixelify Sans', 'Classic Console Neue', monospace;
     font-size: 18px;
     padding: 15px 40px;
     background: transparent;
@@ -3889,6 +3889,11 @@ async function loadPlayerAndRender(){
             })()
         }));
 
+        // Load achievements if function is available
+        if (typeof loadAchievements === 'function') {
+            loadAchievements(player.heroes || []);
+        }
+
         const totals = player.totals || {};
         const walletSummaryEl = document.getElementById("wallet-summary");
         walletSummaryEl.innerHTML = `
@@ -6365,21 +6370,6 @@ async function loadAchievements(heroes) {
 
     // Render
     renderAchievements(stats, grantedFromAPI);
-}
-
-// Hook into existing player loading
-const originalLoadPlayerAndRender = window.loadPlayerAndRender;
-if (originalLoadPlayerAndRender) {
-    window.loadPlayerAndRender = async function() {
-        const result = await originalLoadPlayerAndRender.apply(this, arguments);
-
-        // After loading player, update achievements
-        if (window.heroes) {
-            await loadAchievements(window.heroes);
-        }
-
-        return result;
-    };
 }
 </script>
 
