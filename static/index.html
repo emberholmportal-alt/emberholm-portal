@@ -5578,245 +5578,248 @@ document.addEventListener('visibilitychange', function() {
 <script>
 // ============================================
 // EMBERHOLM ACHIEVEMENTS SYSTEM
+// Synced with backend /api/achievements
 // ============================================
 
-const ACHIEVEMENTS = {
-    // MISSIONS - "Path of the Emissary"
-    portal_initiate: {
-        id: 'portal_initiate',
+// Achievement definitions - synced with backend AVAILABLE_ACHIEVEMENTS
+// Added lore-friendly names and progress tracking
+const ACHIEVEMENTS_CONFIG = {
+    // Missions achievements (auto-granted by backend)
+    first_mission: {
+        id: 'first_mission',
         name: 'PORTAL INITIATE',
+        icon: '🎯',
         category: 'missions',
         description: 'You crossed the veil for the first time',
         requirement: 'Complete your first mission',
-        check: (stats) => stats.missions_completed >= 1,
-        progress: (stats) => ({ current: stats.missions_completed, target: 1 })
+        target: 1,
+        stat: 'missions_completed'
     },
-    realm_scout: {
-        id: 'realm_scout',
+    '10_missions': {
+        id: '10_missions',
         name: 'REALM SCOUT',
+        icon: '⚔️',
         category: 'missions',
         description: 'The realm begins to recognize you',
         requirement: 'Complete 10 missions',
-        check: (stats) => stats.missions_completed >= 10,
-        progress: (stats) => ({ current: stats.missions_completed, target: 10 })
+        target: 10,
+        stat: 'missions_completed'
     },
-    veil_walker: {
-        id: 'veil_walker',
-        name: 'VEIL WALKER',
-        category: 'missions',
-        description: 'You walk between worlds with ease',
-        requirement: 'Complete 25 missions',
-        check: (stats) => stats.missions_completed >= 25,
-        progress: (stats) => ({ current: stats.missions_completed, target: 25 })
-    },
-    emberbound_veteran: {
-        id: 'emberbound_veteran',
+    '50_missions': {
+        id: '50_missions',
         name: 'EMBERBOUND VETERAN',
+        icon: '🏆',
         category: 'missions',
         description: 'The ember burns eternal within you',
         requirement: 'Complete 50 missions',
-        check: (stats) => stats.missions_completed >= 50,
-        progress: (stats) => ({ current: stats.missions_completed, target: 50 })
+        target: 50,
+        stat: 'missions_completed'
     },
-    legend_of_emberholm: {
-        id: 'legend_of_emberholm',
+    '100_missions': {
+        id: '100_missions',
         name: 'LEGEND OF EMBERHOLM',
+        icon: '👑',
         category: 'missions',
         description: 'Your name echoes through the realm',
         requirement: 'Complete 100 missions',
-        check: (stats) => stats.missions_completed >= 100,
-        progress: (stats) => ({ current: stats.missions_completed, target: 100 })
+        target: 100,
+        stat: 'missions_completed'
     },
-
-    // RESULTS - "Scars of the Veil"
+    reach_level_10: {
+        id: 'reach_level_10',
+        name: 'AWAKENED',
+        icon: '⭐',
+        category: 'levels',
+        description: 'Your power begins to manifest',
+        requirement: 'Reach level 10',
+        target: 10,
+        stat: 'max_level'
+    },
+    reach_level_50: {
+        id: 'reach_level_50',
+        name: 'ASCENDED',
+        icon: '💫',
+        category: 'levels',
+        description: 'You transcend mortal limits',
+        requirement: 'Reach level 50',
+        target: 50,
+        stat: 'max_level'
+    },
+    guild_master: {
+        id: 'guild_master',
+        name: 'GUILD SOVEREIGN',
+        icon: '🏅',
+        category: 'special',
+        description: 'You command the respect of an entire guild',
+        requirement: 'Become a guild leader',
+        target: 1,
+        stat: 'is_guild_leader'
+    },
+    dragon_slayer: {
+        id: 'dragon_slayer',
+        name: 'DRAGON SLAYER',
+        icon: '🐉',
+        category: 'special',
+        description: 'The beast fell before your might',
+        requirement: 'Defeat a legendary dragon',
+        target: 1,
+        stat: 'dragons_slain'
+    },
+    void_walker: {
+        id: 'void_walker',
+        name: 'VOID WALKER',
+        icon: '🌌',
+        category: 'guild_missions',
+        description: 'You have mastered the darkness between realms',
+        requirement: 'Complete all Echoes of the Veil missions',
+        target: 1,
+        stat: 'void_missions_complete'
+    },
+    forge_master: {
+        id: 'forge_master',
+        name: 'FORGE MASTER',
+        icon: '⚒️',
+        category: 'guild_missions',
+        description: 'The flames of creation bend to your will',
+        requirement: 'Complete all Forge Legion missions',
+        target: 1,
+        stat: 'forge_missions_complete'
+    },
+    // Additional achievements calculated from stats
     touched_by_shadow: {
         id: 'touched_by_shadow',
         name: 'TOUCHED BY SHADOW',
+        icon: '☠️',
         category: 'combat',
         description: 'The void claimed you... but released you',
         requirement: 'Experience your first death',
-        check: (stats) => stats.deaths >= 1,
-        progress: (stats) => ({ current: stats.deaths, target: 1 })
-    },
-    death_defier: {
-        id: 'death_defier',
-        name: 'DEATH DEFIER',
-        category: 'combat',
-        description: 'You keep returning from the abyss',
-        requirement: 'Be reinvoked 5 times',
-        check: (stats) => stats.deaths >= 5,
-        progress: (stats) => ({ current: stats.deaths, target: 5 })
-    },
-    fates_fool: {
-        id: 'fates_fool',
-        name: "FATE'S FOOL",
-        category: 'combat',
-        description: 'Even the best stumble in the mist',
-        requirement: 'Fail your first mission',
-        check: (stats) => stats.missions_failed >= 1,
-        progress: (stats) => ({ current: stats.missions_failed, target: 1 })
-    },
-    hardened_survivor: {
-        id: 'hardened_survivor',
-        name: 'HARDENED SURVIVOR',
-        category: 'combat',
-        description: 'Failure is just delayed success',
-        requirement: 'Fail 10 missions',
-        check: (stats) => stats.missions_failed >= 10,
-        progress: (stats) => ({ current: stats.missions_failed, target: 10 })
+        target: 1,
+        stat: 'deaths'
     },
     perfect_resonance: {
         id: 'perfect_resonance',
         name: 'PERFECT RESONANCE',
+        icon: '⚡',
         category: 'combat',
         description: 'The stars aligned in your favor',
-        requirement: 'Achieve your first Perfect Alignment',
-        check: (stats) => stats.perfect_alignments >= 1,
-        progress: (stats) => ({ current: stats.perfect_alignments, target: 1 })
+        requirement: 'Achieve a Perfect Alignment',
+        target: 1,
+        stat: 'perfect_alignments'
     },
-
-    // PARTY - "Brotherhood of Ember"
-    band_assembler: {
-        id: 'band_assembler',
-        name: 'BAND ASSEMBLER',
-        category: 'party',
-        description: 'Strength in numbers',
-        requirement: 'Complete your first party mission',
-        check: (stats) => stats.party_missions >= 1,
-        progress: (stats) => ({ current: stats.party_missions, target: 1 })
-    },
-    warband_leader: {
-        id: 'warband_leader',
-        name: 'WARBAND LEADER',
-        category: 'party',
-        description: 'Your call rallies the brave',
-        requirement: 'Complete 10 party missions',
-        check: (stats) => stats.party_missions >= 10,
-        progress: (stats) => ({ current: stats.party_missions, target: 10 })
-    },
-
-    // ECONOMY - "Merchant's Path"
-    first_spark: {
-        id: 'first_spark',
-        name: 'FIRST SPARK',
-        category: 'economy',
-        description: 'Your first taste of realm currency',
-        requirement: 'Earn your first Ember',
-        check: (stats) => stats.ember_earned >= 1,
-        progress: (stats) => ({ current: stats.ember_earned, target: 1 })
-    },
-    ember_collector: {
-        id: 'ember_collector',
-        name: 'EMBER COLLECTOR',
-        category: 'economy',
-        description: 'The flame grows in your pouch',
-        requirement: 'Accumulate 100 Ember',
-        check: (stats) => stats.ember_earned >= 100,
-        progress: (stats) => ({ current: stats.ember_earned, target: 100 })
-    },
-    vault_keeper: {
-        id: 'vault_keeper',
-        name: 'VAULT KEEPER',
-        category: 'economy',
-        description: 'A fortune worthy of legends',
-        requirement: 'Accumulate 1,000 Ember',
-        check: (stats) => stats.ember_earned >= 1000,
-        progress: (stats) => ({ current: stats.ember_earned, target: 1000 })
-    },
-
-    // COLLECTION - "Curator's Eye"
-    treasure_touched: {
-        id: 'treasure_touched',
-        name: 'TREASURE TOUCHED',
-        category: 'collection',
-        description: 'Your first relic of power',
-        requirement: 'Obtain your first item',
-        check: (stats) => stats.items_collected >= 1,
-        progress: (stats) => ({ current: stats.items_collected, target: 1 })
-    },
-    relic_hunter: {
-        id: 'relic_hunter',
-        name: 'RELIC HUNTER',
-        category: 'collection',
-        description: 'You seek what others overlook',
-        requirement: 'Collect 10 items',
-        check: (stats) => stats.items_collected >= 10,
-        progress: (stats) => ({ current: stats.items_collected, target: 10 })
-    },
-    realm_claimer: {
-        id: 'realm_claimer',
-        name: 'REALM CLAIMER',
-        category: 'collection',
-        description: 'You planted your flag in Emberholm',
-        requirement: 'Obtain your first land',
-        check: (stats) => stats.lands_owned >= 1,
-        progress: (stats) => ({ current: stats.lands_owned, target: 1 })
-    },
-
-    // EMISSARIES - "Master of Souls"
     soul_binder: {
         id: 'soul_binder',
         name: 'SOUL BINDER',
+        icon: '🔮',
         category: 'emissaries',
         description: 'Your first pact with the veil',
         requirement: 'Link your first emissary',
-        check: (stats) => stats.emissaries_owned >= 1,
-        progress: (stats) => ({ current: stats.emissaries_owned, target: 1 })
+        target: 1,
+        stat: 'emissaries_owned'
     },
     squad_commander: {
         id: 'squad_commander',
         name: 'SQUAD COMMANDER',
+        icon: '⚔️',
         category: 'emissaries',
         description: 'A small but loyal force',
         requirement: 'Own 5 emissaries',
-        check: (stats) => stats.emissaries_owned >= 5,
-        progress: (stats) => ({ current: stats.emissaries_owned, target: 5 })
+        target: 5,
+        stat: 'emissaries_owned'
     },
     army_forger: {
         id: 'army_forger',
         name: 'ARMY FORGER',
+        icon: '🏰',
         category: 'emissaries',
         description: 'Your influence spreads across the realm',
         requirement: 'Own 20 emissaries',
-        check: (stats) => stats.emissaries_owned >= 20,
-        progress: (stats) => ({ current: stats.emissaries_owned, target: 20 })
+        target: 20,
+        stat: 'emissaries_owned'
     }
 };
 
-// Track expanded state for each achievement
+// Track expanded state
 let expandedAchievements = {};
 
+// Fetch achievements from backend API
+async function fetchAchievementsFromAPI(tokenIds) {
+    const grantedAchievements = new Set();
+
+    for (const tokenId of tokenIds) {
+        try {
+            const response = await fetch(`/api/achievements/${tokenId}`);
+            if (response.ok) {
+                const data = await response.json();
+                if (data.achievements) {
+                    data.achievements.forEach(ach => grantedAchievements.add(ach.id));
+                }
+            }
+        } catch (e) {
+            console.error('Error fetching achievements for token', tokenId, e);
+        }
+    }
+
+    return grantedAchievements;
+}
+
+// Calculate player stats from heroes
+function calculatePlayerStats(heroes) {
+    const stats = {
+        missions_completed: 0,
+        missions_failed: 0,
+        deaths: 0,
+        perfect_alignments: 0,
+        max_level: 0,
+        emissaries_owned: heroes?.length || 0,
+        is_guild_leader: 0,
+        dragons_slain: 0,
+        void_missions_complete: 0,
+        forge_missions_complete: 0
+    };
+
+    if (heroes && heroes.length > 0) {
+        heroes.forEach(hero => {
+            stats.missions_completed += hero.missions_completed || 0;
+            stats.missions_failed += hero.missions_failed || 0;
+            stats.deaths += hero.death_count || 0;
+            stats.perfect_alignments += hero.perfect_alignments || 0;
+            if ((hero.level || 1) > stats.max_level) {
+                stats.max_level = hero.level || 1;
+            }
+        });
+    }
+
+    return stats;
+}
+
 // Render achievements list
-function renderAchievements(playerStats) {
+function renderAchievements(stats, grantedFromAPI) {
     const container = document.getElementById('achievements-list');
     const countEl = document.getElementById('achievements-count');
 
     if (!container) return;
 
-    // Default stats if not provided
-    const stats = playerStats || {
-        missions_completed: 0,
-        missions_failed: 0,
-        deaths: 0,
-        perfect_alignments: 0,
-        party_missions: 0,
-        ember_earned: 0,
-        items_collected: 0,
-        lands_owned: 0,
-        emissaries_owned: 0
-    };
+    const achievements = Object.values(ACHIEVEMENTS_CONFIG);
+    const unlocked = [];
+    const locked = [];
 
-    // Calculate unlocked achievements
-    const achievements = Object.values(ACHIEVEMENTS);
-    const unlocked = achievements.filter(a => a.check(stats));
-    const locked = achievements.filter(a => !a.check(stats));
+    // Categorize achievements
+    achievements.forEach(ach => {
+        const statValue = stats[ach.stat] || 0;
+        const isGrantedByAPI = grantedFromAPI.has(ach.id);
+        const isUnlockedByStats = statValue >= ach.target;
 
-    // Sort locked by progress percentage (closest to unlock first)
+        if (isGrantedByAPI || isUnlockedByStats) {
+            unlocked.push({ ...ach, granted: true, current: statValue });
+        } else {
+            locked.push({ ...ach, granted: false, current: statValue });
+        }
+    });
+
+    // Sort locked by progress percentage
     locked.sort((a, b) => {
-        const progA = a.progress(stats);
-        const progB = b.progress(stats);
-        const pctA = progA.current / progA.target;
-        const pctB = progB.current / progB.target;
+        const pctA = Math.min(1, a.current / a.target);
+        const pctB = Math.min(1, b.current / b.target);
         return pctB - pctA;
     });
 
@@ -5828,20 +5831,20 @@ function renderAchievements(playerStats) {
     // Build HTML
     let html = '';
 
-    // Unlocked achievements first
-    unlocked.forEach(achievement => {
-        const isExpanded = expandedAchievements[achievement.id];
+    // Unlocked achievements
+    unlocked.forEach(ach => {
+        const isExpanded = expandedAchievements[ach.id];
         html += `
-            <div class="achievement-item unlocked" onclick="toggleAchievement('${achievement.id}')">
+            <div class="achievement-item unlocked" onclick="toggleAchievement('${ach.id}')">
                 <div class="achievement-header">
-                    <span class="achievement-icon">⬡</span>
-                    <span class="achievement-name">${achievement.name}</span>
+                    <span class="achievement-icon">${ach.icon}</span>
+                    <span class="achievement-name">${ach.name}</span>
                     <span class="achievement-status">✓</span>
                 </div>
                 ${isExpanded ? `
                 <div class="achievement-details">
-                    <div class="achievement-desc">"${achievement.description}"</div>
-                    <div class="achievement-req">☑ ${achievement.requirement}</div>
+                    <div class="achievement-desc">"${ach.description}"</div>
+                    <div class="achievement-req">☑ ${ach.requirement}</div>
                 </div>
                 ` : ''}
             </div>
@@ -5849,23 +5852,22 @@ function renderAchievements(playerStats) {
     });
 
     // Locked achievements
-    locked.forEach(achievement => {
-        const isExpanded = expandedAchievements[achievement.id];
-        const prog = achievement.progress(stats);
-        const pct = Math.min(100, Math.round((prog.current / prog.target) * 100));
+    locked.forEach(ach => {
+        const isExpanded = expandedAchievements[ach.id];
+        const pct = Math.min(100, Math.round((ach.current / ach.target) * 100));
         const isClose = pct >= 80;
 
         html += `
-            <div class="achievement-item locked ${isClose ? 'close-to-unlock' : ''}" onclick="toggleAchievement('${achievement.id}')">
+            <div class="achievement-item locked ${isClose ? 'close-to-unlock' : ''}" onclick="toggleAchievement('${ach.id}')">
                 <div class="achievement-header">
-                    <span class="achievement-icon">◇</span>
-                    <span class="achievement-name">${achievement.name}</span>
-                    <span class="achievement-progress">${prog.current}/${prog.target}</span>
+                    <span class="achievement-icon" style="filter:grayscale(1) opacity(0.5)">${ach.icon}</span>
+                    <span class="achievement-name">${ach.name}</span>
+                    <span class="achievement-progress">${ach.current}/${ach.target}</span>
                 </div>
                 ${isExpanded ? `
                 <div class="achievement-details">
-                    <div class="achievement-desc">"${achievement.description}"</div>
-                    <div class="achievement-req">☐ ${achievement.requirement}</div>
+                    <div class="achievement-desc">"${ach.description}"</div>
+                    <div class="achievement-req">☐ ${ach.requirement}</div>
                     <div class="achievement-bar">
                         <div class="achievement-bar-fill" style="width:${pct}%"></div>
                     </div>
@@ -5881,37 +5883,32 @@ function renderAchievements(playerStats) {
 // Toggle achievement expansion
 function toggleAchievement(id) {
     expandedAchievements[id] = !expandedAchievements[id];
-    // Re-render with current stats
-    if (window.currentPlayerStats) {
-        renderAchievements(window.currentPlayerStats);
+    if (window.currentPlayerStats && window.currentGrantedAchievements) {
+        renderAchievements(window.currentPlayerStats, window.currentGrantedAchievements);
     }
 }
 
-// Calculate player stats from heroes data
-function calculatePlayerStats(heroes, playerData) {
-    const stats = {
-        missions_completed: 0,
-        missions_failed: 0,
-        deaths: 0,
-        perfect_alignments: 0,
-        party_missions: playerData?.party_missions || 0,
-        ember_earned: playerData?.ember_balance || 0,
-        items_collected: playerData?.items_count || 0,
-        lands_owned: playerData?.lands_count || 0,
-        emissaries_owned: heroes?.length || 0
-    };
-
-    // Sum up hero stats
-    if (heroes && heroes.length > 0) {
-        heroes.forEach(hero => {
-            stats.missions_completed += hero.missions_completed || 0;
-            stats.missions_failed += hero.missions_failed || 0;
-            stats.deaths += hero.death_count || 0;
-            stats.perfect_alignments += hero.perfect_alignments || 0;
-        });
+// Load and display achievements
+async function loadAchievements(heroes) {
+    if (!heroes || heroes.length === 0) {
+        document.getElementById('achievements-list').innerHTML =
+            '<div style="color:#666;">No emissaries linked</div>';
+        return;
     }
 
-    return stats;
+    // Get token IDs
+    const tokenIds = heroes.map(h => h.token_id);
+
+    // Fetch granted achievements from API
+    const grantedFromAPI = await fetchAchievementsFromAPI(tokenIds);
+    window.currentGrantedAchievements = grantedFromAPI;
+
+    // Calculate stats
+    const stats = calculatePlayerStats(heroes);
+    window.currentPlayerStats = stats;
+
+    // Render
+    renderAchievements(stats, grantedFromAPI);
 }
 
 // Hook into existing player loading
@@ -5922,9 +5919,7 @@ if (originalLoadPlayerAndRender) {
 
         // After loading player, update achievements
         if (window.heroes) {
-            const stats = calculatePlayerStats(window.heroes, window.playerData);
-            window.currentPlayerStats = stats;
-            renderAchievements(stats);
+            await loadAchievements(window.heroes);
         }
 
         return result;
