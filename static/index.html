@@ -6351,11 +6351,17 @@ function toggleAchievement(id) {
 
 // Load and display achievements
 async function loadAchievements(heroes) {
+    const achievementsList = document.getElementById('achievements-list');
+
     if (!heroes || heroes.length === 0) {
-        document.getElementById('achievements-list').innerHTML =
+        achievementsList.innerHTML =
             '<div style="color:#666;">No emissaries linked</div>';
         return;
     }
+
+    // Show loading state
+    achievementsList.innerHTML =
+        '<div style="color:#ffaa00; font-style:italic;">Loading achievements...</div>';
 
     // Get token IDs
     const tokenIds = heroes.map(h => h.token_id);
