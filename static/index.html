@@ -481,6 +481,17 @@
                             </div>
                         </div>
                     </div>
+
+                    <!-- Achievements Display -->
+                    <div id="achievements-display" style="margin-top:15px; padding:12px; border:1px solid var(--border-primary); background:rgba(0,0,0,0.3);">
+                        <div class="subheading" style="margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
+                            <span>🏆 ACHIEVEMENTS</span>
+                            <span id="achievements-count" style="font-size:0.8em; color:#888;">[0/0]</span>
+                        </div>
+                        <div id="achievements-list" style="max-height:200px; overflow-y:auto; font-size:12px;">
+                            <div style="color:#666; font-style:italic;">Connect wallet to view achievements...</div>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="profile-col-right">
@@ -5562,6 +5573,496 @@ document.addEventListener('visibilitychange', function() {
 
 <!-- HACKNET UI INTERACTIONS -->
 <script src="/js/hacknet-ui.js"></script>
+
+<!-- ACHIEVEMENTS SYSTEM -->
+<script>
+// ============================================
+// EMBERHOLM ACHIEVEMENTS SYSTEM
+// ============================================
+
+const ACHIEVEMENTS = {
+    // MISSIONS - "Path of the Emissary"
+    portal_initiate: {
+        id: 'portal_initiate',
+        name: 'PORTAL INITIATE',
+        category: 'missions',
+        description: 'You crossed the veil for the first time',
+        requirement: 'Complete your first mission',
+        check: (stats) => stats.missions_completed >= 1,
+        progress: (stats) => ({ current: stats.missions_completed, target: 1 })
+    },
+    realm_scout: {
+        id: 'realm_scout',
+        name: 'REALM SCOUT',
+        category: 'missions',
+        description: 'The realm begins to recognize you',
+        requirement: 'Complete 10 missions',
+        check: (stats) => stats.missions_completed >= 10,
+        progress: (stats) => ({ current: stats.missions_completed, target: 10 })
+    },
+    veil_walker: {
+        id: 'veil_walker',
+        name: 'VEIL WALKER',
+        category: 'missions',
+        description: 'You walk between worlds with ease',
+        requirement: 'Complete 25 missions',
+        check: (stats) => stats.missions_completed >= 25,
+        progress: (stats) => ({ current: stats.missions_completed, target: 25 })
+    },
+    emberbound_veteran: {
+        id: 'emberbound_veteran',
+        name: 'EMBERBOUND VETERAN',
+        category: 'missions',
+        description: 'The ember burns eternal within you',
+        requirement: 'Complete 50 missions',
+        check: (stats) => stats.missions_completed >= 50,
+        progress: (stats) => ({ current: stats.missions_completed, target: 50 })
+    },
+    legend_of_emberholm: {
+        id: 'legend_of_emberholm',
+        name: 'LEGEND OF EMBERHOLM',
+        category: 'missions',
+        description: 'Your name echoes through the realm',
+        requirement: 'Complete 100 missions',
+        check: (stats) => stats.missions_completed >= 100,
+        progress: (stats) => ({ current: stats.missions_completed, target: 100 })
+    },
+
+    // RESULTS - "Scars of the Veil"
+    touched_by_shadow: {
+        id: 'touched_by_shadow',
+        name: 'TOUCHED BY SHADOW',
+        category: 'combat',
+        description: 'The void claimed you... but released you',
+        requirement: 'Experience your first death',
+        check: (stats) => stats.deaths >= 1,
+        progress: (stats) => ({ current: stats.deaths, target: 1 })
+    },
+    death_defier: {
+        id: 'death_defier',
+        name: 'DEATH DEFIER',
+        category: 'combat',
+        description: 'You keep returning from the abyss',
+        requirement: 'Be reinvoked 5 times',
+        check: (stats) => stats.deaths >= 5,
+        progress: (stats) => ({ current: stats.deaths, target: 5 })
+    },
+    fates_fool: {
+        id: 'fates_fool',
+        name: "FATE'S FOOL",
+        category: 'combat',
+        description: 'Even the best stumble in the mist',
+        requirement: 'Fail your first mission',
+        check: (stats) => stats.missions_failed >= 1,
+        progress: (stats) => ({ current: stats.missions_failed, target: 1 })
+    },
+    hardened_survivor: {
+        id: 'hardened_survivor',
+        name: 'HARDENED SURVIVOR',
+        category: 'combat',
+        description: 'Failure is just delayed success',
+        requirement: 'Fail 10 missions',
+        check: (stats) => stats.missions_failed >= 10,
+        progress: (stats) => ({ current: stats.missions_failed, target: 10 })
+    },
+    perfect_resonance: {
+        id: 'perfect_resonance',
+        name: 'PERFECT RESONANCE',
+        category: 'combat',
+        description: 'The stars aligned in your favor',
+        requirement: 'Achieve your first Perfect Alignment',
+        check: (stats) => stats.perfect_alignments >= 1,
+        progress: (stats) => ({ current: stats.perfect_alignments, target: 1 })
+    },
+
+    // PARTY - "Brotherhood of Ember"
+    band_assembler: {
+        id: 'band_assembler',
+        name: 'BAND ASSEMBLER',
+        category: 'party',
+        description: 'Strength in numbers',
+        requirement: 'Complete your first party mission',
+        check: (stats) => stats.party_missions >= 1,
+        progress: (stats) => ({ current: stats.party_missions, target: 1 })
+    },
+    warband_leader: {
+        id: 'warband_leader',
+        name: 'WARBAND LEADER',
+        category: 'party',
+        description: 'Your call rallies the brave',
+        requirement: 'Complete 10 party missions',
+        check: (stats) => stats.party_missions >= 10,
+        progress: (stats) => ({ current: stats.party_missions, target: 10 })
+    },
+
+    // ECONOMY - "Merchant's Path"
+    first_spark: {
+        id: 'first_spark',
+        name: 'FIRST SPARK',
+        category: 'economy',
+        description: 'Your first taste of realm currency',
+        requirement: 'Earn your first Ember',
+        check: (stats) => stats.ember_earned >= 1,
+        progress: (stats) => ({ current: stats.ember_earned, target: 1 })
+    },
+    ember_collector: {
+        id: 'ember_collector',
+        name: 'EMBER COLLECTOR',
+        category: 'economy',
+        description: 'The flame grows in your pouch',
+        requirement: 'Accumulate 100 Ember',
+        check: (stats) => stats.ember_earned >= 100,
+        progress: (stats) => ({ current: stats.ember_earned, target: 100 })
+    },
+    vault_keeper: {
+        id: 'vault_keeper',
+        name: 'VAULT KEEPER',
+        category: 'economy',
+        description: 'A fortune worthy of legends',
+        requirement: 'Accumulate 1,000 Ember',
+        check: (stats) => stats.ember_earned >= 1000,
+        progress: (stats) => ({ current: stats.ember_earned, target: 1000 })
+    },
+
+    // COLLECTION - "Curator's Eye"
+    treasure_touched: {
+        id: 'treasure_touched',
+        name: 'TREASURE TOUCHED',
+        category: 'collection',
+        description: 'Your first relic of power',
+        requirement: 'Obtain your first item',
+        check: (stats) => stats.items_collected >= 1,
+        progress: (stats) => ({ current: stats.items_collected, target: 1 })
+    },
+    relic_hunter: {
+        id: 'relic_hunter',
+        name: 'RELIC HUNTER',
+        category: 'collection',
+        description: 'You seek what others overlook',
+        requirement: 'Collect 10 items',
+        check: (stats) => stats.items_collected >= 10,
+        progress: (stats) => ({ current: stats.items_collected, target: 10 })
+    },
+    realm_claimer: {
+        id: 'realm_claimer',
+        name: 'REALM CLAIMER',
+        category: 'collection',
+        description: 'You planted your flag in Emberholm',
+        requirement: 'Obtain your first land',
+        check: (stats) => stats.lands_owned >= 1,
+        progress: (stats) => ({ current: stats.lands_owned, target: 1 })
+    },
+
+    // EMISSARIES - "Master of Souls"
+    soul_binder: {
+        id: 'soul_binder',
+        name: 'SOUL BINDER',
+        category: 'emissaries',
+        description: 'Your first pact with the veil',
+        requirement: 'Link your first emissary',
+        check: (stats) => stats.emissaries_owned >= 1,
+        progress: (stats) => ({ current: stats.emissaries_owned, target: 1 })
+    },
+    squad_commander: {
+        id: 'squad_commander',
+        name: 'SQUAD COMMANDER',
+        category: 'emissaries',
+        description: 'A small but loyal force',
+        requirement: 'Own 5 emissaries',
+        check: (stats) => stats.emissaries_owned >= 5,
+        progress: (stats) => ({ current: stats.emissaries_owned, target: 5 })
+    },
+    army_forger: {
+        id: 'army_forger',
+        name: 'ARMY FORGER',
+        category: 'emissaries',
+        description: 'Your influence spreads across the realm',
+        requirement: 'Own 20 emissaries',
+        check: (stats) => stats.emissaries_owned >= 20,
+        progress: (stats) => ({ current: stats.emissaries_owned, target: 20 })
+    }
+};
+
+// Track expanded state for each achievement
+let expandedAchievements = {};
+
+// Render achievements list
+function renderAchievements(playerStats) {
+    const container = document.getElementById('achievements-list');
+    const countEl = document.getElementById('achievements-count');
+
+    if (!container) return;
+
+    // Default stats if not provided
+    const stats = playerStats || {
+        missions_completed: 0,
+        missions_failed: 0,
+        deaths: 0,
+        perfect_alignments: 0,
+        party_missions: 0,
+        ember_earned: 0,
+        items_collected: 0,
+        lands_owned: 0,
+        emissaries_owned: 0
+    };
+
+    // Calculate unlocked achievements
+    const achievements = Object.values(ACHIEVEMENTS);
+    const unlocked = achievements.filter(a => a.check(stats));
+    const locked = achievements.filter(a => !a.check(stats));
+
+    // Sort locked by progress percentage (closest to unlock first)
+    locked.sort((a, b) => {
+        const progA = a.progress(stats);
+        const progB = b.progress(stats);
+        const pctA = progA.current / progA.target;
+        const pctB = progB.current / progB.target;
+        return pctB - pctA;
+    });
+
+    // Update count
+    if (countEl) {
+        countEl.textContent = `[${unlocked.length}/${achievements.length}]`;
+    }
+
+    // Build HTML
+    let html = '';
+
+    // Unlocked achievements first
+    unlocked.forEach(achievement => {
+        const isExpanded = expandedAchievements[achievement.id];
+        html += `
+            <div class="achievement-item unlocked" onclick="toggleAchievement('${achievement.id}')">
+                <div class="achievement-header">
+                    <span class="achievement-icon">⬡</span>
+                    <span class="achievement-name">${achievement.name}</span>
+                    <span class="achievement-status">✓</span>
+                </div>
+                ${isExpanded ? `
+                <div class="achievement-details">
+                    <div class="achievement-desc">"${achievement.description}"</div>
+                    <div class="achievement-req">☑ ${achievement.requirement}</div>
+                </div>
+                ` : ''}
+            </div>
+        `;
+    });
+
+    // Locked achievements
+    locked.forEach(achievement => {
+        const isExpanded = expandedAchievements[achievement.id];
+        const prog = achievement.progress(stats);
+        const pct = Math.min(100, Math.round((prog.current / prog.target) * 100));
+        const isClose = pct >= 80;
+
+        html += `
+            <div class="achievement-item locked ${isClose ? 'close-to-unlock' : ''}" onclick="toggleAchievement('${achievement.id}')">
+                <div class="achievement-header">
+                    <span class="achievement-icon">◇</span>
+                    <span class="achievement-name">${achievement.name}</span>
+                    <span class="achievement-progress">${prog.current}/${prog.target}</span>
+                </div>
+                ${isExpanded ? `
+                <div class="achievement-details">
+                    <div class="achievement-desc">"${achievement.description}"</div>
+                    <div class="achievement-req">☐ ${achievement.requirement}</div>
+                    <div class="achievement-bar">
+                        <div class="achievement-bar-fill" style="width:${pct}%"></div>
+                    </div>
+                </div>
+                ` : ''}
+            </div>
+        `;
+    });
+
+    container.innerHTML = html || '<div style="color:#666;">No achievements data</div>';
+}
+
+// Toggle achievement expansion
+function toggleAchievement(id) {
+    expandedAchievements[id] = !expandedAchievements[id];
+    // Re-render with current stats
+    if (window.currentPlayerStats) {
+        renderAchievements(window.currentPlayerStats);
+    }
+}
+
+// Calculate player stats from heroes data
+function calculatePlayerStats(heroes, playerData) {
+    const stats = {
+        missions_completed: 0,
+        missions_failed: 0,
+        deaths: 0,
+        perfect_alignments: 0,
+        party_missions: playerData?.party_missions || 0,
+        ember_earned: playerData?.ember_balance || 0,
+        items_collected: playerData?.items_count || 0,
+        lands_owned: playerData?.lands_count || 0,
+        emissaries_owned: heroes?.length || 0
+    };
+
+    // Sum up hero stats
+    if (heroes && heroes.length > 0) {
+        heroes.forEach(hero => {
+            stats.missions_completed += hero.missions_completed || 0;
+            stats.missions_failed += hero.missions_failed || 0;
+            stats.deaths += hero.death_count || 0;
+            stats.perfect_alignments += hero.perfect_alignments || 0;
+        });
+    }
+
+    return stats;
+}
+
+// Hook into existing player loading
+const originalLoadPlayerAndRender = window.loadPlayerAndRender;
+if (originalLoadPlayerAndRender) {
+    window.loadPlayerAndRender = async function() {
+        const result = await originalLoadPlayerAndRender.apply(this, arguments);
+
+        // After loading player, update achievements
+        if (window.heroes) {
+            const stats = calculatePlayerStats(window.heroes, window.playerData);
+            window.currentPlayerStats = stats;
+            renderAchievements(stats);
+        }
+
+        return result;
+    };
+}
+</script>
+
+<style>
+/* Achievement System Styles */
+.achievement-item {
+    padding: 6px 8px;
+    margin-bottom: 2px;
+    cursor: pointer;
+    transition: background 0.2s;
+    border-left: 2px solid transparent;
+}
+
+.achievement-item:hover {
+    background: rgba(68, 255, 68, 0.05);
+}
+
+.achievement-item.unlocked {
+    border-left-color: #44ff44;
+}
+
+.achievement-item.unlocked .achievement-icon {
+    color: #ffaa00;
+}
+
+.achievement-item.unlocked .achievement-name {
+    color: #44ff44;
+}
+
+.achievement-item.unlocked .achievement-status {
+    color: #44ff44;
+}
+
+.achievement-item.locked {
+    border-left-color: #333;
+}
+
+.achievement-item.locked .achievement-icon {
+    color: #444;
+}
+
+.achievement-item.locked .achievement-name {
+    color: #666;
+}
+
+.achievement-item.locked .achievement-progress {
+    color: #555;
+    font-size: 0.85em;
+}
+
+.achievement-item.locked.close-to-unlock {
+    border-left-color: #ffaa00;
+}
+
+.achievement-item.locked.close-to-unlock .achievement-name {
+    color: #aa8800;
+}
+
+.achievement-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.achievement-icon {
+    font-size: 10px;
+}
+
+.achievement-name {
+    flex: 1;
+    font-family: monospace;
+    font-size: 11px;
+}
+
+.achievement-status,
+.achievement-progress {
+    font-size: 11px;
+}
+
+.achievement-details {
+    margin-top: 6px;
+    padding: 6px 8px;
+    margin-left: 18px;
+    background: rgba(0,0,0,0.3);
+    border-left: 1px solid #333;
+    font-size: 10px;
+}
+
+.achievement-desc {
+    color: #888;
+    font-style: italic;
+    margin-bottom: 4px;
+}
+
+.achievement-req {
+    color: #666;
+}
+
+.achievement-item.unlocked .achievement-req {
+    color: #44ff44;
+}
+
+.achievement-bar {
+    margin-top: 4px;
+    height: 3px;
+    background: #1a1a1a;
+    border-radius: 2px;
+    overflow: hidden;
+}
+
+.achievement-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #444, #ffaa00);
+    transition: width 0.3s;
+}
+
+/* Scrollbar styling for achievements */
+#achievements-list::-webkit-scrollbar {
+    width: 4px;
+}
+
+#achievements-list::-webkit-scrollbar-track {
+    background: #0a0a0a;
+}
+
+#achievements-list::-webkit-scrollbar-thumb {
+    background: #333;
+    border-radius: 2px;
+}
+
+#achievements-list::-webkit-scrollbar-thumb:hover {
+    background: #444;
+}
+</style>
 
 <!-- INVENTORY & VAULT SYSTEM -->
 <script src="/js/inventory.js"></script>
