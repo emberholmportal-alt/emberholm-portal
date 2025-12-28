@@ -162,6 +162,462 @@
 </style>
 </head>
 <body>
+<!-- ============================================
+     PORTAL WARNING MODAL - Epic Entry Screen
+     ============================================ -->
+<div id="portal-warning-overlay" class="portal-warning-overlay">
+    <canvas id="portal-particles"></canvas>
+    <div class="portal-warning-modal">
+        <div class="portal-decoration">═══ ⚔ ═══</div>
+        <div class="portal-warning-text" id="portal-warning-text"></div>
+        <div class="portal-challenge-text" id="portal-challenge-text"></div>
+        <button class="portal-enter-btn" id="portal-enter-btn" style="display:none;">
+            [ ENTER THE PORTAL ]
+        </button>
+        <div class="portal-hint" id="portal-hint" style="display:none;">
+            <span class="blink">▸</span> Press ENTER or click to proceed
+        </div>
+    </div>
+    <audio id="portal-ambient" loop preload="auto">
+        <source src="/music/ambient_portal.mp3" type="audio/mpeg">
+    </audio>
+</div>
+
+<style>
+/* ============================================
+   PORTAL WARNING MODAL STYLES
+   ============================================ */
+.portal-warning-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: #000;
+    z-index: 99999;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    opacity: 1;
+    transition: opacity 1.5s ease-out;
+}
+
+.portal-warning-overlay.fade-out {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.portal-warning-overlay::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: repeating-linear-gradient(
+        0deg,
+        rgba(0, 0, 0, 0.15),
+        rgba(0, 0, 0, 0.15) 1px,
+        transparent 1px,
+        transparent 2px
+    );
+    pointer-events: none;
+    z-index: 1;
+}
+
+#portal-particles {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+}
+
+.portal-warning-modal {
+    position: relative;
+    z-index: 2;
+    max-width: 700px;
+    padding: 40px 50px;
+    text-align: center;
+    border: 2px solid #ff9500;
+    background: rgba(0, 0, 0, 0.9);
+    box-shadow:
+        0 0 30px rgba(255, 149, 0, 0.3),
+        0 0 60px rgba(255, 149, 0, 0.1),
+        inset 0 0 30px rgba(255, 149, 0, 0.05);
+    animation: portalGlow 3s ease-in-out infinite;
+}
+
+@keyframes portalGlow {
+    0%, 100% {
+        box-shadow:
+            0 0 30px rgba(255, 149, 0, 0.3),
+            0 0 60px rgba(255, 149, 0, 0.1),
+            inset 0 0 30px rgba(255, 149, 0, 0.05);
+    }
+    50% {
+        box-shadow:
+            0 0 40px rgba(255, 149, 0, 0.5),
+            0 0 80px rgba(255, 149, 0, 0.2),
+            inset 0 0 40px rgba(255, 149, 0, 0.1);
+    }
+}
+
+.portal-decoration {
+    font-size: 24px;
+    color: #ff9500;
+    margin-bottom: 30px;
+    letter-spacing: 10px;
+    text-shadow: 0 0 20px #ff9500;
+}
+
+.portal-warning-text {
+    font-family: 'Courier New', monospace;
+    font-size: 18px;
+    color: #ffb000;
+    line-height: 1.8;
+    margin-bottom: 25px;
+    min-height: 80px;
+    text-shadow: 0 0 10px rgba(255, 176, 0, 0.5);
+}
+
+.portal-challenge-text {
+    font-family: 'Courier New', monospace;
+    font-size: 20px;
+    color: #ff9500;
+    font-weight: bold;
+    margin-bottom: 35px;
+    min-height: 30px;
+    text-shadow: 0 0 15px rgba(255, 149, 0, 0.7);
+}
+
+.portal-enter-btn {
+    font-family: 'Courier New', monospace;
+    font-size: 18px;
+    padding: 15px 40px;
+    background: transparent;
+    border: 2px solid #ff9500;
+    color: #ff9500;
+    cursor: pointer;
+    letter-spacing: 3px;
+    transition: all 0.3s ease;
+    text-shadow: 0 0 10px #ff9500;
+    animation: btnPulse 2s ease-in-out infinite;
+}
+
+@keyframes btnPulse {
+    0%, 100% {
+        box-shadow: 0 0 10px rgba(255, 149, 0, 0.3);
+    }
+    50% {
+        box-shadow: 0 0 25px rgba(255, 149, 0, 0.6);
+    }
+}
+
+.portal-enter-btn:hover {
+    background: #ff9500;
+    color: #000;
+    box-shadow: 0 0 40px rgba(255, 149, 0, 0.8);
+    transform: scale(1.05);
+}
+
+.portal-hint {
+    margin-top: 20px;
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    color: #666;
+}
+
+.portal-hint .blink {
+    animation: blink 1s infinite;
+}
+
+@keyframes blink {
+    0%, 50% { opacity: 1; }
+    51%, 100% { opacity: 0; }
+}
+
+/* Glitch effect */
+.portal-glitch {
+    animation: portalGlitch 0.3s linear;
+}
+
+@keyframes portalGlitch {
+    0% { transform: translate(0); filter: hue-rotate(0deg); }
+    20% { transform: translate(-2px, 2px); filter: hue-rotate(90deg); }
+    40% { transform: translate(2px, -2px); filter: hue-rotate(180deg); }
+    60% { transform: translate(-2px, -2px); filter: hue-rotate(270deg); }
+    80% { transform: translate(2px, 2px); filter: hue-rotate(360deg); }
+    100% { transform: translate(0); filter: hue-rotate(0deg); }
+}
+
+/* Typewriter cursor */
+.typewriter-cursor {
+    display: inline-block;
+    width: 10px;
+    height: 18px;
+    background: #ffb000;
+    margin-left: 2px;
+    animation: cursorBlink 0.7s infinite;
+}
+
+@keyframes cursorBlink {
+    0%, 50% { opacity: 1; }
+    51%, 100% { opacity: 0; }
+}
+</style>
+
+<script>
+// ============================================
+// PORTAL WARNING SYSTEM
+// ============================================
+
+const PORTAL_WARNINGS = [
+    {
+        warning: "The Portal of Emberholm opens before you, traveler. Beyond lies a realm where the Eternal Flame fades into darkness.",
+        challenge: "Do you dare cross the threshold?"
+    },
+    {
+        warning: "The Six Orders await. Glory or death, riches or ruin. There is no path of return once you step through.",
+        challenge: "Do you accept your destiny?"
+    },
+    {
+        warning: "35,000 souls seek salvation. The Flame dies. Only the Emissaries can rekindle the hope of the realm.",
+        challenge: "Will you be the one to ignite the fire?"
+    },
+    {
+        warning: "Beware, Emissary. The Void lurks between shadows, and your vital energy is the only currency that matters.",
+        challenge: "Will you enter knowing the price?"
+    },
+    {
+        warning: "Death is permanent. Rewards are eternal. The Portal shows no mercy to the weak of heart.",
+        challenge: "Will you cross into the unknown?"
+    },
+    {
+        warning: "The ancient guilds whisper of your arrival. Forge Legion, Echoes of the Veil, Dawn Keepers... all watch and wait.",
+        challenge: "Which banner will you raise?"
+    },
+    {
+        warning: "Energy fades. Time runs short. The missions grow darker with each passing cycle. Yet still, heroes emerge.",
+        challenge: "Are you among the chosen?"
+    },
+    {
+        warning: "Through the veil, realms collide. Base Sepolia pulses with arcane energy. The blockchain remembers all.",
+        challenge: "Ready to write your legacy?"
+    },
+    {
+        warning: "Emissaries fall. Emissaries rise. The cycle continues eternal. Your soul will be bound to this realm.",
+        challenge: "Do you accept the binding?"
+    },
+    {
+        warning: "The Horizon Watch guards the borders. The Shadow Guild moves unseen. The Circle of Mist obscures all truth.",
+        challenge: "Where will your allegiance lie?"
+    },
+    {
+        warning: "Aura accumulates. Experience compounds. But one misstep, one failed mission, and all could be lost.",
+        challenge: "Is your will unbreakable?"
+    },
+    {
+        warning: "Perfect Alignment grants power beyond measure. But the stars must favor you. Luck is a fickle ally.",
+        challenge: "Do you feel fortunate, traveler?"
+    },
+    {
+        warning: "The Portal pulses with unstable energy. Glitches ripple through the veil. Something ancient stirs within.",
+        challenge: "Still wish to proceed?"
+    },
+    {
+        warning: "Many have entered. Few have conquered. The realm consumes the unprepared and rewards the relentless.",
+        challenge: "Which will you become?"
+    },
+    {
+        warning: "This is not a game. This is Emberholm. Your choices echo through eternity. Your emissaries await your command.",
+        challenge: "Are you ready to lead?"
+    }
+];
+
+// Particle system for floating embers
+class EmberParticle {
+    constructor(canvas) {
+        this.canvas = canvas;
+        this.reset();
+    }
+
+    reset() {
+        this.x = Math.random() * this.canvas.width;
+        this.y = this.canvas.height + 10;
+        this.size = Math.random() * 3 + 1;
+        this.speedY = Math.random() * 1 + 0.5;
+        this.speedX = (Math.random() - 0.5) * 0.5;
+        this.opacity = Math.random() * 0.7 + 0.3;
+        this.fadeSpeed = Math.random() * 0.005 + 0.002;
+    }
+
+    update() {
+        this.y -= this.speedY;
+        this.x += this.speedX;
+        this.opacity -= this.fadeSpeed;
+
+        if (this.y < -10 || this.opacity <= 0) {
+            this.reset();
+        }
+    }
+
+    draw(ctx) {
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(255, 149, 0, ${this.opacity})`;
+        ctx.fill();
+
+        // Glow effect
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size * 2, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(255, 176, 0, ${this.opacity * 0.3})`;
+        ctx.fill();
+    }
+}
+
+// Initialize Portal Warning
+function initPortalWarning() {
+    // Check if already crossed in this session
+    if (sessionStorage.getItem('portalCrossed')) {
+        document.getElementById('portal-warning-overlay').style.display = 'none';
+        return;
+    }
+
+    const overlay = document.getElementById('portal-warning-overlay');
+    const warningText = document.getElementById('portal-warning-text');
+    const challengeText = document.getElementById('portal-challenge-text');
+    const enterBtn = document.getElementById('portal-enter-btn');
+    const hint = document.getElementById('portal-hint');
+    const canvas = document.getElementById('portal-particles');
+    const ctx = canvas.getContext('2d');
+
+    // Set canvas size
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    // Create particles
+    const particles = [];
+    for (let i = 0; i < 50; i++) {
+        particles.push(new EmberParticle(canvas));
+    }
+
+    // Animate particles
+    function animateParticles() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        particles.forEach(p => {
+            p.update();
+            p.draw(ctx);
+        });
+        if (!sessionStorage.getItem('portalCrossed')) {
+            requestAnimationFrame(animateParticles);
+        }
+    }
+    animateParticles();
+
+    // Select random phrase
+    const phrase = PORTAL_WARNINGS[Math.floor(Math.random() * PORTAL_WARNINGS.length)];
+
+    // Typewriter effect
+    function typeWriter(element, text, speed, callback) {
+        let i = 0;
+        element.innerHTML = '<span class="typewriter-cursor"></span>';
+
+        function type() {
+            if (i < text.length) {
+                element.innerHTML = text.substring(0, i + 1) + '<span class="typewriter-cursor"></span>';
+                i++;
+                setTimeout(type, speed);
+            } else {
+                element.innerHTML = text;
+                if (callback) callback();
+            }
+        }
+        type();
+    }
+
+    // Start typewriter sequence
+    typeWriter(warningText, phrase.warning, 30, () => {
+        setTimeout(() => {
+            typeWriter(challengeText, phrase.challenge, 40, () => {
+                enterBtn.style.display = 'inline-block';
+                hint.style.display = 'block';
+                enterBtn.style.animation = 'btnPulse 2s ease-in-out infinite, fadeIn 0.5s ease';
+            });
+        }, 500);
+    });
+
+    // Random glitch effect
+    setInterval(() => {
+        if (Math.random() < 0.1) {
+            overlay.querySelector('.portal-warning-modal').classList.add('portal-glitch');
+            setTimeout(() => {
+                overlay.querySelector('.portal-warning-modal').classList.remove('portal-glitch');
+            }, 300);
+        }
+    }, 2000);
+
+    // Try to play ambient sound (may be blocked by browser)
+    const ambient = document.getElementById('portal-ambient');
+    if (ambient) {
+        ambient.volume = 0.3;
+        ambient.play().catch(() => {
+            // Autoplay blocked, will play on user interaction
+        });
+    }
+
+    // Enter portal function
+    function enterPortal() {
+        sessionStorage.setItem('portalCrossed', 'true');
+
+        // Play sound on interaction if not playing
+        if (ambient && ambient.paused) {
+            ambient.play().catch(() => {});
+        }
+
+        // Fade out effect
+        overlay.classList.add('fade-out');
+
+        // Stop ambient sound gradually
+        if (ambient) {
+            let vol = ambient.volume;
+            const fadeAudio = setInterval(() => {
+                vol -= 0.05;
+                if (vol <= 0) {
+                    ambient.pause();
+                    clearInterval(fadeAudio);
+                } else {
+                    ambient.volume = vol;
+                }
+            }, 100);
+        }
+
+        setTimeout(() => {
+            overlay.style.display = 'none';
+        }, 1500);
+    }
+
+    // Event listeners
+    enterBtn.addEventListener('click', enterPortal);
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && enterBtn.style.display !== 'none') {
+            enterPortal();
+        }
+    });
+
+    // Handle resize
+    window.addEventListener('resize', () => {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+    });
+}
+
+// Initialize when DOM is ready
+document.addEventListener('DOMContentLoaded', initPortalWarning);
+</script>
+
 <!-- EFECTOS CRT - Hacknet Clean -->
 <div class="scan-beam"></div>
 <div class="noise"></div>
