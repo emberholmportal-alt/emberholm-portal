@@ -4353,7 +4353,7 @@ async function loadPlayerAndRender(){
                             "CLAIMING REWARDS",
                             "COMPLETING MISSION",
                             "Calculating rewards...",
-                            "🎯"
+                            '<img src="/img/target.png" class="pixel-icon" alt="">'
                         );
 
                         try {
@@ -4469,7 +4469,7 @@ async function loadPlayerAndRender(){
                             "CLAIMING ALL REWARDS",
                             "PROCESSING MISSIONS",
                             `Claiming 0/${missionsReadyToClaim.length} missions...`,
-                            "🎯"
+                            '<img src="/img/target.png" class="pixel-icon" alt="">'
                         );
 
                         const results = {
@@ -4661,7 +4661,7 @@ async function startMission(heroId, missionId, missionName) {
                 "DEPLOYING EMISSARY",
                 "STARTING MISSION",
                 "Dispatching your emissary...",
-                "🔥"
+                '<img src="/img/starting.png" class="pixel-icon" alt="">'
             );
 
             try {
@@ -4692,7 +4692,7 @@ async function startMission(heroId, missionId, missionName) {
                 hideProcessingModal();
 
                 showInfoModal("MISSION STARTED",
-                    "🔥 " + result.mission_name + "\n\n" +
+                    '<div><img src="/img/starting.png" class="pixel-icon" alt=""> ' + result.mission_name + "</div><br/>" +
                     "Difficulty: " + result.difficulty + "\n" +
                     "Duration: " + result.duration_hours + "h\n\n" +
                     "Energy Spent: " + result.energy_spent + "\n" +
@@ -5052,11 +5052,11 @@ function closeConfirmModal() {
 }
 
 // Show Processing Modal (for async operations)
-function showProcessingModal(title = "PROCESSING", text = "PROCESSING", subtext = "Please wait...", icon = "⚔") {
+function showProcessingModal(title = "PROCESSING", text = "PROCESSING", subtext = "Please wait...", icon = '<img src="/img/crossedswords.png" class="pixel-icon" alt="">') {
     document.getElementById('processing-modal-title').textContent = title;
     document.getElementById('processing-text').textContent = text;
     document.getElementById('processing-subtext').textContent = subtext;
-    document.getElementById('processing-icon').textContent = icon;
+    document.getElementById('processing-icon').innerHTML = icon;
     showModal('processing-modal');
 }
 
@@ -5613,7 +5613,7 @@ async function startPartyMission(missionId, missionName) {
                 "DEPLOYING PARTY",
                 "STARTING PARTY MISSION",
                 "Dispatching 5 emissaries...",
-                "⚔"
+                '<img src="/img/party.png" class="pixel-icon" alt="">'
             );
 
             try {
@@ -5643,7 +5643,7 @@ async function startPartyMission(missionId, missionName) {
                 hideProcessingModal();
 
                 showInfoModal("PARTY MISSION STARTED",
-                    "🔥 " + result.mission_name + "\n\n" +
+                    '<div><img src="/img/party.png" class="pixel-icon" alt=""> ' + result.mission_name + "</div><br/>" +
                     "Difficulty: " + result.difficulty + "\n" +
                     "Duration: " + result.duration_hours + "h\n\n" +
                     "Party Size: 5 emissaries\n" +
