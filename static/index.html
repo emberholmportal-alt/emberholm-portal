@@ -780,10 +780,6 @@ document.addEventListener('DOMContentLoaded', initPortalWarning);
                                 Your Emissaries can be deployed to any accessible mission point.
                                 Choose carefully. <span class="glow-red">Not all who enter a red zone return.</span>
                             </div>
-
-                            <div style="color: var(--info-cyan); margin-top: 15px;">
-                                <span class="glow-cyan">&gt;</span> SELECT REGION TO VIEW ACTIVE MISSIONS
-                            </div>
                         </div>
                     </div>
 
@@ -4661,7 +4657,7 @@ async function startMission(heroId, missionId, missionName) {
                 "DEPLOYING EMISSARY",
                 "STARTING MISSION",
                 "Dispatching your emissary...",
-                '<img src="/img/starting.png" class="pixel-icon" alt="">'
+                '<img src="/img/crossedswords.png" class="pixel-icon" alt="">'
             );
 
             try {
@@ -4692,7 +4688,7 @@ async function startMission(heroId, missionId, missionName) {
                 hideProcessingModal();
 
                 showInfoModal("MISSION STARTED",
-                    '<div><img src="/img/starting.png" class="pixel-icon" alt=""> ' + result.mission_name + "</div><br/>" +
+                    '<div><img src="/img/crossedswords.png" class="pixel-icon" alt=""> ' + result.mission_name + "</div><br/>" +
                     "Difficulty: " + result.difficulty + "\n" +
                     "Duration: " + result.duration_hours + "h\n\n" +
                     "Energy Spent: " + result.energy_spent + "\n" +
