@@ -848,7 +848,7 @@ document.addEventListener('DOMContentLoaded', initPortalWarning);
 
         <!-- REALM DISPATCH LIVE FEED -->
         <div class="section-block" style="margin-top: 20px;">
-            <div class="section-title">📜 REALM DISPATCH // LIVE FEED</div>
+            <div class="section-title"><img src="/img/scroll.png" class="pixel-icon" alt=""> REALM DISPATCH // LIVE FEED</div>
 
             <div id="realm-feed-container" class="live-feed-container">
                 <!-- Los eventos se cargarán aquí dinámicamente -->
@@ -941,7 +941,7 @@ document.addEventListener('DOMContentLoaded', initPortalWarning);
                     <!-- Achievements Display -->
                     <div id="achievements-display" style="margin-top:15px; padding:12px; border:1px solid var(--border-primary); background:rgba(0,0,0,0.3);">
                         <div class="subheading" style="margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
-                            <span>🏆 ACHIEVEMENTS</span>
+                            <span><img src="/img/trophy.png" class="pixel-icon" alt=""> ACHIEVEMENTS</span>
                             <span id="achievements-count" style="font-size:0.8em; color:#888;">[0/0]</span>
                         </div>
                         <div id="achievements-list" style="max-height:200px; overflow-y:auto; font-size:12px;">
@@ -1019,7 +1019,7 @@ document.addEventListener('DOMContentLoaded', initPortalWarning);
     <section class="screen" data-screen="tutorial">
         <!-- INDEX -->
         <div class="section-block">
-            <div class="section-title">📋 TABLE OF CONTENTS // QUICK ACCESS</div>
+            <div class="section-title"><img src="/img/clipboard.png" class="pixel-icon" alt=""> TABLE OF CONTENTS // QUICK ACCESS</div>
             <div class="mono-block">
                 <div class="toc-grid" style="grid-template-columns: repeat(6, 1fr); gap: 10px;">
                     <div class="toc-section">
@@ -1849,7 +1849,7 @@ document.addEventListener('DOMContentLoaded', initPortalWarning);
 
         <!-- ECONOMY SECTION -->
         <div class="section-block" id="eco-ember">
-            <div class="section-title">💰 $EMBER // THE LIFEBLOOD OF EMBERHOLM</div>
+            <div class="section-title"><img src="/img/moneybag.png" class="pixel-icon" alt=""> $EMBER // THE LIFEBLOOD OF EMBERHOLM</div>
             <div class="mono-block">
                 <p><b>What is $EMBER?</b></p>
                 $EMBER is the core <b>UTILITY</b> token that powers all economic activity in Emberholm.
@@ -1999,7 +1999,7 @@ document.addEventListener('DOMContentLoaded', initPortalWarning);
         </div>
 
         <div class="section-block" id="eco-ash">
-            <div class="section-title">🔥 $ASH // THE SACRED RESIDUE</div>
+            <div class="section-title"><img src="/img/fire.png" class="pixel-icon" alt=""> $ASH // THE SACRED RESIDUE</div>
             <div class="mono-block">
                 <p><b>What is $ASH?</b></p>
                 $ASH is the <span style="color:#FFD700;"><b>GOVERNANCE</b></span> and <b>PREMIUM</b> token of Emberholm.
@@ -2127,7 +2127,7 @@ document.addEventListener('DOMContentLoaded', initPortalWarning);
 
         <!-- ITEMS SECTION -->
         <div class="section-block" id="items-equipment">
-            <div class="section-title">⚔️ EQUIPMENT</div>
+            <div class="section-title"><img src="/img/crossedswords.png" class="pixel-icon" alt=""> EQUIPMENT</div>
             <div class="mono-block">
                 <p><b>What is Equipment?</b></p>
                 Equipment are ERC-1155 NFTs that can be equipped to Emissaries to boost their stats and abilities.<br/><br/>
@@ -2163,7 +2163,7 @@ document.addEventListener('DOMContentLoaded', initPortalWarning);
         </div>
 
         <div class="section-block" id="items-runes">
-            <div class="section-title">✨ RUNES</div>
+            <div class="section-title"><img src="/img/Sparkles.png" class="pixel-icon" alt=""> RUNES</div>
             <div class="mono-block">
                 <p><b>What are Runes?</b></p>
                 Runes are ERC-1155 consumable items that provide temporary buffs for missions.<br/><br/>
@@ -2833,8 +2833,8 @@ const EMBERHOLM_WEATHER = {
     FOGGY:         { id: 'foggy',         name: 'EMBER MIST',     icon: '░', weight: 20, color: '#A9A9A9' },
     ASH_RAIN:      { id: 'ash_rain',      name: 'ASH RAIN',       icon: '▒', weight: 15, color: '#4A4A4A' },
     BLOOD_RAIN:    { id: 'blood_rain',    name: 'BLOOD RAIN',     icon: '▓', weight: 10, color: '#8B0000' },
-    THUNDER_STORM: { id: 'thunder_storm', name: 'THUNDER STORM',  icon: '⚡', weight: 5,  color: '#4B0082' },
-    EMBER_STORM:   { id: 'ember_storm',   name: 'EMBER STORM',    icon: '🔥', weight: 3,  color: '#FF4500' },
+    THUNDER_STORM: { id: 'thunder_storm', name: 'THUNDER STORM',  icon: '/img/Lightning.png', weight: 5,  color: '#4B0082', isImage: true },
+    EMBER_STORM:   { id: 'ember_storm',   name: 'EMBER STORM',    icon: '/img/fire.png', weight: 3,  color: '#FF4500', isImage: true },
     VOID_STORM:    { id: 'void_storm',    name: 'VOID STORM',     icon: '◎', weight: 2,  color: '#1a1a2e' },
     SOLAR_FLARE:   { id: 'solar_flare',   name: 'SOLAR FLARE',    icon: '✹', weight: 2,  color: '#FFD700' },
     SHADOW_ECLIPSE:{ id: 'shadow_eclipse',name: 'SHADOW ECLIPSE', icon: '●', weight: 1.5,color: '#0D0D0D' },
@@ -2966,7 +2966,14 @@ function updateEmberholmTime() {
     const weatherIcon = document.getElementById('weather-icon');
     const weatherName = document.getElementById('weather-name');
 
-    if (weatherIcon) { weatherIcon.textContent = weather.icon; weatherIcon.style.color = weather.color; }
+    if (weatherIcon) {
+        if (weather.isImage) {
+            weatherIcon.innerHTML = `<img src="${weather.icon}" class="pixel-icon" alt="${weather.name}" style="filter:none;">`;
+        } else {
+            weatherIcon.textContent = weather.icon;
+            weatherIcon.style.color = weather.color;
+        }
+    }
     if (weatherName) { weatherName.textContent = weather.name; weatherName.style.color = weather.color; }
 }
 
@@ -3933,15 +3940,15 @@ async function loadPlayerAndRender(){
 
             // Status styling
             let statusColor = "#44ff44";
-            let statusIcon = "✓";
+            let statusIcon = '<img src="/img/checkmark.png" class="pixel-icon" alt="✓">';
             let statusText = ds.state || "READY";
             if (statusText === "ON_MISSION") {
                 statusColor = "#ffaa00";
-                statusIcon = "⏳";
+                statusIcon = '<img src="/img/hourglass.png" class="pixel-icon" alt="⏳">';
                 statusText = "ON MISSION";
             } else if (statusText === "FALLEN") {
                 statusColor = "#ff4444";
-                statusIcon = "💀";
+                statusIcon = '<img src="/img/skull.png" class="pixel-icon" alt="💀">';
             }
 
             // Energy bar percentage
@@ -4027,16 +4034,16 @@ async function loadPlayerAndRender(){
                 <div class="cs-equipment">
                     <div class="cs-equip-label">EQUIPMENT</div>
                     <div class="cs-equip-slots">
-                        <div class="cs-slot ${prime.weapon_id ? 'equipped' : ''}" title="Weapon">🗡️</div>
-                        <div class="cs-slot ${prime.armor_id ? 'equipped' : ''}" title="Armor">🛡️</div>
-                        <div class="cs-slot ${prime.helmet_id ? 'equipped' : ''}" title="Helmet">⛑️</div>
-                        <div class="cs-slot ${prime.accessory_id ? 'equipped' : ''}" title="Accessory">💍</div>
-                        <div class="cs-slot ${prime.amulet_id ? 'equipped' : ''}" title="Amulet">📿</div>
+                        <div class="cs-slot ${prime.weapon_id ? 'equipped' : ''}" title="Weapon"><img src="/img/dagger.png" class="pixel-icon" alt="Weapon"></div>
+                        <div class="cs-slot ${prime.armor_id ? 'equipped' : ''}" title="Armor"><img src="/img/shield.png" class="pixel-icon" alt="Armor"></div>
+                        <div class="cs-slot ${prime.helmet_id ? 'equipped' : ''}" title="Helmet"><img src="/img/helmet.png" class="pixel-icon" alt="Helmet"></div>
+                        <div class="cs-slot ${prime.accessory_id ? 'equipped' : ''}" title="Accessory"><img src="/img/ring.png" class="pixel-icon" alt="Accessory"></div>
+                        <div class="cs-slot ${prime.amulet_id ? 'equipped' : ''}" title="Amulet"><img src="/img/beads.png" class="pixel-icon" alt="Amulet"></div>
                         <div class="cs-slot-divider">|</div>
-                        <div class="cs-slot ${runeCount >= 1 ? 'equipped' : ''}" title="Rune 1">💎</div>
-                        <div class="cs-slot ${runeCount >= 2 ? 'equipped' : ''}" title="Rune 2">💎</div>
+                        <div class="cs-slot ${runeCount >= 1 ? 'equipped' : ''}" title="Rune 1"><img src="/img/gem.png" class="pixel-icon" alt="Rune"></div>
+                        <div class="cs-slot ${runeCount >= 2 ? 'equipped' : ''}" title="Rune 2"><img src="/img/gem.png" class="pixel-icon" alt="Rune"></div>
                         <div class="cs-slot-divider">|</div>
-                        <div class="cs-slot ${hasLand ? 'equipped' : ''}" title="Land">🏰</div>
+                        <div class="cs-slot ${hasLand ? 'equipped' : ''}" title="Land"><img src="/img/crown.png" class="pixel-icon" alt="Land"></div>
                     </div>
                     <div class="cs-equip-count">${equipCount}/5 GEAR | ${runeCount}/2 RUNES | ${hasLand ? '1' : '0'}/1 LAND</div>
                 </div>
@@ -4130,12 +4137,12 @@ async function loadPlayerAndRender(){
             if (state === "ON_MISSION") {
                 stateColor = missionComplete ? "#44ff44" : "#ffaa00";
                 const partyLabel = isPartyMission ? ' <small style="color:#ffaa00;">[PARTY MISSION]</small>' : '';
-                stateText = missionComplete ? "🎯 MISSION READY" : `🔥 IN PROGRESS${partyLabel}`;
+                stateText = missionComplete ? '<img src="/img/target.png" class="pixel-icon" alt=""> MISSION READY' : `<img src="/img/fire.png" class="pixel-icon" alt=""> IN PROGRESS${partyLabel}`;
             } else if (state === "FALLEN") {
                 stateColor = "#ff4444";
-                stateText = "💀 FALLEN";
+                stateText = '<img src="/img/skull.png" class="pixel-icon" alt=""> FALLEN';
             } else {
-                stateText = "✓ READY";
+                stateText = '<img src="/img/checkmark.png" class="pixel-icon" alt=""> READY';
             }
 
             // Action buttons based on state
@@ -6044,12 +6051,21 @@ document.addEventListener('visibilitychange', function() {
 
 // Achievement definitions - synced with backend AVAILABLE_ACHIEVEMENTS
 // Added lore-friendly names and progress tracking
+// Helper to create icon HTML
+function getAchievementIconHtml(icon, isImage) {
+    if (isImage) {
+        return `<img src="${icon}" class="pixel-icon" alt="achievement">`;
+    }
+    return icon;
+}
+
 const ACHIEVEMENTS_CONFIG = {
     // Missions achievements (auto-granted by backend)
     first_mission: {
         id: 'first_mission',
         name: 'PORTAL INITIATE',
-        icon: '🎯',
+        icon: '/img/target.png',
+        isImage: true,
         category: 'missions',
         description: 'You crossed the veil for the first time',
         requirement: 'Complete your first mission',
@@ -6059,7 +6075,8 @@ const ACHIEVEMENTS_CONFIG = {
     '10_missions': {
         id: '10_missions',
         name: 'REALM SCOUT',
-        icon: '⚔️',
+        icon: '/img/crossedswords.png',
+        isImage: true,
         category: 'missions',
         description: 'The realm begins to recognize you',
         requirement: 'Complete 10 missions',
@@ -6069,7 +6086,8 @@ const ACHIEVEMENTS_CONFIG = {
     '50_missions': {
         id: '50_missions',
         name: 'EMBERBOUND VETERAN',
-        icon: '🏆',
+        icon: '/img/trophy.png',
+        isImage: true,
         category: 'missions',
         description: 'The ember burns eternal within you',
         requirement: 'Complete 50 missions',
@@ -6079,7 +6097,8 @@ const ACHIEVEMENTS_CONFIG = {
     '100_missions': {
         id: '100_missions',
         name: 'LEGEND OF EMBERHOLM',
-        icon: '👑',
+        icon: '/img/crown.png',
+        isImage: true,
         category: 'missions',
         description: 'Your name echoes through the realm',
         requirement: 'Complete 100 missions',
@@ -6089,7 +6108,8 @@ const ACHIEVEMENTS_CONFIG = {
     reach_level_10: {
         id: 'reach_level_10',
         name: 'AWAKENED',
-        icon: '⭐',
+        icon: '/img/star.png',
+        isImage: true,
         category: 'levels',
         description: 'Your power begins to manifest',
         requirement: 'Reach level 10',
@@ -6099,7 +6119,8 @@ const ACHIEVEMENTS_CONFIG = {
     reach_level_50: {
         id: 'reach_level_50',
         name: 'ASCENDED',
-        icon: '💫',
+        icon: '/img/dizzy.png',
+        isImage: true,
         category: 'levels',
         description: 'You transcend mortal limits',
         requirement: 'Reach level 50',
@@ -6109,7 +6130,8 @@ const ACHIEVEMENTS_CONFIG = {
     guild_master: {
         id: 'guild_master',
         name: 'GUILD SOVEREIGN',
-        icon: '🏅',
+        icon: '/img/trophy.png',
+        isImage: true,
         category: 'special',
         description: 'You command the respect of an entire guild',
         requirement: 'Become a guild leader',
@@ -6119,7 +6141,8 @@ const ACHIEVEMENTS_CONFIG = {
     dragon_slayer: {
         id: 'dragon_slayer',
         name: 'DRAGON SLAYER',
-        icon: '🐉',
+        icon: '/img/fire.png',
+        isImage: true,
         category: 'special',
         description: 'The beast fell before your might',
         requirement: 'Defeat a legendary dragon',
@@ -6129,7 +6152,8 @@ const ACHIEVEMENTS_CONFIG = {
     void_walker: {
         id: 'void_walker',
         name: 'VOID WALKER',
-        icon: '🌌',
+        icon: '/img/crystalball.png',
+        isImage: true,
         category: 'guild_missions',
         description: 'You have mastered the darkness between realms',
         requirement: 'Complete all Echoes of the Veil missions',
@@ -6139,7 +6163,8 @@ const ACHIEVEMENTS_CONFIG = {
     forge_master: {
         id: 'forge_master',
         name: 'FORGE MASTER',
-        icon: '⚒️',
+        icon: '/img/weapons.png',
+        isImage: true,
         category: 'guild_missions',
         description: 'The flames of creation bend to your will',
         requirement: 'Complete all Forge Legion missions',
@@ -6150,7 +6175,8 @@ const ACHIEVEMENTS_CONFIG = {
     touched_by_shadow: {
         id: 'touched_by_shadow',
         name: 'TOUCHED BY SHADOW',
-        icon: '☠️',
+        icon: '/img/skull.png',
+        isImage: true,
         category: 'combat',
         description: 'The void claimed you... but released you',
         requirement: 'Experience your first death',
@@ -6160,7 +6186,8 @@ const ACHIEVEMENTS_CONFIG = {
     perfect_resonance: {
         id: 'perfect_resonance',
         name: 'PERFECT RESONANCE',
-        icon: '⚡',
+        icon: '/img/Lightning.png',
+        isImage: true,
         category: 'combat',
         description: 'The stars aligned in your favor',
         requirement: 'Achieve a Perfect Alignment',
@@ -6170,7 +6197,8 @@ const ACHIEVEMENTS_CONFIG = {
     soul_binder: {
         id: 'soul_binder',
         name: 'SOUL BINDER',
-        icon: '🔮',
+        icon: '/img/crystalball.png',
+        isImage: true,
         category: 'emissaries',
         description: 'Your first pact with the veil',
         requirement: 'Link your first emissary',
@@ -6180,7 +6208,8 @@ const ACHIEVEMENTS_CONFIG = {
     squad_commander: {
         id: 'squad_commander',
         name: 'SQUAD COMMANDER',
-        icon: '⚔️',
+        icon: '/img/Swords.png',
+        isImage: true,
         category: 'emissaries',
         description: 'A small but loyal force',
         requirement: 'Own 5 emissaries',
@@ -6190,7 +6219,8 @@ const ACHIEVEMENTS_CONFIG = {
     army_forger: {
         id: 'army_forger',
         name: 'ARMY FORGER',
-        icon: '🏰',
+        icon: '/img/crown.png',
+        isImage: true,
         category: 'emissaries',
         description: 'Your influence spreads across the realm',
         requirement: 'Own 20 emissaries',
@@ -6295,17 +6325,18 @@ function renderAchievements(stats, grantedFromAPI) {
     // Unlocked achievements
     unlocked.forEach(ach => {
         const isExpanded = expandedAchievements[ach.id];
+        const iconHtml = getAchievementIconHtml(ach.icon, ach.isImage);
         html += `
             <div class="achievement-item unlocked" onclick="toggleAchievement('${ach.id}')">
                 <div class="achievement-header">
-                    <span class="achievement-icon">${ach.icon}</span>
+                    <span class="achievement-icon">${iconHtml}</span>
                     <span class="achievement-name">${ach.name}</span>
-                    <span class="achievement-status">✓</span>
+                    <span class="achievement-status"><img src="/img/checkmark.png" class="pixel-icon-sm" alt="✓"></span>
                 </div>
                 ${isExpanded ? `
                 <div class="achievement-details">
                     <div class="achievement-desc">"${ach.description}"</div>
-                    <div class="achievement-req">☑ ${ach.requirement}</div>
+                    <div class="achievement-req"><img src="/img/greencheck.png" class="pixel-icon-sm" alt="☑"> ${ach.requirement}</div>
                 </div>
                 ` : ''}
             </div>
@@ -6317,11 +6348,12 @@ function renderAchievements(stats, grantedFromAPI) {
         const isExpanded = expandedAchievements[ach.id];
         const pct = Math.min(100, Math.round((ach.current / ach.target) * 100));
         const isClose = pct >= 80;
+        const iconHtml = getAchievementIconHtml(ach.icon, ach.isImage);
 
         html += `
             <div class="achievement-item locked ${isClose ? 'close-to-unlock' : ''}" onclick="toggleAchievement('${ach.id}')">
                 <div class="achievement-header">
-                    <span class="achievement-icon" style="filter:grayscale(1) opacity(0.5)">${ach.icon}</span>
+                    <span class="achievement-icon" style="filter:grayscale(1) opacity(0.5)">${iconHtml}</span>
                     <span class="achievement-name">${ach.name}</span>
                     <span class="achievement-progress">${ach.current}/${ach.target}</span>
                 </div>

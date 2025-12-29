@@ -3062,6 +3062,40 @@ button:disabled {
     }
 }
 
+/* Pixel Art Icon System */
+.pixel-icon {
+    width: 1em;
+    height: 1em;
+    vertical-align: middle;
+    display: inline-block;
+    image-rendering: pixelated;
+    filter: grayscale(100%) brightness(1.5) sepia(100%) hue-rotate(-10deg) saturate(5);
+}
+
+.pixel-icon-sm {
+    width: 0.9em;
+    height: 0.9em;
+}
+
+.pixel-icon-lg {
+    width: 1.2em;
+    height: 1.2em;
+}
+
+.pixel-icon-xl {
+    width: 1.5em;
+    height: 1.5em;
+}
+
+/* No filter variant for colored icons */
+.pixel-icon-raw {
+    width: 1em;
+    height: 1em;
+    vertical-align: middle;
+    display: inline-block;
+    image-rendering: pixelated;
+}
+
 /* Loading Text */
 .terminal-loading-text {
     font-size: 16px;
