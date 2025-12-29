@@ -280,6 +280,14 @@
     margin-bottom: 25px;
     min-height: 80px;
     text-shadow: 0 0 10px rgba(255, 176, 0, 0.5);
+    opacity: 0;
+    transform: translateY(10px);
+    transition: opacity 1.5s ease, transform 1.5s ease;
+}
+
+.portal-warning-text.fade-in {
+    opacity: 1;
+    transform: translateY(0);
 }
 
 .portal-challenge-text {
@@ -290,6 +298,14 @@
     margin-bottom: 35px;
     min-height: 30px;
     text-shadow: 0 0 15px rgba(255, 149, 0, 0.7);
+    opacity: 0;
+    transform: translateY(10px);
+    transition: opacity 1.2s ease, transform 1.2s ease;
+}
+
+.portal-challenge-text.fade-in {
+    opacity: 1;
+    transform: translateY(0);
 }
 
 .portal-enter-btn {
@@ -519,34 +535,24 @@ function initPortalWarning() {
     // Select random phrase
     const phrase = PORTAL_WARNINGS[Math.floor(Math.random() * PORTAL_WARNINGS.length)];
 
-    // Typewriter effect
-    function typeWriter(element, text, speed, callback) {
-        let i = 0;
-        element.innerHTML = '<span class="typewriter-cursor"></span>';
+    // Set text content
+    warningText.textContent = phrase.warning;
+    challengeText.textContent = phrase.challenge;
 
-        function type() {
-            if (i < text.length) {
-                element.innerHTML = text.substring(0, i + 1) + '<span class="typewriter-cursor"></span>';
-                i++;
-                setTimeout(type, speed);
-            } else {
-                element.innerHTML = text;
-                if (callback) callback();
-            }
-        }
-        type();
-    }
+    // Fade-in sequence
+    setTimeout(() => {
+        warningText.classList.add('fade-in');
 
-    // Start typewriter sequence
-    typeWriter(warningText, phrase.warning, 15, () => {
         setTimeout(() => {
-            typeWriter(challengeText, phrase.challenge, 20, () => {
+            challengeText.classList.add('fade-in');
+
+            setTimeout(() => {
                 enterBtn.style.display = 'inline-block';
                 hint.style.display = 'block';
                 enterBtn.style.animation = 'btnPulse 2s ease-in-out infinite, fadeIn 0.5s ease';
-            });
-        }, 500);
-    });
+            }, 800);
+        }, 1200);
+    }, 500);
 
     // Random glitch effect
     setInterval(() => {
