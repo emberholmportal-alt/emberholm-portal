@@ -241,11 +241,11 @@
 
     function buildInventoryContent(emissary, availableItems) {
         const slots = [
-            { key: 'weapon', label: 'WEAPON', type: 'weapon', icon: '⚔️' },
-            { key: 'armor', label: 'ARMOR', type: 'armor', icon: '🛡️' },
-            { key: 'helmet', label: 'HELMET', type: 'helmet', icon: '⛑️' },
-            { key: 'accessory', label: 'ACCESSORY', type: 'accessory', icon: '💍' },
-            { key: 'amulet', label: 'AMULET', type: 'amulet', icon: '📿' }
+            { key: 'weapon', label: 'WEAPON', type: 'weapon', icon: '<img src="/img/dagger.png" class="pixel-icon" alt="">' },
+            { key: 'armor', label: 'ARMOR', type: 'armor', icon: '<img src="/img/shield.png" class="pixel-icon" alt="">' },
+            { key: 'helmet', label: 'HELMET', type: 'helmet', icon: '<img src="/img/helmet.png" class="pixel-icon" alt="">' },
+            { key: 'accessory', label: 'ACCESSORY', type: 'accessory', icon: '<img src="/img/ring.png" class="pixel-icon" alt="">' },
+            { key: 'amulet', label: 'AMULET', type: 'amulet', icon: '<img src="/img/beads.png" class="pixel-icon" alt="">' }
         ];
 
         let slotsHtml = '';

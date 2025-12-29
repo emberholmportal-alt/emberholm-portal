@@ -538,9 +538,9 @@ function initPortalWarning() {
     }
 
     // Start typewriter sequence
-    typeWriter(warningText, phrase.warning, 30, () => {
+    typeWriter(warningText, phrase.warning, 15, () => {
         setTimeout(() => {
-            typeWriter(challengeText, phrase.challenge, 40, () => {
+            typeWriter(challengeText, phrase.challenge, 20, () => {
                 enterBtn.style.display = 'inline-block';
                 hint.style.display = 'block';
                 enterBtn.style.animation = 'btnPulse 2s ease-in-out infinite, fadeIn 0.5s ease';
@@ -930,10 +930,10 @@ document.addEventListener('DOMContentLoaded', initPortalWarning);
                         <div class="subheading" style="margin-bottom:8px;">ECONOMY BALANCE</div>
                         <div style="font-size:13px; line-height:1.8;">
                             <div class="balance-ember">
-                                💰 EMBER: <span id="ember-balance" style="color:var(--gold); font-weight:600;">0</span> $EMBER
+                                <img src="/img/moneybag.png" class="pixel-icon" alt=""> $EMBER: <span id="ember-balance" style="color:var(--gold); font-weight:600;">0</span>
                             </div>
                             <div id="ash-balance-display" class="balance-ash" style="display:none; margin-top:5px;">
-                                🔥 ASH: <span id="ash-balance" style="color:#ff6b6b; font-weight:600;">0</span> $ASH
+                                <img src="/img/fire.png" class="pixel-icon" alt=""> $ASH: <span id="ash-balance" style="color:#ff6b6b; font-weight:600;">0</span>
                             </div>
                         </div>
                     </div>
@@ -3998,21 +3998,21 @@ async function loadPlayerAndRender(){
                 <!-- STATS GRID -->
                 <div class="cs-stats-grid">
                     <div class="cs-stat">
-                        <div class="cs-stat-icon">⚔</div>
+                        <div class="cs-stat-icon"><img src="/img/crossedswords.png" class="pixel-icon" alt="XP"></div>
                         <div class="cs-stat-info">
                             <div class="cs-stat-label">XP</div>
                             <div class="cs-stat-value">${(ds.xp_total || 0).toLocaleString()}</div>
                         </div>
                     </div>
                     <div class="cs-stat">
-                        <div class="cs-stat-icon">✨</div>
+                        <div class="cs-stat-icon"><img src="/img/Sparkles.png" class="pixel-icon" alt="AURA"></div>
                         <div class="cs-stat-info">
                             <div class="cs-stat-label">AURA</div>
                             <div class="cs-stat-value" style="color: var(--gold);">Lv.${ds.aura_level || 0}</div>
                         </div>
                     </div>
                     <div class="cs-stat">
-                        <div class="cs-stat-icon">⚡</div>
+                        <div class="cs-stat-icon"><img src="/img/Lightning.png" class="pixel-icon" alt="ENERGY"></div>
                         <div class="cs-stat-info">
                             <div class="cs-stat-label">ENERGY</div>
                             <div class="cs-stat-value">${energyCurrent}/${energyMax}</div>
@@ -4022,7 +4022,7 @@ async function loadPlayerAndRender(){
                         </div>
                     </div>
                     <div class="cs-stat">
-                        <div class="cs-stat-icon">💀</div>
+                        <div class="cs-stat-icon"><img src="/img/skull.png" class="pixel-icon" alt="DEATHS"></div>
                         <div class="cs-stat-info">
                             <div class="cs-stat-label">DEATHS</div>
                             <div class="cs-stat-value" style="color: #ff6b6b;">${ds.death_count || 0}</div>
