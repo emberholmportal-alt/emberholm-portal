@@ -402,7 +402,7 @@
             </div>
 
             <div class="mono-small-note" style="margin-bottom:20px; padding:10px; background:rgba(255,149,0,0.1); border-left:3px solid #ff9500;">
-                📦 Equip items and runes to boost your emissary's performance in missions.
+                <img src="/img/inventory.png" class="pixel-icon" alt=""> Equip items and runes to boost your emissary's performance in missions.
             </div>
 
             <!-- Equipment Slots -->
