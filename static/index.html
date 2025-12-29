@@ -162,6 +162,468 @@
 </style>
 </head>
 <body>
+<!-- ============================================
+     PORTAL WARNING MODAL - Epic Entry Screen
+     ============================================ -->
+<div id="portal-warning-overlay" class="portal-warning-overlay">
+    <canvas id="portal-particles"></canvas>
+    <div class="portal-warning-modal">
+        <div class="portal-decoration">═══ ⚔ ═══</div>
+        <div class="portal-warning-text" id="portal-warning-text"></div>
+        <div class="portal-challenge-text" id="portal-challenge-text"></div>
+        <button class="portal-enter-btn" id="portal-enter-btn" style="display:none;">
+            [ ENTER THE PORTAL ]
+        </button>
+        <div class="portal-hint" id="portal-hint" style="display:none;">
+            <span class="blink">▸</span> Press ENTER or click to proceed
+        </div>
+    </div>
+    <audio id="portal-ambient" loop preload="auto">
+        <source src="/music/ambient_portal.mp3" type="audio/mpeg">
+    </audio>
+</div>
+
+<style>
+/* ============================================
+   PORTAL WARNING MODAL STYLES
+   ============================================ */
+.portal-warning-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: #000;
+    z-index: 99999;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    opacity: 1;
+    transition: opacity 1.5s ease-out;
+}
+
+.portal-warning-overlay.fade-out {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.portal-warning-overlay::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: repeating-linear-gradient(
+        0deg,
+        rgba(0, 0, 0, 0.15),
+        rgba(0, 0, 0, 0.15) 1px,
+        transparent 1px,
+        transparent 2px
+    );
+    pointer-events: none;
+    z-index: 1;
+}
+
+#portal-particles {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+}
+
+.portal-warning-modal {
+    position: relative;
+    z-index: 2;
+    max-width: 700px;
+    padding: 40px 50px;
+    text-align: center;
+    border: 2px solid #ff9500;
+    background: rgba(0, 0, 0, 0.9);
+    box-shadow:
+        0 0 30px rgba(255, 149, 0, 0.3),
+        0 0 60px rgba(255, 149, 0, 0.1),
+        inset 0 0 30px rgba(255, 149, 0, 0.05);
+    animation: portalGlow 3s ease-in-out infinite;
+}
+
+@keyframes portalGlow {
+    0%, 100% {
+        box-shadow:
+            0 0 30px rgba(255, 149, 0, 0.3),
+            0 0 60px rgba(255, 149, 0, 0.1),
+            inset 0 0 30px rgba(255, 149, 0, 0.05);
+    }
+    50% {
+        box-shadow:
+            0 0 40px rgba(255, 149, 0, 0.5),
+            0 0 80px rgba(255, 149, 0, 0.2),
+            inset 0 0 40px rgba(255, 149, 0, 0.1);
+    }
+}
+
+.portal-decoration {
+    font-size: 24px;
+    color: #ff9500;
+    margin-bottom: 30px;
+    letter-spacing: 10px;
+    text-shadow: 0 0 20px #ff9500;
+}
+
+.portal-warning-text {
+    font-family: 'Pixelify Sans', 'Classic Console Neue', monospace;
+    font-size: 18px;
+    color: #ffb000;
+    line-height: 1.8;
+    margin-bottom: 25px;
+    min-height: 80px;
+    text-shadow: 0 0 10px rgba(255, 176, 0, 0.5);
+    opacity: 0;
+    transform: translateY(10px);
+    transition: opacity 1.5s ease, transform 1.5s ease;
+}
+
+.portal-warning-text.fade-in {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.portal-challenge-text {
+    font-family: 'Alagard', serif;
+    font-size: 22px;
+    color: #ff9500;
+    font-weight: bold;
+    margin-bottom: 35px;
+    min-height: 30px;
+    text-shadow: 0 0 15px rgba(255, 149, 0, 0.7);
+    opacity: 0;
+    transform: translateY(10px);
+    transition: opacity 1.2s ease, transform 1.2s ease;
+}
+
+.portal-challenge-text.fade-in {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.portal-enter-btn {
+    font-family: 'Pixelify Sans', 'Classic Console Neue', monospace;
+    font-size: 18px;
+    padding: 15px 40px;
+    background: transparent;
+    border: 2px solid #ff9500;
+    color: #ff9500;
+    cursor: pointer;
+    letter-spacing: 3px;
+    transition: all 0.3s ease;
+    text-shadow: 0 0 10px #ff9500;
+    animation: btnPulse 2s ease-in-out infinite;
+}
+
+@keyframes btnPulse {
+    0%, 100% {
+        box-shadow: 0 0 10px rgba(255, 149, 0, 0.3);
+    }
+    50% {
+        box-shadow: 0 0 25px rgba(255, 149, 0, 0.6);
+    }
+}
+
+.portal-enter-btn:hover {
+    background: #ff9500;
+    color: #000;
+    box-shadow: 0 0 40px rgba(255, 149, 0, 0.8);
+    transform: scale(1.05);
+}
+
+.portal-hint {
+    margin-top: 20px;
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    color: #666;
+}
+
+.portal-hint .blink {
+    animation: blink 1s infinite;
+}
+
+@keyframes blink {
+    0%, 50% { opacity: 1; }
+    51%, 100% { opacity: 0; }
+}
+
+/* Glitch effect */
+.portal-glitch {
+    animation: portalGlitch 0.3s linear;
+}
+
+@keyframes portalGlitch {
+    0% { transform: translate(0); filter: hue-rotate(0deg); }
+    20% { transform: translate(-2px, 2px); filter: hue-rotate(90deg); }
+    40% { transform: translate(2px, -2px); filter: hue-rotate(180deg); }
+    60% { transform: translate(-2px, -2px); filter: hue-rotate(270deg); }
+    80% { transform: translate(2px, 2px); filter: hue-rotate(360deg); }
+    100% { transform: translate(0); filter: hue-rotate(0deg); }
+}
+
+/* Typewriter cursor */
+.typewriter-cursor {
+    display: inline-block;
+    width: 10px;
+    height: 18px;
+    background: #ffb000;
+    margin-left: 2px;
+    animation: cursorBlink 0.7s infinite;
+}
+
+@keyframes cursorBlink {
+    0%, 50% { opacity: 1; }
+    51%, 100% { opacity: 0; }
+}
+</style>
+
+<script>
+// ============================================
+// PORTAL WARNING SYSTEM
+// ============================================
+
+const PORTAL_WARNINGS = [
+    {
+        warning: "The Portal of Emberholm opens before you, traveler. Beyond lies a realm where the Eternal Flame fades into darkness.",
+        challenge: "Do you dare cross the threshold?"
+    },
+    {
+        warning: "The Six Orders await. Glory or death, riches or ruin. There is no path of return once you step through.",
+        challenge: "Do you accept your destiny?"
+    },
+    {
+        warning: "35,000 souls seek salvation. The Flame dies. Only the Emissaries can rekindle the hope of the realm.",
+        challenge: "Will you be the one to ignite the fire?"
+    },
+    {
+        warning: "Beware, Emissary. The Void lurks between shadows, and your vital energy is the only currency that matters.",
+        challenge: "Will you enter knowing the price?"
+    },
+    {
+        warning: "Death is permanent. Rewards are eternal. The Portal shows no mercy to the weak of heart.",
+        challenge: "Will you cross into the unknown?"
+    },
+    {
+        warning: "The ancient guilds whisper of your arrival. Forge Legion, Echoes of the Veil, Dawn Keepers... all watch and wait.",
+        challenge: "Which banner will you raise?"
+    },
+    {
+        warning: "Energy fades. Time runs short. The missions grow darker with each passing cycle. Yet still, heroes emerge.",
+        challenge: "Are you among the chosen?"
+    },
+    {
+        warning: "Through the veil, realms collide. The Eternal Flame pulses with arcane energy. The realm remembers all who enter.",
+        challenge: "Ready to write your legacy?"
+    },
+    {
+        warning: "Emissaries fall. Emissaries rise. The cycle continues eternal. Your soul will be bound to this realm.",
+        challenge: "Do you accept the binding?"
+    },
+    {
+        warning: "The Horizon Watch guards the borders. The Shadow Guild moves unseen. The Circle of Mist obscures all truth.",
+        challenge: "Where will your allegiance lie?"
+    },
+    {
+        warning: "Aura accumulates. Experience compounds. But one misstep, one failed mission, and all could be lost.",
+        challenge: "Is your will unbreakable?"
+    },
+    {
+        warning: "Perfect Alignment grants power beyond measure. But the stars must favor you. Luck is a fickle ally.",
+        challenge: "Do you feel fortunate, traveler?"
+    },
+    {
+        warning: "The Portal pulses with unstable energy. Glitches ripple through the veil. Something ancient stirs within.",
+        challenge: "Still wish to proceed?"
+    },
+    {
+        warning: "Many have entered. Few have conquered. The realm consumes the unprepared and rewards the relentless.",
+        challenge: "Which will you become?"
+    },
+    {
+        warning: "This is not a game. This is Emberholm. Your choices echo through eternity. Your emissaries await your command.",
+        challenge: "Are you ready to lead?"
+    }
+];
+
+// Particle system for floating embers
+class EmberParticle {
+    constructor(canvas) {
+        this.canvas = canvas;
+        this.reset();
+    }
+
+    reset() {
+        this.x = Math.random() * this.canvas.width;
+        this.y = this.canvas.height + 10;
+        this.size = Math.random() * 3 + 1;
+        this.speedY = Math.random() * 1 + 0.5;
+        this.speedX = (Math.random() - 0.5) * 0.5;
+        this.opacity = Math.random() * 0.7 + 0.3;
+        this.fadeSpeed = Math.random() * 0.005 + 0.002;
+    }
+
+    update() {
+        this.y -= this.speedY;
+        this.x += this.speedX;
+        this.opacity -= this.fadeSpeed;
+
+        if (this.y < -10 || this.opacity <= 0) {
+            this.reset();
+        }
+    }
+
+    draw(ctx) {
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(255, 149, 0, ${this.opacity})`;
+        ctx.fill();
+
+        // Glow effect
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size * 2, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(255, 176, 0, ${this.opacity * 0.3})`;
+        ctx.fill();
+    }
+}
+
+// Initialize Portal Warning
+function initPortalWarning() {
+    // Check if already crossed in this session
+    if (sessionStorage.getItem('portalCrossed')) {
+        document.getElementById('portal-warning-overlay').style.display = 'none';
+        return;
+    }
+
+    const overlay = document.getElementById('portal-warning-overlay');
+    const warningText = document.getElementById('portal-warning-text');
+    const challengeText = document.getElementById('portal-challenge-text');
+    const enterBtn = document.getElementById('portal-enter-btn');
+    const hint = document.getElementById('portal-hint');
+    const canvas = document.getElementById('portal-particles');
+    const ctx = canvas.getContext('2d');
+
+    // Set canvas size
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    // Create particles
+    const particles = [];
+    for (let i = 0; i < 50; i++) {
+        particles.push(new EmberParticle(canvas));
+    }
+
+    // Animate particles
+    function animateParticles() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        particles.forEach(p => {
+            p.update();
+            p.draw(ctx);
+        });
+        if (!sessionStorage.getItem('portalCrossed')) {
+            requestAnimationFrame(animateParticles);
+        }
+    }
+    animateParticles();
+
+    // Select random phrase
+    const phrase = PORTAL_WARNINGS[Math.floor(Math.random() * PORTAL_WARNINGS.length)];
+
+    // Set text content
+    warningText.textContent = phrase.warning;
+    challengeText.textContent = phrase.challenge;
+
+    // Fade-in sequence
+    setTimeout(() => {
+        warningText.classList.add('fade-in');
+
+        setTimeout(() => {
+            challengeText.classList.add('fade-in');
+
+            setTimeout(() => {
+                enterBtn.style.display = 'inline-block';
+                hint.style.display = 'block';
+                enterBtn.style.animation = 'btnPulse 2s ease-in-out infinite, fadeIn 0.5s ease';
+            }, 800);
+        }, 1200);
+    }, 500);
+
+    // Random glitch effect
+    setInterval(() => {
+        if (Math.random() < 0.1) {
+            overlay.querySelector('.portal-warning-modal').classList.add('portal-glitch');
+            setTimeout(() => {
+                overlay.querySelector('.portal-warning-modal').classList.remove('portal-glitch');
+            }, 300);
+        }
+    }, 2000);
+
+    // Try to play ambient sound (may be blocked by browser)
+    const ambient = document.getElementById('portal-ambient');
+    if (ambient) {
+        ambient.volume = 0.3;
+        ambient.play().catch(() => {
+            // Autoplay blocked, will play on user interaction
+        });
+    }
+
+    // Enter portal function
+    function enterPortal() {
+        sessionStorage.setItem('portalCrossed', 'true');
+
+        // Play sound on interaction if not playing
+        if (ambient && ambient.paused) {
+            ambient.play().catch(() => {});
+        }
+
+        // Fade out effect
+        overlay.classList.add('fade-out');
+
+        // Stop ambient sound gradually
+        if (ambient) {
+            let vol = ambient.volume;
+            const fadeAudio = setInterval(() => {
+                vol -= 0.05;
+                if (vol <= 0) {
+                    ambient.pause();
+                    clearInterval(fadeAudio);
+                } else {
+                    ambient.volume = vol;
+                }
+            }, 100);
+        }
+
+        setTimeout(() => {
+            overlay.style.display = 'none';
+        }, 1500);
+    }
+
+    // Event listeners
+    enterBtn.addEventListener('click', enterPortal);
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && enterBtn.style.display !== 'none') {
+            enterPortal();
+        }
+    });
+
+    // Handle resize
+    window.addEventListener('resize', () => {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+    });
+}
+
+// Initialize when DOM is ready
+document.addEventListener('DOMContentLoaded', initPortalWarning);
+</script>
+
 <!-- EFECTOS CRT - Hacknet Clean -->
 <div class="scan-beam"></div>
 <div class="noise"></div>
@@ -280,7 +742,7 @@
             <div class="logo-wrapper">
                 <img src="img/logo-site2.png" class="project-logo-img" alt="Emberholm Portal" />
                 <div class="center-text-line" style="font-weight:bold;">
-                    Emberholm Portal
+                    EMBER PROTOCOL v0.1972 // RETRO RPG INTERFACE
                 </div>
                 <div class="center-text-line mono-small-note" style="margin-top:6px;">
                     UNAUTHORIZED ACCESS WILL BE LOGGED BY EMBER PROTOCOL
@@ -392,7 +854,7 @@
 
         <!-- REALM DISPATCH LIVE FEED -->
         <div class="section-block" style="margin-top: 20px;">
-            <div class="section-title">📜 REALM DISPATCH // LIVE FEED</div>
+            <div class="section-title"><img src="/img/scroll.png" class="pixel-icon" alt=""> REALM DISPATCH // LIVE FEED</div>
 
             <div id="realm-feed-container" class="live-feed-container">
                 <!-- Los eventos se cargarán aquí dinámicamente -->
@@ -474,11 +936,22 @@
                         <div class="subheading" style="margin-bottom:8px;">ECONOMY BALANCE</div>
                         <div style="font-size:13px; line-height:1.8;">
                             <div class="balance-ember">
-                                💰 EMBER: <span id="ember-balance" style="color:var(--gold); font-weight:600;">0</span> $EMBER
+                                <img src="/img/moneybag.png" class="pixel-icon" alt=""> $EMBER: <span id="ember-balance" style="color:var(--gold); font-weight:600;">0</span>
                             </div>
                             <div id="ash-balance-display" class="balance-ash" style="display:none; margin-top:5px;">
-                                🔥 ASH: <span id="ash-balance" style="color:#ff6b6b; font-weight:600;">0</span> $ASH
+                                <img src="/img/fire.png" class="pixel-icon" alt=""> $ASH: <span id="ash-balance" style="color:#ff6b6b; font-weight:600;">0</span>
                             </div>
+                        </div>
+                    </div>
+
+                    <!-- Achievements Display -->
+                    <div id="achievements-display" style="margin-top:15px; padding:12px; border:1px solid var(--border-primary); background:rgba(0,0,0,0.3);">
+                        <div class="subheading" style="margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
+                            <span><img src="/img/trophy.png" class="pixel-icon" alt=""> ACHIEVEMENTS</span>
+                            <span id="achievements-count" style="font-size:0.8em; color:#888;">[0/0]</span>
+                        </div>
+                        <div id="achievements-list" style="max-height:200px; overflow-y:auto; font-size:12px;">
+                            <div style="color:#666; font-style:italic;">Connect wallet to view achievements...</div>
                         </div>
                     </div>
                 </div>
@@ -552,7 +1025,7 @@
     <section class="screen" data-screen="tutorial">
         <!-- INDEX -->
         <div class="section-block">
-            <div class="section-title">📋 TABLE OF CONTENTS // QUICK ACCESS</div>
+            <div class="section-title"><img src="/img/clipboard.png" class="pixel-icon" alt=""> TABLE OF CONTENTS // QUICK ACCESS</div>
             <div class="mono-block">
                 <div class="toc-grid" style="grid-template-columns: repeat(6, 1fr); gap: 10px;">
                     <div class="toc-section">
@@ -1382,7 +1855,7 @@
 
         <!-- ECONOMY SECTION -->
         <div class="section-block" id="eco-ember">
-            <div class="section-title">💰 $EMBER // THE LIFEBLOOD OF EMBERHOLM</div>
+            <div class="section-title"><img src="/img/moneybag.png" class="pixel-icon" alt=""> $EMBER // THE LIFEBLOOD OF EMBERHOLM</div>
             <div class="mono-block">
                 <p><b>What is $EMBER?</b></p>
                 $EMBER is the core <b>UTILITY</b> token that powers all economic activity in Emberholm.
@@ -1532,7 +2005,7 @@
         </div>
 
         <div class="section-block" id="eco-ash">
-            <div class="section-title">🔥 $ASH // THE SACRED RESIDUE</div>
+            <div class="section-title"><img src="/img/fire.png" class="pixel-icon" alt=""> $ASH // THE SACRED RESIDUE</div>
             <div class="mono-block">
                 <p><b>What is $ASH?</b></p>
                 $ASH is the <span style="color:#FFD700;"><b>GOVERNANCE</b></span> and <b>PREMIUM</b> token of Emberholm.
@@ -1660,7 +2133,7 @@
 
         <!-- ITEMS SECTION -->
         <div class="section-block" id="items-equipment">
-            <div class="section-title">⚔️ EQUIPMENT</div>
+            <div class="section-title"><img src="/img/crossedswords.png" class="pixel-icon" alt=""> EQUIPMENT</div>
             <div class="mono-block">
                 <p><b>What is Equipment?</b></p>
                 Equipment are ERC-1155 NFTs that can be equipped to Emissaries to boost their stats and abilities.<br/><br/>
@@ -1696,7 +2169,7 @@
         </div>
 
         <div class="section-block" id="items-runes">
-            <div class="section-title">✨ RUNES</div>
+            <div class="section-title"><img src="/img/Sparkles.png" class="pixel-icon" alt=""> RUNES</div>
             <div class="mono-block">
                 <p><b>What are Runes?</b></p>
                 Runes are ERC-1155 consumable items that provide temporary buffs for missions.<br/><br/>
@@ -2366,8 +2839,8 @@ const EMBERHOLM_WEATHER = {
     FOGGY:         { id: 'foggy',         name: 'EMBER MIST',     icon: '░', weight: 20, color: '#A9A9A9' },
     ASH_RAIN:      { id: 'ash_rain',      name: 'ASH RAIN',       icon: '▒', weight: 15, color: '#4A4A4A' },
     BLOOD_RAIN:    { id: 'blood_rain',    name: 'BLOOD RAIN',     icon: '▓', weight: 10, color: '#8B0000' },
-    THUNDER_STORM: { id: 'thunder_storm', name: 'THUNDER STORM',  icon: '⚡', weight: 5,  color: '#4B0082' },
-    EMBER_STORM:   { id: 'ember_storm',   name: 'EMBER STORM',    icon: '🔥', weight: 3,  color: '#FF4500' },
+    THUNDER_STORM: { id: 'thunder_storm', name: 'THUNDER STORM',  icon: '/img/Lightning.png', weight: 5,  color: '#4B0082', isImage: true },
+    EMBER_STORM:   { id: 'ember_storm',   name: 'EMBER STORM',    icon: '/img/fire.png', weight: 3,  color: '#FF4500', isImage: true },
     VOID_STORM:    { id: 'void_storm',    name: 'VOID STORM',     icon: '◎', weight: 2,  color: '#1a1a2e' },
     SOLAR_FLARE:   { id: 'solar_flare',   name: 'SOLAR FLARE',    icon: '✹', weight: 2,  color: '#FFD700' },
     SHADOW_ECLIPSE:{ id: 'shadow_eclipse',name: 'SHADOW ECLIPSE', icon: '●', weight: 1.5,color: '#0D0D0D' },
@@ -2499,7 +2972,14 @@ function updateEmberholmTime() {
     const weatherIcon = document.getElementById('weather-icon');
     const weatherName = document.getElementById('weather-name');
 
-    if (weatherIcon) { weatherIcon.textContent = weather.icon; weatherIcon.style.color = weather.color; }
+    if (weatherIcon) {
+        if (weather.isImage) {
+            weatherIcon.innerHTML = `<img src="${weather.icon}" class="pixel-icon" alt="${weather.name}" style="filter:none;">`;
+        } else {
+            weatherIcon.textContent = weather.icon;
+            weatherIcon.style.color = weather.color;
+        }
+    }
     if (weatherName) { weatherName.textContent = weather.name; weatherName.style.color = weather.color; }
 }
 
@@ -3422,6 +3902,11 @@ async function loadPlayerAndRender(){
             })()
         }));
 
+        // Load achievements if function is available
+        if (typeof loadAchievements === 'function') {
+            loadAchievements(player.heroes || []);
+        }
+
         const totals = player.totals || {};
         const walletSummaryEl = document.getElementById("wallet-summary");
         walletSummaryEl.innerHTML = `
@@ -3461,15 +3946,15 @@ async function loadPlayerAndRender(){
 
             // Status styling
             let statusColor = "#44ff44";
-            let statusIcon = "✓";
+            let statusIcon = '<img src="/img/checkmark.png" class="pixel-icon" alt="✓">';
             let statusText = ds.state || "READY";
             if (statusText === "ON_MISSION") {
                 statusColor = "#ffaa00";
-                statusIcon = "⏳";
+                statusIcon = '<img src="/img/hourglass.png" class="pixel-icon" alt="⏳">';
                 statusText = "ON MISSION";
             } else if (statusText === "FALLEN") {
                 statusColor = "#ff4444";
-                statusIcon = "💀";
+                statusIcon = '<img src="/img/skull.png" class="pixel-icon" alt="💀">';
             }
 
             // Energy bar percentage
@@ -3519,21 +4004,21 @@ async function loadPlayerAndRender(){
                 <!-- STATS GRID -->
                 <div class="cs-stats-grid">
                     <div class="cs-stat">
-                        <div class="cs-stat-icon">⚔</div>
+                        <div class="cs-stat-icon"><img src="/img/crossedswords.png" class="pixel-icon" alt="XP"></div>
                         <div class="cs-stat-info">
                             <div class="cs-stat-label">XP</div>
                             <div class="cs-stat-value">${(ds.xp_total || 0).toLocaleString()}</div>
                         </div>
                     </div>
                     <div class="cs-stat">
-                        <div class="cs-stat-icon">✨</div>
+                        <div class="cs-stat-icon"><img src="/img/Sparkles.png" class="pixel-icon" alt="AURA"></div>
                         <div class="cs-stat-info">
                             <div class="cs-stat-label">AURA</div>
                             <div class="cs-stat-value" style="color: var(--gold);">Lv.${ds.aura_level || 0}</div>
                         </div>
                     </div>
                     <div class="cs-stat">
-                        <div class="cs-stat-icon">⚡</div>
+                        <div class="cs-stat-icon"><img src="/img/Lightning.png" class="pixel-icon" alt="ENERGY"></div>
                         <div class="cs-stat-info">
                             <div class="cs-stat-label">ENERGY</div>
                             <div class="cs-stat-value">${energyCurrent}/${energyMax}</div>
@@ -3543,7 +4028,7 @@ async function loadPlayerAndRender(){
                         </div>
                     </div>
                     <div class="cs-stat">
-                        <div class="cs-stat-icon">💀</div>
+                        <div class="cs-stat-icon"><img src="/img/skull.png" class="pixel-icon" alt="DEATHS"></div>
                         <div class="cs-stat-info">
                             <div class="cs-stat-label">DEATHS</div>
                             <div class="cs-stat-value" style="color: #ff6b6b;">${ds.death_count || 0}</div>
@@ -3555,16 +4040,16 @@ async function loadPlayerAndRender(){
                 <div class="cs-equipment">
                     <div class="cs-equip-label">EQUIPMENT</div>
                     <div class="cs-equip-slots">
-                        <div class="cs-slot ${prime.weapon_id ? 'equipped' : ''}" title="Weapon">🗡️</div>
-                        <div class="cs-slot ${prime.armor_id ? 'equipped' : ''}" title="Armor">🛡️</div>
-                        <div class="cs-slot ${prime.helmet_id ? 'equipped' : ''}" title="Helmet">⛑️</div>
-                        <div class="cs-slot ${prime.accessory_id ? 'equipped' : ''}" title="Accessory">💍</div>
-                        <div class="cs-slot ${prime.amulet_id ? 'equipped' : ''}" title="Amulet">📿</div>
+                        <div class="cs-slot ${prime.weapon_id ? 'equipped' : ''}" title="Weapon"><img src="/img/dagger.png" class="pixel-icon" alt="Weapon"></div>
+                        <div class="cs-slot ${prime.armor_id ? 'equipped' : ''}" title="Armor"><img src="/img/shield.png" class="pixel-icon" alt="Armor"></div>
+                        <div class="cs-slot ${prime.helmet_id ? 'equipped' : ''}" title="Helmet"><img src="/img/helmet.png" class="pixel-icon" alt="Helmet"></div>
+                        <div class="cs-slot ${prime.accessory_id ? 'equipped' : ''}" title="Accessory"><img src="/img/ring.png" class="pixel-icon" alt="Accessory"></div>
+                        <div class="cs-slot ${prime.amulet_id ? 'equipped' : ''}" title="Amulet"><img src="/img/beads.png" class="pixel-icon" alt="Amulet"></div>
                         <div class="cs-slot-divider">|</div>
-                        <div class="cs-slot ${runeCount >= 1 ? 'equipped' : ''}" title="Rune 1">💎</div>
-                        <div class="cs-slot ${runeCount >= 2 ? 'equipped' : ''}" title="Rune 2">💎</div>
+                        <div class="cs-slot ${runeCount >= 1 ? 'equipped' : ''}" title="Rune 1"><img src="/img/gem.png" class="pixel-icon" alt="Rune"></div>
+                        <div class="cs-slot ${runeCount >= 2 ? 'equipped' : ''}" title="Rune 2"><img src="/img/gem.png" class="pixel-icon" alt="Rune"></div>
                         <div class="cs-slot-divider">|</div>
-                        <div class="cs-slot ${hasLand ? 'equipped' : ''}" title="Land">🏰</div>
+                        <div class="cs-slot ${hasLand ? 'equipped' : ''}" title="Land"><img src="/img/crown.png" class="pixel-icon" alt="Land"></div>
                     </div>
                     <div class="cs-equip-count">${equipCount}/5 GEAR | ${runeCount}/2 RUNES | ${hasLand ? '1' : '0'}/1 LAND</div>
                 </div>
@@ -3658,12 +4143,12 @@ async function loadPlayerAndRender(){
             if (state === "ON_MISSION") {
                 stateColor = missionComplete ? "#44ff44" : "#ffaa00";
                 const partyLabel = isPartyMission ? ' <small style="color:#ffaa00;">[PARTY MISSION]</small>' : '';
-                stateText = missionComplete ? "🎯 MISSION READY" : `🔥 IN PROGRESS${partyLabel}`;
+                stateText = missionComplete ? '<img src="/img/target.png" class="pixel-icon" alt=""> MISSION READY' : `<img src="/img/fire.png" class="pixel-icon" alt=""> IN PROGRESS${partyLabel}`;
             } else if (state === "FALLEN") {
                 stateColor = "#ff4444";
-                stateText = "💀 FALLEN";
+                stateText = '<img src="/img/skull.png" class="pixel-icon" alt=""> FALLEN';
             } else {
-                stateText = "✓ READY";
+                stateText = '<img src="/img/checkmark.png" class="pixel-icon" alt=""> READY';
             }
 
             // Action buttons based on state
@@ -3868,7 +4353,7 @@ async function loadPlayerAndRender(){
                             "CLAIMING REWARDS",
                             "COMPLETING MISSION",
                             "Calculating rewards...",
-                            "🎯"
+                            '<img src="/img/target.png" class="pixel-icon" alt="">'
                         );
 
                         try {
@@ -3984,7 +4469,7 @@ async function loadPlayerAndRender(){
                             "CLAIMING ALL REWARDS",
                             "PROCESSING MISSIONS",
                             `Claiming 0/${missionsReadyToClaim.length} missions...`,
-                            "🎯"
+                            '<img src="/img/target.png" class="pixel-icon" alt="">'
                         );
 
                         const results = {
@@ -4176,7 +4661,7 @@ async function startMission(heroId, missionId, missionName) {
                 "DEPLOYING EMISSARY",
                 "STARTING MISSION",
                 "Dispatching your emissary...",
-                "🔥"
+                '<img src="/img/starting.png" class="pixel-icon" alt="">'
             );
 
             try {
@@ -4207,7 +4692,7 @@ async function startMission(heroId, missionId, missionName) {
                 hideProcessingModal();
 
                 showInfoModal("MISSION STARTED",
-                    "🔥 " + result.mission_name + "\n\n" +
+                    '<div><img src="/img/starting.png" class="pixel-icon" alt=""> ' + result.mission_name + "</div><br/>" +
                     "Difficulty: " + result.difficulty + "\n" +
                     "Duration: " + result.duration_hours + "h\n\n" +
                     "Energy Spent: " + result.energy_spent + "\n" +
@@ -4567,11 +5052,11 @@ function closeConfirmModal() {
 }
 
 // Show Processing Modal (for async operations)
-function showProcessingModal(title = "PROCESSING", text = "PROCESSING", subtext = "Please wait...", icon = "⚔") {
+function showProcessingModal(title = "PROCESSING", text = "PROCESSING", subtext = "Please wait...", icon = '<img src="/img/crossedswords.png" class="pixel-icon" alt="">') {
     document.getElementById('processing-modal-title').textContent = title;
     document.getElementById('processing-text').textContent = text;
     document.getElementById('processing-subtext').textContent = subtext;
-    document.getElementById('processing-icon').textContent = icon;
+    document.getElementById('processing-icon').innerHTML = icon;
     showModal('processing-modal');
 }
 
@@ -5128,7 +5613,7 @@ async function startPartyMission(missionId, missionName) {
                 "DEPLOYING PARTY",
                 "STARTING PARTY MISSION",
                 "Dispatching 5 emissaries...",
-                "⚔"
+                '<img src="/img/party.png" class="pixel-icon" alt="">'
             );
 
             try {
@@ -5158,7 +5643,7 @@ async function startPartyMission(missionId, missionName) {
                 hideProcessingModal();
 
                 showInfoModal("PARTY MISSION STARTED",
-                    "🔥 " + result.mission_name + "\n\n" +
+                    '<div><img src="/img/party.png" class="pixel-icon" alt=""> ' + result.mission_name + "</div><br/>" +
                     "Difficulty: " + result.difficulty + "\n" +
                     "Duration: " + result.duration_hours + "h\n\n" +
                     "Party Size: 5 emissaries\n" +
@@ -5562,6 +6047,507 @@ document.addEventListener('visibilitychange', function() {
 
 <!-- HACKNET UI INTERACTIONS -->
 <script src="/js/hacknet-ui.js"></script>
+
+<!-- ACHIEVEMENTS SYSTEM -->
+<script>
+// ============================================
+// EMBERHOLM ACHIEVEMENTS SYSTEM
+// Synced with backend /api/achievements
+// ============================================
+
+// Achievement definitions - synced with backend AVAILABLE_ACHIEVEMENTS
+// Added lore-friendly names and progress tracking
+// Helper to create icon HTML
+function getAchievementIconHtml(icon, isImage) {
+    if (isImage) {
+        return `<img src="${icon}" class="pixel-icon" alt="achievement">`;
+    }
+    return icon;
+}
+
+const ACHIEVEMENTS_CONFIG = {
+    // Missions achievements (auto-granted by backend)
+    first_mission: {
+        id: 'first_mission',
+        name: 'PORTAL INITIATE',
+        icon: '/img/target.png',
+        isImage: true,
+        category: 'missions',
+        description: 'You crossed the veil for the first time',
+        requirement: 'Complete your first mission',
+        target: 1,
+        stat: 'missions_completed'
+    },
+    '10_missions': {
+        id: '10_missions',
+        name: 'REALM SCOUT',
+        icon: '/img/crossedswords.png',
+        isImage: true,
+        category: 'missions',
+        description: 'The realm begins to recognize you',
+        requirement: 'Complete 10 missions',
+        target: 10,
+        stat: 'missions_completed'
+    },
+    '50_missions': {
+        id: '50_missions',
+        name: 'EMBERBOUND VETERAN',
+        icon: '/img/trophy.png',
+        isImage: true,
+        category: 'missions',
+        description: 'The ember burns eternal within you',
+        requirement: 'Complete 50 missions',
+        target: 50,
+        stat: 'missions_completed'
+    },
+    '100_missions': {
+        id: '100_missions',
+        name: 'LEGEND OF EMBERHOLM',
+        icon: '/img/crown.png',
+        isImage: true,
+        category: 'missions',
+        description: 'Your name echoes through the realm',
+        requirement: 'Complete 100 missions',
+        target: 100,
+        stat: 'missions_completed'
+    },
+    reach_level_10: {
+        id: 'reach_level_10',
+        name: 'AWAKENED',
+        icon: '/img/star.png',
+        isImage: true,
+        category: 'levels',
+        description: 'Your power begins to manifest',
+        requirement: 'Reach level 10',
+        target: 10,
+        stat: 'max_level'
+    },
+    reach_level_50: {
+        id: 'reach_level_50',
+        name: 'ASCENDED',
+        icon: '/img/dizzy.png',
+        isImage: true,
+        category: 'levels',
+        description: 'You transcend mortal limits',
+        requirement: 'Reach level 50',
+        target: 50,
+        stat: 'max_level'
+    },
+    guild_master: {
+        id: 'guild_master',
+        name: 'GUILD SOVEREIGN',
+        icon: '/img/trophy.png',
+        isImage: true,
+        category: 'special',
+        description: 'You command the respect of an entire guild',
+        requirement: 'Become a guild leader',
+        target: 1,
+        stat: 'is_guild_leader'
+    },
+    dragon_slayer: {
+        id: 'dragon_slayer',
+        name: 'DRAGON SLAYER',
+        icon: '/img/fire.png',
+        isImage: true,
+        category: 'special',
+        description: 'The beast fell before your might',
+        requirement: 'Defeat a legendary dragon',
+        target: 1,
+        stat: 'dragons_slain'
+    },
+    void_walker: {
+        id: 'void_walker',
+        name: 'VOID WALKER',
+        icon: '/img/crystalball.png',
+        isImage: true,
+        category: 'guild_missions',
+        description: 'You have mastered the darkness between realms',
+        requirement: 'Complete all Echoes of the Veil missions',
+        target: 1,
+        stat: 'void_missions_complete'
+    },
+    forge_master: {
+        id: 'forge_master',
+        name: 'FORGE MASTER',
+        icon: '/img/weapons.png',
+        isImage: true,
+        category: 'guild_missions',
+        description: 'The flames of creation bend to your will',
+        requirement: 'Complete all Forge Legion missions',
+        target: 1,
+        stat: 'forge_missions_complete'
+    },
+    // Additional achievements calculated from stats
+    touched_by_shadow: {
+        id: 'touched_by_shadow',
+        name: 'TOUCHED BY SHADOW',
+        icon: '/img/skull.png',
+        isImage: true,
+        category: 'combat',
+        description: 'The void claimed you... but released you',
+        requirement: 'Experience your first death',
+        target: 1,
+        stat: 'deaths'
+    },
+    perfect_resonance: {
+        id: 'perfect_resonance',
+        name: 'PERFECT RESONANCE',
+        icon: '/img/Lightning.png',
+        isImage: true,
+        category: 'combat',
+        description: 'The stars aligned in your favor',
+        requirement: 'Achieve a Perfect Alignment',
+        target: 1,
+        stat: 'perfect_alignments'
+    },
+    soul_binder: {
+        id: 'soul_binder',
+        name: 'SOUL BINDER',
+        icon: '/img/crystalball.png',
+        isImage: true,
+        category: 'emissaries',
+        description: 'Your first pact with the veil',
+        requirement: 'Link your first emissary',
+        target: 1,
+        stat: 'emissaries_owned'
+    },
+    squad_commander: {
+        id: 'squad_commander',
+        name: 'SQUAD COMMANDER',
+        icon: '/img/Swords.png',
+        isImage: true,
+        category: 'emissaries',
+        description: 'A small but loyal force',
+        requirement: 'Own 5 emissaries',
+        target: 5,
+        stat: 'emissaries_owned'
+    },
+    army_forger: {
+        id: 'army_forger',
+        name: 'ARMY FORGER',
+        icon: '/img/crown.png',
+        isImage: true,
+        category: 'emissaries',
+        description: 'Your influence spreads across the realm',
+        requirement: 'Own 20 emissaries',
+        target: 20,
+        stat: 'emissaries_owned'
+    }
+};
+
+// Track expanded state
+let expandedAchievements = {};
+
+// Fetch achievements from backend API
+async function fetchAchievementsFromAPI(tokenIds) {
+    const grantedAchievements = new Set();
+
+    for (const tokenId of tokenIds) {
+        try {
+            const response = await fetch(`/api/achievements/${tokenId}`);
+            if (response.ok) {
+                const data = await response.json();
+                if (data.achievements) {
+                    data.achievements.forEach(ach => grantedAchievements.add(ach.id));
+                }
+            }
+        } catch (e) {
+            console.error('Error fetching achievements for token', tokenId, e);
+        }
+    }
+
+    return grantedAchievements;
+}
+
+// Calculate player stats from heroes
+function calculatePlayerStats(heroes) {
+    const stats = {
+        missions_completed: 0,
+        missions_failed: 0,
+        deaths: 0,
+        perfect_alignments: 0,
+        max_level: 0,
+        emissaries_owned: heroes?.length || 0,
+        is_guild_leader: 0,
+        dragons_slain: 0,
+        void_missions_complete: 0,
+        forge_missions_complete: 0
+    };
+
+    if (heroes && heroes.length > 0) {
+        heroes.forEach(hero => {
+            stats.missions_completed += hero.missions_completed || 0;
+            stats.missions_failed += hero.missions_failed || 0;
+            stats.deaths += hero.death_count || 0;
+            stats.perfect_alignments += hero.perfect_alignments || 0;
+            if ((hero.level || 1) > stats.max_level) {
+                stats.max_level = hero.level || 1;
+            }
+        });
+    }
+
+    return stats;
+}
+
+// Render achievements list
+function renderAchievements(stats, grantedFromAPI) {
+    const container = document.getElementById('achievements-list');
+    const countEl = document.getElementById('achievements-count');
+
+    if (!container) return;
+
+    const achievements = Object.values(ACHIEVEMENTS_CONFIG);
+    const unlocked = [];
+    const locked = [];
+
+    // Categorize achievements
+    achievements.forEach(ach => {
+        const statValue = stats[ach.stat] || 0;
+        const isGrantedByAPI = grantedFromAPI.has(ach.id);
+        const isUnlockedByStats = statValue >= ach.target;
+
+        if (isGrantedByAPI || isUnlockedByStats) {
+            unlocked.push({ ...ach, granted: true, current: statValue });
+        } else {
+            locked.push({ ...ach, granted: false, current: statValue });
+        }
+    });
+
+    // Sort locked by progress percentage
+    locked.sort((a, b) => {
+        const pctA = Math.min(1, a.current / a.target);
+        const pctB = Math.min(1, b.current / b.target);
+        return pctB - pctA;
+    });
+
+    // Update count
+    if (countEl) {
+        countEl.textContent = `[${unlocked.length}/${achievements.length}]`;
+    }
+
+    // Build HTML
+    let html = '';
+
+    // Unlocked achievements
+    unlocked.forEach(ach => {
+        const isExpanded = expandedAchievements[ach.id];
+        const iconHtml = getAchievementIconHtml(ach.icon, ach.isImage);
+        html += `
+            <div class="achievement-item unlocked" onclick="toggleAchievement('${ach.id}')">
+                <div class="achievement-header">
+                    <span class="achievement-icon">${iconHtml}</span>
+                    <span class="achievement-name">${ach.name}</span>
+                    <span class="achievement-status"><img src="/img/checkmark.png" class="pixel-icon-sm" alt="✓"></span>
+                </div>
+                ${isExpanded ? `
+                <div class="achievement-details">
+                    <div class="achievement-desc">"${ach.description}"</div>
+                    <div class="achievement-req"><img src="/img/greencheck.png" class="pixel-icon-sm" alt="☑"> ${ach.requirement}</div>
+                </div>
+                ` : ''}
+            </div>
+        `;
+    });
+
+    // Locked achievements
+    locked.forEach(ach => {
+        const isExpanded = expandedAchievements[ach.id];
+        const pct = Math.min(100, Math.round((ach.current / ach.target) * 100));
+        const isClose = pct >= 80;
+        const iconHtml = getAchievementIconHtml(ach.icon, ach.isImage);
+
+        html += `
+            <div class="achievement-item locked ${isClose ? 'close-to-unlock' : ''}" onclick="toggleAchievement('${ach.id}')">
+                <div class="achievement-header">
+                    <span class="achievement-icon" style="filter:grayscale(1) opacity(0.5)">${iconHtml}</span>
+                    <span class="achievement-name">${ach.name}</span>
+                    <span class="achievement-progress">${ach.current}/${ach.target}</span>
+                </div>
+                ${isExpanded ? `
+                <div class="achievement-details">
+                    <div class="achievement-desc">"${ach.description}"</div>
+                    <div class="achievement-req">☐ ${ach.requirement}</div>
+                    <div class="achievement-bar">
+                        <div class="achievement-bar-fill" style="width:${pct}%"></div>
+                    </div>
+                </div>
+                ` : ''}
+            </div>
+        `;
+    });
+
+    container.innerHTML = html || '<div style="color:#666;">No achievements data</div>';
+}
+
+// Toggle achievement expansion
+function toggleAchievement(id) {
+    expandedAchievements[id] = !expandedAchievements[id];
+    if (window.currentPlayerStats && window.currentGrantedAchievements) {
+        renderAchievements(window.currentPlayerStats, window.currentGrantedAchievements);
+    }
+}
+
+// Load and display achievements
+async function loadAchievements(heroes) {
+    const achievementsList = document.getElementById('achievements-list');
+
+    if (!heroes || heroes.length === 0) {
+        achievementsList.innerHTML =
+            '<div style="color:#666;">No emissaries linked</div>';
+        return;
+    }
+
+    // Show loading state
+    achievementsList.innerHTML =
+        '<div style="color:#ffaa00; font-style:italic;">Loading achievements...</div>';
+
+    // Get token IDs
+    const tokenIds = heroes.map(h => h.token_id);
+
+    // Fetch granted achievements from API
+    const grantedFromAPI = await fetchAchievementsFromAPI(tokenIds);
+    window.currentGrantedAchievements = grantedFromAPI;
+
+    // Calculate stats
+    const stats = calculatePlayerStats(heroes);
+    window.currentPlayerStats = stats;
+
+    // Render
+    renderAchievements(stats, grantedFromAPI);
+}
+</script>
+
+<style>
+/* Achievement System Styles */
+.achievement-item {
+    padding: 6px 8px;
+    margin-bottom: 2px;
+    cursor: pointer;
+    transition: background 0.2s;
+    border-left: 2px solid transparent;
+}
+
+.achievement-item:hover {
+    background: rgba(68, 255, 68, 0.05);
+}
+
+.achievement-item.unlocked {
+    border-left-color: #44ff44;
+}
+
+.achievement-item.unlocked .achievement-icon {
+    color: #ffaa00;
+}
+
+.achievement-item.unlocked .achievement-name {
+    color: #44ff44;
+}
+
+.achievement-item.unlocked .achievement-status {
+    color: #44ff44;
+}
+
+.achievement-item.locked {
+    border-left-color: #333;
+}
+
+.achievement-item.locked .achievement-icon {
+    color: #444;
+}
+
+.achievement-item.locked .achievement-name {
+    color: #666;
+}
+
+.achievement-item.locked .achievement-progress {
+    color: #555;
+    font-size: 0.85em;
+}
+
+.achievement-item.locked.close-to-unlock {
+    border-left-color: #ffaa00;
+}
+
+.achievement-item.locked.close-to-unlock .achievement-name {
+    color: #aa8800;
+}
+
+.achievement-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.achievement-icon {
+    font-size: 10px;
+}
+
+.achievement-name {
+    flex: 1;
+    font-family: monospace;
+    font-size: 11px;
+}
+
+.achievement-status,
+.achievement-progress {
+    font-size: 11px;
+}
+
+.achievement-details {
+    margin-top: 6px;
+    padding: 6px 8px;
+    margin-left: 18px;
+    background: rgba(0,0,0,0.3);
+    border-left: 1px solid #333;
+    font-size: 10px;
+}
+
+.achievement-desc {
+    color: #888;
+    font-style: italic;
+    margin-bottom: 4px;
+}
+
+.achievement-req {
+    color: #666;
+}
+
+.achievement-item.unlocked .achievement-req {
+    color: #44ff44;
+}
+
+.achievement-bar {
+    margin-top: 4px;
+    height: 3px;
+    background: #1a1a1a;
+    border-radius: 2px;
+    overflow: hidden;
+}
+
+.achievement-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #444, #ffaa00);
+    transition: width 0.3s;
+}
+
+/* Scrollbar styling for achievements */
+#achievements-list::-webkit-scrollbar {
+    width: 4px;
+}
+
+#achievements-list::-webkit-scrollbar-track {
+    background: #0a0a0a;
+}
+
+#achievements-list::-webkit-scrollbar-thumb {
+    background: #333;
+    border-radius: 2px;
+}
+
+#achievements-list::-webkit-scrollbar-thumb:hover {
+    background: #444;
+}
+</style>
 
 <!-- INVENTORY & VAULT SYSTEM -->
 <script src="/js/inventory.js"></script>
