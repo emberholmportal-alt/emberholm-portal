@@ -9,6 +9,7 @@ from flask_cors import CORS
 # 🔥 POSTGRESQL INTEGRATION - Persistence module
 try:
     import database as db
+    from psycopg2.extras import RealDictCursor
     POSTGRESQL_AVAILABLE = db.is_postgresql_available()
     if POSTGRESQL_AVAILABLE:
         print("✅ PostgreSQL persistence enabled")
@@ -18,6 +19,7 @@ except Exception as e:
     print(f"⚠️ PostgreSQL module import failed: {e}")
     POSTGRESQL_AVAILABLE = False
     db = None
+    RealDictCursor = None
 
 # ⚠️ Web3 temporarily disabled due to Render deployment issues
 # Will use local cache (wallet_nfts.json) for NFT data
@@ -1109,30 +1111,62 @@ def serve_docs(filename):
 
 @app.route("/api/stats")
 def api_stats():
-    stats_obj = load_json(STATS_PATH, {})
+    """Stats globales y leaderboard desde las nuevas tablas PostgreSQL"""
+    try:
+        conn = db.get_connection()
+        cur = conn.cursor(cursor_factory=RealDictCursor)
 
-    # 🔥 Calcular ranking real de guilds
-    guild_rank_list = calculate_guild_ranking()
+        stats = {}
 
-    # 🔥 Calcular leaderboard real de jugadores
-    leaderboard = calculate_player_leaderboard()
+        # Total emissaries minted
+        cur.execute("SELECT COUNT(*) as count FROM emissaries_state WHERE minted = TRUE")
+        result = cur.fetchone()
+        stats['total_minted'] = result['count'] if result else 0
 
-    # 🔥 Contar misiones activas en tiempo real
-    missions_in_progress = count_active_missions()
+        # Total XP distribuido
+        cur.execute("SELECT COALESCE(SUM(xp), 0) as total FROM emissaries_state")
+        result = cur.fetchone()
+        stats['total_xp'] = int(result['total']) if result else 0
 
-    resp = {
-        "total_characters":     stats_obj.get("total_characters", 0),  # 🔥 Real value from blockchain contract
-        "active_guilds":        stats_obj.get("active_guilds", 6),
-        "missions_completed":   stats_obj.get("missions_completed", 0),
-        "missions_failed":      stats_obj.get("missions_failed", 0),
-        "missions_in_progress": missions_in_progress,  # 🔥 Real-time count
-        "total_exp_collected":  stats_obj.get("total_exp_collected", 0),
-        "total_aura_collected": stats_obj.get("total_aura_collected", 0),
-        "guild_ranking":        guild_rank_list,
-        "player_leaderboard":   leaderboard,
-        "last_updated":         now_utc_str()  # 🔥 Timestamp de actualización
-    }
-    return jsonify(resp)
+        # Total misiones completadas
+        cur.execute("SELECT COUNT(*) as count FROM missions_history")
+        result = cur.fetchone()
+        stats['total_missions'] = result['count'] if result else 0
+
+        # Guild rankings
+        cur.execute("""
+            SELECT guild_id, guild_name, total_members, total_xp, total_missions
+            FROM stats_guilds
+            ORDER BY total_xp DESC
+        """)
+        stats['guild_rankings'] = cur.fetchall() or []
+
+        # Top 10 emissaries por XP
+        cur.execute("""
+            SELECT m.token_id, m.name, m.race, m.class, m.guild,
+                   COALESCE(s.xp, 0) as xp, COALESCE(s.rank_name, 'Novice') as rank_name
+            FROM emissaries_metadata m
+            LEFT JOIN emissaries_state s ON m.token_id = s.token_id
+            WHERE s.minted = TRUE
+            ORDER BY s.xp DESC NULLS LAST
+            LIMIT 10
+        """)
+        stats['leaderboard'] = cur.fetchall() or []
+
+        # Campos adicionales para compatibilidad
+        stats['active_guilds'] = 6
+        stats['last_updated'] = now_utc_str()
+
+        cur.close()
+        db.release_connection(conn)
+
+        return jsonify(stats)
+
+    except Exception as e:
+        print(f"Error in /api/stats: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
 
 # ---------------------------------
 # API: GUILDS
@@ -1140,13 +1174,40 @@ def api_stats():
 
 @app.route("/api/guilds")
 def api_guilds():
-    # 🔥 Recalcular datos reales antes de devolver
-    guilds_data = calculate_guilds_data()
+    """Obtener datos de guilds desde stats_guilds"""
+    try:
+        conn = db.get_connection()
+        cur = conn.cursor(cursor_factory=RealDictCursor)
 
-    return jsonify({
-        "guilds": guilds_data,
-        "last_updated": now_utc_str()  # 🔥 Timestamp de actualización
-    })
+        cur.execute("""
+            SELECT guild_id, guild_name, total_members, total_xp,
+                   total_missions, total_aura, total_deaths,
+                   CASE WHEN total_missions > 0
+                        THEN ROUND((successful_missions::numeric / total_missions) * 100, 1)
+                        ELSE 0
+                   END as success_rate
+            FROM stats_guilds
+            ORDER BY total_xp DESC
+        """)
+
+        guilds = cur.fetchall() or []
+
+        cur.close()
+        db.release_connection(conn)
+
+        return jsonify({
+            "guilds": guilds,
+            "last_updated": now_utc_str()
+        })
+
+    except Exception as e:
+        print(f"Error in /api/guilds: {e}")
+        # Fallback a la función anterior si hay error
+        guilds_data = calculate_guilds_data()
+        return jsonify({
+            "guilds": guilds_data,
+            "last_updated": now_utc_str()
+        })
 
 # ---------------------------------
 # API: MISSIONS
