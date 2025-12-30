@@ -305,19 +305,16 @@
     // ================== CHAIN CONFIG (Base Sepolia) ==================
     const CONTRACT_ADDRESS = "0x1db270b8a9725962f1B808a46b919F9a50312659"; // EmberholmPortal V2
     const CONTRACT_ABI = [
-      { "inputs":[{"internalType":"uint256","name":"quantity","type":"uint256"}],
-        "name":"mint","outputs":[],"stateMutability":"payable","type":"function" },
-      { "inputs":[],"name":"MINT_PRICE","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],
-        "stateMutability":"view","type":"function" },
-      { "inputs":[],"name":"totalSupply","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],
-        "stateMutability":"view","type":"function" },
-      { "inputs":[],"name":"MAX_SUPPLY","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],
-        "stateMutability":"view","type":"function" },
-      { "inputs":[],"name":"mintOpen","outputs":[{"internalType":"bool","name":"","type":"bool"}],
-        "stateMutability":"view","type":"function" },
-      { "inputs":[{"internalType":"uint256","name":"tokenId","type":"uint256"}],
-        "name":"tokenURI","outputs":[{"internalType":"string","name":"","type":"string"}],
-        "stateMutability":"view","type":"function" }
+      {"inputs":[{"name":"quantity","type":"uint256"}],"name":"mint","outputs":[],"stateMutability":"payable","type":"function"},
+      {"inputs":[],"name":"totalSupply","outputs":[{"name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+      {"inputs":[],"name":"MAX_SUPPLY","outputs":[{"name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+      {"inputs":[],"name":"MINT_PRICE","outputs":[{"name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+      {"inputs":[],"name":"mintOpen","outputs":[{"name":"","type":"bool"}],"stateMutability":"view","type":"function"},
+      {"inputs":[{"name":"owner","type":"address"}],"name":"tokensOfOwner","outputs":[{"name":"","type":"uint256[]"}],"stateMutability":"view","type":"function"},
+      {"inputs":[{"name":"owner","type":"address"}],"name":"balanceOf","outputs":[{"name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+      {"inputs":[{"name":"tokenId","type":"uint256"}],"name":"ownerOf","outputs":[{"name":"","type":"address"}],"stateMutability":"view","type":"function"},
+      {"inputs":[{"name":"tokenId","type":"uint256"}],"name":"tokenURI","outputs":[{"name":"","type":"string"}],"stateMutability":"view","type":"function"},
+      {"anonymous":false,"inputs":[{"indexed":true,"name":"from","type":"address"},{"indexed":true,"name":"to","type":"address"},{"indexed":true,"name":"tokenId","type":"uint256"}],"name":"Transfer","type":"event"}
     ];
     const BASE_SEPOLIA_CHAIN_ID = 84532;
 
