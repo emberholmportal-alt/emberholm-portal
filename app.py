@@ -1362,6 +1362,57 @@ def debug_wallet(wallet):
         traceback.print_exc()
         return jsonify({"error": str(e)}), 500
 
+@app.route('/api/sync/wallet/<wallet>')
+def sync_wallet(wallet):
+    """Sincronizar NFTs de una wallet a emissaries_state"""
+    try:
+        conn = db.get_connection()
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+
+        # Los token IDs que tiene esta wallet (del contrato nuevo)
+        cur.execute("""
+            SELECT token_id FROM nfts
+            WHERE LOWER(last_known_owner) = LOWER(%s)
+        """, (wallet,))
+        nfts = cur.fetchall()
+
+        synced = []
+        errors = []
+
+        for nft in nfts:
+            # Convertir token_id a entero (quitar padding de ceros)
+            token_id_str = str(nft['token_id'])
+            token_id = int(token_id_str.lstrip('0') or '0')
+
+            cur.execute("""
+                UPDATE emissaries_state
+                SET wallet_address = %s, minted = TRUE, minted_at = NOW()
+                WHERE token_id = %s
+            """, (wallet, token_id))
+
+            if cur.rowcount > 0:
+                synced.append(token_id)
+            else:
+                errors.append({"token_id": token_id, "reason": "not found in emissaries_state"})
+
+        conn.commit()
+        cur.close()
+        db.release_connection(conn)
+
+        return jsonify({
+            "success": True,
+            "wallet": wallet,
+            "nfts_found": len(nfts),
+            "synced": synced,
+            "synced_count": len(synced),
+            "errors": errors
+        })
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
+
 # ---------------------------------
 # API: MISSIONS
 # ---------------------------------
