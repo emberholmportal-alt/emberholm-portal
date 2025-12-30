@@ -1279,6 +1279,90 @@ def register_mint():
         return jsonify({"error": str(e)}), 500
 
 # ---------------------------------
+# API: DEBUG ENDPOINTS
+# ---------------------------------
+
+@app.route('/api/debug/emissary/<token_id>')
+def debug_emissary(token_id):
+    """Debug: Ver estado de un emissary específico"""
+    try:
+        conn = db.get_connection()
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+
+        # Probar con el token_id tal cual
+        cur.execute("SELECT * FROM emissaries_metadata WHERE token_id = %s", (token_id,))
+        metadata = cur.fetchone()
+
+        # Si no encuentra, probar sin padding
+        if not metadata:
+            token_id_int = int(token_id)
+            cur.execute("SELECT * FROM emissaries_metadata WHERE token_id = %s", (token_id_int,))
+            metadata = cur.fetchone()
+
+        # Verificar en emissaries_state
+        cur.execute("SELECT * FROM emissaries_state WHERE token_id = %s", (token_id,))
+        state = cur.fetchone()
+
+        if not state:
+            token_id_int = int(token_id)
+            cur.execute("SELECT * FROM emissaries_state WHERE token_id = %s", (token_id_int,))
+            state = cur.fetchone()
+
+        cur.close()
+        db.release_connection(conn)
+
+        return jsonify({
+            "token_id_input": token_id,
+            "metadata_exists": metadata is not None,
+            "metadata": dict(metadata) if metadata else None,
+            "state_exists": state is not None,
+            "state": dict(state) if state else None
+        })
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/debug/wallet/<wallet>')
+def debug_wallet(wallet):
+    """Debug: Ver todos los emissaries de una wallet"""
+    try:
+        conn = db.get_connection()
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+
+        # Buscar en emissaries_state
+        cur.execute("""
+            SELECT token_id, wallet_address, minted, state
+            FROM emissaries_state
+            WHERE LOWER(wallet_address) = LOWER(%s)
+        """, (wallet,))
+        from_state = cur.fetchall()
+
+        # Buscar en la tabla nfts antigua también
+        cur.execute("""
+            SELECT token_id, last_known_owner
+            FROM nfts
+            WHERE LOWER(last_known_owner) = LOWER(%s)
+            LIMIT 10
+        """, (wallet,))
+        from_nfts = cur.fetchall()
+
+        cur.close()
+        db.release_connection(conn)
+
+        return jsonify({
+            "wallet": wallet,
+            "emissaries_state_count": len(from_state),
+            "emissaries_state": [dict(r) for r in from_state],
+            "nfts_count": len(from_nfts),
+            "nfts": [dict(r) for r in from_nfts]
+        })
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
+
+# ---------------------------------
 # API: MISSIONS
 # ---------------------------------
 
