@@ -1,10 +1,23 @@
-// EmberholmPortal V2 Contract Configuration
-// Update these values after deploying to Base Sepolia
+// EmberholmPortal Contract Configuration
+// Base Sepolia Testnet Deployment
 
 const CONTRACT_CONFIG = {
-    // ✅ EmberholmPortal V2 deployed on Base Sepolia
-    ADDRESS: "0xA93C701F0dD91DE0E82f6796d56c4c7aeE053749",
+    // ========== CONTRACT ADDRESSES ==========
+    // EmberholmPortal V2 - Main NFT Contract
+    ADDRESS: "0x1db270b8a9725962f1B808a46b919F9a50312659",
 
+    // All Emberholm Contracts
+    CONTRACTS: {
+        EmberholmPortal: "0x1db270b8a9725962f1B808a46b919F9a50312659",
+        EmberToken: "0xa35bcc45F1b216Ed83D14B37625789ec2EEeE082",
+        AshToken: "0xDc211Dc3bBe0D8b9Cd38c12863fcCeD46C1162d2",
+        AshProtocol: "0xE5F683963180D53051FaB2D2C6B63DA5413fBea8",
+        EmberLands: "0x9Ab5465C2978005751E5a435CE8f34242b7EE298",
+        EmberRunes: "0x83061983a3E360ef9A5570FF513f8a67fad92CdC",
+        ItemShop: "0xCE140A9771DA3A5a9D443b3f7FBF6B900340C161"
+    },
+
+    // ========== NETWORK CONFIGURATION ==========
     // Base Sepolia Testnet
     CHAIN_ID: 84532,
     CHAIN_ID_HEX: "0x14a34",
@@ -12,7 +25,7 @@ const CONTRACT_CONFIG = {
     RPC_URL: "https://sepolia.base.org",
     BLOCK_EXPLORER: "https://sepolia.basescan.org",
 
-    // ABI simplificado - solo funciones que usamos
+    // ========== ABI - EmberholmPortal ==========
     ABI: [
         // ========== QUERIES ==========
         "function totalMinted() view returns (uint256)",
@@ -24,7 +37,7 @@ const CONTRACT_CONFIG = {
         "function getPrimaryTokenInfo(address owner) view returns (tuple(uint256 tokenId, address owner, bool isStaked))",
         "function tokenURI(uint256 tokenId) view returns (string)",
         "function balanceOf(address owner) view returns (uint256)",
-        "function ownerOf(uint256 tokenId) view returns (address)",  // ✅ ERC721 standard
+        "function ownerOf(uint256 tokenId) view returns (address)",
 
         // ========== STAKING ==========
         "function stakeToken(uint256 tokenId)",
