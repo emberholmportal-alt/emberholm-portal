@@ -1210,6 +1210,75 @@ def api_guilds():
         })
 
 # ---------------------------------
+# API: MINT REGISTER
+# ---------------------------------
+
+@app.route('/api/mint/register', methods=['POST'])
+def register_mint():
+    """Registrar un nuevo mint en la base de datos"""
+    conn = None
+    try:
+        data = request.json
+        token_id = data.get('token_id')
+        wallet_address = data.get('wallet_address')
+
+        if not token_id or not wallet_address:
+            return jsonify({"error": "Missing token_id or wallet_address"}), 400
+
+        conn = db.get_connection()
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+
+        # Actualizar emissaries_state con el nuevo owner
+        cur.execute("""
+            UPDATE emissaries_state
+            SET wallet_address = %s, minted = TRUE, minted_at = NOW()
+            WHERE token_id = %s
+        """, (wallet_address, token_id))
+
+        # Obtener el guild del emissary para actualizar stats
+        cur.execute("""
+            SELECT guild FROM emissaries_metadata WHERE token_id = %s
+        """, (token_id,))
+        result = cur.fetchone()
+
+        if result and result['guild']:
+            guild_name = result['guild']
+            # Actualizar contador de miembros del guild
+            cur.execute("""
+                UPDATE stats_guilds
+                SET total_members = total_members + 1,
+                    updated_at = NOW()
+                WHERE guild_name = %s
+            """, (guild_name,))
+
+        # Actualizar stats globales si existe la columna
+        cur.execute("""
+            UPDATE global_stats
+            SET total_minted = total_minted + 1
+            WHERE id = 1
+        """)
+
+        conn.commit()
+        cur.close()
+        db.release_connection(conn)
+
+        return jsonify({
+            "success": True,
+            "token_id": token_id,
+            "wallet_address": wallet_address,
+            "message": f"Emissary #{token_id} registered successfully"
+        })
+
+    except Exception as e:
+        print(f"Error in /api/mint/register: {e}")
+        import traceback
+        traceback.print_exc()
+        if conn:
+            conn.rollback()
+            db.release_connection(conn)
+        return jsonify({"error": str(e)}), 500
+
+# ---------------------------------
 # API: MISSIONS
 # ---------------------------------
 

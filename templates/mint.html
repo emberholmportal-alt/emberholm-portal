@@ -637,6 +637,25 @@
           const startId = lastMintedOnChain - qty + 1;
           pushConsole(`[INFO] Displaying NFTs from ID ${startId} to ${lastMintedOnChain}`);
 
+          // Registrar cada mint en el backend
+          for (let i = 0; i < qty; i++) {
+            const tokenId = String(startId + i).padStart(5, '0');
+            try {
+              const response = await fetch('/api/mint/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  token_id: tokenId,
+                  wallet_address: addr
+                })
+              });
+              const result = await response.json();
+              pushConsole(`[REGISTER] Emissary #${tokenId}: ${result.success ? 'OK' : result.error}`);
+            } catch (regError) {
+              pushConsole(`[WARN] Failed to register #${tokenId}: ${regError.message}`);
+            }
+          }
+
           // Crear elementos para cada NFT (primero con placeholder)
           const nftElements = [];
           for (let i = 0; i < qty; i++) {
