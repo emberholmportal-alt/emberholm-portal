@@ -27,24 +27,29 @@ const CONTRACT_CONFIG = {
 
     // ========== ABI - EmberholmPortal V2 ==========
     ABI: [
-        // ========== SUPPLY ==========
-        "function totalSupply() view returns (uint256)",
-        "function MAX_SUPPLY() view returns (uint256)",
+        // Mint function
+        {"inputs":[{"name":"quantity","type":"uint256"}],"name":"mint","outputs":[],"stateMutability":"payable","type":"function"},
 
-        // ========== QUERIES ==========
-        "function tokensOfOwner(address owner) view returns (uint256[])",
-        "function tokenURI(uint256 tokenId) view returns (string)",
-        "function balanceOf(address owner) view returns (uint256)",
-        "function ownerOf(uint256 tokenId) view returns (address)",
+        // Variables públicas (se acceden como funciones)
+        {"inputs":[],"name":"mintPrice","outputs":[{"name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+        {"inputs":[],"name":"mintOpen","outputs":[{"name":"","type":"bool"}],"stateMutability":"view","type":"function"},
 
-        // ========== MINT ==========
-        "function mint(uint256 quantity) payable",
-        "function MINT_PRICE() view returns (uint256)",
-        "function mintOpen() view returns (bool)",
-        "function MAX_PER_TX() view returns (uint256)",
+        // Constantes
+        {"inputs":[],"name":"MAX_SUPPLY","outputs":[{"name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+        {"inputs":[],"name":"MAX_PER_TX","outputs":[{"name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
 
-        // ========== EVENTS ==========
-        "event Transfer(address indexed from, address indexed to, uint256 indexed tokenId)"
+        // ERC721 Enumerable
+        {"inputs":[],"name":"totalSupply","outputs":[{"name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+        {"inputs":[{"name":"owner","type":"address"}],"name":"tokensOfOwner","outputs":[{"name":"","type":"uint256[]"}],"stateMutability":"view","type":"function"},
+        {"inputs":[{"name":"owner","type":"address"}],"name":"balanceOf","outputs":[{"name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+        {"inputs":[{"name":"tokenId","type":"uint256"}],"name":"ownerOf","outputs":[{"name":"","type":"address"}],"stateMutability":"view","type":"function"},
+
+        // Supply info helper
+        {"inputs":[],"name":"supplyInfo","outputs":[{"name":"total","type":"uint256"},{"name":"minted","type":"uint256"},{"name":"remaining","type":"uint256"}],"stateMutability":"view","type":"function"},
+
+        // Events
+        {"anonymous":false,"inputs":[{"indexed":true,"name":"from","type":"address"},{"indexed":true,"name":"to","type":"address"},{"indexed":true,"name":"tokenId","type":"uint256"}],"name":"Transfer","type":"event"},
+        {"anonymous":false,"inputs":[{"indexed":true,"name":"to","type":"address"},{"indexed":true,"name":"tokenId","type":"uint256"}],"name":"Minted","type":"event"}
     ]
 };
 
