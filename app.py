@@ -2093,22 +2093,20 @@ def api_player(wallet):
 
     player_obj, players_all = ensure_player(wallet)
 
-    # 🔥 NUEVO: Agregar emissaries de las nuevas tablas PostgreSQL
+    # 🔥 NUEVO: Usar emissaries de las nuevas tablas PostgreSQL como fuente de verdad
     try:
         new_emissaries = get_player_emissaries_from_new_tables(wallet)
         if new_emissaries:
-            print(f"  📊 Found {len(new_emissaries)} emissaries in new tables")
-            if 'heroes' not in player_obj:
-                player_obj['heroes'] = []
-
-            # Agregar los nuevos emissaries que no estén ya
-            existing_ids = [h.get('token_id') for h in player_obj.get('heroes', [])]
-            for emissary in new_emissaries:
-                if emissary['token_id'] not in existing_ids:
-                    player_obj['heroes'].append(emissary)
-                    print(f"    ➕ Added emissary {emissary['token_id']} from new tables")
+            print(f"  📊 Found {len(new_emissaries)} emissaries in NEW tables - using as source of truth")
+            # REEMPLAZAR heroes con los datos de las nuevas tablas
+            player_obj['heroes'] = new_emissaries
+            print(f"  ✅ Replaced heroes with {len(new_emissaries)} from emissaries_metadata/state")
+        else:
+            print(f"  ⚠️ No emissaries found in new tables for wallet {wallet[:10]}...")
     except Exception as e:
-        print(f"  ⚠️ Error merging emissaries from new tables: {e}")
+        print(f"  ⚠️ Error getting emissaries from new tables: {e}")
+        import traceback
+        traceback.print_exc()
 
     # Log estado de heroes
     if player_obj and "heroes" in player_obj:
