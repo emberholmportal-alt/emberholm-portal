@@ -1873,6 +1873,16 @@ def get_player_emissaries_from_new_tables(wallet):
 
         emissaries = cur.fetchall() or []
 
+        # 🔥 Agregar URL de imagen IPFS a cada emissary
+        DEFAULT_IMAGE_CID = "bafybeicnvc3zagcncablcovpxgt5mtuotowvuqom6kby754ve2gwbzdvkm"
+        for emissary in emissaries:
+            token_id = emissary['token_id']
+            # Formatear token_id a 5 dígitos (00001, 00123, etc)
+            padded_id = str(token_id).zfill(5)
+            image_cid = emissary.get('image_cid') or DEFAULT_IMAGE_CID
+            emissary['image_url'] = f"https://ipfs.io/ipfs/{image_cid}/{padded_id}.png"
+            emissary['image'] = emissary['image_url']  # Alias para compatibilidad
+
         cur.close()
         db.release_connection(conn)
 
