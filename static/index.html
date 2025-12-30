@@ -3348,15 +3348,15 @@ async function connectWallet() {
                     console.log(`⚠️ Falling back to manual iteration...`);
 
                     // FALLBACK STRATEGY: Manual iteration if tokensOfOwner fails
-                    console.log(`🔍 Querying totalMinted from contract...`);
-                    const totalMinted = await contract.totalMinted();
-                    console.log(`✅ Contract has minted ${totalMinted.toString()} NFTs so far`);
-                    console.log(`🔍 Checking ownership of token IDs 1 to ${totalMinted}...`);
+                    console.log(`🔍 Querying totalSupply from contract...`);
+                    const totalSupplyFallback = await contract.totalSupply();
+                    console.log(`✅ Contract has minted ${totalSupplyFallback.toString()} NFTs so far`);
+                    console.log(`🔍 Checking ownership of token IDs 1 to ${totalSupplyFallback}...`);
 
                     let foundCount = 0;
                     const targetBalance = balance.toNumber();
 
-                    for (let tokenId = 1; tokenId <= totalMinted.toNumber() && foundCount < targetBalance; tokenId++) {
+                    for (let tokenId = 1; tokenId <= totalSupplyFallback.toNumber() && foundCount < targetBalance; tokenId++) {
                         try {
                             const owner = await contract.ownerOf(tokenId);
                             if (owner.toLowerCase() === address.toLowerCase()) {
@@ -3371,7 +3371,7 @@ async function connectWallet() {
 
                         // Progress indicator every 100 tokens
                         if (tokenId % 100 === 0) {
-                            console.log(`  ⏳ Progress: Checked ${tokenId}/${totalMinted} tokens...`);
+                            console.log(`  ⏳ Progress: Checked ${tokenId}/${totalSupplyFallback} tokens...`);
                         }
                     }
 
@@ -3379,9 +3379,9 @@ async function connectWallet() {
                 }
             }
 
-            // 🔥 Get total supply for STATS (use totalMinted)
-            const totalMinted = await contract.totalMinted();
-            console.log(`📊 Total minted for STATS: ${totalMinted.toString()}`);
+            // 🔥 Get total supply for STATS
+            const totalSupply = await contract.totalSupply();
+            console.log(`📊 Total supply for STATS: ${totalSupply.toString()}`);
 
             // 🔥 CONEXIÓN AL SERVIDOR - Mostrar claramente en UI
             console.log("📤 Sending NFT data to backend...");
@@ -3393,7 +3393,7 @@ async function connectWallet() {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     token_ids: tokenIds,
-                    total_supply: totalMinted.toNumber()
+                    total_supply: totalSupply.toNumber()
                 })
             });
 
