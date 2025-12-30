@@ -1174,13 +1174,40 @@ def api_stats():
 
 @app.route("/api/guilds")
 def api_guilds():
-    # 🔥 Recalcular datos reales antes de devolver
-    guilds_data = calculate_guilds_data()
+    """Obtener datos de guilds desde stats_guilds"""
+    try:
+        conn = db.get_connection()
+        cur = conn.cursor(cursor_factory=RealDictCursor)
 
-    return jsonify({
-        "guilds": guilds_data,
-        "last_updated": now_utc_str()  # 🔥 Timestamp de actualización
-    })
+        cur.execute("""
+            SELECT guild_id, guild_name, total_members, total_xp,
+                   total_missions, total_aura, total_deaths,
+                   CASE WHEN total_missions > 0
+                        THEN ROUND((successful_missions::numeric / total_missions) * 100, 1)
+                        ELSE 0
+                   END as success_rate
+            FROM stats_guilds
+            ORDER BY total_xp DESC
+        """)
+
+        guilds = cur.fetchall() or []
+
+        cur.close()
+        db.release_connection(conn)
+
+        return jsonify({
+            "guilds": guilds,
+            "last_updated": now_utc_str()
+        })
+
+    except Exception as e:
+        print(f"Error in /api/guilds: {e}")
+        # Fallback a la función anterior si hay error
+        guilds_data = calculate_guilds_data()
+        return jsonify({
+            "guilds": guilds_data,
+            "last_updated": now_utc_str()
+        })
 
 # ---------------------------------
 # API: MISSIONS
