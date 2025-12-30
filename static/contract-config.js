@@ -25,44 +25,25 @@ const CONTRACT_CONFIG = {
     RPC_URL: "https://sepolia.base.org",
     BLOCK_EXPLORER: "https://sepolia.basescan.org",
 
-    // ========== ABI - EmberholmPortal ==========
+    // ========== ABI - EmberholmPortal V2 ==========
     ABI: [
+        // ========== SUPPLY ==========
+        "function totalSupply() view returns (uint256)",
+        "function MAX_SUPPLY() view returns (uint256)",
+
         // ========== QUERIES ==========
-        "function totalMinted() view returns (uint256)",
-        "function maxSupply() pure returns (uint256)",
         "function tokensOfOwner(address owner) view returns (uint256[])",
-        "function getTokenInfo(uint256 tokenId) view returns (tuple(uint256 tokenId, address owner, bool isStaked))",
-        "function batchGetTokenInfo(uint256[] tokenIds) view returns (tuple(uint256 tokenId, address owner, bool isStaked)[])",
-        "function getWalletProfile(address owner) view returns (uint256[] tokenIds, tuple(uint256 tokenId, address owner, bool isStaked)[] tokens, tuple(uint256 totalTokens, uint256 stakedCount) stats)",
-        "function getPrimaryTokenInfo(address owner) view returns (tuple(uint256 tokenId, address owner, bool isStaked))",
         "function tokenURI(uint256 tokenId) view returns (string)",
         "function balanceOf(address owner) view returns (uint256)",
         "function ownerOf(uint256 tokenId) view returns (address)",
 
-        // ========== STAKING ==========
-        "function stakeToken(uint256 tokenId)",
-        "function unstakeToken(uint256 tokenId)",
-        "function stakedTokens(uint256 tokenId) view returns (bool)",
-        "function stakeTimestamp(uint256 tokenId) view returns (uint256)",
-
-        // ========== PRIMARY TOKEN ==========
-        "function setPrimaryToken(uint256 tokenId)",
-        "function primaryToken(address owner) view returns (uint256)",
-
-        // ========== EQUIPMENT (Future) ==========
-        "function equipItem(uint256 tokenId, string slot, uint256 itemId)",
-        "function unequipItem(uint256 tokenId, string slot)",
-        "function getEquippedItems(uint256 tokenId) view returns (uint256 weapon, uint256 armor, uint256 boots, uint256 accessory)",
-
         // ========== MINT ==========
         "function mint(uint256 quantity) payable",
-        "function mintPrice() view returns (uint256)",
+        "function MINT_PRICE() view returns (uint256)",
         "function mintOpen() view returns (bool)",
+        "function MAX_PER_TX() view returns (uint256)",
 
         // ========== EVENTS ==========
-        "event TokenStaked(uint256 indexed tokenId, address indexed owner, uint256 timestamp)",
-        "event TokenUnstaked(uint256 indexed tokenId, address indexed owner, uint256 timestamp)",
-        "event PrimaryTokenSet(address indexed owner, uint256 indexed tokenId)",
         "event Transfer(address indexed from, address indexed to, uint256 indexed tokenId)"
     ]
 };

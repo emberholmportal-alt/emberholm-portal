@@ -1210,6 +1210,75 @@ def api_guilds():
         })
 
 # ---------------------------------
+# API: MINT REGISTER
+# ---------------------------------
+
+@app.route('/api/mint/register', methods=['POST'])
+def register_mint():
+    """Registrar un nuevo mint en la base de datos"""
+    conn = None
+    try:
+        data = request.json
+        token_id = data.get('token_id')
+        wallet_address = data.get('wallet_address')
+
+        if not token_id or not wallet_address:
+            return jsonify({"error": "Missing token_id or wallet_address"}), 400
+
+        conn = db.get_connection()
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+
+        # Actualizar emissaries_state con el nuevo owner
+        cur.execute("""
+            UPDATE emissaries_state
+            SET wallet_address = %s, minted = TRUE, minted_at = NOW()
+            WHERE token_id = %s
+        """, (wallet_address, token_id))
+
+        # Obtener el guild del emissary para actualizar stats
+        cur.execute("""
+            SELECT guild FROM emissaries_metadata WHERE token_id = %s
+        """, (token_id,))
+        result = cur.fetchone()
+
+        if result and result['guild']:
+            guild_name = result['guild']
+            # Actualizar contador de miembros del guild
+            cur.execute("""
+                UPDATE stats_guilds
+                SET total_members = total_members + 1,
+                    updated_at = NOW()
+                WHERE guild_name = %s
+            """, (guild_name,))
+
+        # Actualizar stats globales si existe la columna
+        cur.execute("""
+            UPDATE global_stats
+            SET total_minted = total_minted + 1
+            WHERE id = 1
+        """)
+
+        conn.commit()
+        cur.close()
+        db.release_connection(conn)
+
+        return jsonify({
+            "success": True,
+            "token_id": token_id,
+            "wallet_address": wallet_address,
+            "message": f"Emissary #{token_id} registered successfully"
+        })
+
+    except Exception as e:
+        print(f"Error in /api/mint/register: {e}")
+        import traceback
+        traceback.print_exc()
+        if conn:
+            conn.rollback()
+            db.release_connection(conn)
+        return jsonify({"error": str(e)}), 500
+
+# ---------------------------------
 # API: MISSIONS
 # ---------------------------------
 
@@ -1776,6 +1845,43 @@ def ensure_player(wallet):
 # API: PLAYER PROFILE
 # ---------------------------------
 
+def get_player_emissaries_from_new_tables(wallet):
+    """Obtener emissaries de una wallet desde las nuevas tablas de metadata"""
+    try:
+        conn = db.get_connection()
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+
+        cur.execute("""
+            SELECT m.token_id, m.name, m.race, m.class, m.guild, m.background,
+                   m.base_str, m.base_dex, m.base_con, m.base_int, m.base_wis, m.base_cha,
+                   m.base_power, m.image_cid,
+                   COALESCE(s.xp, 0) as xp,
+                   COALESCE(s.energy, 100) as energy,
+                   COALESCE(s.max_energy, 100) as max_energy,
+                   COALESCE(s.deaths, 0) as deaths,
+                   COALESCE(s.state, 'idle') as state,
+                   COALESCE(s.rank_level, 0) as rank_level,
+                   COALESCE(s.rank_name, 'Novice') as rank_name,
+                   COALESCE(s.total_missions, 0) as total_missions,
+                   COALESCE(s.successful_missions, 0) as successful_missions,
+                   COALESCE(s.aura, 0) as aura
+            FROM emissaries_metadata m
+            JOIN emissaries_state s ON m.token_id = s.token_id
+            WHERE LOWER(s.wallet_address) = LOWER(%s)
+            ORDER BY m.token_id
+        """, (wallet,))
+
+        emissaries = cur.fetchall() or []
+
+        cur.close()
+        db.release_connection(conn)
+
+        return emissaries
+
+    except Exception as e:
+        print(f"Error getting emissaries for wallet {wallet}: {e}")
+        return []
+
 @app.route("/api/player/<wallet>", methods=["GET", "POST"])
 def api_player(wallet):
     # 🔥 NORMALIZE wallet address to lowercase to avoid case sensitivity issues
@@ -1892,6 +1998,23 @@ def api_player(wallet):
     })
 
     player_obj, players_all = ensure_player(wallet)
+
+    # 🔥 NUEVO: Agregar emissaries de las nuevas tablas PostgreSQL
+    try:
+        new_emissaries = get_player_emissaries_from_new_tables(wallet)
+        if new_emissaries:
+            print(f"  📊 Found {len(new_emissaries)} emissaries in new tables")
+            if 'heroes' not in player_obj:
+                player_obj['heroes'] = []
+
+            # Agregar los nuevos emissaries que no estén ya
+            existing_ids = [h.get('token_id') for h in player_obj.get('heroes', [])]
+            for emissary in new_emissaries:
+                if emissary['token_id'] not in existing_ids:
+                    player_obj['heroes'].append(emissary)
+                    print(f"    ➕ Added emissary {emissary['token_id']} from new tables")
+    except Exception as e:
+        print(f"  ⚠️ Error merging emissaries from new tables: {e}")
 
     # Log estado de heroes
     if player_obj and "heroes" in player_obj:

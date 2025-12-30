@@ -305,19 +305,16 @@
     // ================== CHAIN CONFIG (Base Sepolia) ==================
     const CONTRACT_ADDRESS = "0x1db270b8a9725962f1B808a46b919F9a50312659"; // EmberholmPortal V2
     const CONTRACT_ABI = [
-      { "inputs":[{"internalType":"uint256","name":"quantity","type":"uint256"}],
-        "name":"mint","outputs":[],"stateMutability":"payable","type":"function" },
-      { "inputs":[],"name":"mintPrice","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],
-        "stateMutability":"view","type":"function" },
-      { "inputs":[],"name":"totalMinted","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],
-        "stateMutability":"view","type":"function" },
-      { "inputs":[],"name":"MAX_SUPPLY","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],
-        "stateMutability":"view","type":"function" },
-      { "inputs":[],"name":"mintOpen","outputs":[{"internalType":"bool","name":"","type":"bool"}],
-        "stateMutability":"view","type":"function" },
-      { "inputs":[{"internalType":"uint256","name":"tokenId","type":"uint256"}],
-        "name":"tokenURI","outputs":[{"internalType":"string","name":"","type":"string"}],
-        "stateMutability":"view","type":"function" }
+      {"inputs":[{"name":"quantity","type":"uint256"}],"name":"mint","outputs":[],"stateMutability":"payable","type":"function"},
+      {"inputs":[],"name":"totalSupply","outputs":[{"name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+      {"inputs":[],"name":"MAX_SUPPLY","outputs":[{"name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+      {"inputs":[],"name":"MINT_PRICE","outputs":[{"name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+      {"inputs":[],"name":"mintOpen","outputs":[{"name":"","type":"bool"}],"stateMutability":"view","type":"function"},
+      {"inputs":[{"name":"owner","type":"address"}],"name":"tokensOfOwner","outputs":[{"name":"","type":"uint256[]"}],"stateMutability":"view","type":"function"},
+      {"inputs":[{"name":"owner","type":"address"}],"name":"balanceOf","outputs":[{"name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+      {"inputs":[{"name":"tokenId","type":"uint256"}],"name":"ownerOf","outputs":[{"name":"","type":"address"}],"stateMutability":"view","type":"function"},
+      {"inputs":[{"name":"tokenId","type":"uint256"}],"name":"tokenURI","outputs":[{"name":"","type":"string"}],"stateMutability":"view","type":"function"},
+      {"anonymous":false,"inputs":[{"indexed":true,"name":"from","type":"address"},{"indexed":true,"name":"to","type":"address"},{"indexed":true,"name":"tokenId","type":"uint256"}],"name":"Transfer","type":"event"}
     ];
     const BASE_SEPOLIA_CHAIN_ID = 84532;
 
@@ -438,31 +435,16 @@
 
     async function refreshTotalMinted() {
       try {
-        pushConsole("[DEBUG] Reading totalMinted from contract...");
+        pushConsole("[DEBUG] Reading totalSupply from contract...");
         const ro = new ethers.providers.JsonRpcProvider("https://sepolia.base.org");
         const roContract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, ro);
-        const minted = await roContract.totalMinted();
-        lastMintedOnChain = minted.toNumber();
-        pushConsole(`[DEBUG] Total minted on-chain: ${lastMintedOnChain}`);
+        const supply = await roContract.totalSupply();
+        lastMintedOnChain = supply.toNumber();
+        pushConsole(`[DEBUG] Total supply on-chain: ${lastMintedOnChain}`);
         updateInvokedCountFromContract(lastMintedOnChain);
       } catch (e) {
-        pushConsole("[ERROR] Failed to read totalMinted: " + e.message);
-        console.error("totalMinted read error:", e);
-        // Si falla, intentar con totalSupply() como alternativa
-        try {
-          pushConsole("[DEBUG] Trying totalSupply() instead...");
-          const ro = new ethers.providers.JsonRpcProvider("https://sepolia.base.org");
-          const supplyABI = [
-            { "inputs":[],"name":"totalSupply","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function" }
-          ];
-          const roContract = new ethers.Contract(CONTRACT_ADDRESS, supplyABI, ro);
-          const supply = await roContract.totalSupply();
-          lastMintedOnChain = supply.toNumber();
-          pushConsole(`[DEBUG] Total supply: ${lastMintedOnChain}`);
-          updateInvokedCountFromContract(lastMintedOnChain);
-        } catch (e2) {
-          pushConsole("[ERROR] totalSupply also failed: " + e2.message);
-        }
+        pushConsole("[ERROR] Failed to read totalSupply: " + e.message);
+        console.error("totalSupply read error:", e);
       }
     }
 
@@ -612,8 +594,8 @@
         const isOpen = await c.mintOpen();
         pushConsole(`[CONTRACT] mintOpen=${isOpen}`);
 
-        const priceWei = await c.mintPrice();
-        pushConsole(`[CONTRACT] mintPrice=${ethers.utils.formatEther(priceWei)} ETH`);
+        const priceWei = await c.MINT_PRICE();
+        pushConsole(`[CONTRACT] MINT_PRICE=${ethers.utils.formatEther(priceWei)} ETH`);
         const totalCost = priceWei.mul(qty);
         pushConsole(`[TX] Minting ${qty}…`);
         pushConsole(`[TX] Cost: ${ethers.utils.formatEther(totalCost)} ETH`);
@@ -636,6 +618,25 @@
           
           const startId = lastMintedOnChain - qty + 1;
           pushConsole(`[INFO] Displaying NFTs from ID ${startId} to ${lastMintedOnChain}`);
+
+          // Registrar cada mint en el backend
+          for (let i = 0; i < qty; i++) {
+            const tokenId = String(startId + i).padStart(5, '0');
+            try {
+              const response = await fetch('/api/mint/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  token_id: tokenId,
+                  wallet_address: addr
+                })
+              });
+              const result = await response.json();
+              pushConsole(`[REGISTER] Emissary #${tokenId}: ${result.success ? 'OK' : result.error}`);
+            } catch (regError) {
+              pushConsole(`[WARN] Failed to register #${tokenId}: ${regError.message}`);
+            }
+          }
 
           // Crear elementos para cada NFT (primero con placeholder)
           const nftElements = [];
