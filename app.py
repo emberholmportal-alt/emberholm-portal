@@ -2035,10 +2035,27 @@ def api_player(wallet):
     print(f"\n{'='*60}")
     print(f"🔍 /api/player/{wallet[:6]}...{wallet[-4:]} - Method: {request.method}")
 
+    # Verificar que PostgreSQL esté disponible
+    if not POSTGRESQL_AVAILABLE or not db:
+        print("❌ PostgreSQL not available")
+        return jsonify({
+            "error": "Database not available",
+            "wallet": wallet,
+            "heroes": []
+        }), 500
+
     conn = None
     cur = None
     try:
         conn = db.get_connection()
+        if not conn:
+            print("❌ Could not get database connection")
+            return jsonify({
+                "error": "Could not connect to database",
+                "wallet": wallet,
+                "heroes": []
+            }), 500
+
         cur = conn.cursor(cursor_factory=RealDictCursor)
 
         # Si es POST, sincronizar token_ids a emissaries_state
