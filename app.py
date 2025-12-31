@@ -1106,6 +1106,83 @@ def serve_docs(filename):
     return send_from_directory(docs_dir, filename)
 
 # ---------------------------------
+# API: HEALTH CHECK / DIAGNOSTIC
+# ---------------------------------
+
+@app.route("/api/health")
+def api_health():
+    """Endpoint de diagnóstico para verificar estado del sistema"""
+    result = {
+        "status": "checking",
+        "postgresql_module": db is not None,
+        "postgresql_available": POSTGRESQL_AVAILABLE,
+        "connection_test": None,
+        "emissaries_state_test": None,
+        "emissaries_metadata_test": None
+    }
+
+    if not db:
+        result["status"] = "error"
+        result["error"] = "Database module not loaded"
+        return jsonify(result), 500
+
+    if not POSTGRESQL_AVAILABLE:
+        result["status"] = "error"
+        result["error"] = "PostgreSQL not available (DATABASE_URL not set?)"
+        return jsonify(result), 500
+
+    # Test connection
+    try:
+        conn = db.get_connection()
+        if not conn:
+            result["status"] = "error"
+            result["error"] = "Could not get connection from pool"
+            return jsonify(result), 500
+
+        result["connection_test"] = "OK"
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+
+        # Test emissaries_state table
+        try:
+            cur.execute("SELECT COUNT(*) as count FROM emissaries_state")
+            count = cur.fetchone()['count']
+            result["emissaries_state_test"] = f"OK ({count} rows)"
+        except Exception as e:
+            result["emissaries_state_test"] = f"ERROR: {str(e)}"
+
+        # Test emissaries_metadata table
+        try:
+            cur.execute("SELECT COUNT(*) as count FROM emissaries_metadata")
+            count = cur.fetchone()['count']
+            result["emissaries_metadata_test"] = f"OK ({count} rows)"
+        except Exception as e:
+            result["emissaries_metadata_test"] = f"ERROR: {str(e)}"
+
+        # Test specific wallet
+        try:
+            cur.execute("""
+                SELECT COUNT(*) as count FROM emissaries_state
+                WHERE wallet_address IS NOT NULL AND wallet_address != ''
+            """)
+            count = cur.fetchone()['count']
+            result["wallets_with_nfts"] = count
+        except Exception as e:
+            result["wallets_with_nfts"] = f"ERROR: {str(e)}"
+
+        cur.close()
+        db.release_connection(conn)
+        result["status"] = "OK"
+
+    except Exception as e:
+        result["status"] = "error"
+        result["error"] = str(e)
+        import traceback
+        result["traceback"] = traceback.format_exc()
+        return jsonify(result), 500
+
+    return jsonify(result)
+
+# ---------------------------------
 # API: STATS
 # ---------------------------------
 
