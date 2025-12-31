@@ -1369,11 +1369,12 @@ def sync_wallet(wallet):
         conn = db.get_connection()
         cur = conn.cursor(cursor_factory=RealDictCursor)
 
-        # Los token IDs que tiene esta wallet (del contrato nuevo)
+        # Los token IDs que tiene esta wallet (del contrato nuevo) - revisar ambas columnas
         cur.execute("""
             SELECT token_id FROM nfts
             WHERE LOWER(last_known_owner) = LOWER(%s)
-        """, (wallet,))
+               OR LOWER(owner_wallet) = LOWER(%s)
+        """, (wallet, wallet))
         nfts = cur.fetchall()
 
         synced = []
@@ -1386,7 +1387,7 @@ def sync_wallet(wallet):
 
             cur.execute("""
                 UPDATE emissaries_state
-                SET wallet_address = %s, minted = TRUE, minted_at = NOW()
+                SET wallet_address = %s, minted = TRUE, minted_at = COALESCE(minted_at, NOW())
                 WHERE token_id = %s
             """, (wallet, token_id))
 
@@ -2029,169 +2030,163 @@ def get_player_emissaries_from_new_tables(wallet):
 
 @app.route("/api/player/<wallet>", methods=["GET", "POST"])
 def api_player(wallet):
-    # 🔥 NORMALIZE wallet address to lowercase to avoid case sensitivity issues
+    """Obtener datos del jugador SOLO desde las nuevas tablas PostgreSQL"""
     wallet = wallet.lower()
-
     print(f"\n{'='*60}")
     print(f"🔍 /api/player/{wallet[:6]}...{wallet[-4:]} - Method: {request.method}")
 
-    # 🔥 CRITICAL FIX: Si es POST, SOLO guardar cache y retornar
-    # Esto evita doble sincronización que causa pérdida de estado ON_MISSION
-    if request.method == "POST":
-        synced_count = 0
-        try:
-            # Step 1: Parse request data
+    try:
+        conn = db.get_connection()
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+
+        # Si es POST, sincronizar token_ids a emissaries_state
+        if request.method == "POST":
             try:
                 data = request.get_json(force=True)
                 token_ids = data.get("token_ids", [])
                 total_supply = data.get("total_supply", None)
-                print(f"📦 POST data received: {len(token_ids)} token_ids, total_supply={total_supply}")
+                print(f"📦 POST: {len(token_ids)} token_ids, total_supply={total_supply}")
+
+                synced = []
+                for token_id in token_ids:
+                    # Actualizar emissaries_state con la wallet
+                    cur.execute("""
+                        UPDATE emissaries_state
+                        SET wallet_address = %s, minted = TRUE, minted_at = COALESCE(minted_at, NOW())
+                        WHERE token_id = %s
+                    """, (wallet, int(token_id)))
+                    if cur.rowcount > 0:
+                        synced.append(token_id)
+                        print(f"  ✅ Token {token_id} synced to wallet")
+                    else:
+                        print(f"  ⚠️ Token {token_id} not found in emissaries_state")
+
+                conn.commit()
+
+                # Actualizar total supply en stats si se proporciona
+                if total_supply is not None:
+                    try:
+                        stats_obj = load_json(STATS_PATH, {})
+                        stats_obj["total_characters"] = total_supply
+                        save_json(STATS_PATH, stats_obj)
+                    except Exception as e:
+                        print(f"  ⚠️ Error updating total supply: {e}")
+
+                cur.close()
+                db.release_connection(conn)
+                print(f"{'='*60}\n")
+
+                return jsonify({
+                    "success": True,
+                    "synced": synced,
+                    "synced_count": len(synced)
+                })
+
             except Exception as e:
-                print(f"❌ Error parsing request data: {e}")
-                return jsonify({"success": False, "error": f"Invalid request data: {str(e)}"}), 400
+                print(f"❌ POST error: {e}")
+                cur.close()
+                db.release_connection(conn)
+                return jsonify({"success": False, "error": str(e)}), 500
 
-            # Step 2: Save wallet NFTs to cache
-            if token_ids:
-                try:
-                    wallet_nfts = load_json(WALLET_NFTS_PATH, {})
-                    print(f"📂 Current wallet_nfts keys: {list(wallet_nfts.keys())}")
-                    wallet_nfts[wallet] = token_ids
-                    save_json(WALLET_NFTS_PATH, wallet_nfts)
-                    print(f"✅ Wallet {wallet[:6]}...{wallet[-4:]} registered with {len(token_ids)} NFTs: {token_ids}")
-                    print(f"📂 Updated wallet_nfts keys: {list(wallet_nfts.keys())}")
-                except Exception as e:
-                    print(f"❌ Error saving wallet NFTs cache: {e}")
-                    # Continue anyway - this is not critical
+        # GET: Obtener emissaries SOLO de las nuevas tablas
+        cur.execute("""
+            SELECT
+                m.token_id,
+                m.name,
+                m.race,
+                m.class,
+                m.guild,
+                m.background,
+                m.base_str,
+                m.base_dex,
+                m.base_con,
+                m.base_int,
+                m.base_wis,
+                m.base_cha,
+                m.base_power,
+                COALESCE(s.xp, 0) as xp,
+                COALESCE(s.aura, 0) as aura,
+                COALESCE(s.energy, 100) as energy,
+                COALESCE(s.max_energy, 100) as max_energy,
+                COALESCE(s.deaths, 0) as deaths,
+                COALESCE(s.state, 'idle') as state,
+                COALESCE(s.rank_level, 0) as rank_level,
+                COALESCE(s.rank_name, 'Novice') as rank_name,
+                COALESCE(s.total_missions, 0) as total_missions
+            FROM emissaries_metadata m
+            JOIN emissaries_state s ON m.token_id = s.token_id
+            WHERE LOWER(s.wallet_address) = LOWER(%s)
+            ORDER BY m.token_id
+        """, (wallet,))
 
-                # Step 3: Auto-sync NFTs to database
-                try:
-                    print(f"🔄 AUTO-SYNC: Syncing {len(token_ids)} NFTs to database...")
-                    for token_id in token_ids:
-                        try:
-                            # Sincronizar NFT a DB (si existe preserva estado, si es nuevo lo crea)
-                            nft = sync_nft_to_database(token_id, owner_wallet=wallet)
-                            synced_count += 1
-                            ds = nft.get("dynamic_state", {})
-                            print(f"  ✅ {token_id} → DB (xp: {ds.get('xp_total', 0)}, state: {ds.get('state', 'READY')})")
-                        except Exception as e:
-                            print(f"  ⚠️ Error syncing token {token_id}: {e}")
-                            import traceback
-                            traceback.print_exc()
-                            # Continue with other NFTs
-                    print(f"✅ Auto-sync complete: {synced_count}/{len(token_ids)} NFTs synced to database")
-                except Exception as e:
-                    print(f"❌ Error during NFT sync process: {e}")
-                    import traceback
-                    traceback.print_exc()
-                    # Continue anyway
+        emissaries = cur.fetchall() or []
+        print(f"📊 Found {len(emissaries)} emissaries in new tables for wallet")
 
-                # Step 4: Recalculate guild stats
-                try:
-                    print(f"📊 AUTO-RECALC: Updating global stats...")
-                    calculate_guilds_data()
-                    print(f"✅ Guild stats updated")
-                except Exception as e:
-                    print(f"❌ Error calculating guild stats: {e}")
-                    import traceback
-                    traceback.print_exc()
-                    # Continue anyway
+        # Construir URL de imagen para cada emissary
+        IMAGE_CID = "bafybeicnvc3zagcncablcovpxgt5mtuotowvuqom6kby754ve2gwbzdvkm"
 
-            # Step 5: Update total supply
-            if total_supply is not None:
-                try:
-                    stats_obj = load_json(STATS_PATH, {})
-                    stats_obj["total_characters"] = total_supply
-                    save_json(STATS_PATH, stats_obj)
-                    print(f"✅ Contract total supply updated: {total_supply} characters")
-                except Exception as e:
-                    print(f"❌ Error updating total supply: {e}")
-                    import traceback
-                    traceback.print_exc()
-                    # Continue anyway
+        heroes = []
+        for e in emissaries:
+            token_id = e['token_id']
+            padded_id = str(token_id).zfill(5)
 
-            print(f"{'='*60}\n")
-            # ✅ RETORNAR inmediatamente - NO llamar ensure_player() aquí
-            return jsonify({
-                "success": True,
-                "token_ids_cached": len(token_ids) if token_ids else 0,
-                "synced_to_database": synced_count
-            })
+            hero = {
+                "token_id": token_id,
+                "id": token_id,
+                "name": e['name'],
+                "race": e['race'],
+                "class": e['class'],
+                "guild": e['guild'],
+                "background": e['background'],
+                "xp": e['xp'],
+                "aura": e['aura'],
+                "energy": e['energy'],
+                "max_energy": e['max_energy'],
+                "deaths": e['deaths'],
+                "state": e['state'],
+                "rank": e['rank_name'],
+                "rank_level": e['rank_level'],
+                "total_missions": e['total_missions'],
+                "stats": {
+                    "str": e['base_str'],
+                    "dex": e['base_dex'],
+                    "con": e['base_con'],
+                    "int": e['base_int'],
+                    "wis": e['base_wis'],
+                    "cha": e['base_cha'],
+                    "power": e['base_power']
+                },
+                "image": f"https://ipfs.io/ipfs/{IMAGE_CID}/{padded_id}.png",
+                "image_url": f"https://ipfs.io/ipfs/{IMAGE_CID}/{padded_id}.png",
+                # Compatibilidad con frontend que espera dynamic_state
+                "dynamic_state": {
+                    "state": e['state'].upper() if e['state'] else "READY",
+                    "xp_total": e['xp'],
+                    "aura_level": e['aura'],
+                    "energy_current": e['energy'],
+                    "energy_max": e['max_energy'],
+                    "deaths": e['deaths'],
+                    "total_missions": e['total_missions']
+                }
+            }
+            heroes.append(hero)
+            print(f"  👤 Hero {token_id}: {e['name']} ({e['race']} {e['class']})")
 
-        except Exception as e:
-            print(f"❌ CRITICAL ERROR processing POST data: {e}")
-            import traceback
-            traceback.print_exc()
-            print(f"{'='*60}\n")
-            return jsonify({
-                "success": False,
-                "error": str(e),
-                "synced_count": synced_count
-            }), 500
+        cur.close()
+        db.release_connection(conn)
+        print(f"{'='*60}\n")
 
-    # 🔥 Si es GET, sincronizar jugador y retornar datos
-    print(f"🔄 Calling ensure_player() for wallet {wallet[:6]}...{wallet[-4:]}")
+        return jsonify({
+            "wallet": wallet,
+            "heroes": heroes,
+            "hero_count": len(heroes)
+        })
 
-    stats_obj = load_json(STATS_PATH, {
-        "total_characters": 0,  # 🔥 Will be updated from blockchain contract
-        "active_guilds": 6,
-        "missions_completed": 0,
-        "missions_failed": 0,
-        "total_exp_collected": 0,
-        "total_aura_collected": 0,
-        "guild_ranking": {},
-        "player_leaderboard": []
-    })
-
-    player_obj, players_all = ensure_player(wallet)
-
-    # 🔥 NUEVO: Usar emissaries de las nuevas tablas PostgreSQL como fuente de verdad
-    try:
-        new_emissaries = get_player_emissaries_from_new_tables(wallet)
-        if new_emissaries:
-            print(f"  📊 Found {len(new_emissaries)} emissaries in NEW tables - using as source of truth")
-            # REEMPLAZAR heroes con los datos de las nuevas tablas
-            player_obj['heroes'] = new_emissaries
-            print(f"  ✅ Replaced heroes with {len(new_emissaries)} from emissaries_metadata/state")
-        else:
-            print(f"  ⚠️ No emissaries found in new tables for wallet {wallet[:10]}...")
     except Exception as e:
-        print(f"  ⚠️ Error getting emissaries from new tables: {e}")
+        print(f"❌ Error in /api/player: {e}")
         import traceback
         traceback.print_exc()
-
-    # Log estado de heroes
-    if player_obj and "heroes" in player_obj:
-        for h in player_obj["heroes"]:
-            ds = h.get("dynamic_state", {})
-            state = ds.get("state", "UNKNOWN")
-            token_id = h.get("token_id", "???")
-            print(f"  👤 Hero {token_id}: state={state}")
-    print(f"{'='*60}\n")
-
-    # aplicar pasivo/regen antes de mostrar
-    player_obj, stats_obj = apply_passive_and_regen(player_obj, stats_obj)
-
-    # 🔥 CRITICAL: Guardar cambios de pasivo/regen de vuelta a la base de datos
-    # Si no hacemos esto, los cambios se pierden al reconectar
-    for hero in player_obj.get("heroes", []):
-        token_id = hero.get("token_id")
-        ds = hero.get("dynamic_state", {})
-        if token_id:
-            # Actualizar solo los campos que apply_passive_and_regen() modifica
-            update_nft_dynamic_state(token_id, {
-                "xp_total": ds.get("xp_total"),
-                "aura_level": ds.get("aura_level"),
-                "energy_current": ds.get("energy_current"),
-                "last_update": ds.get("last_update"),
-                "last_energy_refresh": ds.get("last_energy_refresh")
-            })
-
-    # guardar cambios en cache de sesión
-    players_all[wallet] = player_obj
-    save_json(PLAYERS_PATH, players_all)
-    save_json(STATS_PATH, stats_obj)
-
-    return jsonify(player_obj)
+        return jsonify({"error": str(e), "wallet": wallet, "heroes": []}), 500
 
 # ---------------------------------
 # API: RECOVER ENERGY (gastar XP para recargar energía temprano)
