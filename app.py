@@ -2035,6 +2035,8 @@ def api_player(wallet):
     print(f"\n{'='*60}")
     print(f"🔍 /api/player/{wallet[:6]}...{wallet[-4:]} - Method: {request.method}")
 
+    conn = None
+    cur = None
     try:
         conn = db.get_connection()
         cur = conn.cursor(cursor_factory=RealDictCursor)
@@ -2072,8 +2074,10 @@ def api_player(wallet):
                     except Exception as e:
                         print(f"  ⚠️ Error updating total supply: {e}")
 
-                cur.close()
-                db.release_connection(conn)
+                if cur:
+                    cur.close()
+                if conn:
+                    db.release_connection(conn)
                 print(f"{'='*60}\n")
 
                 return jsonify({
@@ -2084,8 +2088,12 @@ def api_player(wallet):
 
             except Exception as e:
                 print(f"❌ POST error: {e}")
-                cur.close()
-                db.release_connection(conn)
+                import traceback
+                traceback.print_exc()
+                if cur:
+                    cur.close()
+                if conn:
+                    db.release_connection(conn)
                 return jsonify({"success": False, "error": str(e)}), 500
 
         # GET: Obtener emissaries SOLO de las nuevas tablas
@@ -2172,8 +2180,10 @@ def api_player(wallet):
             heroes.append(hero)
             print(f"  👤 Hero {token_id}: {e['name']} ({e['race']} {e['class']})")
 
-        cur.close()
-        db.release_connection(conn)
+        if cur:
+            cur.close()
+        if conn:
+            db.release_connection(conn)
         print(f"{'='*60}\n")
 
         return jsonify({
@@ -2186,6 +2196,10 @@ def api_player(wallet):
         print(f"❌ Error in /api/player: {e}")
         import traceback
         traceback.print_exc()
+        if cur:
+            cur.close()
+        if conn:
+            db.release_connection(conn)
         return jsonify({"error": str(e), "wallet": wallet, "heroes": []}), 500
 
 # ---------------------------------
