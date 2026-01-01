@@ -1491,6 +1491,55 @@ def sync_wallet(wallet):
         traceback.print_exc()
         return jsonify({"error": str(e)}), 500
 
+@app.route('/api/debug/check/<wallet>')
+def debug_check(wallet):
+    """Ver estado completo de una wallet - nfts table vs emissaries_state"""
+    try:
+        conn = db.get_connection()
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+
+        # Tokens en tabla nfts
+        cur.execute("""
+            SELECT token_id, last_known_owner, owner_wallet
+            FROM nfts
+            WHERE LOWER(last_known_owner) = LOWER(%s) OR LOWER(owner_wallet) = LOWER(%s)
+        """, (wallet, wallet))
+        nfts_data = cur.fetchall()
+
+        # Tokens en emissaries_state con esta wallet
+        cur.execute("""
+            SELECT token_id, wallet_address, minted, state
+            FROM emissaries_state
+            WHERE LOWER(wallet_address) = LOWER(%s)
+        """, (wallet,))
+        state_data = cur.fetchall()
+
+        # También verificar metadata para estos tokens
+        cur.execute("""
+            SELECT token_id, name, race, class, guild
+            FROM emissaries_metadata
+            WHERE token_id IN (1, 8, 9)
+            ORDER BY token_id
+        """)
+        metadata_sample = cur.fetchall()
+
+        cur.close()
+        db.release_connection(conn)
+
+        return jsonify({
+            "wallet": wallet,
+            "nfts_table": [dict(r) for r in nfts_data] if nfts_data else [],
+            "nfts_count": len(nfts_data) if nfts_data else 0,
+            "emissaries_state": [dict(r) for r in state_data] if state_data else [],
+            "state_count": len(state_data) if state_data else 0,
+            "metadata_sample_1_8_9": [dict(r) for r in metadata_sample] if metadata_sample else []
+        })
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
+
 # ---------------------------------
 # API: MISSIONS
 # ---------------------------------
