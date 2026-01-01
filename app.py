@@ -1308,7 +1308,7 @@ def register_mint():
         # Actualizar emissaries_state con el nuevo owner
         cur.execute("""
             UPDATE emissaries_state
-            SET wallet_address = %s, minted = TRUE, minted_at = NOW()
+            SET wallet_address = %s, minted = TRUE
             WHERE token_id = %s
         """, (wallet_address, token_id))
 
@@ -1463,7 +1463,7 @@ def sync_wallet(wallet):
 
             cur.execute("""
                 UPDATE emissaries_state
-                SET wallet_address = %s, minted = TRUE, minted_at = COALESCE(minted_at, NOW())
+                SET wallet_address = %s, minted = TRUE
                 WHERE token_id = %s
             """, (wallet, token_id))
 
@@ -2198,7 +2198,7 @@ def api_player(wallet):
                     try:
                         cur.execute("""
                             UPDATE emissaries_state
-                            SET wallet_address = %s, minted = TRUE, minted_at = COALESCE(minted_at, NOW())
+                            SET wallet_address = %s, minted = TRUE
                             WHERE token_id = %s
                         """, (wallet, int(token_id)))
                         if cur.rowcount > 0:
