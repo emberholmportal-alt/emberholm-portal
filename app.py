@@ -1446,12 +1446,11 @@ def sync_wallet(wallet):
         conn = db.get_connection()
         cur = conn.cursor(cursor_factory=RealDictCursor)
 
-        # Los token IDs que tiene esta wallet (del contrato nuevo) - revisar ambas columnas
+        # Los token IDs que tiene esta wallet (del contrato nuevo)
         cur.execute("""
             SELECT token_id FROM nfts
             WHERE LOWER(last_known_owner) = LOWER(%s)
-               OR LOWER(owner_wallet) = LOWER(%s)
-        """, (wallet, wallet))
+        """, (wallet,))
         nfts = cur.fetchall()
 
         synced = []
@@ -1500,10 +1499,10 @@ def debug_check(wallet):
 
         # Tokens en tabla nfts
         cur.execute("""
-            SELECT token_id, last_known_owner, owner_wallet
+            SELECT token_id, last_known_owner
             FROM nfts
-            WHERE LOWER(last_known_owner) = LOWER(%s) OR LOWER(owner_wallet) = LOWER(%s)
-        """, (wallet, wallet))
+            WHERE LOWER(last_known_owner) = LOWER(%s)
+        """, (wallet,))
         nfts_data = cur.fetchall()
 
         # Tokens en emissaries_state con esta wallet
