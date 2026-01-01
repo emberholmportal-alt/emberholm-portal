@@ -2114,24 +2114,26 @@ def api_player(wallet):
 
     # Verificar que PostgreSQL esté disponible
     if not POSTGRESQL_AVAILABLE or not db:
-        print("❌ PostgreSQL not available")
+        print("❌ PostgreSQL not available - returning empty response")
         return jsonify({
-            "error": "Database not available",
             "wallet": wallet,
-            "heroes": []
-        }), 500
+            "heroes": [],
+            "hero_count": 0,
+            "error": "Database not available"
+        })
 
     conn = None
     cur = None
     try:
         conn = db.get_connection()
         if not conn:
-            print("❌ Could not get database connection")
+            print("❌ Could not get database connection - returning empty response")
             return jsonify({
-                "error": "Could not connect to database",
                 "wallet": wallet,
-                "heroes": []
-            }), 500
+                "heroes": [],
+                "hero_count": 0,
+                "error": "Could not connect to database"
+            })
 
         cur = conn.cursor(cursor_factory=RealDictCursor)
 
@@ -2145,21 +2147,22 @@ def api_player(wallet):
 
                 synced = []
                 for token_id in token_ids:
-                    # Actualizar emissaries_state con la wallet
-                    cur.execute("""
-                        UPDATE emissaries_state
-                        SET wallet_address = %s, minted = TRUE, minted_at = COALESCE(minted_at, NOW())
-                        WHERE token_id = %s
-                    """, (wallet, int(token_id)))
-                    if cur.rowcount > 0:
-                        synced.append(token_id)
-                        print(f"  ✅ Token {token_id} synced to wallet")
-                    else:
-                        print(f"  ⚠️ Token {token_id} not found in emissaries_state")
+                    try:
+                        cur.execute("""
+                            UPDATE emissaries_state
+                            SET wallet_address = %s, minted = TRUE, minted_at = COALESCE(minted_at, NOW())
+                            WHERE token_id = %s
+                        """, (wallet, int(token_id)))
+                        if cur.rowcount > 0:
+                            synced.append(token_id)
+                            print(f"  ✅ Token {token_id} synced to wallet")
+                        else:
+                            print(f"  ⚠️ Token {token_id} not found in emissaries_state")
+                    except Exception as te:
+                        print(f"  ⚠️ Error syncing token {token_id}: {te}")
 
                 conn.commit()
 
-                # Actualizar total supply en stats si se proporciona
                 if total_supply is not None:
                     try:
                         stats_obj = load_json(STATS_PATH, {})
@@ -2168,10 +2171,8 @@ def api_player(wallet):
                     except Exception as e:
                         print(f"  ⚠️ Error updating total supply: {e}")
 
-                if cur:
-                    cur.close()
-                if conn:
-                    db.release_connection(conn)
+                cur.close()
+                db.release_connection(conn)
                 print(f"{'='*60}\n")
 
                 return jsonify({
@@ -2188,7 +2189,7 @@ def api_player(wallet):
                     cur.close()
                 if conn:
                     db.release_connection(conn)
-                return jsonify({"success": False, "error": str(e)}), 500
+                return jsonify({"success": False, "error": str(e)})
 
         # GET: Obtener emissaries SOLO de las nuevas tablas
         cur.execute("""
@@ -2224,60 +2225,60 @@ def api_player(wallet):
         emissaries = cur.fetchall() or []
         print(f"📊 Found {len(emissaries)} emissaries in new tables for wallet")
 
-        # Construir URL de imagen para cada emissary
         IMAGE_CID = "bafybeicnvc3zagcncablcovpxgt5mtuotowvuqom6kby754ve2gwbzdvkm"
 
         heroes = []
         for e in emissaries:
-            token_id = e['token_id']
-            padded_id = str(token_id).zfill(5)
+            try:
+                token_id = e['token_id']
+                padded_id = str(token_id).zfill(5)
+                state_str = str(e.get('state') or 'idle').upper()
 
-            hero = {
-                "token_id": token_id,
-                "id": token_id,
-                "name": e['name'],
-                "race": e['race'],
-                "class": e['class'],
-                "guild": e['guild'],
-                "background": e['background'],
-                "xp": e['xp'],
-                "aura": e['aura'],
-                "energy": e['energy'],
-                "max_energy": e['max_energy'],
-                "deaths": e['deaths'],
-                "state": e['state'],
-                "rank": e['rank_name'],
-                "rank_level": e['rank_level'],
-                "total_missions": e['total_missions'],
-                "stats": {
-                    "str": e['base_str'],
-                    "dex": e['base_dex'],
-                    "con": e['base_con'],
-                    "int": e['base_int'],
-                    "wis": e['base_wis'],
-                    "cha": e['base_cha'],
-                    "power": e['base_power']
-                },
-                "image": f"https://ipfs.io/ipfs/{IMAGE_CID}/{padded_id}.png",
-                "image_url": f"https://ipfs.io/ipfs/{IMAGE_CID}/{padded_id}.png",
-                # Compatibilidad con frontend que espera dynamic_state
-                "dynamic_state": {
-                    "state": e['state'].upper() if e['state'] else "READY",
-                    "xp_total": e['xp'],
-                    "aura_level": e['aura'],
-                    "energy_current": e['energy'],
-                    "energy_max": e['max_energy'],
-                    "deaths": e['deaths'],
-                    "total_missions": e['total_missions']
+                hero = {
+                    "token_id": token_id,
+                    "id": token_id,
+                    "name": e.get('name') or f"Emissary #{token_id}",
+                    "race": e.get('race') or "Unknown",
+                    "class": e.get('class') or "Unknown",
+                    "guild": e.get('guild') or "Unknown",
+                    "background": e.get('background') or "",
+                    "xp": int(e.get('xp') or 0),
+                    "aura": int(e.get('aura') or 0),
+                    "energy": int(e.get('energy') or 100),
+                    "max_energy": int(e.get('max_energy') or 100),
+                    "deaths": int(e.get('deaths') or 0),
+                    "state": state_str,
+                    "rank": e.get('rank_name') or "Novice",
+                    "rank_level": int(e.get('rank_level') or 0),
+                    "total_missions": int(e.get('total_missions') or 0),
+                    "stats": {
+                        "str": int(e.get('base_str') or 10),
+                        "dex": int(e.get('base_dex') or 10),
+                        "con": int(e.get('base_con') or 10),
+                        "int": int(e.get('base_int') or 10),
+                        "wis": int(e.get('base_wis') or 10),
+                        "cha": int(e.get('base_cha') or 10),
+                        "power": int(e.get('base_power') or 0)
+                    },
+                    "image": f"https://ipfs.io/ipfs/{IMAGE_CID}/{padded_id}.png",
+                    "image_url": f"https://ipfs.io/ipfs/{IMAGE_CID}/{padded_id}.png",
+                    "dynamic_state": {
+                        "state": state_str,
+                        "xp_total": int(e.get('xp') or 0),
+                        "aura_level": int(e.get('aura') or 0),
+                        "energy_current": int(e.get('energy') or 100),
+                        "energy_max": int(e.get('max_energy') or 100),
+                        "deaths": int(e.get('deaths') or 0),
+                        "total_missions": int(e.get('total_missions') or 0)
+                    }
                 }
-            }
-            heroes.append(hero)
-            print(f"  👤 Hero {token_id}: {e['name']} ({e['race']} {e['class']})")
+                heroes.append(hero)
+                print(f"  👤 Hero {token_id}: {hero['name']} ({hero['race']} {hero['class']})")
+            except Exception as he:
+                print(f"  ⚠️ Error processing hero {e.get('token_id')}: {he}")
 
-        if cur:
-            cur.close()
-        if conn:
-            db.release_connection(conn)
+        cur.close()
+        db.release_connection(conn)
         print(f"{'='*60}\n")
 
         return jsonify({
@@ -2291,10 +2292,22 @@ def api_player(wallet):
         import traceback
         traceback.print_exc()
         if cur:
-            cur.close()
+            try:
+                cur.close()
+            except:
+                pass
         if conn:
-            db.release_connection(conn)
-        return jsonify({"error": str(e), "wallet": wallet, "heroes": []}), 500
+            try:
+                db.release_connection(conn)
+            except:
+                pass
+        # Devolver respuesta vacía en lugar de error 500
+        return jsonify({
+            "wallet": wallet,
+            "heroes": [],
+            "hero_count": 0,
+            "error": str(e)
+        })
 
 # ---------------------------------
 # API: RECOVER ENERGY (gastar XP para recargar energía temprano)
