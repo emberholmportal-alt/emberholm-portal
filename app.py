@@ -1539,6 +1539,53 @@ def debug_check(wallet):
         traceback.print_exc()
         return jsonify({"error": str(e)}), 500
 
+
+@app.route('/api/admin/reset-testnet-data', methods=['POST'])
+def reset_testnet_data():
+    """Reset all testnet wallet ownership data for mainnet migration
+
+    This endpoint:
+    1. Clears wallet_address from emissaries_state (removes testnet ownership)
+    2. Deletes all records from nfts table (removes stale testnet NFT data)
+
+    Use after migrating to mainnet to start fresh.
+    """
+    if not POSTGRESQL_AVAILABLE:
+        return jsonify({"error": "PostgreSQL not available"}), 500
+
+    try:
+        conn = db.get_connection()
+        cur = conn.cursor()
+
+        # Reset emissaries_state wallet ownership
+        cur.execute("""
+            UPDATE emissaries_state
+            SET wallet_address = NULL, minted = FALSE
+            WHERE wallet_address IS NOT NULL
+        """)
+        state_reset_count = cur.rowcount
+
+        # Clear nfts table
+        cur.execute("DELETE FROM nfts")
+        nfts_deleted_count = cur.rowcount
+
+        conn.commit()
+        cur.close()
+        db.release_connection(conn)
+
+        return jsonify({
+            "success": True,
+            "message": "Testnet data reset successfully for mainnet migration",
+            "emissaries_state_reset": state_reset_count,
+            "nfts_deleted": nfts_deleted_count
+        })
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
+
+
 # ---------------------------------
 # API: MISSIONS
 # ---------------------------------

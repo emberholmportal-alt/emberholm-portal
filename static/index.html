@@ -632,7 +632,7 @@ document.addEventListener('DOMContentLoaded', initPortalWarning);
 <!-- CRT GLITCH LOADING OVERLAY -->
 <div class="crt-glitch-overlay" id="crt-glitch-overlay">
     <div class="crt-loading-text" data-text="ESTABLISHING UPLINK">ESTABLISHING UPLINK</div>
-    <div class="crt-loading-subtext" id="crt-loading-subtext">Connecting to Base Sepolia...</div>
+    <div class="crt-loading-subtext" id="crt-loading-subtext">Connecting to Base Mainnet...</div>
     <div class="crt-progress-container">
         <div class="crt-progress-bar" id="crt-progress-bar"></div>
     </div>
@@ -2466,7 +2466,7 @@ document.addEventListener('DOMContentLoaded', initPortalWarning);
         <div class="section-title">EMBERHOLM PORTAL // WHITEPAPER & CONTRACT</div>
 
         <p class="section-text">
-            Download the official project documentation or review the current smart contract deployed on Base Sepolia (test).
+            Download the official project documentation or review the current smart contract deployed on Base Mainnet.
         </p>
 
         <div style="display:flex; gap:16px; flex-wrap:wrap; margin-bottom:16px; align-items:center;">
@@ -3105,7 +3105,7 @@ function showGlitchOverlay(initialMessage = "ESTABLISHING UPLINK") {
     // Set initial text
     textEl.textContent = initialMessage;
     textEl.setAttribute('data-text', initialMessage);
-    subtextEl.textContent = "Connecting to Base Sepolia...";
+    subtextEl.textContent = "Connecting to Base Mainnet...";
     progressBar.style.width = '0%';
 
     // Show overlay
@@ -3293,7 +3293,7 @@ async function connectWallet() {
         document.getElementById("wallet-display").textContent = address.slice(0, 6) + "..." + address.slice(-4);
         console.log(`✅ Wallet connected: ${address}`);
 
-        // 🔥 TRIPLE CHECK: Verify we're still on Base Sepolia before querying
+        // 🔥 TRIPLE CHECK: Verify we're still on Base before querying
         const finalChainCheck = await window.ethereum.request({ method: 'eth_chainId' });
         const finalChainId = parseInt(finalChainCheck, 16);
         console.log(`🔍 FINAL CHAIN CHECK before blockchain query: ${finalChainId}`);
@@ -3310,19 +3310,19 @@ async function connectWallet() {
         document.getElementById("connect-wallet-btn").textContent = "[QUERYING BLOCKCHAIN...]";
         updateGlitchSubtext("Querying blockchain for NFTs...");
 
-        // 🔥 Query NFT contract on Base Sepolia to get user's NFTs
+        // 🔥 Query NFT contract on Base Mainnet to get user's NFTs
         try {
             const contractAddress = CONTRACT_CONFIG.ADDRESS;
             const abi = CONTRACT_CONFIG.ABI;
 
             console.log(`📜 Contract address: ${contractAddress}`);
-            console.log(`🌐 Network confirmed: Base Sepolia (Chain ID ${finalChainId})`);
+            console.log(`🌐 Network confirmed: Base Mainnet (Chain ID ${finalChainId})`);
 
             const contract = new ethers.Contract(contractAddress, abi, provider);
 
             console.log(`🔍 Querying NFT balance for wallet: ${address}`);
             const balance = await contract.balanceOf(address);
-            console.log(`✅ Wallet has ${balance.toString()} NFTs on Base Sepolia`);
+            console.log(`✅ Wallet has ${balance.toString()} NFTs on Base Mainnet`);
 
             let tokenIds = [];
 
@@ -3418,8 +3418,8 @@ async function connectWallet() {
                 console.warn("⚠️ Balance shows NFTs but none were found. May need to check older blocks.");
                 alert(`⚠️ Tu wallet tiene ${balance.toString()} NFT(s) pero no pudimos encontrarlos.\n\nEsto puede pasar si los NFTs son antiguos. Contacta a soporte.`);
             } else if (tokenIds.length === 0) {
-                console.log("ℹ️ No NFTs found for this wallet on Base Sepolia");
-                alert("ℹ️ Esta wallet no tiene NFTs en Base Sepolia.\n\nSi esperabas ver NFTs, verifica que estén minteados en la red correcta.");
+                console.log("ℹ️ No NFTs found for this wallet on Base Mainnet");
+                alert("ℹ️ Esta wallet no tiene NFTs en Base Mainnet.\n\nSi esperabas ver NFTs, verifica que estén minteados en la red correcta.");
             }
 
             document.getElementById("connect-wallet-btn").textContent = "[CONNECTED ✓]";

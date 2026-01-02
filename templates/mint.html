@@ -257,7 +257,7 @@
           <input id="qty" type="number" min="1" max="20" value="3" />
           <button class="invoke-btn" id="invokeBtn">[INVOKE]</button>
           <span id="walletBadge" class="tag" style="border-color:#a66; color:#a66;">WALLET: DISCONNECTED</span>
-          <span style="font-size:0.6rem;">*Requires wallet on Base Sepolia (testnet).</span>
+          <span style="font-size:0.6rem;">*Requires wallet on Base Mainnet.</span>
         </div>
       </div>
 
@@ -431,7 +431,7 @@
         contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
 
         const addr = await signer.getAddress();
-        pushConsole(`[CONNECTED] Wallet ${addr} on Base Sepolia ✅`);
+        pushConsole(`[CONNECTED] Wallet ${addr} on Base Mainnet ✅`);
         setWalletBadge('ok', 'WALLET: CONNECTED (BASE) ✅');
 
         return contract;
@@ -598,7 +598,7 @@
         const bal = await provider.getBalance(addr);
         pushConsole(`[NET] chainId=${net.chainId} (esperado 8453)`);
         pushConsole(`[WALLET] ${addr}`);
-        pushConsole(`[BAL] ${ethers.utils.formatEther(bal)} ETH on Base Sepolia`);
+        pushConsole(`[BAL] ${ethers.utils.formatEther(bal)} ETH on Base`);
 
         const isOpen = await c.mintOpen();
         pushConsole(`[CONTRACT] mintOpen=${isOpen}`);
