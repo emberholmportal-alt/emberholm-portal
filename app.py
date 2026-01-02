@@ -1586,6 +1586,94 @@ def reset_testnet_data():
         return jsonify({"error": str(e)}), 500
 
 
+@app.route('/api/admin/sync-metadata/<int:token_id>', methods=['POST'])
+def sync_metadata_from_ipfs(token_id):
+    """Fetch metadata from IPFS and update database for a specific token
+
+    This endpoint fetches the real metadata from the contract's tokenURI
+    and updates the emissaries_metadata table.
+    """
+    import requests
+
+    if not POSTGRESQL_AVAILABLE:
+        return jsonify({"error": "PostgreSQL not available"}), 500
+
+    try:
+        # IPFS CID for metadata
+        METADATA_CID = "bafybeicnvc3zagcncablcovpxgt5mtuotowvuqom6kby754ve2gwbzdvkm"
+        padded_id = str(token_id).zfill(5)
+
+        # Fetch metadata from IPFS
+        ipfs_url = f"https://ipfs.io/ipfs/{METADATA_CID}/{padded_id}.json"
+        print(f"📥 Fetching metadata from: {ipfs_url}")
+
+        response = requests.get(ipfs_url, timeout=30)
+        if response.status_code != 200:
+            return jsonify({"error": f"IPFS fetch failed: {response.status_code}"}), 500
+
+        metadata = response.json()
+        print(f"📦 Metadata received: {metadata.get('name')}")
+
+        # Extract attributes
+        attributes = {attr['trait_type']: attr['value'] for attr in metadata.get('attributes', [])}
+
+        name = metadata.get('name', f"Emissary #{padded_id}")
+        race = attributes.get('Race', 'Unknown')
+        char_class = attributes.get('Class', 'Unknown')
+        guild = attributes.get('Starting Guild', attributes.get('Guild', 'Unassigned'))
+        background = attributes.get('Background', '')
+
+        # Stats
+        base_str = int(attributes.get('Strength', attributes.get('STR', 10)))
+        base_dex = int(attributes.get('Dexterity', attributes.get('DEX', 10)))
+        base_con = int(attributes.get('Constitution', attributes.get('CON', 10)))
+        base_int = int(attributes.get('Intelligence', attributes.get('INT', 10)))
+        base_wis = int(attributes.get('Wisdom', attributes.get('WIS', 10)))
+        base_cha = int(attributes.get('Charisma', attributes.get('CHA', 10)))
+        base_power = base_str + base_dex + base_con + base_int + base_wis + base_cha
+
+        conn = db.get_connection()
+        cur = conn.cursor()
+
+        # Upsert metadata
+        cur.execute("""
+            INSERT INTO emissaries_metadata
+                (token_id, name, race, class, guild, background, base_str, base_dex, base_con, base_int, base_wis, base_cha, base_power)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            ON CONFLICT (token_id) DO UPDATE SET
+                name = EXCLUDED.name,
+                race = EXCLUDED.race,
+                class = EXCLUDED.class,
+                guild = EXCLUDED.guild,
+                background = EXCLUDED.background,
+                base_str = EXCLUDED.base_str,
+                base_dex = EXCLUDED.base_dex,
+                base_con = EXCLUDED.base_con,
+                base_int = EXCLUDED.base_int,
+                base_wis = EXCLUDED.base_wis,
+                base_cha = EXCLUDED.base_cha,
+                base_power = EXCLUDED.base_power
+        """, (token_id, name, race, char_class, guild, background, base_str, base_dex, base_con, base_int, base_wis, base_cha, base_power))
+
+        conn.commit()
+        cur.close()
+        db.release_connection(conn)
+
+        return jsonify({
+            "success": True,
+            "token_id": token_id,
+            "name": name,
+            "race": race,
+            "class": char_class,
+            "guild": guild
+        })
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
+
+
 # ---------------------------------
 # API: MISSIONS
 # ---------------------------------
@@ -2256,17 +2344,52 @@ def api_player(wallet):
                         synced.append(token_id)
                         print(f"  ✅ Token {token_id} synced to wallet (upsert)")
 
-                        # 🔥 Also check if metadata exists, if not create placeholder
+                        # 🔥 Also check if metadata exists, if not fetch from IPFS
                         cur.execute("SELECT token_id FROM emissaries_metadata WHERE token_id = %s", (token_id_int,))
                         if not cur.fetchone():
-                            # Create placeholder metadata - will be updated from IPFS later
                             padded_id = str(token_id_int).zfill(5)
-                            cur.execute("""
-                                INSERT INTO emissaries_metadata (token_id, name, race, class, guild, background)
-                                VALUES (%s, %s, 'Unknown', 'Unknown', 'Unassigned', 'Summoned from the Portal')
-                                ON CONFLICT (token_id) DO NOTHING
-                            """, (token_id_int, f"Emissary #{padded_id}"))
-                            print(f"  📝 Created placeholder metadata for token {token_id}")
+                            # Try to fetch real metadata from IPFS
+                            try:
+                                import requests
+                                METADATA_CID = "bafybeicnvc3zagcncablcovpxgt5mtuotowvuqom6kby754ve2gwbzdvkm"
+                                ipfs_url = f"https://ipfs.io/ipfs/{METADATA_CID}/{padded_id}.json"
+                                print(f"  📥 Fetching metadata from IPFS: {ipfs_url}")
+
+                                resp = requests.get(ipfs_url, timeout=10)
+                                if resp.status_code == 200:
+                                    meta = resp.json()
+                                    attrs = {a['trait_type']: a['value'] for a in meta.get('attributes', [])}
+
+                                    name = meta.get('name', f"Emissary #{padded_id}")
+                                    race = attrs.get('Race', 'Unknown')
+                                    char_class = attrs.get('Class', 'Unknown')
+                                    guild = attrs.get('Starting Guild', attrs.get('Guild', 'Unassigned'))
+                                    background = attrs.get('Background', '')
+                                    base_str = int(attrs.get('Strength', attrs.get('STR', 10)))
+                                    base_dex = int(attrs.get('Dexterity', attrs.get('DEX', 10)))
+                                    base_con = int(attrs.get('Constitution', attrs.get('CON', 10)))
+                                    base_int = int(attrs.get('Intelligence', attrs.get('INT', 10)))
+                                    base_wis = int(attrs.get('Wisdom', attrs.get('WIS', 10)))
+                                    base_cha = int(attrs.get('Charisma', attrs.get('CHA', 10)))
+                                    base_power = base_str + base_dex + base_con + base_int + base_wis + base_cha
+
+                                    cur.execute("""
+                                        INSERT INTO emissaries_metadata
+                                            (token_id, name, race, class, guild, background, base_str, base_dex, base_con, base_int, base_wis, base_cha, base_power)
+                                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                                        ON CONFLICT (token_id) DO NOTHING
+                                    """, (token_id_int, name, race, char_class, guild, background, base_str, base_dex, base_con, base_int, base_wis, base_cha, base_power))
+                                    print(f"  ✅ Fetched real metadata for token {token_id}: {name} ({race} {char_class})")
+                                else:
+                                    raise Exception(f"IPFS returned {resp.status_code}")
+                            except Exception as ipfs_err:
+                                # Fallback to placeholder
+                                print(f"  ⚠️ IPFS fetch failed ({ipfs_err}), creating placeholder")
+                                cur.execute("""
+                                    INSERT INTO emissaries_metadata (token_id, name, race, class, guild, background)
+                                    VALUES (%s, %s, 'Unknown', 'Unknown', 'Unassigned', 'Summoned from the Portal')
+                                    ON CONFLICT (token_id) DO NOTHING
+                                """, (token_id_int, f"Emissary #{padded_id}"))
 
                     except Exception as te:
                         print(f"  ⚠️ Error syncing token {token_id}: {te}")
