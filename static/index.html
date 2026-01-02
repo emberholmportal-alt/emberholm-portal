@@ -2484,21 +2484,20 @@ document.addEventListener('DOMContentLoaded', initPortalWarning);
             </a>
         </div>
 
-        <div class="section-subtitle" style="margin-top:10px;">Smart Contract (Base Sepolia Test)</div>
+        <div class="section-subtitle" style="margin-top:10px;">Smart Contract (Base Mainnet)</div>
         <div class="terminal-box">
-            <p>Contract name: <b>Emberholm Portal V2</b></p>
-            <p>Address: <code>0xA93C701F0dD91DE0E82f6796d56c4c7aeE053749</code></p>
+            <p>Contract name: <b>Emberholm Portal</b></p>
+            <p>Address: <code>0x7AB2cf80FbfB8c89868b3dFa053729ecC86E39b3</code></p>
             <p>
                 View on Basescan:
-                <a href="https://sepolia.basescan.org/address/0xA93C701F0dD91DE0E82f6796d56c4c7aeE053749"
+                <a href="https://basescan.org/address/0x7AB2cf80FbfB8c89868b3dFa053729ecC86E39b3"
                    target="_blank"
                    style="color:#ffcc00; text-decoration:none;">
                     → open explorer
                 </a>
             </p>
             <p style="margin-top:10px; font-size:11px; opacity:.7;">
-                Note: this is the test deployment we used while wiring the Mint console.
-                Mainnet/Base mainnet address will be announced in ANNOUNCEMENTS.
+                Deployed on Base Mainnet. 35,000 Emissaries available.
             </p>
         </div>
     </div>
@@ -3175,61 +3174,61 @@ async function connectWallet() {
 
     try {
         // 🔥 FIRST: Check network BEFORE asking for accounts
-        const BASE_SEPOLIA_CHAIN_ID = 84532; // Base Sepolia testnet
-        const BASE_SEPOLIA_CHAIN_ID_HEX = '0x14a34'; // 84532 in hex
+        const BASE_CHAIN_ID = CONTRACT_CONFIG.CHAIN_ID; // Base Mainnet
+        const BASE_CHAIN_ID_HEX = CONTRACT_CONFIG.CHAIN_ID_HEX; // 8453 in hex
 
         // Get current chain ID directly from ethereum provider
         const currentChainIdHex = await window.ethereum.request({ method: 'eth_chainId' });
         const currentChainId = parseInt(currentChainIdHex, 16);
 
         console.log(`🌐 INITIAL NETWORK CHECK: Chain ID ${currentChainId} (hex: ${currentChainIdHex})`);
-        console.log(`🎯 TARGET NETWORK: Base Sepolia Chain ID ${BASE_SEPOLIA_CHAIN_ID} (hex: ${BASE_SEPOLIA_CHAIN_ID_HEX})`);
+        console.log(`🎯 TARGET NETWORK: Base Mainnet Chain ID ${BASE_CHAIN_ID} (hex: ${BASE_CHAIN_ID_HEX})`);
 
         // Show current network in button
         document.getElementById("connect-wallet-btn").textContent = `[Network: ${currentChainId}]`;
         document.getElementById("connect-wallet-btn").disabled = true;
 
-        if (currentChainId !== BASE_SEPOLIA_CHAIN_ID) {
-            console.log(`❌ WRONG NETWORK! Current: ${currentChainId}, Required: ${BASE_SEPOLIA_CHAIN_ID}`);
-            document.getElementById("connect-wallet-btn").textContent = "[SWITCHING TO BASE SEPOLIA...]";
+        if (currentChainId !== BASE_CHAIN_ID) {
+            console.log(`❌ WRONG NETWORK! Current: ${currentChainId}, Required: ${BASE_CHAIN_ID}`);
+            document.getElementById("connect-wallet-btn").textContent = "[SWITCHING TO BASE...]";
 
             try {
-                console.log(`📡 Requesting network switch to Base Sepolia...`);
+                console.log(`📡 Requesting network switch to Base Mainnet...`);
                 await window.ethereum.request({
                     method: 'wallet_switchEthereumChain',
-                    params: [{ chainId: BASE_SEPOLIA_CHAIN_ID_HEX }],
+                    params: [{ chainId: BASE_CHAIN_ID_HEX }],
                 });
                 console.log("✅ Switch request sent to MetaMask");
             } catch (switchError) {
                 console.error("⚠️ Switch error code:", switchError.code, "message:", switchError.message);
 
-                // If Base Sepolia is not added to wallet, add it
+                // If Base is not added to wallet, add it
                 if (switchError.code === 4902) {
-                    console.log("📝 Base Sepolia not in wallet. Adding it...");
+                    console.log("📝 Base not in wallet. Adding it...");
                     try {
                         await window.ethereum.request({
                             method: 'wallet_addEthereumChain',
                             params: [{
-                                chainId: BASE_SEPOLIA_CHAIN_ID_HEX,
-                                chainName: 'Base Sepolia',
+                                chainId: BASE_CHAIN_ID_HEX,
+                                chainName: 'Base',
                                 nativeCurrency: {
                                     name: 'Ethereum',
                                     symbol: 'ETH',
                                     decimals: 18
                                 },
-                                rpcUrls: ['https://sepolia.base.org'],
-                                blockExplorerUrls: ['https://sepolia.basescan.org']
+                                rpcUrls: [CONTRACT_CONFIG.RPC_URL],
+                                blockExplorerUrls: [CONTRACT_CONFIG.BLOCK_EXPLORER]
                             }]
                         });
-                        console.log("✅ Base Sepolia added to wallet");
+                        console.log("✅ Base added to wallet");
                     } catch (addError) {
                         console.error("❌ Failed to add network:", addError);
-                        alert("❌ NO PUEDES CONTINUAR sin Base Sepolia.\n\nAgrega la red manualmente en MetaMask:\n\n" +
-                              "Nombre: Base Sepolia\n" +
-                              "RPC: https://sepolia.base.org\n" +
-                              "Chain ID: 84532\n" +
+                        alert("❌ NO PUEDES CONTINUAR sin Base.\n\nAgrega la red manualmente en MetaMask:\n\n" +
+                              "Nombre: Base\n" +
+                              "RPC: https://mainnet.base.org\n" +
+                              "Chain ID: 8453\n" +
                               "Símbolo: ETH\n" +
-                              "Explorer: https://sepolia.basescan.org");
+                              "Explorer: https://basescan.org");
                         document.getElementById("connect-wallet-btn").textContent = "[CONNECT WALLET]";
                         document.getElementById("connect-wallet-btn").disabled = false;
                         hideGlitchOverlay();
@@ -3237,14 +3236,14 @@ async function connectWallet() {
                     }
                 } else if (switchError.code === 4001) {
                     console.log("❌ User REJECTED network switch");
-                    alert("🛑 DEBES cambiar a Base Sepolia para ver tus NFTs.\n\nEste proyecto SOLO funciona en Base Sepolia testnet.\n\nIntenta de nuevo y APRUEBA el cambio de red.");
+                    alert("🛑 DEBES cambiar a Base para ver tus NFTs.\n\nEste proyecto SOLO funciona en Base Mainnet.\n\nIntenta de nuevo y APRUEBA el cambio de red.");
                     document.getElementById("connect-wallet-btn").textContent = "[CONNECT WALLET]";
                     document.getElementById("connect-wallet-btn").disabled = false;
                     hideGlitchOverlay();
                     return null;
                 } else {
                     console.error("❌ Unexpected switch error:", switchError);
-                    alert("❌ Error al cambiar de red.\n\nPor favor cambia MANUALMENTE a Base Sepolia en MetaMask y vuelve a conectar.");
+                    alert("❌ Error al cambiar de red.\n\nPor favor cambia MANUALMENTE a Base en MetaMask y vuelve a conectar.");
                     document.getElementById("connect-wallet-btn").textContent = "[CONNECT WALLET]";
                     document.getElementById("connect-wallet-btn").disabled = false;
                     hideGlitchOverlay();
@@ -3261,14 +3260,14 @@ async function connectWallet() {
             const verifyChainId = parseInt(verifyChainIdHex, 16);
             console.log(`🔍 VERIFICACIÓN POST-SWITCH: Chain ID ahora es ${verifyChainId}`);
 
-            if (verifyChainId !== BASE_SEPOLIA_CHAIN_ID) {
+            if (verifyChainId !== BASE_CHAIN_ID) {
                 console.error(`❌❌❌ CRITICAL FAILURE: Aún en Chain ID ${verifyChainId} después del switch!`);
                 alert(`🛑 CAMBIO DE RED FALLÓ!\n\n` +
-                      `Se esperaba: Base Sepolia (Chain ID ${BASE_SEPOLIA_CHAIN_ID})\n` +
+                      `Se esperaba: Base (Chain ID ${BASE_CHAIN_ID})\n` +
                       `Estás en: Chain ID ${verifyChainId}\n\n` +
                       `SOLUCIÓN:\n` +
                       `1. Abre MetaMask\n` +
-                      `2. Cambia MANUALMENTE a "Base Sepolia"\n` +
+                      `2. Cambia MANUALMENTE a "Base"\n` +
                       `3. Actualiza esta página (F5)\n` +
                       `4. Haz clic en CONNECT WALLET de nuevo`);
                 document.getElementById("connect-wallet-btn").textContent = "[WRONG NETWORK!]";
@@ -3277,9 +3276,9 @@ async function connectWallet() {
                 return null;
             }
 
-            console.log("✅✅✅ Network switch VERIFICADO! Ahora en Base Sepolia");
+            console.log("✅✅✅ Network switch VERIFICADO! Ahora en Base Mainnet");
         } else {
-            console.log("✅ Already on Base Sepolia - no switch needed");
+            console.log("✅ Already on Base Mainnet - no switch needed");
         }
 
         // NOW request account access
@@ -3299,9 +3298,9 @@ async function connectWallet() {
         const finalChainId = parseInt(finalChainCheck, 16);
         console.log(`🔍 FINAL CHAIN CHECK before blockchain query: ${finalChainId}`);
 
-        if (finalChainId !== BASE_SEPOLIA_CHAIN_ID) {
-            console.error(`❌ ABORT: Chain ID changed to ${finalChainId}! Expected ${BASE_SEPOLIA_CHAIN_ID}`);
-            alert(`🛑 ERROR: La red cambió!\n\nEstás en Chain ID ${finalChainId} pero necesitas Base Sepolia (${BASE_SEPOLIA_CHAIN_ID}).\n\nPor favor actualiza la página e intenta de nuevo.`);
+        if (finalChainId !== BASE_CHAIN_ID) {
+            console.error(`❌ ABORT: Chain ID changed to ${finalChainId}! Expected ${BASE_CHAIN_ID}`);
+            alert(`🛑 ERROR: La red cambió!\n\nEstás en Chain ID ${finalChainId} pero necesitas Base (${BASE_CHAIN_ID}).\n\nPor favor actualiza la página e intenta de nuevo.`);
             document.getElementById("connect-wallet-btn").textContent = "[WRONG NETWORK!]";
             document.getElementById("connect-wallet-btn").disabled = false;
             hideGlitchOverlay();
@@ -3515,13 +3514,13 @@ if (window.ethereum) {
         const newChainId = parseInt(chainIdHex, 16);
         console.log(`🔄 Network changed! New Chain ID: ${newChainId}`);
 
-        const BASE_SEPOLIA_CHAIN_ID = 84532;
-        if (newChainId !== BASE_SEPOLIA_CHAIN_ID && connectedWallet) {
-            console.warn(`⚠️ User switched away from Base Sepolia to Chain ID ${newChainId}`);
-            alert(`⚠️ CAMBIO DE RED DETECTADO!\n\nCambiaste a Chain ID ${newChainId}\n\nEste proyecto requiere Base Sepolia (${BASE_SEPOLIA_CHAIN_ID}).\n\nLa página se recargará.`);
+        const BASE_CHAIN_ID = CONTRACT_CONFIG.CHAIN_ID;
+        if (newChainId !== BASE_CHAIN_ID && connectedWallet) {
+            console.warn(`⚠️ User switched away from Base to Chain ID ${newChainId}`);
+            alert(`⚠️ CAMBIO DE RED DETECTADO!\n\nCambiaste a Chain ID ${newChainId}\n\nEste proyecto requiere Base (${BASE_CHAIN_ID}).\n\nLa página se recargará.`);
             window.location.reload();
-        } else if (newChainId === BASE_SEPOLIA_CHAIN_ID) {
-            console.log("✅ Network changed to Base Sepolia - reloading page");
+        } else if (newChainId === BASE_CHAIN_ID) {
+            console.log("✅ Network changed to Base Mainnet - reloading page");
             window.location.reload();
         }
     });

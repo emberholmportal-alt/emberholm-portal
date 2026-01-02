@@ -302,8 +302,8 @@
     const invokedCountDisplay = document.getElementById('invokedCount');
     const MAX_EMISSARIES = 35000;
 
-    // ================== CHAIN CONFIG (Base Sepolia) ==================
-    const CONTRACT_ADDRESS = "0x1db270b8a9725962f1B808a46b919F9a50312659"; // EmberholmPortal V2
+    // ================== CHAIN CONFIG (Base Mainnet) ==================
+    const CONTRACT_ADDRESS = "0x7AB2cf80FbfB8c89868b3dFa053729ecC86E39b3"; // EmberholmPortal Mainnet
     const CONTRACT_ABI = [
       // Mint function
       {"inputs":[{"name":"quantity","type":"uint256"}],"name":"mint","outputs":[],"stateMutability":"payable","type":"function"},
@@ -325,7 +325,7 @@
       {"anonymous":false,"inputs":[{"indexed":true,"name":"from","type":"address"},{"indexed":true,"name":"to","type":"address"},{"indexed":true,"name":"tokenId","type":"uint256"}],"name":"Transfer","type":"event"},
       {"anonymous":false,"inputs":[{"indexed":true,"name":"to","type":"address"},{"indexed":true,"name":"tokenId","type":"uint256"}],"name":"Minted","type":"event"}
     ];
-    const BASE_SEPOLIA_CHAIN_ID = 84532;
+    const BASE_CHAIN_ID = 8453;
 
     let provider = null;
     let signer = null;
@@ -360,7 +360,7 @@
       el.classList.remove('wallet-badge-ok', 'wallet-badge-warn', 'wallet-badge-err');
 
       if (status === 'ok') {
-        el.textContent = details || 'WALLET: CONNECTED (BASE SEPOLIA) ✅';
+        el.textContent = details || 'WALLET: CONNECTED (BASE) ✅';
         el.classList.add('wallet-badge-ok');
       } else if (status === 'warn') {
         el.textContent = details || 'WALLET: WRONG NETWORK';
@@ -389,23 +389,23 @@
         }
 
         let net = await web3.getNetwork();
-        if (net.chainId !== BASE_SEPOLIA_CHAIN_ID) {
-          pushConsole("[WARN] Wrong network. Switching to Base Sepolia (84532)...");
+        if (net.chainId !== BASE_CHAIN_ID) {
+          pushConsole("[WARN] Wrong network. Switching to Base Mainnet (8453)...");
           try {
             await window.ethereum.request({
               method: "wallet_switchEthereumChain",
-              params: [{ chainId: "0x14A34" }],
+              params: [{ chainId: "0x2105" }],
             });
           } catch (switchErr) {
             if (switchErr.code === 4902) {
               await window.ethereum.request({
                 method: "wallet_addEthereumChain",
                 params: [{
-                  chainId: "0x14A34",
-                  chainName: "Base Sepolia",
+                  chainId: "0x2105",
+                  chainName: "Base",
                   nativeCurrency: { name: "ETH", symbol: "ETH", decimals: 18 },
-                  rpcUrls: ["https://sepolia.base.org"],
-                  blockExplorerUrls: ["https://sepolia.basescan.org"],
+                  rpcUrls: ["https://mainnet.base.org"],
+                  blockExplorerUrls: ["https://basescan.org"],
                 }],
               });
             } else {
@@ -420,7 +420,7 @@
           net = await web3.getNetwork();
         }
 
-        if (net.chainId !== BASE_SEPOLIA_CHAIN_ID) {
+        if (net.chainId !== BASE_CHAIN_ID) {
           pushConsole("[ERROR] Wrong network after switch.");
           setWalletBadge('warn', 'WALLET: WRONG NETWORK');
           throw new Error("wrong_network");
@@ -432,7 +432,7 @@
 
         const addr = await signer.getAddress();
         pushConsole(`[CONNECTED] Wallet ${addr} on Base Sepolia ✅`);
-        setWalletBadge('ok', 'WALLET: CONNECTED (BASE SEPOLIA) ✅');
+        setWalletBadge('ok', 'WALLET: CONNECTED (BASE) ✅');
 
         return contract;
       } catch (err) {
@@ -445,7 +445,7 @@
     async function refreshTotalMinted() {
       try {
         pushConsole("[DEBUG] Reading totalSupply from contract...");
-        const ro = new ethers.providers.JsonRpcProvider("https://sepolia.base.org");
+        const ro = new ethers.providers.JsonRpcProvider("https://mainnet.base.org");
         const roContract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, ro);
         const supply = await roContract.totalSupply();
         lastMintedOnChain = supply.toNumber();
@@ -471,7 +471,7 @@
     async function getRealNFTMetadata(tokenId) {
       try {
         pushConsole(`[DEBUG] Fetching tokenURI for #${tokenId}...`);
-        const ro = new ethers.providers.JsonRpcProvider("https://sepolia.base.org");
+        const ro = new ethers.providers.JsonRpcProvider("https://mainnet.base.org");
         const roContract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, ro);
 
         let uri = await roContract.tokenURI(tokenId);
@@ -596,7 +596,7 @@
         const net = await provider.getNetwork();
         const addr = await signer.getAddress();
         const bal = await provider.getBalance(addr);
-        pushConsole(`[NET] chainId=${net.chainId} (esperado 84532)`);
+        pushConsole(`[NET] chainId=${net.chainId} (esperado 8453)`);
         pushConsole(`[WALLET] ${addr}`);
         pushConsole(`[BAL] ${ethers.utils.formatEther(bal)} ETH on Base Sepolia`);
 
@@ -837,9 +837,9 @@
           const web3 = new ethers.providers.Web3Provider(window.ethereum);
           const accounts = await web3.listAccounts();
           const net = await web3.getNetwork();
-          if (accounts.length > 0 && net.chainId === BASE_SEPOLIA_CHAIN_ID) {
-            setWalletBadge('ok', 'WALLET: CONNECTED (BASE SEPOLIA) ✅');
-          } else if (accounts.length > 0 && net.chainId !== BASE_SEPOLIA_CHAIN_ID) {
+          if (accounts.length > 0 && net.chainId === BASE_CHAIN_ID) {
+            setWalletBadge('ok', 'WALLET: CONNECTED (BASE) ✅');
+          } else if (accounts.length > 0 && net.chainId !== BASE_CHAIN_ID) {
             setWalletBadge('warn', 'WALLET: WRONG NETWORK');
           } else {
             setWalletBadge('err', 'WALLET: DISCONNECTED');
