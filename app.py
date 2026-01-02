@@ -2243,16 +2243,31 @@ def api_player(wallet):
                 synced = []
                 for token_id in token_ids:
                     try:
+                        token_id_int = int(token_id)
+
+                        # 🔥 UPSERT: Insert if not exists, Update if exists
                         cur.execute("""
-                            UPDATE emissaries_state
-                            SET wallet_address = %s, minted = TRUE
-                            WHERE token_id = %s
-                        """, (wallet, int(token_id)))
-                        if cur.rowcount > 0:
-                            synced.append(token_id)
-                            print(f"  ✅ Token {token_id} synced to wallet")
-                        else:
-                            print(f"  ⚠️ Token {token_id} not found in emissaries_state")
+                            INSERT INTO emissaries_state (token_id, wallet_address, minted, state, xp, aura, energy, max_energy)
+                            VALUES (%s, %s, TRUE, 'idle', 0, 0, 100, 100)
+                            ON CONFLICT (token_id) DO UPDATE SET
+                                wallet_address = EXCLUDED.wallet_address,
+                                minted = TRUE
+                        """, (token_id_int, wallet))
+                        synced.append(token_id)
+                        print(f"  ✅ Token {token_id} synced to wallet (upsert)")
+
+                        # 🔥 Also check if metadata exists, if not create placeholder
+                        cur.execute("SELECT token_id FROM emissaries_metadata WHERE token_id = %s", (token_id_int,))
+                        if not cur.fetchone():
+                            # Create placeholder metadata - will be updated from IPFS later
+                            padded_id = str(token_id_int).zfill(5)
+                            cur.execute("""
+                                INSERT INTO emissaries_metadata (token_id, name, race, class, guild, background)
+                                VALUES (%s, %s, 'Unknown', 'Unknown', 'Unassigned', 'Summoned from the Portal')
+                                ON CONFLICT (token_id) DO NOTHING
+                            """, (token_id_int, f"Emissary #{padded_id}"))
+                            print(f"  📝 Created placeholder metadata for token {token_id}")
+
                     except Exception as te:
                         print(f"  ⚠️ Error syncing token {token_id}: {te}")
 
@@ -2273,7 +2288,8 @@ def api_player(wallet):
                 return jsonify({
                     "success": True,
                     "synced": synced,
-                    "synced_count": len(synced)
+                    "synced_count": len(synced),
+                    "synced_to_database": len(synced)  # For frontend compatibility
                 })
 
             except Exception as e:
@@ -2286,22 +2302,23 @@ def api_player(wallet):
                     db.release_connection(conn)
                 return jsonify({"success": False, "error": str(e)})
 
-        # GET: Obtener emissaries SOLO de las nuevas tablas
+        # GET: Obtener emissaries - start from state table, LEFT JOIN metadata
+        # This ensures we get emissaries even if metadata isn't fully populated yet
         cur.execute("""
             SELECT
-                m.token_id,
-                m.name,
-                m.race,
-                m.class,
-                m.guild,
-                m.background,
-                m.base_str,
-                m.base_dex,
-                m.base_con,
-                m.base_int,
-                m.base_wis,
-                m.base_cha,
-                m.base_power,
+                s.token_id,
+                COALESCE(m.name, 'Emissary #' || LPAD(s.token_id::text, 5, '0')) as name,
+                COALESCE(m.race, 'Unknown') as race,
+                COALESCE(m.class, 'Unknown') as class,
+                COALESCE(m.guild, 'Unassigned') as guild,
+                COALESCE(m.background, 'Summoned from the Portal') as background,
+                COALESCE(m.base_str, 10) as base_str,
+                COALESCE(m.base_dex, 10) as base_dex,
+                COALESCE(m.base_con, 10) as base_con,
+                COALESCE(m.base_int, 10) as base_int,
+                COALESCE(m.base_wis, 10) as base_wis,
+                COALESCE(m.base_cha, 10) as base_cha,
+                COALESCE(m.base_power, 60) as base_power,
                 COALESCE(s.xp, 0) as xp,
                 COALESCE(s.aura, 0) as aura,
                 COALESCE(s.energy, 100) as energy,
@@ -2311,10 +2328,10 @@ def api_player(wallet):
                 COALESCE(s.rank_level, 0) as rank_level,
                 COALESCE(s.rank_name, 'Novice') as rank_name,
                 COALESCE(s.total_missions, 0) as total_missions
-            FROM emissaries_metadata m
-            JOIN emissaries_state s ON m.token_id = s.token_id
-            WHERE LOWER(s.wallet_address) = LOWER(%s)
-            ORDER BY m.token_id
+            FROM emissaries_state s
+            LEFT JOIN emissaries_metadata m ON s.token_id = m.token_id
+            WHERE LOWER(s.wallet_address) = LOWER(%s) AND s.minted = TRUE
+            ORDER BY s.token_id
         """, (wallet,))
 
         emissaries = cur.fetchall() or []
