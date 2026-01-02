@@ -307,10 +307,10 @@
     const CONTRACT_ABI = [
       {"inputs":[{"name":"quantity","type":"uint256"}],"name":"mint","outputs":[],"stateMutability":"payable","type":"function"},
       {"inputs":[],"name":"totalSupply","outputs":[{"name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
-      {"inputs":[],"name":"MAX_SUPPLY","outputs":[{"name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
-      {"inputs":[],"name":"MINT_PRICE","outputs":[{"name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+      {"inputs":[],"name":"maxSupply","outputs":[{"name":"","type":"uint256"}],"stateMutability":"pure","type":"function"},
+      {"inputs":[],"name":"mintPrice","outputs":[{"name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
       {"inputs":[],"name":"mintOpen","outputs":[{"name":"","type":"bool"}],"stateMutability":"view","type":"function"},
-      {"inputs":[{"name":"owner_","type":"address"}],"name":"tokensOfOwner","outputs":[{"name":"","type":"uint256[]"}],"stateMutability":"view","type":"function"},
+      {"inputs":[{"name":"owner","type":"address"}],"name":"tokensOfOwner","outputs":[{"name":"","type":"uint256[]"}],"stateMutability":"view","type":"function"},
       {"inputs":[{"name":"owner","type":"address"}],"name":"balanceOf","outputs":[{"name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
       {"inputs":[{"name":"tokenId","type":"uint256"}],"name":"ownerOf","outputs":[{"name":"","type":"address"}],"stateMutability":"view","type":"function"},
       {"inputs":[{"name":"tokenId","type":"uint256"}],"name":"tokenURI","outputs":[{"name":"","type":"string"}],"stateMutability":"view","type":"function"},
@@ -587,8 +587,8 @@
         const isOpen = await c.mintOpen();
         pushConsole(`[CONTRACT] mintOpen=${isOpen}`);
 
-        const priceWei = await c.MINT_PRICE();
-        pushConsole(`[CONTRACT] MINT_PRICE=${ethers.utils.formatEther(priceWei)} ETH`);
+        const priceWei = await c.mintPrice();
+        pushConsole(`[CONTRACT] mintPrice=${ethers.utils.formatEther(priceWei)} ETH`);
         const totalCost = priceWei.mul(qty);
         pushConsole(`[TX] Minting ${qty}…`);
         pushConsole(`[TX] Cost: ${ethers.utils.formatEther(totalCost)} ETH`);
