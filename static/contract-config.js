@@ -39,6 +39,7 @@ const CONTRACT_CONFIG = {
         "function mint(uint256 quantity) payable",
         "function mintPrice() view returns (uint256)",
         "function mintOpen() view returns (bool)",
+        "function getFreeMints(address wallet) view returns (uint256)",
 
         // ========== EVENTS ==========
         "event Transfer(address indexed from, address indexed to, uint256 indexed tokenId)"

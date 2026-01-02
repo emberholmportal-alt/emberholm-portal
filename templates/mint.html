@@ -310,6 +310,7 @@
       {"inputs":[],"name":"maxSupply","outputs":[{"name":"","type":"uint256"}],"stateMutability":"pure","type":"function"},
       {"inputs":[],"name":"mintPrice","outputs":[{"name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
       {"inputs":[],"name":"mintOpen","outputs":[{"name":"","type":"bool"}],"stateMutability":"view","type":"function"},
+      {"inputs":[{"name":"wallet","type":"address"}],"name":"getFreeMints","outputs":[{"name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
       {"inputs":[{"name":"owner","type":"address"}],"name":"tokensOfOwner","outputs":[{"name":"","type":"uint256[]"}],"stateMutability":"view","type":"function"},
       {"inputs":[{"name":"owner","type":"address"}],"name":"balanceOf","outputs":[{"name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
       {"inputs":[{"name":"tokenId","type":"uint256"}],"name":"ownerOf","outputs":[{"name":"","type":"address"}],"stateMutability":"view","type":"function"},
@@ -589,9 +590,28 @@
 
         const priceWei = await c.mintPrice();
         pushConsole(`[CONTRACT] mintPrice=${ethers.utils.formatEther(priceWei)} ETH`);
-        const totalCost = priceWei.mul(qty);
+
+        // Check free mints available for this wallet
+        const freeMints = await c.getFreeMints(addr);
+        const freeMintCount = freeMints.toNumber();
+        pushConsole(`[CONTRACT] freeMints available: ${freeMintCount}`);
+
+        // Calculate how many free mints to use
+        const freeToUse = Math.min(freeMintCount, qty);
+        const paidMints = qty - freeToUse;
+
+        // Calculate actual cost (free mints = 0 ETH)
+        const totalCost = priceWei.mul(paidMints);
+
         pushConsole(`[TX] Minting ${qty}…`);
-        pushConsole(`[TX] Cost: ${ethers.utils.formatEther(totalCost)} ETH`);
+        if (freeToUse > 0) {
+          pushConsole(`[TX] 🎁 Using ${freeToUse} FREE MINT(s)!`);
+        }
+        if (paidMints > 0) {
+          pushConsole(`[TX] 💰 Paying for ${paidMints} mint(s): ${ethers.utils.formatEther(totalCost)} ETH`);
+        } else {
+          pushConsole(`[TX] 🎉 ALL FREE! No ETH required.`);
+        }
 
         const tx = await c.mint(qty, { value: totalCost });
         mintStatus.textContent = "STATUS: TX SENT " + tx.hash;
