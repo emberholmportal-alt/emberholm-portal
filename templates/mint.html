@@ -310,6 +310,8 @@
       // Variables públicas (camelCase)
       {"inputs":[],"name":"mintPrice","outputs":[{"name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
       {"inputs":[],"name":"mintOpen","outputs":[{"name":"","type":"bool"}],"stateMutability":"view","type":"function"},
+      // Free mints function
+      {"inputs":[{"name":"wallet","type":"address"}],"name":"getFreeMints","outputs":[{"name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
       // Constantes (UPPER_CASE)
       {"inputs":[],"name":"MAX_SUPPLY","outputs":[{"name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
       {"inputs":[],"name":"MAX_PER_TX","outputs":[{"name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
@@ -605,9 +607,32 @@
 
         const priceWei = await c.mintPrice();
         pushConsole(`[CONTRACT] mintPrice=${ethers.utils.formatEther(priceWei)} ETH`);
-        const totalCost = priceWei.mul(qty);
-        pushConsole(`[TX] Minting ${qty}…`);
-        pushConsole(`[TX] Cost: ${ethers.utils.formatEther(totalCost)} ETH`);
+
+        // 🔥 CHECK FREE MINTS BEFORE CALCULATING COST
+        let freeMints = 0;
+        try {
+          freeMints = await c.getFreeMints(addr);
+          freeMints = freeMints.toNumber ? freeMints.toNumber() : Number(freeMints);
+          pushConsole(`[CONTRACT] freeMints available: ${freeMints}`);
+        } catch (freeMintsError) {
+          pushConsole(`[WARN] Could not fetch freeMints: ${freeMintsError.message}`);
+          freeMints = 0;
+        }
+
+        // Calculate how many free mints to use and how many to pay for
+        const freeToUse = Math.min(freeMints, qty);
+        const paidMints = qty - freeToUse;
+        const totalCost = priceWei.mul(paidMints);
+
+        pushConsole(`[TX] Minting ${qty} emissaries…`);
+        if (freeToUse > 0) {
+          pushConsole(`[TX] 🎁 Using ${freeToUse} FREE MINT(s)!`);
+        }
+        if (paidMints > 0) {
+          pushConsole(`[TX] 💰 Paying for ${paidMints} mint(s): ${ethers.utils.formatEther(totalCost)} ETH`);
+        } else {
+          pushConsole(`[TX] 🎉 ALL FREE! No ETH required.`);
+        }
 
         const tx = await c.mint(qty, { value: totalCost });
         mintStatus.textContent = "STATUS: TX SENT " + tx.hash;
