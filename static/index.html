@@ -3419,7 +3419,7 @@ async function connectWallet() {
                 alert(`⚠️ Tu wallet tiene ${balance.toString()} NFT(s) pero no pudimos encontrarlos.\n\nEsto puede pasar si los NFTs son antiguos. Contacta a soporte.`);
             } else if (tokenIds.length === 0) {
                 console.log("ℹ️ No NFTs found for this wallet on Base Mainnet");
-                alert("ℹ️ Esta wallet no tiene NFTs en Base Mainnet.\n\nSi esperabas ver NFTs, verifica que estén minteados en la red correcta.");
+                // No alert needed - empty state is normal for users without NFTs
             }
 
             document.getElementById("connect-wallet-btn").textContent = "[CONNECTED ✓]";
