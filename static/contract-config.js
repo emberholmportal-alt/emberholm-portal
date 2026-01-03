@@ -20,7 +20,10 @@ const CONTRACT_CONFIG = {
     BLOCK_EXPLORER: "https://basescan.org",
 
     // ========== IPFS METADATA ==========
+    // Metadata JSON CID
     IPFS_METADATA_BASE: "https://ipfs.io/ipfs/bafybeidd7wtx7izjgsociwe6ynjz6c3xslqmcedr7z4wojcxs4yd5u7pim/",
+    // Images PNG CID (different from metadata!)
+    IPFS_IMAGES_BASE: "https://ipfs.io/ipfs/bafybeicnvc3zagcncablcovpxgt5mtuotowvuqom6kby754ve2gwbzdvkm/",
 
     // ========== ABI - EmberholmPortal ==========
     ABI: [
