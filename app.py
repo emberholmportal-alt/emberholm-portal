@@ -1634,7 +1634,8 @@ def get_wallet_token_ids(wallet):
 
     PRIORIDAD:
     1. Lee desde wallet_nfts.json (cache poblado por frontend)
-    2. Si no hay cache, intenta blockchain (solo si hay conexión)
+    2. Si no hay cache, busca en PostgreSQL (nfts_database por last_known_owner)
+    3. Si no hay DB, intenta blockchain (solo si hay conexión)
 
     Returns:
         list: Lista de token_ids (como strings con formato "00001") que posee la wallet
@@ -1649,7 +1650,28 @@ def get_wallet_token_ids(wallet):
             print(f"✅ Using cached NFTs for wallet {wallet[:6]}...{wallet[-4:]}: {len(tokens)} NFTs")
             return tokens
 
-    # 🔥 PRIORIDAD 2: Si no hay cache, intentar blockchain (solo si hay conexión)
+    # 🔥 PRIORIDAD 2: Buscar en PostgreSQL (nfts_database por last_known_owner)
+    # Esto sobrevive reinicios del servidor porque está en PostgreSQL
+    try:
+        nfts_db = load_nfts_database()
+        db_tokens = []
+        for token_id, nft in nfts_db.items():
+            owner = nft.get("last_known_owner", "")
+            if owner and owner.lower() == wallet_lower:
+                db_tokens.append(token_id)
+
+        if db_tokens:
+            print(f"✅ Found {len(db_tokens)} NFTs in PostgreSQL for wallet {wallet[:6]}...{wallet[-4:]}")
+            # Cachear para próximas llamadas en esta sesión
+            wallet_nfts[wallet] = db_tokens
+            save_json(WALLET_NFTS_PATH, wallet_nfts)
+            return db_tokens
+        else:
+            print(f"⚠️ No NFTs found in PostgreSQL for wallet {wallet[:6]}...{wallet[-4:]}")
+    except Exception as e:
+        print(f"⚠️ Error querying PostgreSQL for wallet NFTs: {e}")
+
+    # 🔥 PRIORIDAD 3: Si no hay cache ni DB, intentar blockchain (solo si hay conexión)
     if w3 is None or nft_contract is None:
         print(f"⚠️ No blockchain connection and no cache for wallet: {wallet}")
         return []
