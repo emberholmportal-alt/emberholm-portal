@@ -47,6 +47,11 @@ METADATA_DIR = os.path.join(DATA_DIR, "metadata")
 # IPFS Gateway para convertir URLs de IPFS a URLs HTTP
 IPFS_GATEWAY = "https://ipfs.io/ipfs/"
 
+# 🔥 IPFS CIDs de Base Mainnet
+# Metadata JSON: bafybeidd7wtx7izjgsociwe6ynjz6c3xslqmcedr7z4wojcxs4yd5u7pim
+# Imágenes PNG:  bafybeicnvc3zagcncablcovpxgt5mtuotowvuqom6kby754ve2gwbzdvkm
+IPFS_MAINNET_IMAGES_CID = "bafybeicnvc3zagcncablcovpxgt5mtuotowvuqom6kby754ve2gwbzdvkm"
+
 # ---------------------------------
 # Blockchain Config (TEMPORARILY DISABLED)
 # ---------------------------------
@@ -1629,7 +1634,8 @@ def get_wallet_token_ids(wallet):
 
     PRIORIDAD:
     1. Lee desde wallet_nfts.json (cache poblado por frontend)
-    2. Si no hay cache, intenta blockchain (solo si hay conexión)
+    2. Si no hay cache, busca en PostgreSQL (nfts_database por last_known_owner)
+    3. Si no hay DB, intenta blockchain (solo si hay conexión)
 
     Returns:
         list: Lista de token_ids (como strings con formato "00001") que posee la wallet
@@ -1644,7 +1650,28 @@ def get_wallet_token_ids(wallet):
             print(f"✅ Using cached NFTs for wallet {wallet[:6]}...{wallet[-4:]}: {len(tokens)} NFTs")
             return tokens
 
-    # 🔥 PRIORIDAD 2: Si no hay cache, intentar blockchain (solo si hay conexión)
+    # 🔥 PRIORIDAD 2: Buscar en PostgreSQL (nfts_database por last_known_owner)
+    # Esto sobrevive reinicios del servidor porque está en PostgreSQL
+    try:
+        nfts_db = load_nfts_database()
+        db_tokens = []
+        for token_id, nft in nfts_db.items():
+            owner = nft.get("last_known_owner", "")
+            if owner and owner.lower() == wallet_lower:
+                db_tokens.append(token_id)
+
+        if db_tokens:
+            print(f"✅ Found {len(db_tokens)} NFTs in PostgreSQL for wallet {wallet[:6]}...{wallet[-4:]}")
+            # Cachear para próximas llamadas en esta sesión
+            wallet_nfts[wallet] = db_tokens
+            save_json(WALLET_NFTS_PATH, wallet_nfts)
+            return db_tokens
+        else:
+            print(f"⚠️ No NFTs found in PostgreSQL for wallet {wallet[:6]}...{wallet[-4:]}")
+    except Exception as e:
+        print(f"⚠️ Error querying PostgreSQL for wallet NFTs: {e}")
+
+    # 🔥 PRIORIDAD 3: Si no hay cache ni DB, intentar blockchain (solo si hay conexión)
     if w3 is None or nft_contract is None:
         print(f"⚠️ No blockchain connection and no cache for wallet: {wallet}")
         return []
@@ -1685,13 +1712,17 @@ def create_hero_from_metadata(token_id):
     filename = f"{str(token_id).zfill(5)}.json"
     path = os.path.join(METADATA_DIR, filename)
 
+    # 🔥 Generar image_url usando CID de mainnet
+    padded_token_id = str(token_id).zfill(5)
+    mainnet_image_url = f"{IPFS_GATEWAY}{IPFS_MAINNET_IMAGES_CID}/{padded_token_id}.png"
+
     # Default hero template
     default_hero = {
-        "token_id": str(token_id).zfill(5),
-        "name": f"Emissary #{str(token_id).zfill(5)}",
+        "token_id": padded_token_id,
+        "name": f"Emissary #{padded_token_id}",
         "race_class": "Unknown",
         "guild": "Unassigned",
-        "image_url": "/img/emissary-placeholder.png",
+        "image_url": mainnet_image_url,
         "dynamic_state": {
             "xp_total": 0,
             "aura_level": 0,
@@ -1737,10 +1768,10 @@ def create_hero_from_metadata(token_id):
     # Crear race_class combinado
     race_class = f"{race} {char_class}"
 
-    # Convertir IPFS URL a HTTP usando gateway público
-    image_url = ipfs_to_http(metadata.get("image", ""))
-    if not image_url:
-        image_url = "/img/emissary-placeholder.png"
+    # 🔥 Generar image_url usando el CID de mainnet directamente
+    # Esto garantiza que siempre usemos las imágenes correctas de Base Mainnet
+    padded_id = str(token_id).zfill(5)
+    image_url = f"{IPFS_GATEWAY}{IPFS_MAINNET_IMAGES_CID}/{padded_id}.png"
 
     # Calcular power_current desde stats (aproximación)
     str_val = fixed.get("str", 10)
@@ -3157,12 +3188,16 @@ def load_base_metadata_for_token(token_id):
     with open(path, "r", encoding="utf-8") as f:
         raw = json.load(f)
 
+    # 🔥 Generar image usando CID de mainnet directamente
+    padded_id = str(token_id).zfill(5)
+    mainnet_image = f"ipfs://{IPFS_MAINNET_IMAGES_CID}/{padded_id}.png"
+
     # base del resultado
     meta = {
-        "token_id":        str(token_id).zfill(5),
-        "name":            raw.get("name", f"Emissary #{str(token_id).zfill(5)}"),
+        "token_id":        padded_id,
+        "name":            raw.get("name", f"Emissary #{padded_id}"),
         "description":     raw.get("description", "Emissary of Emberholm."),
-        "image":           raw.get("image", ""),
+        "image":           mainnet_image,  # 🔥 Usar CID de mainnet
         "race":            "Unknown",
         "class":           "Unknown",
         "rarity":          "Unknown",
