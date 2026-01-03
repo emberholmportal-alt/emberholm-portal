@@ -3683,6 +3683,7 @@ def api_setup_postgresql():
         guild VARCHAR(100),
         race_class VARCHAR(100),
         last_known_owner VARCHAR(42),
+        image_url TEXT,
         dynamic_state JSONB NOT NULL DEFAULT '{}'::jsonb,
         last_update TIMESTAMP DEFAULT NOW(),
         created_at TIMESTAMP DEFAULT NOW()
@@ -3693,6 +3694,14 @@ def api_setup_postgresql():
     CREATE INDEX IF NOT EXISTS idx_nfts_state ON nfts((dynamic_state->>'state'));
     CREATE INDEX IF NOT EXISTS idx_nfts_xp ON nfts(((dynamic_state->>'xp_total')::int));
     CREATE INDEX IF NOT EXISTS idx_nfts_aura ON nfts(((dynamic_state->>'aura_level')::int));
+
+    -- Add image_url column if it doesn't exist (migration for existing tables)
+    DO $$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'nfts' AND column_name = 'image_url') THEN
+            ALTER TABLE nfts ADD COLUMN image_url TEXT;
+        END IF;
+    END $$;
 
     CREATE TABLE IF NOT EXISTS active_missions (
         mission_key VARCHAR(100) PRIMARY KEY,

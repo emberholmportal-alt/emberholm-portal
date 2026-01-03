@@ -5434,8 +5434,31 @@ async function openMissionSendModal(missionId) {
     }
 
     try {
-        const player = await fetchJSON(`/api/player/${encodeURIComponent(connectedWallet)}`);
-        const readyHeroes = (player.heroes || []).filter(h => {
+        // 🔥 USE IPFS DATA (from blockchain + IPFS) as primary source
+        let heroes = [];
+        if (ipfsNFTsData && ipfsNFTsData.length > 0) {
+            heroes = ipfsNFTsData;
+            // Try to merge game state from backend (optional)
+            try {
+                const backendData = await fetchJSON(`/api/player/${encodeURIComponent(connectedWallet)}`);
+                if (backendData && backendData.heroes) {
+                    for (const ipfsHero of heroes) {
+                        const backendHero = backendData.heroes.find(h => h.token_id === ipfsHero.token_id);
+                        if (backendHero && backendHero.dynamic_state) {
+                            ipfsHero.dynamic_state = { ...ipfsHero.dynamic_state, ...backendHero.dynamic_state };
+                        }
+                    }
+                }
+            } catch (e) {
+                console.warn("⚠️ Backend fetch failed, using IPFS data only");
+            }
+        } else {
+            // Fallback to backend
+            const player = await fetchJSON(`/api/player/${encodeURIComponent(connectedWallet)}`);
+            heroes = player.heroes || [];
+        }
+
+        const readyHeroes = heroes.filter(h => {
             const ds = h.dynamic_state || {};
             return ds.state === "READY";
         });
@@ -5510,8 +5533,29 @@ async function openEventSendModal(eventId) {
             return;
         }
 
-        const player = await fetchJSON(`/api/player/${encodeURIComponent(connectedWallet)}`);
-        const readyHeroes = (player.heroes || []).filter(h => {
+        // 🔥 USE IPFS DATA as primary source
+        let heroes = [];
+        if (ipfsNFTsData && ipfsNFTsData.length > 0) {
+            heroes = ipfsNFTsData;
+            try {
+                const backendData = await fetchJSON(`/api/player/${encodeURIComponent(connectedWallet)}`);
+                if (backendData && backendData.heroes) {
+                    for (const ipfsHero of heroes) {
+                        const backendHero = backendData.heroes.find(h => h.token_id === ipfsHero.token_id);
+                        if (backendHero && backendHero.dynamic_state) {
+                            ipfsHero.dynamic_state = { ...ipfsHero.dynamic_state, ...backendHero.dynamic_state };
+                        }
+                    }
+                }
+            } catch (e) {
+                console.warn("⚠️ Backend fetch failed, using IPFS data only");
+            }
+        } else {
+            const player = await fetchJSON(`/api/player/${encodeURIComponent(connectedWallet)}`);
+            heroes = player.heroes || [];
+        }
+
+        const readyHeroes = heroes.filter(h => {
             const ds = h.dynamic_state || {};
             return ds.state === "READY";
         });
@@ -5604,8 +5648,29 @@ async function openPartyMissionModal(missionId) {
             return;
         }
 
-        const player = await fetchJSON(`/api/player/${encodeURIComponent(connectedWallet)}`);
-        const readyHeroes = (player.heroes || []).filter(h => {
+        // 🔥 USE IPFS DATA as primary source
+        let heroes = [];
+        if (ipfsNFTsData && ipfsNFTsData.length > 0) {
+            heroes = ipfsNFTsData;
+            try {
+                const backendData = await fetchJSON(`/api/player/${encodeURIComponent(connectedWallet)}`);
+                if (backendData && backendData.heroes) {
+                    for (const ipfsHero of heroes) {
+                        const backendHero = backendData.heroes.find(h => h.token_id === ipfsHero.token_id);
+                        if (backendHero && backendHero.dynamic_state) {
+                            ipfsHero.dynamic_state = { ...ipfsHero.dynamic_state, ...backendHero.dynamic_state };
+                        }
+                    }
+                }
+            } catch (e) {
+                console.warn("⚠️ Backend fetch failed, using IPFS data only");
+            }
+        } else {
+            const player = await fetchJSON(`/api/player/${encodeURIComponent(connectedWallet)}`);
+            heroes = player.heroes || [];
+        }
+
+        const readyHeroes = heroes.filter(h => {
             const ds = h.dynamic_state || {};
             return ds.state === "READY";
         });
