@@ -47,6 +47,9 @@ METADATA_DIR = os.path.join(DATA_DIR, "metadata")
 # IPFS Gateway para convertir URLs de IPFS a URLs HTTP
 IPFS_GATEWAY = "https://ipfs.io/ipfs/"
 
+# 🔥 IPFS CID de Base Mainnet - Este es el CID correcto para las imágenes
+IPFS_MAINNET_IMAGES_CID = "bafybeidd7wtx7izjgsociwe6ynjz6c3xslqmcedr7z4wojcxs4yd5u7pim"
+
 # ---------------------------------
 # Blockchain Config (TEMPORARILY DISABLED)
 # ---------------------------------
@@ -1685,13 +1688,17 @@ def create_hero_from_metadata(token_id):
     filename = f"{str(token_id).zfill(5)}.json"
     path = os.path.join(METADATA_DIR, filename)
 
+    # 🔥 Generar image_url usando CID de mainnet
+    padded_token_id = str(token_id).zfill(5)
+    mainnet_image_url = f"{IPFS_GATEWAY}{IPFS_MAINNET_IMAGES_CID}/{padded_token_id}.png"
+
     # Default hero template
     default_hero = {
-        "token_id": str(token_id).zfill(5),
-        "name": f"Emissary #{str(token_id).zfill(5)}",
+        "token_id": padded_token_id,
+        "name": f"Emissary #{padded_token_id}",
         "race_class": "Unknown",
         "guild": "Unassigned",
-        "image_url": "/img/emissary-placeholder.png",
+        "image_url": mainnet_image_url,
         "dynamic_state": {
             "xp_total": 0,
             "aura_level": 0,
@@ -1737,10 +1744,10 @@ def create_hero_from_metadata(token_id):
     # Crear race_class combinado
     race_class = f"{race} {char_class}"
 
-    # Convertir IPFS URL a HTTP usando gateway público
-    image_url = ipfs_to_http(metadata.get("image", ""))
-    if not image_url:
-        image_url = "/img/emissary-placeholder.png"
+    # 🔥 Generar image_url usando el CID de mainnet directamente
+    # Esto garantiza que siempre usemos las imágenes correctas de Base Mainnet
+    padded_id = str(token_id).zfill(5)
+    image_url = f"{IPFS_GATEWAY}{IPFS_MAINNET_IMAGES_CID}/{padded_id}.png"
 
     # Calcular power_current desde stats (aproximación)
     str_val = fixed.get("str", 10)
@@ -3157,12 +3164,16 @@ def load_base_metadata_for_token(token_id):
     with open(path, "r", encoding="utf-8") as f:
         raw = json.load(f)
 
+    # 🔥 Generar image usando CID de mainnet directamente
+    padded_id = str(token_id).zfill(5)
+    mainnet_image = f"ipfs://{IPFS_MAINNET_IMAGES_CID}/{padded_id}.png"
+
     # base del resultado
     meta = {
-        "token_id":        str(token_id).zfill(5),
-        "name":            raw.get("name", f"Emissary #{str(token_id).zfill(5)}"),
+        "token_id":        padded_id,
+        "name":            raw.get("name", f"Emissary #{padded_id}"),
         "description":     raw.get("description", "Emissary of Emberholm."),
-        "image":           raw.get("image", ""),
+        "image":           mainnet_image,  # 🔥 Usar CID de mainnet
         "race":            "Unknown",
         "class":           "Unknown",
         "rarity":          "Unknown",
