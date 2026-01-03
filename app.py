@@ -47,8 +47,10 @@ METADATA_DIR = os.path.join(DATA_DIR, "metadata")
 # IPFS Gateway para convertir URLs de IPFS a URLs HTTP
 IPFS_GATEWAY = "https://ipfs.io/ipfs/"
 
-# 🔥 IPFS CID de Base Mainnet - Este es el CID correcto para las imágenes
-IPFS_MAINNET_IMAGES_CID = "bafybeidd7wtx7izjgsociwe6ynjz6c3xslqmcedr7z4wojcxs4yd5u7pim"
+# 🔥 IPFS CIDs de Base Mainnet
+# Metadata JSON: bafybeidd7wtx7izjgsociwe6ynjz6c3xslqmcedr7z4wojcxs4yd5u7pim
+# Imágenes PNG:  bafybeicnvc3zagcncablcovpxgt5mtuotowvuqom6kby754ve2gwbzdvkm
+IPFS_MAINNET_IMAGES_CID = "bafybeicnvc3zagcncablcovpxgt5mtuotowvuqom6kby754ve2gwbzdvkm"
 
 # ---------------------------------
 # Blockchain Config (TEMPORARILY DISABLED)
