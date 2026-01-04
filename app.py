@@ -3433,309 +3433,424 @@ def api_mission_complete():
     POST solo: { "wallet": "0x...", "hero_id": "00001" }
     POST party: Mission is detected automatically from active_missions
     """
-    data = request.get_json(force=True)
-    wallet = data.get("wallet")
-    hero_id = data.get("hero_id")
+    print("\n" + "=" * 60)
+    print("📥 MISSION COMPLETE REQUEST RECEIVED")
+    print("=" * 60)
 
-    if not wallet:
-        abort(400, "Missing wallet")
+    try:
+        # Step 1: Parse request data
+        print("\n[STEP 1] Parsing request data...")
+        data = request.get_json(force=True)
+        print(f"   📦 Raw request data: {data}")
 
-    # 🔥 NORMALIZE wallet address to lowercase
-    wallet = wallet.lower()
+        wallet = data.get("wallet")
+        hero_id = data.get("hero_id")
 
-    # Check if this is a party mission
-    active_missions = load_active_missions()
+        print(f"   Wallet: {wallet}")
+        print(f"   Hero ID: {hero_id}")
 
-    # Look for party mission for this wallet
-    party_mission = None
-    for key, mission_data in active_missions.items():
-        if mission_data.get("is_party") and mission_data.get("wallet") == wallet:
-            # Check if the provided hero_id is part of this party
-            if hero_id and hero_id in mission_data.get("hero_ids", []):
-                party_mission = mission_data.copy()
-                party_mission["mission_key"] = key
+        if not wallet:
+            print("   ❌ ERROR: Missing wallet")
+            abort(400, "Missing wallet")
+
+        # 🔥 NORMALIZE wallet address to lowercase
+        wallet = wallet.lower()
+        print(f"   Normalized wallet: {wallet}")
+
+        # Step 2: Check for party mission
+        print("\n[STEP 2] Loading active missions...")
+        active_missions = load_active_missions()
+        print(f"   Active missions count: {len(active_missions)}")
+
+        # Look for party mission for this wallet
+        party_mission = None
+        for key, mission_data in active_missions.items():
+            if mission_data.get("is_party") and mission_data.get("wallet") == wallet:
+                # Check if the provided hero_id is part of this party
+                if hero_id and hero_id in mission_data.get("hero_ids", []):
+                    party_mission = mission_data.copy()
+                    party_mission["mission_key"] = key
+                    print(f"   Found party mission: {key}")
+                    break
+
+        if party_mission:
+            # PARTY MISSION COMPLETION
+            print("\n[STEP 3] Handling PARTY mission completion...")
+            return handle_party_mission_complete(wallet, party_mission)
+
+        # SOLO MISSION COMPLETION (EXISTING CODE CONTINUES)
+        print("\n[STEP 3] Handling SOLO mission completion...")
+
+        if not hero_id:
+            print("   ❌ ERROR: Missing hero_id for solo mission")
+            abort(400, "Missing hero_id for solo mission")
+
+        # Step 4: Load stats and player
+        print("\n[STEP 4] Loading stats and player data...")
+        stats_obj = load_json(STATS_PATH, {
+            "total_characters": 0,
+            "active_guilds": 6,
+            "missions_completed": 0,
+            "missions_failed": 0,
+            "total_exp_collected": 0,
+            "total_aura_collected": 0,
+            "guild_ranking": {},
+            "player_leaderboard": []
+        })
+        print(f"   Stats loaded: missions_completed={stats_obj.get('missions_completed', 0)}")
+
+        player_obj, players_all = ensure_player(wallet)
+        print(f"   Player loaded: {len(player_obj.get('heroes', []))} heroes")
+
+        # Apply passive gains
+        print("\n[STEP 5] Applying passive and regen...")
+        player_obj, stats_obj = apply_passive_and_regen(player_obj, stats_obj)
+
+        # Step 6: Find hero
+        print(f"\n[STEP 6] Finding hero {hero_id}...")
+        hero = None
+        for h in player_obj.get("heroes", []):
+            if h.get("token_id") == hero_id:
+                hero = h
                 break
 
-    if party_mission:
-        # PARTY MISSION COMPLETION
-        return handle_party_mission_complete(wallet, party_mission)
+        if hero is None:
+            print(f"   ❌ ERROR: Hero {hero_id} not found in player's heroes")
+            print(f"   Available heroes: {[h.get('token_id') for h in player_obj.get('heroes', [])]}")
+            abort(404, "Hero not found")
 
-    # SOLO MISSION COMPLETION (EXISTING CODE CONTINUES)
-    if not hero_id:
-        abort(400, "Missing hero_id for solo mission")
+        print(f"   ✅ Hero found: {hero.get('name', 'Unknown')}")
 
-    stats_obj = load_json(STATS_PATH, {
-        "total_characters": 0,
-        "active_guilds": 6,
-        "missions_completed": 0,
-        "missions_failed": 0,
-        "total_exp_collected": 0,
-        "total_aura_collected": 0,
-        "guild_ranking": {},
-        "player_leaderboard": []
-    })
-    player_obj, players_all = ensure_player(wallet)
+        ds = hero["dynamic_state"]
+        print(f"   Dynamic state: {ds.get('state')}, mission_id={ds.get('current_mission_id')}")
 
-    # Apply passive gains
-    player_obj, stats_obj = apply_passive_and_regen(player_obj, stats_obj)
+        # Step 7: Check if hero is on a mission
+        print("\n[STEP 7] Checking mission state...")
+        if ds.get("state") != "ON_MISSION":
+            print(f"   ❌ ERROR: Hero state is '{ds.get('state')}', not ON_MISSION")
+            abort(400, "Hero is not on a mission")
 
-    # Find hero
-    hero = None
-    for h in player_obj.get("heroes", []):
-        if h.get("token_id") == hero_id:
-            hero = h
-            break
-    if hero is None:
-        abort(404, "Hero not found")
+        mission_id = ds.get("current_mission_id")
+        if not mission_id:
+            print("   ❌ ERROR: No current_mission_id in dynamic_state")
+            abort(400, "No active mission found")
 
-    ds = hero["dynamic_state"]
+        print(f"   ✅ Hero is on mission: {mission_id}")
 
-    # Check if hero is on a mission
-    if ds.get("state") != "ON_MISSION":
-        abort(400, "Hero is not on a mission")
-
-    mission_id = ds.get("current_mission_id")
-    if not mission_id:
-        abort(400, "No active mission found")
-
-    # Find mission (check both MISSIONS and EVENTS)
-    mission = None
-    for m in MISSIONS:
-        if m["id"] == mission_id:
-            mission = m
-            break
-
-    # If not found in missions, check events
-    if mission is None:
-        for e in EVENTS:
-            if e["id"] == mission_id:
-                mission = e
+        # Step 8: Find mission config
+        print(f"\n[STEP 8] Finding mission config for {mission_id}...")
+        mission = None
+        for m in MISSIONS:
+            if m["id"] == mission_id:
+                mission = m
+                print(f"   Found in MISSIONS: {m['name']}")
                 break
 
-    if mission is None:
-        abort(400, "Mission configuration not found")
+        # If not found in missions, check events
+        if mission is None:
+            print("   Not found in MISSIONS, checking EVENTS...")
+            for e in EVENTS:
+                if e["id"] == mission_id:
+                    mission = e
+                    print(f"   Found in EVENTS: {e['name']}")
+                    break
 
-    # Check if mission duration has elapsed
-    start_time_str = ds.get("mission_start_time")
-    if not start_time_str:
-        abort(400, "Mission start time not found")
+        if mission is None:
+            print(f"   ❌ ERROR: Mission config not found for {mission_id}")
+            abort(400, "Mission configuration not found")
 
-    hours_elapsed = hours_since(start_time_str)
-    if hours_elapsed < mission["duration_hours"]:
-        hours_left = mission["duration_hours"] - hours_elapsed
-        abort(400, f"Mission not yet complete. {hours_left:.1f} hours remaining")
+        # Step 9: Check duration
+        print("\n[STEP 9] Checking mission duration...")
+        start_time_str = ds.get("mission_start_time")
+        if not start_time_str:
+            print("   ❌ ERROR: No mission_start_time found")
+            abort(400, "Mission start time not found")
 
-    # Roll for outcome
-    outcome, details = roll_mission_outcome(hero, mission)
+        print(f"   Start time: {start_time_str}")
+        hours_elapsed = hours_since(start_time_str)
+        print(f"   Hours elapsed: {hours_elapsed:.2f} / {mission['duration_hours']} required")
 
-    hero_guild_name = hero.get("guild") or ds.get("current_guild", "Unknown Guild")
-    total_missions_completed = ds.get("total_missions_completed", 0)
+        if hours_elapsed < mission["duration_hours"]:
+            hours_left = mission["duration_hours"] - hours_elapsed
+            print(f"   ❌ ERROR: Mission not complete, {hours_left:.1f}h remaining")
+            abort(400, f"Mission not yet complete. {hours_left:.1f} hours remaining")
 
-    # Process outcome
-    if outcome == "SUCCESS":
-        # Mission succeeded
-        xp_gain = details["xp_gain"]
-        aura_gain = details["aura_gain"]
+        # Step 10: Roll for outcome
+        print("\n[STEP 10] Rolling mission outcome...")
+        outcome, details = roll_mission_outcome(hero, mission)
+        print(f"   Outcome: {outcome}")
+        print(f"   Details: {details}")
 
-        ds["xp_total"] = ds.get("xp_total", 0) + xp_gain
-        ds["aura_level"] = ds.get("aura_level", 0) + aura_gain
-        ds["state"] = "READY"
-        ds["last_mission"] = mission["name"]
-        ds["current_mission_id"] = None
-        ds["mission_start_time"] = None
+        hero_guild_name = hero.get("guild") or ds.get("current_guild", "Unknown Guild")
+        total_missions_completed = ds.get("total_missions_completed", 0)
+        print(f"   Guild: {hero_guild_name}, Total completed: {total_missions_completed}")
 
-        # Update mission history
-        mission_hist = ds.get("mission_history", {})
-        mission_hist[mission_id] = now_utc_str()
-        ds["mission_history"] = mission_hist
+        # Step 11: Process outcome
+        print(f"\n[STEP 11] Processing {outcome} outcome...")
 
-        # Update mission count
-        total_missions_completed += 1
-        ds["total_missions_completed"] = total_missions_completed
+        if outcome == "SUCCESS":
+            print("   Processing SUCCESS...")
+            xp_gain = details["xp_gain"]
+            aura_gain = details["aura_gain"]
+            print(f"   XP gain: {xp_gain}, Aura gain: {aura_gain}")
 
-        # Update stats
-        stats_obj["missions_completed"] = stats_obj.get("missions_completed", 0) + 1
-        stats_obj["total_exp_collected"] = stats_obj.get("total_exp_collected", 0) + xp_gain
-        stats_obj["total_aura_collected"] = stats_obj.get("total_aura_collected", 0) + aura_gain
+            ds["xp_total"] = ds.get("xp_total", 0) + xp_gain
+            ds["aura_level"] = ds.get("aura_level", 0) + aura_gain
+            ds["state"] = "READY"
+            ds["last_mission"] = mission["name"]
+            ds["current_mission_id"] = None
+            ds["mission_start_time"] = None
 
-        # Update guild stats
-        stats_obj = update_guild_stats(hero_guild_name, xp_gain, aura_gain, stats_obj, success=True)
+            # Update mission history
+            mission_hist = ds.get("mission_history", {})
+            mission_hist[mission_id] = now_utc_str()
+            ds["mission_history"] = mission_hist
 
-        # Check and grant achievements
-        achievements_granted = check_and_grant_mission_achievements(hero_id, total_missions_completed)
+            # Update mission count
+            total_missions_completed += 1
+            ds["total_missions_completed"] = total_missions_completed
 
-        # Remove from active missions
-        mission_key = f"{wallet}_{hero_id}"
-        delete_active_mission(mission_key)
+            # Update stats
+            stats_obj["missions_completed"] = stats_obj.get("missions_completed", 0) + 1
+            stats_obj["total_exp_collected"] = stats_obj.get("total_exp_collected", 0) + xp_gain
+            stats_obj["total_aura_collected"] = stats_obj.get("total_aura_collected", 0) + aura_gain
 
-        # 🔥 GUARDAR a base de datos centralizada (fuente de verdad)
-        ds["last_update"] = now_utc_str()
-        update_nft_dynamic_state(hero_id, ds)
+            # Update guild stats
+            print("\n[STEP 12] Updating guild stats...")
+            stats_obj = update_guild_stats(hero_guild_name, xp_gain, aura_gain, stats_obj, success=True)
 
-        # Guardar también a players.json (cache de sesión)
-        player_obj, stats_obj = apply_passive_and_regen(player_obj, stats_obj)
-        players_all[wallet] = player_obj
-        save_json(PLAYERS_PATH, players_all)
-        save_json(STATS_PATH, stats_obj)
+            # Check and grant achievements
+            print("\n[STEP 13] Checking achievements...")
+            achievements_granted = check_and_grant_mission_achievements(hero_id, total_missions_completed)
+            print(f"   Achievements: {achievements_granted}")
 
-        # 🔥 DROP SYSTEM: Calculate if player won item or rune
-        # FAIL-SAFE: Wrap in try/except so mission completes even if drops fail
-        drops = []
-        drops_result = {"item": False, "rune": False, "rates": DROP_RATES.get("EASY", {"item": 5, "rune": 1})}
-        drop_error_reason = None
+            # Remove from active missions
+            print("\n[STEP 14] Removing from active missions...")
+            mission_key = f"{wallet}_{hero_id}"
+            delete_active_mission(mission_key)
+            print(f"   Deleted mission key: {mission_key}")
 
-        try:
-            drops_result = calculate_drops(mission.get("difficulty", "EASY"), is_party=False)
+            # 🔥 GUARDAR a base de datos centralizada (fuente de verdad)
+            print("\n[STEP 15] Saving to database...")
+            ds["last_update"] = now_utc_str()
+            update_nft_dynamic_state(hero_id, ds)
+            print("   ✅ Database updated")
 
-            if drops_result["item"]:
-                item_claim = generate_claim_signature(wallet, "ITEM", mission_id)
-                if item_claim:
-                    save_pending_claim(wallet, "ITEM", item_claim["claim_id"], item_claim["signature"],
-                                      mission_id, hero_id, mission.get("difficulty", "EASY"))
-                    drops.append({
-                        "type": "ITEM",
-                        "claim_id": item_claim["claim_id"],
-                        "signature": item_claim["signature"],
-                        "contract": EMBER_ITEMS_CONTRACT
-                    })
-                else:
-                    print(f"⚠️ Item drop won but signature generation failed")
-                    if not drop_error_reason:
-                        drop_error_reason = "Signature generation unavailable - check BACKEND_SIGNER_PRIVATE_KEY"
+            # Guardar también a players.json (cache de sesión)
+            print("\n[STEP 16] Saving to players.json cache...")
+            player_obj, stats_obj = apply_passive_and_regen(player_obj, stats_obj)
+            players_all[wallet] = player_obj
+            save_json(PLAYERS_PATH, players_all)
+            save_json(STATS_PATH, stats_obj)
+            print("   ✅ JSON files saved")
 
-            if drops_result["rune"]:
-                rune_claim = generate_claim_signature(wallet, "RUNE", mission_id)
-                if rune_claim:
-                    save_pending_claim(wallet, "RUNE", rune_claim["claim_id"], rune_claim["signature"],
-                                      mission_id, hero_id, mission.get("difficulty", "EASY"))
-                    drops.append({
-                        "type": "RUNE",
-                        "claim_id": rune_claim["claim_id"],
-                        "signature": rune_claim["signature"],
-                        "contract": EMBER_RUNES_CONTRACT
-                    })
-                else:
-                    print(f"⚠️ Rune drop won but signature generation failed")
-                    if not drop_error_reason:
-                        drop_error_reason = "Signature generation unavailable - check BACKEND_SIGNER_PRIVATE_KEY"
+            # 🔥 DROP SYSTEM: Calculate if player won item or rune
+            print("\n[STEP 17] Calculating drops...")
+            drops = []
+            drops_result = {"item": False, "rune": False, "rates": DROP_RATES.get("EASY", {"item": 5, "rune": 1})}
+            drop_error_reason = None
 
-        except Exception as drop_err:
-            print(f"❌ DROP SYSTEM ERROR (mission still completes): {drop_err}")
-            import traceback
-            traceback.print_exc()
-            drop_error_reason = f"Drop system error: {str(drop_err)}"
-            # Mission continues - drops just won't be awarded this time
+            try:
+                drops_result = calculate_drops(mission.get("difficulty", "EASY"), is_party=False)
+                print(f"   Drop result: item={drops_result['item']}, rune={drops_result['rune']}")
 
-        response_data = {
-            "success": True,
-            "outcome": "SUCCESS",
-            "hero_id": hero_id,
-            "mission_name": mission["name"],
-            "xp_gained": xp_gain,
-            "aura_gained": aura_gain,
-            "perfect_alignment": details.get("perfect_alignment", False),
-            "hero_xp_now": ds["xp_total"],
-            "hero_aura_now": ds["aura_level"],
-            "achievements_granted": achievements_granted,
-            "drops": drops,
-            "drop_rates": drops_result["rates"],
-            "message": f"🎉 SUCCESS! {hero.get('name', 'Emissary')} completed {mission['name']}!"
-        }
+                if drops_result["item"]:
+                    print("   🎁 Item drop won! Generating claim signature...")
+                    item_claim = generate_claim_signature(wallet, "ITEM", mission_id)
+                    if item_claim:
+                        print(f"   Saving pending claim: {item_claim['claim_id']}")
+                        save_pending_claim(wallet, "ITEM", item_claim["claim_id"], item_claim["signature"],
+                                          mission_id, hero_id, mission.get("difficulty", "EASY"))
+                        drops.append({
+                            "type": "ITEM",
+                            "claim_id": item_claim["claim_id"],
+                            "signature": item_claim["signature"],
+                            "contract": EMBER_ITEMS_CONTRACT
+                        })
+                        print("   ✅ Item claim saved")
+                    else:
+                        print("   ⚠️ Item drop won but signature generation failed")
+                        if not drop_error_reason:
+                            drop_error_reason = "Signature generation unavailable - check BACKEND_SIGNER_PRIVATE_KEY"
 
-        if drop_error_reason:
-            response_data["drop_error_reason"] = drop_error_reason
+                if drops_result["rune"]:
+                    print("   🎁 Rune drop won! Generating claim signature...")
+                    rune_claim = generate_claim_signature(wallet, "RUNE", mission_id)
+                    if rune_claim:
+                        print(f"   Saving pending claim: {rune_claim['claim_id']}")
+                        save_pending_claim(wallet, "RUNE", rune_claim["claim_id"], rune_claim["signature"],
+                                          mission_id, hero_id, mission.get("difficulty", "EASY"))
+                        drops.append({
+                            "type": "RUNE",
+                            "claim_id": rune_claim["claim_id"],
+                            "signature": rune_claim["signature"],
+                            "contract": EMBER_RUNES_CONTRACT
+                        })
+                        print("   ✅ Rune claim saved")
+                    else:
+                        print("   ⚠️ Rune drop won but signature generation failed")
+                        if not drop_error_reason:
+                            drop_error_reason = "Signature generation unavailable - check BACKEND_SIGNER_PRIVATE_KEY"
 
-        return jsonify(response_data)
+            except Exception as drop_err:
+                print(f"   ❌ DROP SYSTEM ERROR (mission still completes): {drop_err}")
+                import traceback
+                traceback.print_exc()
+                drop_error_reason = f"Drop system error: {str(drop_err)}"
 
-    elif outcome == "FAILURE":
-        # Mission failed but hero survived
-        xp_loss = details["xp_loss"]
+            # Build response
+            print("\n[STEP 18] Building response...")
+            response_data = {
+                "success": True,
+                "outcome": "SUCCESS",
+                "hero_id": hero_id,
+                "mission_name": mission["name"],
+                "xp_gained": xp_gain,
+                "aura_gained": aura_gain,
+                "perfect_alignment": details.get("perfect_alignment", False),
+                "hero_xp_now": ds["xp_total"],
+                "hero_aura_now": ds["aura_level"],
+                "achievements_granted": achievements_granted,
+                "drops": drops,
+                "drop_rates": drops_result["rates"],
+                "message": f"🎉 SUCCESS! {hero.get('name', 'Emissary')} completed {mission['name']}!"
+            }
 
-        current_xp = ds.get("xp_total", 0)
-        ds["xp_total"] = max(0, current_xp - xp_loss)
-        ds["state"] = "READY"
-        ds["last_mission"] = f"{mission['name']} (Failed)"
-        ds["current_mission_id"] = None
-        ds["mission_start_time"] = None
+            if drop_error_reason:
+                response_data["drop_error_reason"] = drop_error_reason
 
-        # Update stats
-        stats_obj["missions_failed"] = stats_obj.get("missions_failed", 0) + 1
+            print("=" * 60)
+            print("✅ MISSION COMPLETE SUCCESS")
+            print(f"   Hero: {hero_id}, Mission: {mission['name']}")
+            print(f"   XP: +{xp_gain}, Aura: +{aura_gain}, Drops: {len(drops)}")
+            print("=" * 60 + "\n")
 
-        # Update guild stats
-        stats_obj = update_guild_stats(hero_guild_name, -xp_loss, 0, stats_obj, success=False)
+            return jsonify(response_data)
 
-        # Remove from active missions
-        mission_key = f"{wallet}_{hero_id}"
-        delete_active_mission(mission_key)
+        elif outcome == "FAILURE":
+            print("   Processing FAILURE...")
+            xp_loss = details["xp_loss"]
+            print(f"   XP loss: {xp_loss}")
 
-        # 🔥 GUARDAR a base de datos centralizada (fuente de verdad)
-        ds["last_update"] = now_utc_str()
-        update_nft_dynamic_state(hero_id, ds)
+            current_xp = ds.get("xp_total", 0)
+            ds["xp_total"] = max(0, current_xp - xp_loss)
+            ds["state"] = "READY"
+            ds["last_mission"] = f"{mission['name']} (Failed)"
+            ds["current_mission_id"] = None
+            ds["mission_start_time"] = None
 
-        # Guardar también a players.json (cache de sesión)
-        player_obj, stats_obj = apply_passive_and_regen(player_obj, stats_obj)
-        players_all[wallet] = player_obj
-        save_json(PLAYERS_PATH, players_all)
-        save_json(STATS_PATH, stats_obj)
+            # Update stats
+            stats_obj["missions_failed"] = stats_obj.get("missions_failed", 0) + 1
 
+            # Update guild stats
+            stats_obj = update_guild_stats(hero_guild_name, -xp_loss, 0, stats_obj, success=False)
+
+            # Remove from active missions
+            mission_key = f"{wallet}_{hero_id}"
+            delete_active_mission(mission_key)
+
+            # 🔥 GUARDAR a base de datos centralizada (fuente de verdad)
+            ds["last_update"] = now_utc_str()
+            update_nft_dynamic_state(hero_id, ds)
+
+            # Guardar también a players.json (cache de sesión)
+            player_obj, stats_obj = apply_passive_and_regen(player_obj, stats_obj)
+            players_all[wallet] = player_obj
+            save_json(PLAYERS_PATH, players_all)
+            save_json(STATS_PATH, stats_obj)
+
+            print("=" * 60)
+            print("⚠️ MISSION COMPLETE - FAILURE OUTCOME")
+            print(f"   Hero: {hero_id}, Mission: {mission['name']}")
+            print(f"   XP lost: {xp_loss}")
+            print("=" * 60 + "\n")
+
+            return jsonify({
+                "success": True,
+                "outcome": "FAILURE",
+                "hero_id": hero_id,
+                "mission_name": mission["name"],
+                "xp_lost": xp_loss,
+                "hero_xp_now": ds["xp_total"],
+                "message": f"⚠️ FAILED: {hero.get('name', 'Emissary')} failed {mission['name']} and lost {xp_loss} XP."
+            })
+
+        elif outcome == "DEATH":
+            print("   Processing DEATH...")
+            # Hero died
+            ds["state"] = "FALLEN"
+            ds["fallen_time"] = now_utc_str()
+            ds["current_mission_id"] = None
+            ds["mission_start_time"] = None
+            ds["last_mission"] = f"{mission['name']} (Fallen)"
+
+            # Increment death count
+            death_count = ds.get("death_count", 0)
+            ds["death_count"] = death_count + 1
+            print(f"   Death count now: {ds['death_count']}")
+
+            # Calculate reinvocation cost
+            xp_cost, aura_cost = get_death_cost(death_count)
+            print(f"   Reinvocation cost: XP={xp_cost}, Aura={aura_cost}")
+
+            # Update stats
+            stats_obj["missions_failed"] = stats_obj.get("missions_failed", 0) + 1
+            stats_obj["total_deaths"] = stats_obj.get("total_deaths", 0) + 1
+
+            # Remove from active missions
+            mission_key = f"{wallet}_{hero_id}"
+            delete_active_mission(mission_key)
+
+            # 🔥 GUARDAR a base de datos centralizada (fuente de verdad)
+            ds["last_update"] = now_utc_str()
+            update_nft_dynamic_state(hero_id, ds)
+
+            # Guardar también a players.json (cache de sesión)
+            player_obj, stats_obj = apply_passive_and_regen(player_obj, stats_obj)
+            players_all[wallet] = player_obj
+            save_json(PLAYERS_PATH, players_all)
+            save_json(STATS_PATH, stats_obj)
+
+            print("=" * 60)
+            print("💀 MISSION COMPLETE - DEATH OUTCOME")
+            print(f"   Hero: {hero_id}, Mission: {mission['name']}")
+            print("=" * 60 + "\n")
+
+            return jsonify({
+                "success": True,
+                "outcome": "DEATH",
+                "hero_id": hero_id,
+                "mission_name": mission["name"],
+                "death_count": ds["death_count"],
+                "reinvocation_cost": {
+                    "xp": xp_cost,
+                    "aura": aura_cost
+                },
+                "message": f"💀 FALLEN: {hero.get('name', 'Emissary')} has fallen in {mission['name']}. Reinvocation ritual required."
+            })
+
+        else:
+            print(f"   ❌ ERROR: Unknown outcome '{outcome}'")
+            abort(500, "Unknown mission outcome")
+
+    except Exception as e:
+        # Global exception handler with full traceback
+        import traceback
+        print("\n" + "=" * 60)
+        print("❌ MISSION COMPLETE CRITICAL ERROR")
+        print("=" * 60)
+        print(f"Exception type: {type(e).__name__}")
+        print(f"Exception message: {str(e)}")
+        print("\nFull traceback:")
+        traceback.print_exc()
+        print("=" * 60 + "\n")
+
+        # Return detailed error for debugging
         return jsonify({
-            "success": True,
-            "outcome": "FAILURE",
-            "hero_id": hero_id,
-            "mission_name": mission["name"],
-            "xp_lost": xp_loss,
-            "hero_xp_now": ds["xp_total"],
-            "message": f"⚠️ FAILED: {hero.get('name', 'Emissary')} failed {mission['name']} and lost {xp_loss} XP."
-        })
-
-    elif outcome == "DEATH":
-        # Hero died
-        ds["state"] = "FALLEN"
-        ds["fallen_time"] = now_utc_str()
-        ds["current_mission_id"] = None
-        ds["mission_start_time"] = None
-        ds["last_mission"] = f"{mission['name']} (Fallen)"
-
-        # Increment death count
-        death_count = ds.get("death_count", 0)
-        ds["death_count"] = death_count + 1
-
-        # Calculate reinvocation cost
-        xp_cost, aura_cost = get_death_cost(death_count)
-
-        # Update stats
-        stats_obj["missions_failed"] = stats_obj.get("missions_failed", 0) + 1
-        stats_obj["total_deaths"] = stats_obj.get("total_deaths", 0) + 1
-
-        # Remove from active missions
-        mission_key = f"{wallet}_{hero_id}"
-        delete_active_mission(mission_key)
-
-        # 🔥 GUARDAR a base de datos centralizada (fuente de verdad)
-        ds["last_update"] = now_utc_str()
-        update_nft_dynamic_state(hero_id, ds)
-
-        # Guardar también a players.json (cache de sesión)
-        player_obj, stats_obj = apply_passive_and_regen(player_obj, stats_obj)
-        players_all[wallet] = player_obj
-        save_json(PLAYERS_PATH, players_all)
-        save_json(STATS_PATH, stats_obj)
-
-        return jsonify({
-            "success": True,
-            "outcome": "DEATH",
-            "hero_id": hero_id,
-            "mission_name": mission["name"],
-            "death_count": ds["death_count"],
-            "reinvocation_cost": {
-                "xp": xp_cost,
-                "aura": aura_cost
-            },
-            "message": f"💀 FALLEN: {hero.get('name', 'Emissary')} has fallen in {mission['name']}. Reinvocation ritual required."
-        })
-
-    else:
-        abort(500, "Unknown mission outcome")
+            "error": str(e),
+            "error_type": type(e).__name__,
+            "traceback": traceback.format_exc()
+        }), 500
 
 @app.route("/api/ritual/reinvoke", methods=["POST"])
 def api_ritual_reinvoke():
