@@ -4556,6 +4556,11 @@ async function loadPlayerAndRender(){
                                         }
                                     });
                                 } else {
+                                    // Check if there was a drop error (drops were won but couldn't be generated)
+                                    if (result.drop_error_reason) {
+                                        msg += "\n\n⚠️ DROP NOTICE:\n" + result.drop_error_reason;
+                                        msg += "\n\n(The mission was completed successfully, but drop generation encountered an issue. This will be fixed soon!)";
+                                    }
                                     showInfoModal("MISSION SUCCESS", msg);
                                 }
                             } else if (result.outcome === "FAILURE") {
@@ -4636,6 +4641,8 @@ async function loadPlayerAndRender(){
                             failure: [],
                             death: [],
                             errors: [],
+                            drops: [],
+                            drop_errors: [],
                             totals: {
                                 xp_gained: 0,
                                 xp_lost: 0,
@@ -4681,6 +4688,14 @@ async function loadPlayerAndRender(){
                                     results.success.push(result);
                                     results.totals.xp_gained += result.xp_gained || 0;
                                     results.totals.aura_gained += result.aura_gained || 0;
+                                    // Collect drops
+                                    if (result.drops && result.drops.length > 0) {
+                                        results.drops.push(...result.drops);
+                                    }
+                                    // Collect drop errors
+                                    if (result.drop_error_reason) {
+                                        results.drop_errors.push(result.drop_error_reason);
+                                    }
                                 } else if (result.outcome === "FAILURE") {
                                     results.failure.push(result);
                                     results.totals.xp_lost += result.xp_lost || 0;
@@ -5442,7 +5457,7 @@ function showClaimAllResultsModal(results, totalMissions) {
         </tr>`;
     });
 
-    const modalContent = `
+    let modalContent = `
         <div style="font-size:0.8em">
             <table style="width:100%;border-collapse:collapse;background:#0a0a0a">
                 <thead>
@@ -5469,7 +5484,29 @@ function showClaimAllResultsModal(results, totalMissions) {
         </div>
     `;
 
-    showInfoModal("CLAIM ALL COMPLETE", modalContent);
+    // Add drop error notice if any
+    if (results.drop_errors && results.drop_errors.length > 0) {
+        const uniqueErrors = [...new Set(results.drop_errors)]; // Remove duplicates
+        modalContent += `
+        <div style="margin-top:12px;padding:8px;background:#2a1a0a;border:1px solid #ffaa00;font-size:0.8em">
+            <div style="color:#ffaa00;margin-bottom:4px">⚠️ DROP NOTICE:</div>
+            <div style="color:#ccc;font-size:0.9em">${uniqueErrors[0]}</div>
+            <div style="color:#888;font-size:0.85em;margin-top:4px">(Missions completed successfully, but drop generation encountered an issue)</div>
+        </div>
+        `;
+    }
+
+    // Show drops at the end if any
+    if (results.drops && results.drops.length > 0) {
+        window.pendingDrops = results.drops;
+        showInfoModal("CLAIM ALL COMPLETE", modalContent, () => {
+            if (window.pendingDrops && window.pendingDrops.length > 0) {
+                showDropClaimModal(window.pendingDrops);
+            }
+        });
+    } else {
+        showInfoModal("CLAIM ALL COMPLETE", modalContent);
+    }
 }
 
 // Parse API error response into user-friendly message
