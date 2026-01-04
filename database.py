@@ -10,7 +10,8 @@ import os
 import json
 import psycopg2
 from psycopg2.extras import RealDictCursor, Json
-from psycopg2.pool import SimpleConnectionPool
+from psycopg2.pool import ThreadedConnectionPool  # 🔥 Thread-safe pool
+from contextlib import contextmanager
 from datetime import datetime
 
 # =========================================================================
@@ -19,34 +20,71 @@ from datetime import datetime
 
 DATABASE_URL = os.environ.get('DATABASE_URL')
 
-# Connection pool (reutiliza conexiones para mejor performance)
+# Connection pool (thread-safe para Flask/Gunicorn)
 connection_pool = None
 
 def init_connection_pool():
-    """Inicializar connection pool de PostgreSQL"""
+    """Inicializar connection pool de PostgreSQL (thread-safe)"""
     global connection_pool
     if connection_pool is None and DATABASE_URL:
         try:
-            connection_pool = SimpleConnectionPool(
-                minconn=1,
-                maxconn=10,
+            # 🔥 ThreadedConnectionPool es thread-safe para Flask/Gunicorn
+            connection_pool = ThreadedConnectionPool(
+                minconn=2,
+                maxconn=15,  # Render free tier permite ~20 conexiones
                 dsn=DATABASE_URL
             )
-            print("✅ PostgreSQL connection pool initialized")
+            print("✅ PostgreSQL ThreadedConnectionPool initialized (2-15 connections)")
         except Exception as e:
             print(f"❌ Error initializing PostgreSQL pool: {e}")
+            import traceback
+            traceback.print_exc()
             connection_pool = None
 
 def get_connection():
     """Obtener conexión del pool"""
     if connection_pool:
-        return connection_pool.getconn()
+        try:
+            conn = connection_pool.getconn()
+            if conn:
+                return conn
+            print("⚠️ get_connection: pool returned None")
+        except Exception as e:
+            print(f"❌ Error getting connection from pool: {e}")
     return None
 
 def release_connection(conn):
-    """Devolver conexión al pool"""
+    """Devolver conexión al pool (SIEMPRE llamar esto!)"""
     if connection_pool and conn:
-        connection_pool.putconn(conn)
+        try:
+            connection_pool.putconn(conn)
+        except Exception as e:
+            print(f"⚠️ Error releasing connection: {e}")
+
+@contextmanager
+def get_db_connection():
+    """
+    Context manager para conexiones de DB - garantiza liberación.
+
+    Uso:
+        with get_db_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute("SELECT ...")
+    """
+    conn = None
+    try:
+        conn = get_connection()
+        if conn is None:
+            raise Exception("Could not get database connection")
+        yield conn
+        conn.commit()
+    except Exception:
+        if conn:
+            conn.rollback()
+        raise
+    finally:
+        if conn:
+            release_connection(conn)
 
 def is_postgresql_available():
     """Check si PostgreSQL está disponible"""

@@ -110,7 +110,6 @@ def ensure_postgresql_schema():
             print(f"  ✅ active_missions table OK ({count} active missions)")
 
         conn.commit()
-        db.release_connection(conn)
         print("✅ PostgreSQL schema verified/updated")
         return True
 
@@ -119,11 +118,12 @@ def ensure_postgresql_schema():
         import traceback
         traceback.print_exc()
         if conn:
-            try:
-                db.release_connection(conn)
-            except:
-                pass
+            conn.rollback()
         return False
+    finally:
+        # 🔥 SIEMPRE liberar la conexión en finally
+        if conn:
+            db.release_connection(conn)
 
 # Ejecutar verificación de schema al iniciar
 if POSTGRESQL_AVAILABLE:
