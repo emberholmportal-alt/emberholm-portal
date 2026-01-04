@@ -2438,18 +2438,24 @@ def ensure_player(wallet):
 # ---------------------------------
 
 def get_player_emissaries_from_new_tables(wallet):
-    """Obtener emissaries de una wallet desde las nuevas tablas de metadata"""
+    """
+    Obtener emissaries de una wallet desde las nuevas tablas de metadata.
+    NOTA: Este es un sistema LEGACY - el sistema principal usa la tabla 'nfts'.
+    Si falla, retorna lista vacía sin afectar el funcionamiento.
+    """
     try:
         conn = db.get_connection()
+        if not conn:
+            return []
+
         cur = conn.cursor(cursor_factory=RealDictCursor)
 
+        # Query simplificada - solo campos que sabemos que existen
         cur.execute("""
             SELECT m.token_id, m.name, m.race, m.class, m.guild, m.background,
-                   m.base_str, m.base_dex, m.base_con, m.base_int, m.base_wis, m.base_cha,
                    m.base_power, m.image_cid,
                    COALESCE(s.xp, 0) as xp,
                    COALESCE(s.energy, 100) as energy,
-                   COALESCE(s.max_energy, 100) as max_energy,
                    COALESCE(s.deaths, 0) as deaths,
                    COALESCE(s.state, 'idle') as state,
                    COALESCE(s.rank_level, 0) as rank_level,
@@ -2471,7 +2477,13 @@ def get_player_emissaries_from_new_tables(wallet):
         return emissaries
 
     except Exception as e:
-        print(f"Error getting emissaries for wallet {wallet}: {e}")
+        # Falla silenciosamente - el sistema principal usa 'nfts'
+        print(f"⚠️ emissaries_* tables not available (using nfts instead): {e}")
+        if conn:
+            try:
+                db.release_connection(conn)
+            except:
+                pass
         return []
 
 @app.route("/api/player/<wallet>", methods=["GET", "POST"])
