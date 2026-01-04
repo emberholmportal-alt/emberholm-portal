@@ -520,6 +520,7 @@ def load_nfts_database():
     """
     # 🔥 POSTGRESQL: Try to load from database first
     if POSTGRESQL_AVAILABLE:
+        conn = None
         try:
             conn = db.get_connection()
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
@@ -529,7 +530,6 @@ def load_nfts_database():
                     FROM nfts
                 """)
                 rows = cur.fetchall()
-            db.release_connection(conn)
 
             if rows:
                 nfts_db = {}
@@ -556,6 +556,9 @@ def load_nfts_database():
                 return nfts_db
         except Exception as e:
             print(f"⚠️ PostgreSQL load_nfts_database failed: {e}, falling back to JSON")
+        finally:
+            if conn:
+                db.release_connection(conn)
 
     # Fallback to JSON file
     db_json = load_json(NFTS_DATABASE_PATH, {})
@@ -570,6 +573,7 @@ def save_nfts_database(db_data):
     """
     # 🔥 POSTGRESQL: Save to database
     if POSTGRESQL_AVAILABLE:
+        conn = None
         try:
             conn = db.get_connection()
             with conn.cursor() as cur:
@@ -603,12 +607,14 @@ def save_nfts_database(db_data):
                         nft.get('last_known_owner')
                     ))
                 conn.commit()
-            db.release_connection(conn)
             print(f"✅ Saved {len([k for k in db_data.keys() if not k.startswith('_')])} NFTs to PostgreSQL")
         except Exception as e:
             print(f"⚠️ PostgreSQL save_nfts_database failed: {e}")
             import traceback
             traceback.print_exc()
+        finally:
+            if conn:
+                db.release_connection(conn)
 
     # Also save to JSON (backup/fallback)
     full_db = load_json(NFTS_DATABASE_PATH, {})
@@ -625,6 +631,7 @@ def load_active_missions():
     Carga misiones activas desde PostgreSQL (fuente de verdad) con fallback a JSON.
     """
     if POSTGRESQL_AVAILABLE:
+        conn = None
         try:
             conn = db.get_connection()
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
@@ -634,7 +641,6 @@ def load_active_missions():
                     FROM active_missions
                 """)
                 rows = cur.fetchall()
-            db.release_connection(conn)
 
             missions = {}
             for row in rows:
@@ -661,6 +667,9 @@ def load_active_missions():
             return missions
         except Exception as e:
             print(f"⚠️ PostgreSQL load_active_missions failed: {e}, falling back to JSON")
+        finally:
+            if conn:
+                db.release_connection(conn)
 
     # Fallback to JSON
     return load_json(ACTIVE_MISSIONS_PATH, {})
@@ -670,6 +679,7 @@ def save_active_missions(missions):
     Guarda misiones activas en PostgreSQL Y JSON (backup).
     """
     if POSTGRESQL_AVAILABLE:
+        conn = None
         try:
             conn = db.get_connection()
             with conn.cursor() as cur:
@@ -720,12 +730,14 @@ def save_active_missions(missions):
                         mission.get('is_party', False)
                     ))
                 conn.commit()
-            db.release_connection(conn)
             print(f"✅ Saved {len(missions)} active missions to PostgreSQL")
         except Exception as e:
             print(f"⚠️ PostgreSQL save_active_missions failed: {e}")
             import traceback
             traceback.print_exc()
+        finally:
+            if conn:
+                db.release_connection(conn)
 
     # Also save to JSON (backup)
     save_json(ACTIVE_MISSIONS_PATH, missions)
@@ -735,15 +747,18 @@ def delete_active_mission(mission_key):
     Elimina una misión activa de PostgreSQL y JSON.
     """
     if POSTGRESQL_AVAILABLE:
+        conn = None
         try:
             conn = db.get_connection()
             with conn.cursor() as cur:
                 cur.execute("DELETE FROM active_missions WHERE mission_key = %s", (mission_key,))
                 conn.commit()
-            db.release_connection(conn)
             print(f"✅ Deleted mission {mission_key} from PostgreSQL")
         except Exception as e:
             print(f"⚠️ PostgreSQL delete_active_mission failed: {e}")
+        finally:
+            if conn:
+                db.release_connection(conn)
 
     # Also delete from JSON
     missions = load_json(ACTIVE_MISSIONS_PATH, {})
