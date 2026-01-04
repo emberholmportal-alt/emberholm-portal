@@ -665,11 +665,11 @@ document.addEventListener('DOMContentLoaded', initPortalWarning);
     <!-- SECTION 2: CALENDAR -->
     <div class="console-section console-calendar">
         <div class="calendar-era" id="calendar-era">Era of the Last Ember</div>
-        <div class="calendar-year" id="calendar-year">YEAR 0</div>
+        <div class="calendar-year" id="calendar-year">YEAR 1</div>
         <div class="calendar-day" id="calendar-day">Day 1 of 360</div>
     </div>
 
-    <!-- SECTION 3: PHASE + WEATHER -->
+    <!-- SECTION 3: PHASE + WEATHER + TIME -->
     <div class="console-section console-time">
         <div class="weather-display">
             <span class="weather-icon" id="weather-icon">✧</span>
@@ -681,9 +681,15 @@ document.addEventListener('DOMContentLoaded', initPortalWarning);
                 <span class="phase-name" id="phase-name">DAWN</span>
                 <span class="phase-timer" id="phase-timer">ZENITH in 0h 0m</span>
             </div>
+            <span class="emberholm-time" id="emberholm-time" title="Emberholm Time (Argentina UTC-3)">00:00</span>
         </div>
         <div class="phase-bar">
             <div class="phase-progress" id="phase-progress"></div>
+        </div>
+        <div class="phase-lore" id="phase-lore" style="font-size:0.7em;color:#888;font-style:italic;margin-top:2px;"></div>
+        <div class="moon-display" id="moon-display" style="display:none;align-items:center;gap:4px;margin-top:2px;">
+            <span class="moon-icon" id="moon-icon" style="font-size:1em;">🌕</span>
+            <span class="moon-name" id="moon-name" style="font-size:0.7em;color:#9090c0;">Full Moon</span>
         </div>
     </div>
 </div>
@@ -2812,20 +2818,37 @@ document.addEventListener('DOMContentLoaded', initPortalWarning);
 <!-- 🔥 EMBERHOLM TIME SYSTEM -->
 <script>
 // ==================== EMBERHOLM TIME SYSTEM ====================
-// Calendar, Day Phases, and Weather - Purely aesthetic/immersive
+// Calendar, Day Phases, and Weather - Using Argentina timezone (UTC-3)
+// Days pass 1:1 with real days, 360 days = 1 Emberholm year
 
 const EMBERHOLM_CALENDAR = {
-    epoch: new Date('2025-01-01T00:00:00-03:00'),  // Argentina UTC-3
-    hoursPerYear: 24,      // 24 real hours = 1 Emberholm year
+    // Epoch: January 1, 2025 marks Day 1 of Year 1 in Emberholm
+    epoch: new Date('2025-01-01T00:00:00-03:00'),
     daysPerYear: 360,
     currentEra: "Era of the Last Ember"
 };
 
 const EMBERHOLM_PHASES = {
-    DAWN:   { id: 'dawn',   name: 'DAWN',   icon: '☀', startHour: 6,  endHour: 12, color: '#FF9966', nextPhase: 'ZENITH' },
-    ZENITH: { id: 'zenith', name: 'ZENITH', icon: '☀', startHour: 12, endHour: 18, color: '#FFD700', nextPhase: 'DUSK' },
-    DUSK:   { id: 'dusk',   name: 'DUSK',   icon: '◐', startHour: 18, endHour: 24, color: '#FF6B35', nextPhase: 'VOID' },
-    VOID:   { id: 'void',   name: 'VOID',   icon: '☽', startHour: 0,  endHour: 6,  color: '#6B5B95', nextPhase: 'DAWN' }
+    DAWN:   { id: 'dawn',   name: 'DAWN',   icon: '☀', startHour: 6,  endHour: 12, color: '#FF9966', nextPhase: 'ZENITH',
+              lore: 'The Flame stirs. Emissaries rise.' },
+    ZENITH: { id: 'zenith', name: 'ZENITH', icon: '☀', startHour: 12, endHour: 18, color: '#FFD700', nextPhase: 'DUSK',
+              lore: 'The sun watches. The Ember burns bright.' },
+    DUSK:   { id: 'dusk',   name: 'DUSK',   icon: '◐', startHour: 18, endHour: 24, color: '#FF6B35', nextPhase: 'VOID',
+              lore: 'Shadows lengthen. The Veil grows thin.' },
+    VOID:   { id: 'void',   name: 'VOID',   icon: '☽', startHour: 0,  endHour: 6,  color: '#6B5B95', nextPhase: 'DAWN',
+              lore: 'Darkness reigns. Beware what lurks.' }
+};
+
+// Moon phases for immersion (synced with real lunar cycle)
+const EMBERHOLM_MOONS = {
+    NEW:      { id: 'new',      name: 'New Moon',      icon: '🌑', lore: 'The Void Moon - spirits are restless' },
+    WAXING_C: { id: 'waxing_c', name: 'Waxing Crescent', icon: '🌒', lore: 'The Growing Shadow' },
+    FIRST_Q:  { id: 'first_q',  name: 'First Quarter', icon: '🌓', lore: 'The Half-Light' },
+    WAXING_G: { id: 'waxing_g', name: 'Waxing Gibbous', icon: '🌔', lore: 'The Rising Glow' },
+    FULL:     { id: 'full',     name: 'Full Moon',     icon: '🌕', lore: 'The Ember Moon - power flows freely' },
+    WANING_G: { id: 'waning_g', name: 'Waning Gibbous', icon: '🌖', lore: 'The Fading Light' },
+    LAST_Q:   { id: 'last_q',   name: 'Last Quarter',  icon: '🌗', lore: 'The Dying Half' },
+    WANING_C: { id: 'waning_c', name: 'Waning Crescent', icon: '🌘', lore: 'The Final Sliver' }
 };
 
 const EMBERHOLM_WEATHER = {
@@ -2843,27 +2866,64 @@ const EMBERHOLM_WEATHER = {
     SPIRIT_WIND:   { id: 'spirit_wind',   name: 'SPIRIT WIND',    icon: '≋', weight: 0.5,color: '#98FB98' }
 };
 
-// Get Argentina hour (UTC-3)
+// Get Argentina time (UTC-3)
 function getArgentinaTime() {
     const now = new Date();
     return new Date(now.toLocaleString('en-US', { timeZone: 'America/Buenos_Aires' }));
 }
 
-// Calendar calculation
-function getEmberholmCalendar() {
-    const now = new Date();
-    const msElapsed = now - EMBERHOLM_CALENDAR.epoch;
-    const hoursElapsed = msElapsed / (1000 * 60 * 60);
+// Format time as HH:MM (24h format)
+function formatArgentinaTime() {
+    const argTime = getArgentinaTime();
+    const hours = String(argTime.getHours()).padStart(2, '0');
+    const minutes = String(argTime.getMinutes()).padStart(2, '0');
+    return `${hours}:${minutes}`;
+}
 
-    const year = Math.floor(hoursElapsed / EMBERHOLM_CALENDAR.hoursPerYear);
-    const hourInYear = hoursElapsed % EMBERHOLM_CALENDAR.hoursPerYear;
-    const day = Math.floor((hourInYear / EMBERHOLM_CALENDAR.hoursPerYear) * EMBERHOLM_CALENDAR.daysPerYear) + 1;
+// Calendar calculation - 1 real day = 1 Emberholm day
+function getEmberholmCalendar() {
+    const argTime = getArgentinaTime();
+    const epoch = new Date(EMBERHOLM_CALENDAR.epoch);
+
+    // Calculate days elapsed since epoch
+    const msPerDay = 24 * 60 * 60 * 1000;
+    const daysElapsed = Math.floor((argTime - epoch) / msPerDay);
+
+    // Calculate year and day within year
+    const year = Math.floor(daysElapsed / EMBERHOLM_CALENDAR.daysPerYear) + 1;
+    const dayInYear = (daysElapsed % EMBERHOLM_CALENDAR.daysPerYear) + 1;
 
     return {
         era: EMBERHOLM_CALENDAR.currentEra,
-        year: Math.max(0, year),
-        day: Math.min(Math.max(1, day), 360)
+        year: Math.max(1, year),
+        day: Math.min(Math.max(1, dayInYear), 360),
+        totalDays: daysElapsed + 1
     };
+}
+
+// Calculate real moon phase (based on actual lunar cycle ~29.53 days)
+function getMoonPhase() {
+    const argTime = getArgentinaTime();
+    // Known new moon: January 29, 2025
+    const knownNewMoon = new Date('2025-01-29T12:36:00-03:00');
+    const lunarCycle = 29.53059; // days
+
+    const daysSinceNewMoon = (argTime - knownNewMoon) / (24 * 60 * 60 * 1000);
+    const cyclePosition = ((daysSinceNewMoon % lunarCycle) + lunarCycle) % lunarCycle;
+    const phaseIndex = Math.floor((cyclePosition / lunarCycle) * 8);
+
+    const phases = [
+        EMBERHOLM_MOONS.NEW,
+        EMBERHOLM_MOONS.WAXING_C,
+        EMBERHOLM_MOONS.FIRST_Q,
+        EMBERHOLM_MOONS.WAXING_G,
+        EMBERHOLM_MOONS.FULL,
+        EMBERHOLM_MOONS.WANING_G,
+        EMBERHOLM_MOONS.LAST_Q,
+        EMBERHOLM_MOONS.WANING_C
+    ];
+
+    return phases[phaseIndex];
 }
 
 // Current phase based on Argentina time
@@ -2944,15 +3004,17 @@ function updateEmberholmTime() {
     if (calYear) calYear.textContent = `YEAR ${cal.year}`;
     if (calDay) calDay.textContent = `Day ${cal.day} of 360`;
 
-    // Phase
+    // Phase with actual time
     const phase = getCurrentPhase();
     const phaseTime = getPhaseTimeRemaining();
     const phaseProgress = getPhaseProgress();
+    const currentTime = formatArgentinaTime();
 
     const phaseIcon = document.getElementById('phase-icon');
     const phaseName = document.getElementById('phase-name');
     const phaseTimer = document.getElementById('phase-timer');
     const phaseBar = document.getElementById('phase-progress');
+    const phaseLore = document.getElementById('phase-lore');
 
     if (phaseIcon) { phaseIcon.textContent = phase.icon; phaseIcon.style.color = phase.color; }
     if (phaseName) { phaseName.textContent = phase.name; phaseName.style.color = phase.color; }
@@ -2961,6 +3023,25 @@ function updateEmberholmTime() {
         phaseBar.style.width = `${phaseProgress}%`;
         phaseBar.className = `phase-progress phase-${phase.id}`;
     }
+    if (phaseLore) { phaseLore.textContent = phase.lore; }
+
+    // Current time display
+    const timeDisplay = document.getElementById('emberholm-time');
+    if (timeDisplay) timeDisplay.textContent = currentTime;
+
+    // Moon phase (show at night phases: DUSK and VOID)
+    const moon = getMoonPhase();
+    const moonIcon = document.getElementById('moon-icon');
+    const moonName = document.getElementById('moon-name');
+    const moonContainer = document.getElementById('moon-display');
+
+    if (moonContainer) {
+        // Show moon during DUSK and VOID phases
+        const showMoon = (phase.id === 'dusk' || phase.id === 'void');
+        moonContainer.style.display = showMoon ? 'flex' : 'none';
+    }
+    if (moonIcon) moonIcon.textContent = moon.icon;
+    if (moonName) { moonName.textContent = moon.name; moonName.title = moon.lore; }
 
     // Weather
     const weather = getCurrentWeather();
@@ -4184,7 +4265,7 @@ async function loadPlayerAndRender(){
                     <div class="cs-equip-label">EQUIPMENT</div>
                     <div class="cs-equip-slots">
                         <div class="cs-slot ${prime.weapon_id ? 'equipped' : ''}" title="Weapon"><img src="/img/dagger.png" class="pixel-icon" alt="Weapon"></div>
-                        <div class="cs-slot ${prime.armor_id ? 'equipped' : ''}" title="Armor"><img src="/img/shield.png" class="pixel-icon" alt="Armor"></div>
+                        <div class="cs-slot ${prime.armor_id ? 'equipped' : ''}" title="Armor"><img src="/img/armor.png" class="pixel-icon" alt="Armor"></div>
                         <div class="cs-slot ${prime.helmet_id ? 'equipped' : ''}" title="Helmet"><img src="/img/helmet.png" class="pixel-icon" alt="Helmet"></div>
                         <div class="cs-slot ${prime.accessory_id ? 'equipped' : ''}" title="Accessory"><img src="/img/ring.png" class="pixel-icon" alt="Accessory"></div>
                         <div class="cs-slot ${prime.amulet_id ? 'equipped' : ''}" title="Amulet"><img src="/img/beads.png" class="pixel-icon" alt="Amulet"></div>
