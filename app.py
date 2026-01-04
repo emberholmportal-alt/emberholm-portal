@@ -2939,38 +2939,56 @@ def handle_party_mission_complete(wallet, party_mission):
     print(f"  Total XP: {total_xp}, Total Aura: {total_aura}")
 
     # 🔥 DROP SYSTEM: Party missions have higher drop rates!
-    # Only roll for drops if there was at least one success
+    # FAIL-SAFE: Wrap in try/except so mission completes even if drops fail
     drops = []
-    drops_result = {"rates": DROP_RATES.get("PARTY", {"item": 25, "rune": 12})}
+    drops_result = {"item": False, "rune": False, "rates": DROP_RATES.get("PARTY", {"item": 25, "rune": 12})}
+    drop_error_reason = None
 
+    # Only roll for drops if there was at least one success
     if successes > 0:
-        drops_result = calculate_drops(mission.get("difficulty", "EASY"), is_party=True)
+        try:
+            drops_result = calculate_drops(mission.get("difficulty", "EASY"), is_party=True)
 
-        if drops_result["item"]:
-            item_claim = generate_claim_signature(wallet, "ITEM", mission_id)
-            if item_claim:
-                save_pending_claim(wallet, "ITEM", item_claim["claim_id"], item_claim["signature"],
-                                  mission_id, hero_ids[0], mission.get("difficulty", "EASY"))
-                drops.append({
-                    "type": "ITEM",
-                    "claim_id": item_claim["claim_id"],
-                    "signature": item_claim["signature"],
-                    "contract": EMBER_ITEMS_CONTRACT
-                })
+            if drops_result["item"]:
+                item_claim = generate_claim_signature(wallet, "ITEM", mission_id)
+                if item_claim:
+                    save_pending_claim(wallet, "ITEM", item_claim["claim_id"], item_claim["signature"],
+                                      mission_id, hero_ids[0], mission.get("difficulty", "EASY"))
+                    drops.append({
+                        "type": "ITEM",
+                        "claim_id": item_claim["claim_id"],
+                        "signature": item_claim["signature"],
+                        "contract": EMBER_ITEMS_CONTRACT
+                    })
+                else:
+                    print(f"⚠️ Item drop won but signature generation failed")
+                    if not drop_error_reason:
+                        drop_error_reason = "Signature generation unavailable - check BACKEND_SIGNER_PRIVATE_KEY"
 
-        if drops_result["rune"]:
-            rune_claim = generate_claim_signature(wallet, "RUNE", mission_id)
-            if rune_claim:
-                save_pending_claim(wallet, "RUNE", rune_claim["claim_id"], rune_claim["signature"],
-                                  mission_id, hero_ids[0], mission.get("difficulty", "EASY"))
-                drops.append({
-                    "type": "RUNE",
-                    "claim_id": rune_claim["claim_id"],
-                    "signature": rune_claim["signature"],
-                    "contract": EMBER_RUNES_CONTRACT
-                })
+            if drops_result["rune"]:
+                rune_claim = generate_claim_signature(wallet, "RUNE", mission_id)
+                if rune_claim:
+                    save_pending_claim(wallet, "RUNE", rune_claim["claim_id"], rune_claim["signature"],
+                                      mission_id, hero_ids[0], mission.get("difficulty", "EASY"))
+                    drops.append({
+                        "type": "RUNE",
+                        "claim_id": rune_claim["claim_id"],
+                        "signature": rune_claim["signature"],
+                        "contract": EMBER_RUNES_CONTRACT
+                    })
+                else:
+                    print(f"⚠️ Rune drop won but signature generation failed")
+                    if not drop_error_reason:
+                        drop_error_reason = "Signature generation unavailable - check BACKEND_SIGNER_PRIVATE_KEY"
 
-    return jsonify({
+        except Exception as drop_err:
+            print(f"❌ DROP SYSTEM ERROR in party mission (mission still completes): {drop_err}")
+            import traceback
+            traceback.print_exc()
+            drop_error_reason = f"Drop system error: {str(drop_err)}"
+            # Mission continues - drops just won't be awarded this time
+
+    response_data = {
         "success": True,
         "party": True,
         "mission_name": mission["name"],
@@ -2985,7 +3003,12 @@ def handle_party_mission_complete(wallet, party_mission):
         },
         "drops": drops,
         "drop_rates": drops_result["rates"]
-    })
+    }
+
+    if drop_error_reason:
+        response_data["drop_error_reason"] = drop_error_reason
+
+    return jsonify(response_data)
 
 @app.route("/api/mission/complete", methods=["POST"])
 def api_mission_complete():
@@ -3143,34 +3166,54 @@ def api_mission_complete():
         save_json(STATS_PATH, stats_obj)
 
         # 🔥 DROP SYSTEM: Calculate if player won item or rune
-        drops_result = calculate_drops(mission.get("difficulty", "EASY"), is_party=False)
+        # FAIL-SAFE: Wrap in try/except so mission completes even if drops fail
         drops = []
+        drops_result = {"item": False, "rune": False, "rates": DROP_RATES.get("EASY", {"item": 5, "rune": 1})}
+        drop_error_reason = None
 
-        if drops_result["item"]:
-            item_claim = generate_claim_signature(wallet, "ITEM", mission_id)
-            if item_claim:
-                save_pending_claim(wallet, "ITEM", item_claim["claim_id"], item_claim["signature"],
-                                  mission_id, hero_id, mission.get("difficulty", "EASY"))
-                drops.append({
-                    "type": "ITEM",
-                    "claim_id": item_claim["claim_id"],
-                    "signature": item_claim["signature"],
-                    "contract": EMBER_ITEMS_CONTRACT
-                })
+        try:
+            drops_result = calculate_drops(mission.get("difficulty", "EASY"), is_party=False)
 
-        if drops_result["rune"]:
-            rune_claim = generate_claim_signature(wallet, "RUNE", mission_id)
-            if rune_claim:
-                save_pending_claim(wallet, "RUNE", rune_claim["claim_id"], rune_claim["signature"],
-                                  mission_id, hero_id, mission.get("difficulty", "EASY"))
-                drops.append({
-                    "type": "RUNE",
-                    "claim_id": rune_claim["claim_id"],
-                    "signature": rune_claim["signature"],
-                    "contract": EMBER_RUNES_CONTRACT
-                })
+            if drops_result["item"]:
+                item_claim = generate_claim_signature(wallet, "ITEM", mission_id)
+                if item_claim:
+                    save_pending_claim(wallet, "ITEM", item_claim["claim_id"], item_claim["signature"],
+                                      mission_id, hero_id, mission.get("difficulty", "EASY"))
+                    drops.append({
+                        "type": "ITEM",
+                        "claim_id": item_claim["claim_id"],
+                        "signature": item_claim["signature"],
+                        "contract": EMBER_ITEMS_CONTRACT
+                    })
+                else:
+                    print(f"⚠️ Item drop won but signature generation failed")
+                    if not drop_error_reason:
+                        drop_error_reason = "Signature generation unavailable - check BACKEND_SIGNER_PRIVATE_KEY"
 
-        return jsonify({
+            if drops_result["rune"]:
+                rune_claim = generate_claim_signature(wallet, "RUNE", mission_id)
+                if rune_claim:
+                    save_pending_claim(wallet, "RUNE", rune_claim["claim_id"], rune_claim["signature"],
+                                      mission_id, hero_id, mission.get("difficulty", "EASY"))
+                    drops.append({
+                        "type": "RUNE",
+                        "claim_id": rune_claim["claim_id"],
+                        "signature": rune_claim["signature"],
+                        "contract": EMBER_RUNES_CONTRACT
+                    })
+                else:
+                    print(f"⚠️ Rune drop won but signature generation failed")
+                    if not drop_error_reason:
+                        drop_error_reason = "Signature generation unavailable - check BACKEND_SIGNER_PRIVATE_KEY"
+
+        except Exception as drop_err:
+            print(f"❌ DROP SYSTEM ERROR (mission still completes): {drop_err}")
+            import traceback
+            traceback.print_exc()
+            drop_error_reason = f"Drop system error: {str(drop_err)}"
+            # Mission continues - drops just won't be awarded this time
+
+        response_data = {
             "success": True,
             "outcome": "SUCCESS",
             "hero_id": hero_id,
@@ -3184,7 +3227,12 @@ def api_mission_complete():
             "drops": drops,
             "drop_rates": drops_result["rates"],
             "message": f"🎉 SUCCESS! {hero.get('name', 'Emissary')} completed {mission['name']}!"
-        })
+        }
+
+        if drop_error_reason:
+            response_data["drop_error_reason"] = drop_error_reason
+
+        return jsonify(response_data)
 
     elif outcome == "FAILURE":
         # Mission failed but hero survived
