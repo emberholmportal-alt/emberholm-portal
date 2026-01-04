@@ -100,8 +100,27 @@ def ensure_postgresql_schema():
                     image_url TEXT,
                     dynamic_state JSONB NOT NULL DEFAULT '{}'::jsonb,
                     last_update TIMESTAMP DEFAULT NOW(),
+                    last_synced TIMESTAMP DEFAULT NOW(),
+                    first_seen TIMESTAMP DEFAULT NOW(),
                     created_at TIMESTAMP DEFAULT NOW()
                 )
+            """)
+
+            # 5b. Migración: agregar columnas faltantes a nfts
+            cur.execute("""
+                DO $$
+                BEGIN
+                    IF NOT EXISTS (SELECT 1 FROM information_schema.columns
+                                   WHERE table_name = 'nfts' AND column_name = 'last_synced') THEN
+                        ALTER TABLE nfts ADD COLUMN last_synced TIMESTAMP DEFAULT NOW();
+                        RAISE NOTICE 'Added last_synced column to nfts';
+                    END IF;
+                    IF NOT EXISTS (SELECT 1 FROM information_schema.columns
+                                   WHERE table_name = 'nfts' AND column_name = 'first_seen') THEN
+                        ALTER TABLE nfts ADD COLUMN first_seen TIMESTAMP DEFAULT NOW();
+                        RAISE NOTICE 'Added first_seen column to nfts';
+                    END IF;
+                END $$;
             """)
 
             # 6. Verificar que tenemos las misiones activas
@@ -5118,7 +5137,19 @@ def get_balance():
         next_reset = balance_info["gambit_next_reset"]
         gambit_rolls = balance_info["gambit_rolls_today"]
 
-        if next_reset and now >= next_reset:
+        # Handle timezone-aware vs naive datetime comparison
+        should_reset = False
+        if next_reset:
+            try:
+                # If next_reset is naive, make it UTC aware
+                if next_reset.tzinfo is None:
+                    next_reset = next_reset.replace(tzinfo=timezone.utc)
+                should_reset = now >= next_reset
+            except Exception:
+                # Fallback: compare as naive
+                should_reset = datetime.utcnow() >= next_reset.replace(tzinfo=None) if next_reset.tzinfo else datetime.utcnow() >= next_reset
+
+        if should_reset:
             # Reset rolls
             try:
                 conn = db.get_connection()
@@ -5705,10 +5736,16 @@ def ember_roll_status():
         rolls_max = balance["gambit_rolls_max"]
         next_reset = balance["gambit_next_reset"]
 
-        # Check if reset needed
+        # Check if reset needed (handle timezone-aware vs naive)
         now = datetime.now(timezone.utc)
-        if next_reset and now >= next_reset:
-            rolls_used = 0
+        if next_reset:
+            try:
+                if next_reset.tzinfo is None:
+                    next_reset = next_reset.replace(tzinfo=timezone.utc)
+                if now >= next_reset:
+                    rolls_used = 0
+            except Exception:
+                pass  # Keep current rolls_used if comparison fails
 
         return jsonify({
             "rolls_used": rolls_used,
