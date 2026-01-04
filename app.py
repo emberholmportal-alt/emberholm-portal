@@ -1111,17 +1111,51 @@ def populate_database_on_startup(max_nfts=100):
 def now_utc_str():
     return datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z')
 
+def ensure_utc(dt_or_str):
+    """
+    Convierte cualquier datetime o string a UTC timezone-aware.
+    Nunca devuelve naive datetime.
+    """
+    if dt_or_str is None:
+        return None
+
+    # Si es string, parsearlo primero
+    if isinstance(dt_or_str, str):
+        try:
+            # Intentar con formato ISO
+            clean = dt_or_str.replace("Z", "+00:00")
+            dt_or_str = datetime.fromisoformat(clean)
+        except Exception:
+            return None
+
+    # Si es datetime naive, asumir UTC
+    if dt_or_str.tzinfo is None:
+        dt_or_str = dt_or_str.replace(tzinfo=timezone.utc)
+
+    return dt_or_str
+
 def hours_since(ts_str):
     """Devuelve cuántas horas pasaron desde ts_str (ISO) hasta ahora."""
     if not ts_str:
         return 999999
     try:
-        clean = ts_str.replace("Z", "+00:00")
-        t = datetime.fromisoformat(clean)
-    except Exception:
+        # Usar ensure_utc para garantizar timezone-aware
+        t = ensure_utc(ts_str)
+        if t is None:
+            return 999999
+
+        now = datetime.now(timezone.utc)
+
+        # Debug logging para encontrar problemas
+        # print(f"[DEBUG hours_since] ts_str={ts_str}, t={t}, t.tzinfo={t.tzinfo}, now.tzinfo={now.tzinfo}")
+
+        delta = now - t
+        return delta.total_seconds() / 3600.0
+    except Exception as e:
+        print(f"⚠️ hours_since error: {e} for ts_str={ts_str}")
+        import traceback
+        traceback.print_exc()
         return 999999
-    delta = datetime.now(timezone.utc) - t
-    return delta.total_seconds() / 3600.0
 
 # ---------------------------------
 # Progresión pasiva + regeneración de energía
@@ -2020,7 +2054,9 @@ def get_time_ago(timestamp_str):
     Convierte un timestamp ISO a formato "X hours ago"
     """
     try:
-        timestamp = datetime.fromisoformat(timestamp_str.replace('Z', '+00:00'))
+        timestamp = ensure_utc(timestamp_str)
+        if timestamp is None:
+            return "recently"
         now = datetime.now(timezone.utc)
         delta = now - timestamp
 
@@ -5730,6 +5766,10 @@ def push_mission():
 
         # Calculate time reduction
         time_reduction_hours = (duration_hours * push_percent) / 100.0
+
+        # Ensure start_time is timezone-aware before arithmetic
+        if start_time and start_time.tzinfo is None:
+            start_time = start_time.replace(tzinfo=timezone.utc)
 
         # Update mission start time (make it started earlier)
         new_start_time = start_time - timedelta(hours=time_reduction_hours)
