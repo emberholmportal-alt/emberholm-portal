@@ -26,6 +26,20 @@ except Exception as e:
 WEB3_AVAILABLE = False
 Web3 = None
 
+# 🔥 ETH ACCOUNT FOR SIGNING DROPS (doesn't require full Web3 connection)
+try:
+    from eth_account import Account
+    from eth_account.messages import encode_defunct
+    from web3 import Web3 as Web3Lib
+    SIGNING_AVAILABLE = True
+    print("✅ eth_account signing enabled for drops")
+except ImportError as e:
+    print(f"⚠️ eth_account not available: {e}")
+    SIGNING_AVAILABLE = False
+    Account = None
+    encode_defunct = None
+    Web3Lib = None
+
 # ---------------------------------
 # Config
 # ---------------------------------
@@ -75,6 +89,25 @@ XP_COST_PER_ENERGY = 5
 
 # En cuántas horas se resetea el cooldown de misión
 ROTATION_HOURS = 72
+
+# ---------------------------------
+# DROP SYSTEM CONFIG (Items & Runes)
+# ---------------------------------
+# Base Mainnet contracts
+CHAIN_ID = 8453
+EMBER_RUNES_CONTRACT = "0xDa2D1085053c3700645a13498293D17c1cc3f595"
+EMBER_ITEMS_CONTRACT = "0xCE71702CE99Bc927216e64d57e4BD19254Ac28bA"
+
+# Backend signer private key (MUST be set in environment)
+BACKEND_SIGNER_PRIVATE_KEY = os.environ.get('BACKEND_SIGNER_PRIVATE_KEY', '')
+
+# Drop probabilities by difficulty (percentage)
+DROP_RATES = {
+    "EASY":   {"item": 5,  "rune": 1},
+    "MEDIUM": {"item": 10, "rune": 3},
+    "HARD":   {"item": 20, "rune": 8},
+    "PARTY":  {"item": 25, "rune": 12}
+}
 
 # Load missions configuration from JSON
 def load_missions_config():
@@ -1094,6 +1127,169 @@ EVENTS = EVENTS_CONFIG.get("events", [])
 EVENT_SETTINGS = EVENTS_CONFIG.get("event_settings", {})
 
 # ---------------------------------
+# DROP SYSTEM: Signature Generation
+# ---------------------------------
+
+def generate_claim_signature(player_wallet: str, claim_type: str, mission_id: str) -> dict:
+    """
+    Generate a signed claim for item or rune drop.
+
+    Args:
+        player_wallet: Player's wallet address
+        claim_type: "RUNE" or "ITEM"
+        mission_id: ID of the completed mission
+
+    Returns:
+        dict with claim_id and signature, or None if signing unavailable
+    """
+    if not SIGNING_AVAILABLE or not BACKEND_SIGNER_PRIVATE_KEY:
+        print("⚠️ Signing not available - missing eth_account or private key")
+        return None
+
+    try:
+        # Generate unique claim ID
+        timestamp = int(time.time() * 1000)
+        claim_data = f"{claim_type}-{mission_id}-{player_wallet}-{timestamp}"
+        claim_id = Web3Lib.keccak(text=claim_data)
+
+        # Create message hash matching contract's expected format
+        # keccak256(abi.encodePacked(player, claimId, claimType, chainId))
+        message_hash = Web3Lib.solidity_keccak(
+            ['address', 'bytes32', 'string', 'uint256'],
+            [Web3Lib.to_checksum_address(player_wallet), claim_id, claim_type, CHAIN_ID]
+        )
+
+        # Sign the message
+        message = encode_defunct(message_hash)
+        signed = Account.sign_message(message, private_key=BACKEND_SIGNER_PRIVATE_KEY)
+
+        print(f"✅ Generated {claim_type} claim for {player_wallet[:8]}... claim_id={claim_id.hex()[:16]}...")
+
+        return {
+            "claim_id": claim_id.hex(),
+            "signature": signed.signature.hex()
+        }
+    except Exception as e:
+        print(f"❌ Error generating claim signature: {e}")
+        import traceback
+        traceback.print_exc()
+        return None
+
+def calculate_drops(difficulty: str, is_party: bool = False) -> dict:
+    """
+    Calculate if player wins item or rune drop based on mission difficulty.
+
+    Args:
+        difficulty: Mission difficulty ("EASY", "MEDIUM", "HARD")
+        is_party: True if this was a party mission
+
+    Returns:
+        dict with "item" and "rune" booleans
+    """
+    # Use PARTY rates if party mission, otherwise use difficulty rates
+    if is_party:
+        rates = DROP_RATES.get("PARTY", {"item": 25, "rune": 12})
+    else:
+        rates = DROP_RATES.get(difficulty.upper(), {"item": 5, "rune": 1})
+
+    item_roll = random.randint(1, 100)
+    rune_roll = random.randint(1, 100)
+
+    won_item = item_roll <= rates["item"]
+    won_rune = rune_roll <= rates["rune"]
+
+    print(f"🎲 Drop roll - difficulty: {difficulty}, party: {is_party}")
+    print(f"   Item: {item_roll}/100 vs {rates['item']}% = {'✅ WON!' if won_item else '❌'}")
+    print(f"   Rune: {rune_roll}/100 vs {rates['rune']}% = {'✅ WON!' if won_rune else '❌'}")
+
+    return {
+        "item": won_item,
+        "rune": won_rune,
+        "rates": rates
+    }
+
+def save_pending_claim(wallet: str, claim_type: str, claim_id: str, signature: str,
+                       mission_id: str = None, hero_id: str = None, difficulty: str = None) -> bool:
+    """
+    Save a pending claim to the database.
+
+    Returns:
+        True if saved successfully, False otherwise
+    """
+    if not POSTGRESQL_AVAILABLE:
+        print("⚠️ PostgreSQL not available - cannot save pending claim")
+        return False
+
+    try:
+        conn = db.get_connection()
+        with conn.cursor() as cur:
+            cur.execute("""
+                INSERT INTO pending_claims
+                (wallet_address, claim_type, claim_id, signature, mission_id, hero_id, difficulty, status)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, 'pending')
+                ON CONFLICT (claim_id) DO NOTHING
+            """, (wallet.lower(), claim_type, claim_id, signature, mission_id, hero_id, difficulty))
+            conn.commit()
+        db.release_connection(conn)
+        print(f"✅ Saved pending {claim_type} claim for {wallet[:8]}...")
+        return True
+    except Exception as e:
+        print(f"❌ Error saving pending claim: {e}")
+        return False
+
+def get_pending_claims(wallet: str) -> list:
+    """
+    Get all pending claims for a wallet.
+
+    Returns:
+        List of pending claim objects
+    """
+    if not POSTGRESQL_AVAILABLE:
+        return []
+
+    try:
+        conn = db.get_connection()
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            cur.execute("""
+                SELECT id, claim_type, claim_id, signature, mission_id, hero_id, difficulty,
+                       created_at, status
+                FROM pending_claims
+                WHERE wallet_address = %s AND status = 'pending'
+                ORDER BY created_at DESC
+            """, (wallet.lower(),))
+            claims = cur.fetchall()
+        db.release_connection(conn)
+        return [dict(c) for c in claims] if claims else []
+    except Exception as e:
+        print(f"❌ Error getting pending claims: {e}")
+        return []
+
+def mark_claim_as_claimed(claim_id: str, token_id: int = None, tx_hash: str = None) -> bool:
+    """
+    Mark a claim as claimed after blockchain confirmation.
+
+    Returns:
+        True if updated successfully
+    """
+    if not POSTGRESQL_AVAILABLE:
+        return False
+
+    try:
+        conn = db.get_connection()
+        with conn.cursor() as cur:
+            cur.execute("""
+                UPDATE pending_claims
+                SET status = 'claimed', claimed_at = NOW(), token_id = %s, tx_hash = %s
+                WHERE claim_id = %s
+            """, (token_id, tx_hash, claim_id))
+            conn.commit()
+        db.release_connection(conn)
+        return True
+    except Exception as e:
+        print(f"❌ Error marking claim as claimed: {e}")
+        return False
+
+# ---------------------------------
 # Rutas estáticas base
 # ---------------------------------
 
@@ -2082,6 +2278,70 @@ def api_player(wallet):
     return jsonify(player_obj)
 
 # ---------------------------------
+# API: PENDING CLAIMS (Items & Runes drops)
+# ---------------------------------
+
+@app.route("/api/claims/<wallet>", methods=["GET"])
+def api_get_pending_claims(wallet):
+    """
+    Get all pending claims for a wallet.
+    Returns list of claims that can be claimed on-chain.
+    """
+    wallet = wallet.lower()
+    claims = get_pending_claims(wallet)
+
+    # Format claims for frontend
+    formatted_claims = []
+    for claim in claims:
+        formatted_claims.append({
+            "id": claim["id"],
+            "type": claim["claim_type"],
+            "claim_id": claim["claim_id"],
+            "signature": claim["signature"],
+            "mission_id": claim["mission_id"],
+            "difficulty": claim["difficulty"],
+            "contract": EMBER_RUNES_CONTRACT if claim["claim_type"] == "RUNE" else EMBER_ITEMS_CONTRACT,
+            "created_at": claim["created_at"].isoformat() if claim.get("created_at") else None
+        })
+
+    return jsonify({
+        "wallet": wallet,
+        "pending_claims": formatted_claims,
+        "count": len(formatted_claims)
+    })
+
+@app.route("/api/claims/confirm", methods=["POST"])
+def api_confirm_claim():
+    """
+    Confirm that a claim was successfully claimed on-chain.
+    Called by frontend after successful blockchain transaction.
+
+    POST: { "claim_id": "0x...", "token_id": 123, "tx_hash": "0x..." }
+    """
+    data = request.get_json(force=True)
+    claim_id = data.get("claim_id")
+    token_id = data.get("token_id")
+    tx_hash = data.get("tx_hash")
+
+    if not claim_id:
+        abort(400, "Missing claim_id")
+
+    success = mark_claim_as_claimed(claim_id, token_id, tx_hash)
+
+    if success:
+        return jsonify({
+            "success": True,
+            "message": "Claim confirmed",
+            "claim_id": claim_id,
+            "token_id": token_id
+        })
+    else:
+        return jsonify({
+            "success": False,
+            "error": "Failed to confirm claim"
+        }), 500
+
+# ---------------------------------
 # API: RECOVER ENERGY (gastar XP para recargar energía temprano)
 # ---------------------------------
 
@@ -2678,6 +2938,38 @@ def handle_party_mission_complete(wallet, party_mission):
     print(f"  Successes: {successes}, Failures: {failures}, Deaths: {deaths}")
     print(f"  Total XP: {total_xp}, Total Aura: {total_aura}")
 
+    # 🔥 DROP SYSTEM: Party missions have higher drop rates!
+    # Only roll for drops if there was at least one success
+    drops = []
+    drops_result = {"rates": DROP_RATES.get("PARTY", {"item": 25, "rune": 12})}
+
+    if successes > 0:
+        drops_result = calculate_drops(mission.get("difficulty", "EASY"), is_party=True)
+
+        if drops_result["item"]:
+            item_claim = generate_claim_signature(wallet, "ITEM", mission_id)
+            if item_claim:
+                save_pending_claim(wallet, "ITEM", item_claim["claim_id"], item_claim["signature"],
+                                  mission_id, hero_ids[0], mission.get("difficulty", "EASY"))
+                drops.append({
+                    "type": "ITEM",
+                    "claim_id": item_claim["claim_id"],
+                    "signature": item_claim["signature"],
+                    "contract": EMBER_ITEMS_CONTRACT
+                })
+
+        if drops_result["rune"]:
+            rune_claim = generate_claim_signature(wallet, "RUNE", mission_id)
+            if rune_claim:
+                save_pending_claim(wallet, "RUNE", rune_claim["claim_id"], rune_claim["signature"],
+                                  mission_id, hero_ids[0], mission.get("difficulty", "EASY"))
+                drops.append({
+                    "type": "RUNE",
+                    "claim_id": rune_claim["claim_id"],
+                    "signature": rune_claim["signature"],
+                    "contract": EMBER_RUNES_CONTRACT
+                })
+
     return jsonify({
         "success": True,
         "party": True,
@@ -2690,7 +2982,9 @@ def handle_party_mission_complete(wallet, party_mission):
             "total_xp": total_xp,
             "total_aura": total_aura,
             "party_bonus": f"+{int((party_bonus_multiplier - 1) * 100)}%"
-        }
+        },
+        "drops": drops,
+        "drop_rates": drops_result["rates"]
     })
 
 @app.route("/api/mission/complete", methods=["POST"])
@@ -2848,6 +3142,34 @@ def api_mission_complete():
         save_json(PLAYERS_PATH, players_all)
         save_json(STATS_PATH, stats_obj)
 
+        # 🔥 DROP SYSTEM: Calculate if player won item or rune
+        drops_result = calculate_drops(mission.get("difficulty", "EASY"), is_party=False)
+        drops = []
+
+        if drops_result["item"]:
+            item_claim = generate_claim_signature(wallet, "ITEM", mission_id)
+            if item_claim:
+                save_pending_claim(wallet, "ITEM", item_claim["claim_id"], item_claim["signature"],
+                                  mission_id, hero_id, mission.get("difficulty", "EASY"))
+                drops.append({
+                    "type": "ITEM",
+                    "claim_id": item_claim["claim_id"],
+                    "signature": item_claim["signature"],
+                    "contract": EMBER_ITEMS_CONTRACT
+                })
+
+        if drops_result["rune"]:
+            rune_claim = generate_claim_signature(wallet, "RUNE", mission_id)
+            if rune_claim:
+                save_pending_claim(wallet, "RUNE", rune_claim["claim_id"], rune_claim["signature"],
+                                  mission_id, hero_id, mission.get("difficulty", "EASY"))
+                drops.append({
+                    "type": "RUNE",
+                    "claim_id": rune_claim["claim_id"],
+                    "signature": rune_claim["signature"],
+                    "contract": EMBER_RUNES_CONTRACT
+                })
+
         return jsonify({
             "success": True,
             "outcome": "SUCCESS",
@@ -2859,6 +3181,8 @@ def api_mission_complete():
             "hero_xp_now": ds["xp_total"],
             "hero_aura_now": ds["aura_level"],
             "achievements_granted": achievements_granted,
+            "drops": drops,
+            "drop_rates": drops_result["rates"],
             "message": f"🎉 SUCCESS! {hero.get('name', 'Emissary')} completed {mission['name']}!"
         })
 
@@ -3756,6 +4080,27 @@ def api_setup_postgresql():
 
     CREATE INDEX IF NOT EXISTS idx_achievements_token ON achievements(token_id);
     CREATE INDEX IF NOT EXISTS idx_achievements_id ON achievements(achievement_id);
+
+    -- ========== PENDING CLAIMS (Items & Runes drops) ==========
+    CREATE TABLE IF NOT EXISTS pending_claims (
+        id SERIAL PRIMARY KEY,
+        wallet_address VARCHAR(42) NOT NULL,
+        claim_type VARCHAR(10) NOT NULL,  -- 'RUNE' or 'ITEM'
+        claim_id VARCHAR(66) NOT NULL UNIQUE,
+        signature TEXT NOT NULL,
+        mission_id VARCHAR(10),
+        hero_id VARCHAR(10),
+        difficulty VARCHAR(20),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        claimed_at TIMESTAMP,
+        token_id INTEGER,
+        tx_hash VARCHAR(66),
+        status VARCHAR(20) DEFAULT 'pending'  -- 'pending', 'claimed', 'expired'
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_pending_claims_wallet ON pending_claims(wallet_address);
+    CREATE INDEX IF NOT EXISTS idx_pending_claims_status ON pending_claims(status);
+    CREATE INDEX IF NOT EXISTS idx_pending_claims_claim_id ON pending_claims(claim_id);
 
     CREATE OR REPLACE FUNCTION count_active_missions()
     RETURNS INTEGER AS $$

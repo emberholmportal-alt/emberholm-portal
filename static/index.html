@@ -4541,7 +4541,23 @@ async function loadPlayerAndRender(){
                                     msg += "\n\n🏆 ACHIEVEMENTS UNLOCKED:\n" + result.achievements_granted.join(", ");
                                 }
 
-                                showInfoModal("MISSION SUCCESS", msg);
+                                // 🔥 DROP SYSTEM: Show drops if any!
+                                if (result.drops && result.drops.length > 0) {
+                                    msg += "\n\n━━━━━━ DROPS! ━━━━━━";
+                                    for (const drop of result.drops) {
+                                        msg += `\n✨ ${drop.type} DROP! Click below to claim.`;
+                                    }
+                                    // Store drops for claim modal
+                                    window.pendingDrops = result.drops;
+                                    showInfoModal("MISSION SUCCESS", msg, () => {
+                                        // Show claim modal after closing success modal
+                                        if (window.pendingDrops && window.pendingDrops.length > 0) {
+                                            showDropClaimModal(window.pendingDrops);
+                                        }
+                                    });
+                                } else {
+                                    showInfoModal("MISSION SUCCESS", msg);
+                                }
                             } else if (result.outcome === "FAILURE") {
                                 // Epic narrative failure messages
                                 const failureIntros = [
@@ -5156,7 +5172,10 @@ function hideModal(modalId) {
 }
 
 // Show Info Modal (replaces alert())
-function showInfoModal(title, message) {
+// Callback for info modal
+let infoModalCallback = null;
+
+function showInfoModal(title, message, onClose = null) {
     document.getElementById('info-modal-title').textContent = title;
     // Use innerHTML if message contains HTML tags, otherwise textContent
     const messageEl = document.getElementById('info-modal-message');
@@ -5165,7 +5184,18 @@ function showInfoModal(title, message) {
     } else {
         messageEl.textContent = message;
     }
+    // Store callback for when modal is closed
+    infoModalCallback = onClose;
     showModal('info-modal');
+}
+
+function closeInfoModal() {
+    hideModal('info-modal');
+    if (infoModalCallback) {
+        const callback = infoModalCallback;
+        infoModalCallback = null;
+        callback();
+    }
 }
 
 // Show Confirm Modal (replaces confirm())
@@ -5205,6 +5235,155 @@ function showProcessingModal(title = "PROCESSING", text = "PROCESSING", subtext 
 
 function hideProcessingModal() {
     hideModal('processing-modal');
+}
+
+// 🔥 DROP SYSTEM: Show claim modal for item/rune drops
+async function showDropClaimModal(drops) {
+    if (!drops || drops.length === 0) return;
+
+    let content = `
+        <div style="text-align:center; margin-bottom:20px;">
+            <div style="font-size:1.5em; color:#ffaa00; margin-bottom:10px;">
+                ✨ YOU GOT ${drops.length > 1 ? 'DROPS' : 'A DROP'}! ✨
+            </div>
+            <div style="color:#888;">Complete the claim to receive your NFT</div>
+        </div>
+    `;
+
+    for (const drop of drops) {
+        const iconClass = drop.type === 'RUNE' ? '🔮' : '⚔️';
+        content += `
+            <div class="drop-item" style="background:#0a1a0a; border:1px solid #1a3a1a; border-radius:8px; padding:15px; margin-bottom:10px;">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <div>
+                        <span style="font-size:1.5em;">${iconClass}</span>
+                        <span style="color:#44ff44; font-weight:bold; margin-left:10px;">${drop.type}</span>
+                    </div>
+                    <button class="cmd-link" onclick="claimDrop('${drop.type}', '${drop.claim_id}', '${drop.signature}', '${drop.contract}')"
+                            style="background:#1a3a1a; border:1px solid #44ff44; padding:8px 16px; cursor:pointer;">
+                        [CLAIM ${drop.type}]
+                    </button>
+                </div>
+                <div style="color:#666; font-size:0.8em; margin-top:8px;">
+                    Contract: ${drop.contract.slice(0, 10)}...${drop.contract.slice(-8)}
+                </div>
+            </div>
+        `;
+    }
+
+    content += `
+        <div style="color:#888; font-size:0.8em; margin-top:15px; text-align:center;">
+            Gas cost: ~$0.001 per claim on Base Mainnet
+        </div>
+    `;
+
+    showInfoModal("🎁 CLAIM YOUR DROPS", `<div>${content}</div>`);
+}
+
+// 🔥 DROP SYSTEM: Claim a drop on-chain
+async function claimDrop(dropType, claimId, signature, contractAddress) {
+    if (!connectedWallet) {
+        showInfoModal("WALLET REQUIRED", "Please connect your wallet first!");
+        return;
+    }
+
+    try {
+        showProcessingModal("CLAIMING", "CLAIMING " + dropType, "Sending transaction to blockchain...");
+
+        const provider = new ethers.providers.Web3Provider(window.ethereum);
+        const signer = provider.getSigner();
+
+        // Determine which ABI to use
+        const abi = dropType === 'RUNE' ? CONTRACT_CONFIG.RUNES_ABI : CONTRACT_CONFIG.ITEMS_ABI;
+        const contract = new ethers.Contract(contractAddress, abi, signer);
+
+        // Call the claim function
+        const methodName = dropType === 'RUNE' ? 'claimRune' : 'claimItem';
+        console.log(`📝 Calling ${methodName}(${claimId}, ${signature})`);
+
+        const tx = await contract[methodName](claimId, signature);
+        console.log("📤 Transaction sent:", tx.hash);
+
+        // Wait for confirmation
+        const receipt = await tx.wait();
+        console.log("✅ Transaction confirmed:", receipt);
+
+        // Try to get token ID from events
+        let tokenId = null;
+        for (const log of receipt.logs) {
+            try {
+                const parsed = contract.interface.parseLog(log);
+                if (parsed.name === 'RuneClaimed' || parsed.name === 'ItemClaimed') {
+                    tokenId = parsed.args.tokenId.toNumber();
+                }
+            } catch (e) { /* Ignore parsing errors */ }
+        }
+
+        // Confirm claim on backend
+        try {
+            await fetch('/api/claims/confirm', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    claim_id: claimId,
+                    token_id: tokenId,
+                    tx_hash: receipt.transactionHash
+                })
+            });
+        } catch (e) {
+            console.warn("⚠️ Failed to confirm claim on backend:", e);
+        }
+
+        hideProcessingModal();
+        hideModal('info-modal');
+
+        showInfoModal("🎉 " + dropType + " CLAIMED!",
+            `Your ${dropType} has been claimed successfully!\n\n` +
+            (tokenId ? `Token ID: #${tokenId}\n` : '') +
+            `Transaction: ${receipt.transactionHash.slice(0, 10)}...${receipt.transactionHash.slice(-8)}\n\n` +
+            `View on BaseScan:\nhttps://basescan.org/tx/${receipt.transactionHash}`
+        );
+
+        // Refresh pending claims
+        await loadPendingClaims();
+
+    } catch (error) {
+        hideProcessingModal();
+        console.error("❌ Claim failed:", error);
+
+        let errorMsg = error.message || "Unknown error";
+        if (error.code === 4001) {
+            errorMsg = "Transaction rejected by user";
+        } else if (error.code === -32603) {
+            errorMsg = "Contract execution failed. The claim may have already been used or expired.";
+        }
+
+        showInfoModal("CLAIM FAILED", `❌ Failed to claim ${dropType}:\n\n${errorMsg}`);
+    }
+}
+
+// 🔥 Load pending claims for wallet
+async function loadPendingClaims() {
+    if (!connectedWallet) return;
+
+    try {
+        const response = await fetchJSON(`/api/claims/${encodeURIComponent(connectedWallet)}`);
+        window.pendingClaims = response.pending_claims || [];
+
+        // Update UI indicator if there are pending claims
+        const claimsCount = window.pendingClaims.length;
+        const claimsBadge = document.getElementById('pending-claims-badge');
+        if (claimsBadge) {
+            claimsBadge.textContent = claimsCount > 0 ? claimsCount : '';
+            claimsBadge.style.display = claimsCount > 0 ? 'inline-block' : 'none';
+        }
+
+        console.log(`📦 Loaded ${claimsCount} pending claims`);
+        return window.pendingClaims;
+    } catch (e) {
+        console.error("Error loading pending claims:", e);
+        return [];
+    }
 }
 
 // Show CLAIM ALL Results Modal - Detailed table layout
@@ -5914,12 +6093,12 @@ async function startPartyMission(missionId, missionName) {
     <div class="terminal-modal" style="max-width: 500px;">
         <div class="terminal-modal-header">
             <span id="info-modal-title">INFORMATION</span>
-            <button class="terminal-modal-close" onclick="hideModal('info-modal')">×</button>
+            <button class="terminal-modal-close" onclick="closeInfoModal()">×</button>
         </div>
         <div class="terminal-modal-body">
             <div class="modal-message" id="info-modal-message"></div>
             <div class="modal-buttons">
-                <button class="modal-btn" onclick="hideModal('info-modal')">OK</button>
+                <button class="modal-btn" onclick="closeInfoModal()">OK</button>
             </div>
         </div>
     </div>
