@@ -228,6 +228,14 @@ EMBER_ITEMS_CONTRACT = "0xCE71702CE99Bc927216e64d57e4BD19254Ac28bA"
 # Backend signer private key (MUST be set in environment)
 BACKEND_SIGNER_PRIVATE_KEY = os.environ.get('BACKEND_SIGNER_PRIVATE_KEY', '')
 
+# 🔥 LOG DROP SYSTEM STATUS
+if SIGNING_AVAILABLE and BACKEND_SIGNER_PRIVATE_KEY:
+    print(f"✅ DROP SYSTEM READY: Signing enabled, private key configured ({len(BACKEND_SIGNER_PRIVATE_KEY)} chars)")
+elif SIGNING_AVAILABLE and not BACKEND_SIGNER_PRIVATE_KEY:
+    print("⚠️ DROP SYSTEM PARTIAL: Signing available but BACKEND_SIGNER_PRIVATE_KEY not set!")
+else:
+    print("❌ DROP SYSTEM DISABLED: eth_account not available")
+
 # Drop probabilities by difficulty (percentage)
 DROP_RATES = {
     "EASY":   {"item": 5,  "rune": 1},
@@ -1563,9 +1571,16 @@ def calculate_drops(difficulty: str, is_party: bool = False) -> dict:
     won_item = item_roll <= rates["item"]
     won_rune = rune_roll <= rates["rune"]
 
-    print(f"🎲 Drop roll - difficulty: {difficulty}, party: {is_party}")
-    print(f"   Item: {item_roll}/100 vs {rates['item']}% = {'✅ WON!' if won_item else '❌'}")
-    print(f"   Rune: {rune_roll}/100 vs {rates['rune']}% = {'✅ WON!' if won_rune else '❌'}")
+    # Enhanced logging for debugging
+    print(f"\n{'='*50}")
+    print(f"🎲 DROP CALCULATION")
+    print(f"   Difficulty: {difficulty}, Party: {is_party}")
+    print(f"   Drop rates: item={rates['item']}%, rune={rates['rune']}%")
+    print(f"   Item roll: {item_roll}/100 (need <= {rates['item']}) → {'🎁 WON ITEM!' if won_item else '💨 No item'}")
+    print(f"   Rune roll: {rune_roll}/100 (need <= {rates['rune']}) → {'🎁 WON RUNE!' if won_rune else '💨 No rune'}")
+    if won_item or won_rune:
+        print(f"   🎉 PLAYER WON DROP(S)!")
+    print(f"{'='*50}\n")
 
     return {
         "item": won_item,
