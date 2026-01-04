@@ -1,18 +1,22 @@
 """
 EMBERHOLM PORTAL - DATABASE MODULE
-PostgreSQL wrapper para reemplazar JSON files con persistencia real
+PostgreSQL wrapper optimizado para 35,000 NFTs y miles de wallets.
 
-Este módulo mantiene la MISMA INTERFAZ que las funciones JSON originales
-para garantizar compatibilidad con app.py sin romper nada.
+Arquitectura:
+- ThreadedConnectionPool thread-safe
+- Context manager con retry logic
+- Batch operations para reducir queries
+- Cache en memoria para reducir carga
 """
 
 import os
 import json
+import time
 import psycopg2
 from psycopg2.extras import RealDictCursor, Json
-from psycopg2.pool import ThreadedConnectionPool  # 🔥 Thread-safe pool
+from psycopg2.pool import ThreadedConnectionPool, PoolError
 from contextlib import contextmanager
-from datetime import datetime
+from datetime import datetime, timedelta
 
 # =========================================================================
 # CONFIGURACIÓN
@@ -23,34 +27,87 @@ DATABASE_URL = os.environ.get('DATABASE_URL')
 # Connection pool (thread-safe para Flask/Gunicorn)
 connection_pool = None
 
+# =========================================================================
+# CACHE EN MEMORIA
+# =========================================================================
+
+# Cache de NFTs por wallet (reduce queries dramáticamente)
+_wallet_nfts_cache = {}
+_wallet_cache_expiry = {}
+
+# Cache de misiones activas por wallet
+_wallet_missions_cache = {}
+_missions_cache_expiry = {}
+
+# Tiempo de expiración del cache (segundos)
+CACHE_TTL_SECONDS = 30
+
+def _cache_get(cache_dict, expiry_dict, key):
+    """Obtener valor del cache si no ha expirado"""
+    if key in cache_dict and key in expiry_dict:
+        if datetime.now() < expiry_dict[key]:
+            return cache_dict[key]
+    return None
+
+def _cache_set(cache_dict, expiry_dict, key, value, ttl=CACHE_TTL_SECONDS):
+    """Guardar valor en cache con TTL"""
+    cache_dict[key] = value
+    expiry_dict[key] = datetime.now() + timedelta(seconds=ttl)
+
+def invalidate_wallet_cache(wallet):
+    """Invalidar cache de una wallet específica (llamar después de cambios)"""
+    wallet = wallet.lower()
+    _wallet_nfts_cache.pop(wallet, None)
+    _wallet_cache_expiry.pop(wallet, None)
+    _wallet_missions_cache.pop(wallet, None)
+    _missions_cache_expiry.pop(wallet, None)
+
+def clear_all_cache():
+    """Limpiar todo el cache (para debug)"""
+    _wallet_nfts_cache.clear()
+    _wallet_cache_expiry.clear()
+    _wallet_missions_cache.clear()
+    _missions_cache_expiry.clear()
+
+# =========================================================================
+# CONNECTION POOL
+# =========================================================================
+
 def init_connection_pool():
-    """Inicializar connection pool de PostgreSQL (thread-safe)"""
+    """Inicializar connection pool de PostgreSQL (thread-safe con retry)"""
     global connection_pool
     if connection_pool is None and DATABASE_URL:
-        try:
-            # 🔥 ThreadedConnectionPool es thread-safe para Flask/Gunicorn
-            connection_pool = ThreadedConnectionPool(
-                minconn=2,
-                maxconn=15,  # Render free tier permite ~20 conexiones
-                dsn=DATABASE_URL
-            )
-            print("✅ PostgreSQL ThreadedConnectionPool initialized (2-15 connections)")
-        except Exception as e:
-            print(f"❌ Error initializing PostgreSQL pool: {e}")
-            import traceback
-            traceback.print_exc()
-            connection_pool = None
+        for attempt in range(3):
+            try:
+                connection_pool = ThreadedConnectionPool(
+                    minconn=3,
+                    maxconn=18,  # Render free tier ~20 conexiones, dejamos margen
+                    dsn=DATABASE_URL
+                )
+                print(f"✅ PostgreSQL ThreadedConnectionPool initialized (3-18 connections)")
+                return True
+            except Exception as e:
+                print(f"❌ Pool init attempt {attempt+1}/3 failed: {e}")
+                time.sleep(1)
+        print("❌ Could not initialize connection pool after 3 attempts")
+    return False
 
 def get_connection():
-    """Obtener conexión del pool"""
-    if connection_pool:
+    """Obtener conexión del pool con retry"""
+    if not connection_pool:
+        return None
+
+    for attempt in range(3):
         try:
             conn = connection_pool.getconn()
             if conn:
                 return conn
-            print("⚠️ get_connection: pool returned None")
+        except PoolError as e:
+            print(f"⚠️ Pool exhausted, attempt {attempt+1}/3: {e}")
+            time.sleep(0.2 * (attempt + 1))  # Backoff: 0.2s, 0.4s, 0.6s
         except Exception as e:
-            print(f"❌ Error getting connection from pool: {e}")
+            print(f"❌ Error getting connection: {e}")
+            break
     return None
 
 def release_connection(conn):
@@ -62,12 +119,12 @@ def release_connection(conn):
             print(f"⚠️ Error releasing connection: {e}")
 
 @contextmanager
-def get_db_connection():
+def get_db():
     """
-    Context manager para conexiones de DB - garantiza liberación.
+    Context manager para conexiones de DB - SIEMPRE garantiza liberación.
 
     Uso:
-        with get_db_connection() as conn:
+        with get_db() as conn:
             with conn.cursor() as cur:
                 cur.execute("SELECT ...")
     """
@@ -75,12 +132,15 @@ def get_db_connection():
     try:
         conn = get_connection()
         if conn is None:
-            raise Exception("Could not get database connection")
+            raise Exception("Database pool exhausted - could not get connection")
         yield conn
         conn.commit()
     except Exception:
         if conn:
-            conn.rollback()
+            try:
+                conn.rollback()
+            except:
+                pass
         raise
     finally:
         if conn:
@@ -91,267 +151,332 @@ def is_postgresql_available():
     return DATABASE_URL is not None and connection_pool is not None
 
 # =========================================================================
-# NFTs DATABASE FUNCTIONS
+# NFTs - BATCH OPERATIONS (Crítico para escalar)
+# =========================================================================
+
+def get_nfts_by_wallet(wallet_address):
+    """
+    Obtener TODOS los NFTs de una wallet en UNA sola query.
+    Usa cache en memoria para reducir queries.
+
+    Returns: list de NFTs
+    """
+    wallet = wallet_address.lower()
+
+    # Check cache first
+    cached = _cache_get(_wallet_nfts_cache, _wallet_cache_expiry, wallet)
+    if cached is not None:
+        return cached
+
+    if not is_postgresql_available():
+        return []
+
+    try:
+        with get_db() as conn:
+            with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                cur.execute("""
+                    SELECT token_id, name, guild, race_class,
+                           last_known_owner, image_url, dynamic_state, last_update
+                    FROM nfts
+                    WHERE LOWER(last_known_owner) = %s
+                    ORDER BY token_id
+                """, (wallet,))
+                nfts = cur.fetchall()
+
+        # Cache result
+        _cache_set(_wallet_nfts_cache, _wallet_cache_expiry, wallet, nfts)
+        return nfts
+    except Exception as e:
+        print(f"❌ Error getting NFTs for wallet {wallet[:8]}...: {e}")
+        return []
+
+def get_active_missions_by_wallet(wallet_address):
+    """
+    Obtener TODAS las misiones activas de una wallet en UNA sola query.
+    Usa cache en memoria.
+
+    Returns: list de misiones
+    """
+    wallet = wallet_address.lower()
+
+    # Check cache first
+    cached = _cache_get(_wallet_missions_cache, _missions_cache_expiry, wallet)
+    if cached is not None:
+        return cached
+
+    if not is_postgresql_available():
+        return []
+
+    try:
+        with get_db() as conn:
+            with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                cur.execute("""
+                    SELECT mission_key, wallet, hero_id, hero_ids, mission_id,
+                           start_time, duration_hours, is_party
+                    FROM active_missions
+                    WHERE LOWER(wallet) = %s
+                """, (wallet,))
+                missions = cur.fetchall()
+
+        # Cache result
+        _cache_set(_wallet_missions_cache, _missions_cache_expiry, wallet, missions)
+        return missions
+    except Exception as e:
+        print(f"❌ Error getting missions for wallet {wallet[:8]}...: {e}")
+        return []
+
+def update_nfts_batch(nfts_list):
+    """
+    Actualizar múltiples NFTs en UNA sola transacción.
+    Mucho más eficiente que queries individuales.
+
+    Args:
+        nfts_list: lista de dicts con token_id, owner, dynamic_state, etc.
+    """
+    if not is_postgresql_available() or not nfts_list:
+        return False
+
+    try:
+        with get_db() as conn:
+            with conn.cursor() as cur:
+                for nft in nfts_list:
+                    cur.execute("""
+                        INSERT INTO nfts (token_id, name, guild, race_class,
+                                         last_known_owner, image_url, dynamic_state, last_update)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, NOW())
+                        ON CONFLICT (token_id) DO UPDATE SET
+                            name = COALESCE(EXCLUDED.name, nfts.name),
+                            guild = COALESCE(EXCLUDED.guild, nfts.guild),
+                            race_class = COALESCE(EXCLUDED.race_class, nfts.race_class),
+                            last_known_owner = COALESCE(EXCLUDED.last_known_owner, nfts.last_known_owner),
+                            image_url = COALESCE(EXCLUDED.image_url, nfts.image_url),
+                            dynamic_state = COALESCE(EXCLUDED.dynamic_state, nfts.dynamic_state),
+                            last_update = NOW()
+                    """, (
+                        nft.get('token_id'),
+                        nft.get('name'),
+                        nft.get('guild'),
+                        nft.get('race_class'),
+                        nft.get('last_known_owner', '').lower() if nft.get('last_known_owner') else None,
+                        nft.get('image_url'),
+                        Json(nft.get('dynamic_state', {}))
+                    ))
+
+        # Invalidar cache de wallets afectadas
+        for nft in nfts_list:
+            if nft.get('last_known_owner'):
+                invalidate_wallet_cache(nft['last_known_owner'])
+
+        return True
+    except Exception as e:
+        print(f"❌ Error batch updating NFTs: {e}")
+        return False
+
+# =========================================================================
+# NFTs - FUNCIONES INDIVIDUALES (Compatibilidad con código existente)
 # =========================================================================
 
 def load_nfts_database():
     """
     Cargar toda la base de datos de NFTs desde PostgreSQL.
-    Retorna dict compatible con JSON: {token_id: nft_data, ...}
-
-    🔥 COMPATIBLE con código original que usaba load_json("nfts_database.json")
+    ADVERTENCIA: Para 35,000 NFTs, esto es costoso. Usar get_nfts_by_wallet() cuando sea posible.
     """
     if not is_postgresql_available():
         return {}
 
-    conn = get_connection()
     try:
-        with conn.cursor(cursor_factory=RealDictCursor) as cur:
-            cur.execute("""
-                SELECT
-                    token_id,
-                    name,
-                    guild,
-                    race_class,
-                    last_known_owner,
-                    image_url,
-                    dynamic_state,
-                    last_update
-                FROM nfts
-            """)
-            rows = cur.fetchall()
+        with get_db() as conn:
+            with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                cur.execute("""
+                    SELECT token_id, name, guild, race_class,
+                           last_known_owner, image_url, dynamic_state, last_update
+                    FROM nfts
+                """)
+                rows = cur.fetchall()
 
-            # Convertir a formato dict original
-            nfts_db = {}
-            for row in rows:
-                nfts_db[row['token_id']] = {
-                    'token_id': row['token_id'],
-                    'name': row['name'],
-                    'guild': row['guild'],
-                    'race_class': row['race_class'],
-                    'last_known_owner': row['last_known_owner'],
-                    'image_url': row.get('image_url', '/img/emissary-placeholder.png'),
-                    'dynamic_state': row['dynamic_state'],
-                    'last_update': row['last_update'].isoformat() if row['last_update'] else None
-                }
-
-            return nfts_db
+        nfts_db = {}
+        for row in rows:
+            nfts_db[row['token_id']] = {
+                'token_id': row['token_id'],
+                'name': row['name'],
+                'guild': row['guild'],
+                'race_class': row['race_class'],
+                'last_known_owner': row['last_known_owner'],
+                'image_url': row.get('image_url', '/img/emissary-placeholder.png'),
+                'dynamic_state': row['dynamic_state'] or {},
+                'last_update': row['last_update'].isoformat() if row['last_update'] else None
+            }
+        return nfts_db
     except Exception as e:
         print(f"❌ Error loading NFTs database: {e}")
         return {}
-    finally:
-        release_connection(conn)
 
 def save_nfts_database(nfts_db):
-    """
-    Guardar toda la base de datos de NFTs a PostgreSQL.
-    Acepta dict compatible con JSON: {token_id: nft_data, ...}
-
-    🔥 COMPATIBLE con código original que usaba save_json("nfts_database.json", data)
-    """
-    if not is_postgresql_available():
-        return False
-
-    conn = get_connection()
-    try:
-        with conn.cursor() as cur:
-            for token_id, nft_data in nfts_db.items():
-                cur.execute("""
-                    INSERT INTO nfts (
-                        token_id, name, guild, race_class,
-                        last_known_owner, image_url, dynamic_state, last_update
-                    )
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, NOW())
-                    ON CONFLICT (token_id) DO UPDATE SET
-                        name = EXCLUDED.name,
-                        guild = EXCLUDED.guild,
-                        race_class = EXCLUDED.race_class,
-                        last_known_owner = EXCLUDED.last_known_owner,
-                        image_url = EXCLUDED.image_url,
-                        dynamic_state = EXCLUDED.dynamic_state,
-                        last_update = NOW()
-                """, (
-                    token_id,
-                    nft_data.get('name'),
-                    nft_data.get('guild'),
-                    nft_data.get('race_class'),
-                    nft_data.get('last_known_owner'),
-                    nft_data.get('image_url', '/img/emissary-placeholder.png'),
-                    Json(nft_data.get('dynamic_state', {}))
-                ))
-        conn.commit()
+    """Guardar base de datos de NFTs. Usa batch internamente."""
+    if not nfts_db:
         return True
-    except Exception as e:
-        print(f"❌ Error saving NFTs database: {e}")
-        conn.rollback()
-        return False
-    finally:
-        release_connection(conn)
+    nfts_list = list(nfts_db.values())
+    return update_nfts_batch(nfts_list)
 
 def get_nft_from_database(token_id):
-    """
-    Obtener un NFT específico desde PostgreSQL.
-
-    🔥 COMPATIBLE con código original
-    """
+    """Obtener un NFT específico"""
     if not is_postgresql_available():
         return None
 
-    conn = get_connection()
     try:
-        with conn.cursor(cursor_factory=RealDictCursor) as cur:
-            cur.execute("""
-                SELECT
-                    token_id, name, guild, race_class,
-                    last_known_owner, image_url, dynamic_state, last_update
-                FROM nfts
-                WHERE token_id = %s
-            """, (token_id,))
+        with get_db() as conn:
+            with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                cur.execute("""
+                    SELECT token_id, name, guild, race_class,
+                           last_known_owner, image_url, dynamic_state, last_update
+                    FROM nfts WHERE token_id = %s
+                """, (token_id,))
+                row = cur.fetchone()
 
-            row = cur.fetchone()
-            if row:
-                return {
-                    'token_id': row['token_id'],
-                    'name': row['name'],
-                    'guild': row['guild'],
-                    'race_class': row['race_class'],
-                    'last_known_owner': row['last_known_owner'],
-                    'image_url': row.get('image_url', '/img/emissary-placeholder.png'),
-                    'dynamic_state': row['dynamic_state'],
-                    'last_update': row['last_update'].isoformat() if row['last_update'] else None
-                }
-            return None
+        if row:
+            return {
+                'token_id': row['token_id'],
+                'name': row['name'],
+                'guild': row['guild'],
+                'race_class': row['race_class'],
+                'last_known_owner': row['last_known_owner'],
+                'image_url': row.get('image_url', '/img/emissary-placeholder.png'),
+                'dynamic_state': row['dynamic_state'] or {},
+                'last_update': row['last_update'].isoformat() if row['last_update'] else None
+            }
+        return None
     except Exception as e:
         print(f"❌ Error getting NFT {token_id}: {e}")
         return None
-    finally:
-        release_connection(conn)
 
 def update_nft_dynamic_state(token_id, dynamic_state):
-    """
-    Actualizar solo el dynamic_state de un NFT.
-
-    🔥 COMPATIBLE con código original
-    """
+    """Actualizar solo el dynamic_state de un NFT"""
     if not is_postgresql_available():
         return False
 
-    conn = get_connection()
     try:
-        with conn.cursor() as cur:
-            cur.execute("""
-                UPDATE nfts
-                SET dynamic_state = %s, last_update = NOW()
-                WHERE token_id = %s
-            """, (Json(dynamic_state), token_id))
-        conn.commit()
+        with get_db() as conn:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    UPDATE nfts
+                    SET dynamic_state = %s, last_update = NOW()
+                    WHERE token_id = %s
+                    RETURNING last_known_owner
+                """, (Json(dynamic_state), token_id))
+                result = cur.fetchone()
+
+        # Invalidar cache si hay owner
+        if result and result[0]:
+            invalidate_wallet_cache(result[0])
         return True
     except Exception as e:
-        print(f"❌ Error updating NFT {token_id} dynamic state: {e}")
-        conn.rollback()
+        print(f"❌ Error updating NFT {token_id}: {e}")
         return False
-    finally:
-        release_connection(conn)
 
 # =========================================================================
-# ACTIVE MISSIONS FUNCTIONS
+# ACTIVE MISSIONS
 # =========================================================================
 
 def load_active_missions():
-    """
-    Cargar todas las misiones activas desde PostgreSQL.
-    Retorna dict compatible: {mission_key: mission_data, ...}
-
-    🔥 COMPATIBLE con load_json("active_missions.json")
-    🔥 UPDATED: Includes hero_ids and is_party for party missions
-    """
+    """Cargar todas las misiones activas"""
     if not is_postgresql_available():
         return {}
 
-    conn = get_connection()
     try:
-        with conn.cursor(cursor_factory=RealDictCursor) as cur:
-            cur.execute("""
-                SELECT
-                    mission_key, wallet, hero_id, hero_ids, mission_id,
-                    start_time, duration_hours, is_party
-                FROM active_missions
-            """)
-            rows = cur.fetchall()
+        with get_db() as conn:
+            with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                cur.execute("""
+                    SELECT mission_key, wallet, hero_id, hero_ids, mission_id,
+                           start_time, duration_hours, is_party
+                    FROM active_missions
+                """)
+                rows = cur.fetchall()
 
-            missions = {}
-            for row in rows:
-                mission_data = {
-                    'wallet': row['wallet'],
-                    'hero_id': row['hero_id'],
-                    'mission_id': row['mission_id'],
-                    'start_time': row['start_time'].isoformat() if row['start_time'] else None,
-                    'duration_hours': row['duration_hours'],
-                    'is_party': row.get('is_party') or False
-                }
-                # Include hero_ids for party missions
-                hero_ids = row.get('hero_ids')
-                if hero_ids:
-                    if isinstance(hero_ids, str):
-                        import json as json_lib
-                        mission_data['hero_ids'] = json_lib.loads(hero_ids)
-                    else:
-                        mission_data['hero_ids'] = hero_ids
-                missions[row['mission_key']] = mission_data
-
-            return missions
+        missions = {}
+        for row in rows:
+            mission_data = {
+                'wallet': row['wallet'],
+                'hero_id': row['hero_id'],
+                'mission_id': row['mission_id'],
+                'start_time': row['start_time'].isoformat() if row['start_time'] else None,
+                'duration_hours': row['duration_hours'],
+                'is_party': row.get('is_party') or False
+            }
+            hero_ids = row.get('hero_ids')
+            if hero_ids:
+                if isinstance(hero_ids, str):
+                    mission_data['hero_ids'] = json.loads(hero_ids)
+                else:
+                    mission_data['hero_ids'] = hero_ids
+            missions[row['mission_key']] = mission_data
+        return missions
     except Exception as e:
         print(f"❌ Error loading active missions: {e}")
         return {}
-    finally:
-        release_connection(conn)
 
 def save_active_missions(missions_dict):
-    """
-    Guardar todas las misiones activas a PostgreSQL usando UPSERT.
-    Acepta dict: {mission_key: mission_data, ...}
-
-    🔥 COMPATIBLE con save_json("active_missions.json", data)
-    🔥 FIXED: Uses UPSERT instead of DELETE ALL - preserves existing missions
-    🔥 UPDATED: Includes hero_ids and is_party for party missions
-    """
+    """Guardar todas las misiones activas usando UPSERT"""
     if not is_postgresql_available():
         return False
 
-    conn = get_connection()
     try:
-        with conn.cursor() as cur:
-            # Get existing keys to know which to delete
-            cur.execute("SELECT mission_key FROM active_missions")
-            existing_keys = set(row[0] for row in cur.fetchall())
+        with get_db() as conn:
+            with conn.cursor() as cur:
+                # Get existing keys
+                cur.execute("SELECT mission_key FROM active_missions")
+                existing_keys = set(row[0] for row in cur.fetchall())
 
-            # Delete missions that are no longer in the dict
-            current_keys = set(missions_dict.keys())
-            keys_to_delete = existing_keys - current_keys
-            if keys_to_delete:
-                for key in keys_to_delete:
+                # Delete removed missions
+                current_keys = set(missions_dict.keys())
+                for key in existing_keys - current_keys:
                     cur.execute("DELETE FROM active_missions WHERE mission_key = %s", (key,))
-                print(f"  🗑️ Removed {len(keys_to_delete)} completed missions")
 
-            # UPSERT current missions (INSERT or UPDATE if exists)
-            for mission_key, mission_data in missions_dict.items():
-                # Handle hero_ids for party missions
-                hero_ids = mission_data.get('hero_ids')
-                hero_ids_json = None
-                if hero_ids:
-                    import json as json_lib
-                    hero_ids_json = json_lib.dumps(hero_ids)
+                # UPSERT all missions
+                for mission_key, m in missions_dict.items():
+                    hero_ids_json = json.dumps(m['hero_ids']) if m.get('hero_ids') else None
+                    start_time = m.get('start_time', '').replace('Z', '+00:00') if isinstance(m.get('start_time'), str) else m.get('start_time')
 
-                # Parse start_time if it's a string with 'Z'
-                start_time = mission_data.get('start_time')
-                if isinstance(start_time, str):
-                    start_time = start_time.replace('Z', '+00:00')
+                    cur.execute("""
+                        INSERT INTO active_missions (mission_key, wallet, hero_id, hero_ids,
+                                                     mission_id, start_time, duration_hours, is_party)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                        ON CONFLICT (mission_key) DO UPDATE SET
+                            wallet = EXCLUDED.wallet,
+                            hero_id = EXCLUDED.hero_id,
+                            hero_ids = EXCLUDED.hero_ids,
+                            mission_id = EXCLUDED.mission_id,
+                            start_time = EXCLUDED.start_time,
+                            duration_hours = EXCLUDED.duration_hours,
+                            is_party = EXCLUDED.is_party
+                    """, (mission_key, m.get('wallet'), m.get('hero_id'), hero_ids_json,
+                          m.get('mission_id'), start_time, m.get('duration_hours'), m.get('is_party', False)))
+
+                    # Invalidar cache de wallet
+                    if m.get('wallet'):
+                        invalidate_wallet_cache(m['wallet'])
+
+        print(f"✅ Saved {len(missions_dict)} active missions")
+        return True
+    except Exception as e:
+        print(f"❌ Error saving active missions: {e}")
+        import traceback
+        traceback.print_exc()
+        return False
+
+def add_active_mission(mission_key, mission_data):
+    """Agregar una misión activa"""
+    if not is_postgresql_available():
+        return False
+
+    try:
+        with get_db() as conn:
+            with conn.cursor() as cur:
+                hero_ids_json = json.dumps(mission_data['hero_ids']) if mission_data.get('hero_ids') else None
+                start_time = mission_data.get('start_time', '').replace('Z', '+00:00') if isinstance(mission_data.get('start_time'), str) else mission_data.get('start_time')
 
                 cur.execute("""
-                    INSERT INTO active_missions (
-                        mission_key, wallet, hero_id, hero_ids, mission_id,
-                        start_time, duration_hours, is_party
-                    )
+                    INSERT INTO active_missions (mission_key, wallet, hero_id, hero_ids,
+                                                 mission_id, start_time, duration_hours, is_party)
                     VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
                     ON CONFLICT (mission_key) DO UPDATE SET
                         wallet = EXCLUDED.wallet,
@@ -361,421 +486,246 @@ def save_active_missions(missions_dict):
                         start_time = EXCLUDED.start_time,
                         duration_hours = EXCLUDED.duration_hours,
                         is_party = EXCLUDED.is_party
-                """, (
-                    mission_key,
-                    mission_data.get('wallet'),
-                    mission_data.get('hero_id'),
-                    hero_ids_json,
-                    mission_data.get('mission_id'),
-                    start_time,
-                    mission_data.get('duration_hours'),
-                    mission_data.get('is_party', False)
-                ))
-        conn.commit()
-        print(f"✅ Saved {len(missions_dict)} active missions to PostgreSQL")
+                """, (mission_key, mission_data.get('wallet'), mission_data.get('hero_id'),
+                      hero_ids_json, mission_data.get('mission_id'), start_time,
+                      mission_data.get('duration_hours'), mission_data.get('is_party', False)))
+
+        # Invalidar cache
+        if mission_data.get('wallet'):
+            invalidate_wallet_cache(mission_data['wallet'])
         return True
     except Exception as e:
-        print(f"❌ Error saving active missions: {e}")
-        import traceback
-        traceback.print_exc()
-        conn.rollback()
+        print(f"❌ Error adding mission: {e}")
         return False
-    finally:
-        release_connection(conn)
-
-def add_active_mission(mission_key, mission_data):
-    """
-    Agregar una misión activa (helper rápido)
-    🔥 UPDATED: Includes hero_ids and is_party for party missions
-    """
-    if not is_postgresql_available():
-        return False
-
-    conn = get_connection()
-    try:
-        with conn.cursor() as cur:
-            # Handle hero_ids for party missions
-            hero_ids = mission_data.get('hero_ids')
-            hero_ids_json = None
-            if hero_ids:
-                import json as json_lib
-                hero_ids_json = json_lib.dumps(hero_ids)
-
-            # Parse start_time if it's a string with 'Z'
-            start_time = mission_data.get('start_time')
-            if isinstance(start_time, str):
-                start_time = start_time.replace('Z', '+00:00')
-
-            cur.execute("""
-                INSERT INTO active_missions (
-                    mission_key, wallet, hero_id, hero_ids, mission_id,
-                    start_time, duration_hours, is_party
-                )
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-                ON CONFLICT (mission_key) DO UPDATE SET
-                    wallet = EXCLUDED.wallet,
-                    hero_id = EXCLUDED.hero_id,
-                    hero_ids = EXCLUDED.hero_ids,
-                    mission_id = EXCLUDED.mission_id,
-                    start_time = EXCLUDED.start_time,
-                    duration_hours = EXCLUDED.duration_hours,
-                    is_party = EXCLUDED.is_party
-            """, (
-                mission_key,
-                mission_data.get('wallet'),
-                mission_data.get('hero_id'),
-                hero_ids_json,
-                mission_data.get('mission_id'),
-                start_time,
-                mission_data.get('duration_hours'),
-                mission_data.get('is_party', False)
-            ))
-        conn.commit()
-        return True
-    except Exception as e:
-        print(f"❌ Error adding active mission: {e}")
-        conn.rollback()
-        return False
-    finally:
-        release_connection(conn)
 
 def remove_active_mission(mission_key):
-    """Eliminar una misión activa (helper rápido)"""
+    """Eliminar una misión activa"""
     if not is_postgresql_available():
         return False
 
-    conn = get_connection()
     try:
-        with conn.cursor() as cur:
-            cur.execute("DELETE FROM active_missions WHERE mission_key = %s", (mission_key,))
-        conn.commit()
+        with get_db() as conn:
+            with conn.cursor() as cur:
+                # Get wallet before delete for cache invalidation
+                cur.execute("SELECT wallet FROM active_missions WHERE mission_key = %s", (mission_key,))
+                row = cur.fetchone()
+                wallet = row[0] if row else None
+
+                cur.execute("DELETE FROM active_missions WHERE mission_key = %s", (mission_key,))
+
+        if wallet:
+            invalidate_wallet_cache(wallet)
         return True
     except Exception as e:
-        print(f"❌ Error removing active mission: {e}")
-        conn.rollback()
+        print(f"❌ Error removing mission: {e}")
         return False
-    finally:
-        release_connection(conn)
 
 # =========================================================================
-# PLAYERS FUNCTIONS (Session cache)
+# PLAYERS (Session cache)
 # =========================================================================
 
 def load_players():
-    """
-    Cargar todos los players desde PostgreSQL.
-    Retorna dict: {wallet: player_data, ...}
-
-    🔥 COMPATIBLE con load_json("players.json")
-    """
+    """Cargar todos los players"""
     if not is_postgresql_available():
         return {}
 
-    conn = get_connection()
     try:
-        with conn.cursor(cursor_factory=RealDictCursor) as cur:
-            cur.execute("SELECT wallet, player_data FROM players")
-            rows = cur.fetchall()
-
-            players = {}
-            for row in rows:
-                players[row['wallet']] = row['player_data']
-
-            return players
+        with get_db() as conn:
+            with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                cur.execute("SELECT wallet, player_data FROM players")
+                rows = cur.fetchall()
+        return {row['wallet']: row['player_data'] for row in rows}
     except Exception as e:
         print(f"❌ Error loading players: {e}")
         return {}
-    finally:
-        release_connection(conn)
 
 def save_players(players_dict):
-    """
-    Guardar todos los players a PostgreSQL.
-
-    🔥 COMPATIBLE con save_json("players.json", data)
-    """
-    if not is_postgresql_available():
+    """Guardar players (batch)"""
+    if not is_postgresql_available() or not players_dict:
         return False
 
-    conn = get_connection()
     try:
-        with conn.cursor() as cur:
-            for wallet, player_data in players_dict.items():
-                cur.execute("""
-                    INSERT INTO players (wallet, player_data, last_update)
-                    VALUES (%s, %s, NOW())
-                    ON CONFLICT (wallet) DO UPDATE SET
-                        player_data = EXCLUDED.player_data,
-                        last_update = NOW()
-                """, (wallet, Json(player_data)))
-        conn.commit()
+        with get_db() as conn:
+            with conn.cursor() as cur:
+                for wallet, player_data in players_dict.items():
+                    cur.execute("""
+                        INSERT INTO players (wallet, player_data, last_update)
+                        VALUES (%s, %s, NOW())
+                        ON CONFLICT (wallet) DO UPDATE SET
+                            player_data = EXCLUDED.player_data,
+                            last_update = NOW()
+                    """, (wallet, Json(player_data)))
         return True
     except Exception as e:
         print(f"❌ Error saving players: {e}")
-        conn.rollback()
         return False
-    finally:
-        release_connection(conn)
 
 # =========================================================================
-# STATS FUNCTIONS
+# STATS
 # =========================================================================
 
 def load_stats():
-    """
-    Cargar stats globales desde PostgreSQL.
+    """Cargar stats globales"""
+    default_stats = {
+        "total_characters": 0,
+        "active_guilds": 6,
+        "missions_completed": 0,
+        "missions_failed": 0,
+        "total_exp_collected": 0,
+        "total_aura_collected": 0,
+        "guild_ranking": [],
+        "player_leaderboard": []
+    }
 
-    🔥 COMPATIBLE con load_json("stats.json")
-    """
     if not is_postgresql_available():
-        return {
-            "total_characters": 0,
-            "active_guilds": 6,
-            "missions_completed": 0,
-            "missions_failed": 0,
-            "total_exp_collected": 0,
-            "total_aura_collected": 0,
-            "guild_ranking": [],
-            "player_leaderboard": []
-        }
+        return default_stats
 
-    conn = get_connection()
     try:
-        with conn.cursor(cursor_factory=RealDictCursor) as cur:
-            cur.execute("SELECT stats_data FROM global_stats WHERE id = 1")
-            row = cur.fetchone()
-            return row['stats_data'] if row else {}
+        with get_db() as conn:
+            with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                cur.execute("SELECT stats_data FROM global_stats WHERE id = 1")
+                row = cur.fetchone()
+        return row['stats_data'] if row else default_stats
     except Exception as e:
         print(f"❌ Error loading stats: {e}")
-        return {}
-    finally:
-        release_connection(conn)
+        return default_stats
 
 def save_stats(stats_data):
-    """
-    Guardar stats globales a PostgreSQL.
-
-    🔥 COMPATIBLE con save_json("stats.json", data)
-    """
+    """Guardar stats globales"""
     if not is_postgresql_available():
         return False
 
-    conn = get_connection()
     try:
-        with conn.cursor() as cur:
-            cur.execute("""
-                UPDATE global_stats
-                SET stats_data = %s, last_update = NOW()
-                WHERE id = 1
-            """, (Json(stats_data),))
-        conn.commit()
+        with get_db() as conn:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    UPDATE global_stats SET stats_data = %s, last_update = NOW() WHERE id = 1
+                """, (Json(stats_data),))
         return True
     except Exception as e:
         print(f"❌ Error saving stats: {e}")
-        conn.rollback()
         return False
-    finally:
-        release_connection(conn)
 
 # =========================================================================
-# GENERIC LOAD/SAVE (Wrapper para otros archivos JSON)
+# GENERIC LOAD/SAVE (Wrapper para archivos JSON)
 # =========================================================================
 
 def load_json_or_db(filepath, default_value):
-    """
-    Helper genérico: intenta cargar desde PostgreSQL, si falla usa JSON.
-
-    Mapeo de archivos:
-    - nfts_database.json → load_nfts_database()
-    - active_missions.json → load_active_missions()
-    - players.json → load_players()
-    - stats.json → load_stats()
-    - Otros → load desde archivo JSON (guilds, missions_config, etc.)
-    """
+    """Helper genérico: PostgreSQL para datos críticos, JSON para configs"""
     filename = os.path.basename(filepath)
 
-    if not is_postgresql_available():
-        # Fallback a JSON file
-        try:
-            if os.path.exists(filepath):
-                with open(filepath, 'r', encoding='utf-8') as f:
-                    return json.load(f)
-        except Exception as e:
-            print(f"⚠️ Error loading {filename}: {e}")
-        return default_value
+    if is_postgresql_available():
+        if filename == "nfts_database.json":
+            return load_nfts_database()
+        elif filename == "active_missions.json":
+            return load_active_missions()
+        elif filename == "players.json":
+            return load_players()
+        elif filename == "stats.json":
+            return load_stats()
 
-    # Usar PostgreSQL
-    if filename == "nfts_database.json":
-        return load_nfts_database()
-    elif filename == "active_missions.json":
-        return load_active_missions()
-    elif filename == "players.json":
-        return load_players()
-    elif filename == "stats.json":
-        return load_stats()
-    else:
-        # Para otros archivos (guilds, missions_config), usar JSON
-        try:
-            if os.path.exists(filepath):
-                with open(filepath, 'r', encoding='utf-8') as f:
-                    return json.load(f)
-        except Exception as e:
-            print(f"⚠️ Error loading {filename}: {e}")
-        return default_value
+    # JSON fallback para otros archivos
+    try:
+        if os.path.exists(filepath):
+            with open(filepath, 'r', encoding='utf-8') as f:
+                return json.load(f)
+    except Exception as e:
+        print(f"⚠️ Error loading {filename}: {e}")
+    return default_value
 
 def save_json_or_db(filepath, data):
-    """
-    Helper genérico: intenta guardar a PostgreSQL, si falla usa JSON.
-    """
+    """Helper genérico: PostgreSQL para datos críticos, JSON para otros"""
     filename = os.path.basename(filepath)
 
-    if not is_postgresql_available():
-        # Fallback a JSON file
-        try:
-            with open(filepath, 'w', encoding='utf-8') as f:
-                json.dump(data, f, indent=4, ensure_ascii=False)
-            return True
-        except Exception as e:
-            print(f"⚠️ Error saving {filename}: {e}")
-            return False
+    if is_postgresql_available():
+        if filename == "nfts_database.json":
+            return save_nfts_database(data)
+        elif filename == "active_missions.json":
+            return save_active_missions(data)
+        elif filename == "players.json":
+            return save_players(data)
+        elif filename == "stats.json":
+            return save_stats(data)
 
-    # Usar PostgreSQL
-    if filename == "nfts_database.json":
-        return save_nfts_database(data)
-    elif filename == "active_missions.json":
-        return save_active_missions(data)
-    elif filename == "players.json":
-        return save_players(data)
-    elif filename == "stats.json":
-        return save_stats(data)
-    else:
-        # Para otros archivos (guilds, missions_config), usar JSON
-        try:
-            with open(filepath, 'w', encoding='utf-8') as f:
-                json.dump(data, f, indent=4, ensure_ascii=False)
-            return True
-        except Exception as e:
-            print(f"⚠️ Error saving {filename}: {e}")
-            return False
+    # JSON para otros archivos
+    try:
+        with open(filepath, 'w', encoding='utf-8') as f:
+            json.dump(data, f, indent=4, ensure_ascii=False)
+        return True
+    except Exception as e:
+        print(f"⚠️ Error saving {filename}: {e}")
+        return False
 
 # =========================================================================
-# USER BALANCES - EMBER GAMBIT ECONOMY
+# USER BALANCES
 # =========================================================================
 
 def ensure_user_balances_table():
-    """
-    Ensure user_balances table exists. Create it if it doesn't.
-    """
+    """Ensure user_balances table exists"""
     if not is_postgresql_available():
         return False
 
-    conn = get_connection()
     try:
-        with conn.cursor() as cur:
-            cur.execute("""
-                CREATE TABLE IF NOT EXISTS user_balances (
-                    wallet VARCHAR(42) PRIMARY KEY,
-                    ember_balance INTEGER DEFAULT 0,
-                    ash_balance INTEGER DEFAULT 0,
-                    gambit_rolls_today INTEGER DEFAULT 0,
-                    gambit_rolls_max INTEGER DEFAULT 5,
-                    gambit_next_reset TIMESTAMP,
-                    last_update TIMESTAMP DEFAULT NOW(),
-                    created_at TIMESTAMP DEFAULT NOW()
-                )
-            """)
-
-            # Create index if doesn't exist
-            cur.execute("""
-                CREATE INDEX IF NOT EXISTS idx_balances_wallet
-                ON user_balances(wallet)
-            """)
-
-        conn.commit()
-        print("✅ user_balances table verified/created")
+        with get_db() as conn:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    CREATE TABLE IF NOT EXISTS user_balances (
+                        wallet VARCHAR(42) PRIMARY KEY,
+                        ember_balance INTEGER DEFAULT 0,
+                        ash_balance INTEGER DEFAULT 0,
+                        gambit_rolls_today INTEGER DEFAULT 0,
+                        gambit_rolls_max INTEGER DEFAULT 5,
+                        gambit_next_reset TIMESTAMP,
+                        last_update TIMESTAMP DEFAULT NOW(),
+                        created_at TIMESTAMP DEFAULT NOW()
+                    )
+                """)
+                cur.execute("CREATE INDEX IF NOT EXISTS idx_balances_wallet ON user_balances(wallet)")
+        print("✅ user_balances table verified")
         return True
     except Exception as e:
         print(f"❌ Error ensuring user_balances table: {e}")
-        conn.rollback()
         return False
-    finally:
-        release_connection(conn)
 
 def get_or_create_user_balance(wallet):
-    """
-    Get user balance, creating entry if doesn't exist.
-    Returns dict with balance info or None on error.
-    """
+    """Get user balance, creating if doesn't exist"""
+    default = {"ember_balance": 0, "ash_balance": 0, "gambit_rolls_today": 0,
+               "gambit_rolls_max": 5, "gambit_next_reset": None}
+
     if not is_postgresql_available():
-        return {
-            "ember_balance": 0,
-            "ash_balance": 0,
-            "gambit_rolls_today": 0,
-            "gambit_rolls_max": 5,
-            "gambit_next_reset": None
-        }
+        return default
 
-    # Ensure table exists first
-    ensure_user_balances_table()
-
-    conn = get_connection()
     try:
-        with conn.cursor() as cur:
-            # Try to get existing balance
-            cur.execute("""
-                SELECT ember_balance, ash_balance, gambit_rolls_today,
-                       gambit_rolls_max, gambit_next_reset
-                FROM user_balances
-                WHERE wallet = %s
-            """, (wallet,))
+        with get_db() as conn:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    INSERT INTO user_balances (wallet, ember_balance, ash_balance, gambit_rolls_today, gambit_rolls_max)
+                    VALUES (%s, 0, 0, 0, 5)
+                    ON CONFLICT (wallet) DO NOTHING
+                """, (wallet,))
 
-            row = cur.fetchone()
+                cur.execute("""
+                    SELECT ember_balance, ash_balance, gambit_rolls_today, gambit_rolls_max, gambit_next_reset
+                    FROM user_balances WHERE wallet = %s
+                """, (wallet,))
+                row = cur.fetchone()
 
-            if row:
-                return {
-                    "ember_balance": row[0],
-                    "ash_balance": row[1],
-                    "gambit_rolls_today": row[2],
-                    "gambit_rolls_max": row[3],
-                    "gambit_next_reset": row[4]
-                }
-
-            # Create new entry with starting balance
-            cur.execute("""
-                INSERT INTO user_balances
-                (wallet, ember_balance, ash_balance, gambit_rolls_today, gambit_rolls_max)
-                VALUES (%s, 0, 0, 0, 5)
-                RETURNING ember_balance, ash_balance, gambit_rolls_today,
-                          gambit_rolls_max, gambit_next_reset
-            """, (wallet,))
-
-            row = cur.fetchone()
-            conn.commit()
-
-            return {
-                "ember_balance": row[0],
-                "ash_balance": row[1],
-                "gambit_rolls_today": row[2],
-                "gambit_rolls_max": row[3],
-                "gambit_next_reset": row[4]
-            }
-
+        if row:
+            return {"ember_balance": row[0], "ash_balance": row[1], "gambit_rolls_today": row[2],
+                    "gambit_rolls_max": row[3], "gambit_next_reset": row[4]}
+        return default
     except Exception as e:
-        print(f"❌ Error getting/creating user balance: {e}")
-        import traceback
-        traceback.print_exc()
-        conn.rollback()
-        return None
-    finally:
-        release_connection(conn)
+        print(f"❌ Error getting user balance: {e}")
+        return default
 
 # =========================================================================
 # INICIALIZACIÓN
 # =========================================================================
 
-# Auto-inicializar pool al importar el módulo
+# Auto-inicializar pool al importar
 init_connection_pool()
 
-# Initialize critical tables
+# Crear tablas críticas si PostgreSQL disponible
 if is_postgresql_available():
     ensure_user_balances_table()
+    print("✅ Database module ready")
