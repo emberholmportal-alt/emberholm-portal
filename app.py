@@ -100,8 +100,27 @@ def ensure_postgresql_schema():
                     image_url TEXT,
                     dynamic_state JSONB NOT NULL DEFAULT '{}'::jsonb,
                     last_update TIMESTAMP DEFAULT NOW(),
+                    last_synced TIMESTAMP DEFAULT NOW(),
+                    first_seen TIMESTAMP DEFAULT NOW(),
                     created_at TIMESTAMP DEFAULT NOW()
                 )
+            """)
+
+            # 5b. Migración: agregar columnas faltantes a nfts
+            cur.execute("""
+                DO $$
+                BEGIN
+                    IF NOT EXISTS (SELECT 1 FROM information_schema.columns
+                                   WHERE table_name = 'nfts' AND column_name = 'last_synced') THEN
+                        ALTER TABLE nfts ADD COLUMN last_synced TIMESTAMP DEFAULT NOW();
+                        RAISE NOTICE 'Added last_synced column to nfts';
+                    END IF;
+                    IF NOT EXISTS (SELECT 1 FROM information_schema.columns
+                                   WHERE table_name = 'nfts' AND column_name = 'first_seen') THEN
+                        ALTER TABLE nfts ADD COLUMN first_seen TIMESTAMP DEFAULT NOW();
+                        RAISE NOTICE 'Added first_seen column to nfts';
+                    END IF;
+                END $$;
             """)
 
             # 6. Verificar que tenemos las misiones activas
@@ -110,7 +129,6 @@ def ensure_postgresql_schema():
             print(f"  ✅ active_missions table OK ({count} active missions)")
 
         conn.commit()
-        db.release_connection(conn)
         print("✅ PostgreSQL schema verified/updated")
         return True
 
@@ -119,11 +137,12 @@ def ensure_postgresql_schema():
         import traceback
         traceback.print_exc()
         if conn:
-            try:
-                db.release_connection(conn)
-            except:
-                pass
+            conn.rollback()
         return False
+    finally:
+        # 🔥 SIEMPRE liberar la conexión en finally
+        if conn:
+            db.release_connection(conn)
 
 # Ejecutar verificación de schema al iniciar
 if POSTGRESQL_AVAILABLE:
@@ -208,6 +227,14 @@ EMBER_ITEMS_CONTRACT = "0xCE71702CE99Bc927216e64d57e4BD19254Ac28bA"
 
 # Backend signer private key (MUST be set in environment)
 BACKEND_SIGNER_PRIVATE_KEY = os.environ.get('BACKEND_SIGNER_PRIVATE_KEY', '')
+
+# 🔥 LOG DROP SYSTEM STATUS
+if SIGNING_AVAILABLE and BACKEND_SIGNER_PRIVATE_KEY:
+    print(f"✅ DROP SYSTEM READY: Signing enabled, private key configured ({len(BACKEND_SIGNER_PRIVATE_KEY)} chars)")
+elif SIGNING_AVAILABLE and not BACKEND_SIGNER_PRIVATE_KEY:
+    print("⚠️ DROP SYSTEM PARTIAL: Signing available but BACKEND_SIGNER_PRIVATE_KEY not set!")
+else:
+    print("❌ DROP SYSTEM DISABLED: eth_account not available")
 
 # Drop probabilities by difficulty (percentage)
 DROP_RATES = {
@@ -1544,9 +1571,16 @@ def calculate_drops(difficulty: str, is_party: bool = False) -> dict:
     won_item = item_roll <= rates["item"]
     won_rune = rune_roll <= rates["rune"]
 
-    print(f"🎲 Drop roll - difficulty: {difficulty}, party: {is_party}")
-    print(f"   Item: {item_roll}/100 vs {rates['item']}% = {'✅ WON!' if won_item else '❌'}")
-    print(f"   Rune: {rune_roll}/100 vs {rates['rune']}% = {'✅ WON!' if won_rune else '❌'}")
+    # Enhanced logging for debugging
+    print(f"\n{'='*50}")
+    print(f"🎲 DROP CALCULATION")
+    print(f"   Difficulty: {difficulty}, Party: {is_party}")
+    print(f"   Drop rates: item={rates['item']}%, rune={rates['rune']}%")
+    print(f"   Item roll: {item_roll}/100 (need <= {rates['item']}) → {'🎁 WON ITEM!' if won_item else '💨 No item'}")
+    print(f"   Rune roll: {rune_roll}/100 (need <= {rates['rune']}) → {'🎁 WON RUNE!' if won_rune else '💨 No rune'}")
+    if won_item or won_rune:
+        print(f"   🎉 PLAYER WON DROP(S)!")
+    print(f"{'='*50}\n")
 
     return {
         "item": won_item,
@@ -2419,18 +2453,24 @@ def ensure_player(wallet):
 # ---------------------------------
 
 def get_player_emissaries_from_new_tables(wallet):
-    """Obtener emissaries de una wallet desde las nuevas tablas de metadata"""
+    """
+    Obtener emissaries de una wallet desde las nuevas tablas de metadata.
+    NOTA: Este es un sistema LEGACY - el sistema principal usa la tabla 'nfts'.
+    Si falla, retorna lista vacía sin afectar el funcionamiento.
+    """
     try:
         conn = db.get_connection()
+        if not conn:
+            return []
+
         cur = conn.cursor(cursor_factory=RealDictCursor)
 
+        # Query simplificada - solo campos que sabemos que existen
         cur.execute("""
             SELECT m.token_id, m.name, m.race, m.class, m.guild, m.background,
-                   m.base_str, m.base_dex, m.base_con, m.base_int, m.base_wis, m.base_cha,
                    m.base_power, m.image_cid,
                    COALESCE(s.xp, 0) as xp,
                    COALESCE(s.energy, 100) as energy,
-                   COALESCE(s.max_energy, 100) as max_energy,
                    COALESCE(s.deaths, 0) as deaths,
                    COALESCE(s.state, 'idle') as state,
                    COALESCE(s.rank_level, 0) as rank_level,
@@ -2452,7 +2492,13 @@ def get_player_emissaries_from_new_tables(wallet):
         return emissaries
 
     except Exception as e:
-        print(f"Error getting emissaries for wallet {wallet}: {e}")
+        # Falla silenciosamente - el sistema principal usa 'nfts'
+        print(f"⚠️ emissaries_* tables not available (using nfts instead): {e}")
+        if conn:
+            try:
+                db.release_connection(conn)
+            except:
+                pass
         return []
 
 @app.route("/api/player/<wallet>", methods=["GET", "POST"])
@@ -5118,7 +5164,19 @@ def get_balance():
         next_reset = balance_info["gambit_next_reset"]
         gambit_rolls = balance_info["gambit_rolls_today"]
 
-        if next_reset and now >= next_reset:
+        # Handle timezone-aware vs naive datetime comparison
+        should_reset = False
+        if next_reset:
+            try:
+                # If next_reset is naive, make it UTC aware
+                if next_reset.tzinfo is None:
+                    next_reset = next_reset.replace(tzinfo=timezone.utc)
+                should_reset = now >= next_reset
+            except Exception:
+                # Fallback: compare as naive
+                should_reset = datetime.utcnow() >= next_reset.replace(tzinfo=None) if next_reset.tzinfo else datetime.utcnow() >= next_reset
+
+        if should_reset:
             # Reset rolls
             try:
                 conn = db.get_connection()
@@ -5705,10 +5763,16 @@ def ember_roll_status():
         rolls_max = balance["gambit_rolls_max"]
         next_reset = balance["gambit_next_reset"]
 
-        # Check if reset needed
+        # Check if reset needed (handle timezone-aware vs naive)
         now = datetime.now(timezone.utc)
-        if next_reset and now >= next_reset:
-            rolls_used = 0
+        if next_reset:
+            try:
+                if next_reset.tzinfo is None:
+                    next_reset = next_reset.replace(tzinfo=timezone.utc)
+                if now >= next_reset:
+                    rolls_used = 0
+            except Exception:
+                pass  # Keep current rolls_used if comparison fails
 
         return jsonify({
             "rolls_used": rolls_used,

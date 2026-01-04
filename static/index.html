@@ -4560,6 +4560,21 @@ async function loadPlayerAndRender(){
                                     if (result.drop_error_reason) {
                                         msg += "\n\n⚠️ DROP NOTICE:\n" + result.drop_error_reason;
                                         msg += "\n\n(The mission was completed successfully, but drop generation encountered an issue. This will be fixed soon!)";
+                                    } else {
+                                        // 🎲 Lore-friendly "no drops" messages
+                                        const noDropMessages = [
+                                            "The spirits of Emberholm remained silent... No artifacts revealed themselves this time.",
+                                            "Though victorious, the Flame's blessing did not manifest in material form today.",
+                                            "The ancient relics stayed hidden in shadow. Perhaps next time, fortune will favor the bold.",
+                                            "No treasures emerged from the ember-touched lands... but glory itself is a reward.",
+                                            "The arcane echoes faded without leaving a gift. The realm keeps its secrets close.",
+                                            "Victory was yours, but the Veil between worlds yielded no artifacts this expedition.",
+                                            "The whispers of power spoke of triumph, not treasure. Your legend grows nonetheless.",
+                                            "No runes or relics answered your call... yet the Flame remembers all who serve."
+                                        ];
+                                        const randomNoDropMsg = noDropMessages[Math.floor(Math.random() * noDropMessages.length)];
+                                        msg += "\n\n━━━━━━━━━━━━━━━━━━━━━━\n";
+                                        msg += `📜 ${randomNoDropMsg}`;
                                     }
                                     showInfoModal("MISSION SUCCESS", msg);
                                 }
@@ -5505,6 +5520,25 @@ function showClaimAllResultsModal(results, totalMissions) {
             }
         });
     } else {
+        // Add lore-friendly "no drops" message if there were successes but no drops
+        if (successCount > 0 && (!results.drop_errors || results.drop_errors.length === 0)) {
+            const noDropMessages = [
+                "The spirits of Emberholm remained silent... No artifacts revealed themselves.",
+                "Though victorious, the Flame's blessing did not manifest in material form.",
+                "The ancient relics stayed hidden in shadow. Perhaps next time...",
+                "No treasures emerged from the ember-touched lands... but glory itself is a reward.",
+                "The arcane echoes faded without leaving a gift. The realm keeps its secrets.",
+                "Victory was yours, but the Veil between worlds yielded no artifacts.",
+                "The whispers of power spoke of triumph, not treasure.",
+                "No runes or relics answered your call... yet the Flame remembers all who serve."
+            ];
+            const randomNoDropMsg = noDropMessages[Math.floor(Math.random() * noDropMessages.length)];
+            modalContent += `
+            <div style="margin-top:12px;padding:8px;background:#0a1a2a;border:1px solid #44aaff;font-size:0.8em">
+                <div style="color:#88ccff">📜 ${randomNoDropMsg}</div>
+            </div>
+            `;
+        }
         showInfoModal("CLAIM ALL COMPLETE", modalContent);
     }
 }

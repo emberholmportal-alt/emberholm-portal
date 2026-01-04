@@ -620,6 +620,57 @@
         mintStatus.textContent = "STATUS: CONFIRMED in block " + receipt.blockNumber;
         pushConsole("[SUCCESS] Transaction confirmed! Block: " + receipt.blockNumber);
 
+        // 🔥 CRITICAL FIX: Parse Transfer events from receipt to get REAL token IDs
+        // Instead of calculating from totalSupply (which is wrong if others mint concurrently)
+        function parseTransferEventsFromReceipt(receipt, contractAddress) {
+          const transferEventSignature = ethers.utils.id("Transfer(address,address,uint256)");
+          const mintedTokenIds = [];
+
+          pushConsole(`[DEBUG] Parsing ${receipt.logs.length} logs from transaction...`);
+
+          for (const log of receipt.logs) {
+            // Only process logs from our contract
+            if (log.address.toLowerCase() !== contractAddress.toLowerCase()) continue;
+
+            // Check if this is a Transfer event
+            if (log.topics[0] === transferEventSignature) {
+              // For ERC721 Transfer: topics[1]=from, topics[2]=to, topics[3]=tokenId
+              // Minting = Transfer from zero address
+              const fromAddress = "0x" + log.topics[1].slice(26);
+              const tokenIdHex = log.topics[3];
+              const tokenId = ethers.BigNumber.from(tokenIdHex).toNumber();
+
+              // Check if this is a mint (from = zero address)
+              if (fromAddress === "0x0000000000000000000000000000000000000000") {
+                mintedTokenIds.push(tokenId);
+                pushConsole(`[DEBUG] Found minted token: #${tokenId}`);
+              }
+            }
+          }
+
+          return mintedTokenIds;
+        }
+
+        // Get the REAL token IDs from the transaction receipt
+        const mintedTokenIds = parseTransferEventsFromReceipt(receipt, CONTRACT_ADDRESS);
+        pushConsole(`[SUCCESS] 🔥 Parsed ${mintedTokenIds.length} REAL token IDs from Transfer events!`);
+
+        if (mintedTokenIds.length === 0) {
+          pushConsole(`[WARN] No Transfer events found - falling back to tokensOfOwner()`);
+          // Fallback: use tokensOfOwner to get what we actually own
+          try {
+            const ownedTokens = await c.tokensOfOwner(addr);
+            // Take the last 'qty' tokens as the most recently minted
+            const startIdx = Math.max(0, ownedTokens.length - qty);
+            for (let i = startIdx; i < ownedTokens.length; i++) {
+              mintedTokenIds.push(ownedTokens[i].toNumber());
+            }
+            pushConsole(`[INFO] Fallback: Using last ${mintedTokenIds.length} tokens from tokensOfOwner()`);
+          } catch (fallbackErr) {
+            pushConsole(`[ERROR] Fallback failed: ${fallbackErr.message}`);
+          }
+        }
+
         // Función para mostrar los NFTs minteados
         async function showMintedNFTs() {
           portalTitle.textContent = "STABLE PORTAL // TRANSFER COMPLETED";
@@ -628,33 +679,31 @@
 
           pushConsole("[INFO] Refreshing total minted count...");
           await refreshTotalMinted();
-          
-          const startId = lastMintedOnChain - qty + 1;
-          pushConsole(`[INFO] Displaying NFTs from ID ${startId} to ${lastMintedOnChain}`);
 
-          // Registrar cada mint en el backend
-          for (let i = 0; i < qty; i++) {
-            const tokenId = String(startId + i).padStart(5, '0');
+          pushConsole(`[INFO] Displaying ${mintedTokenIds.length} REAL minted NFTs: ${mintedTokenIds.join(', ')}`);
+
+          // Registrar cada mint en el backend - using REAL token IDs
+          for (const tokenId of mintedTokenIds) {
+            const tokenIdStr = String(tokenId).padStart(5, '0');
             try {
               const response = await fetch('/api/mint/register', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                  token_id: tokenId,
+                  token_id: tokenIdStr,
                   wallet_address: addr
                 })
               });
               const result = await response.json();
-              pushConsole(`[REGISTER] Emissary #${tokenId}: ${result.success ? 'OK' : result.error}`);
+              pushConsole(`[REGISTER] Emissary #${tokenIdStr}: ${result.success ? 'OK' : result.error}`);
             } catch (regError) {
-              pushConsole(`[WARN] Failed to register #${tokenId}: ${regError.message}`);
+              pushConsole(`[WARN] Failed to register #${tokenIdStr}: ${regError.message}`);
             }
           }
 
-          // Crear elementos para cada NFT (primero con placeholder)
+          // Crear elementos para cada NFT (primero con placeholder) - using REAL token IDs
           const nftElements = [];
-          for (let i = 0; i < qty; i++) {
-            const nftId = startId + i;
+          for (const nftId of mintedTokenIds) {
             
             const item = document.createElement('div');
             item.className = "invoked-item";
