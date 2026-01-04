@@ -225,6 +225,7 @@ def load_active_missions():
     Retorna dict compatible: {mission_key: mission_data, ...}
 
     🔥 COMPATIBLE con load_json("active_missions.json")
+    🔥 UPDATED: Includes hero_ids and is_party for party missions
     """
     if not is_postgresql_available():
         return {}
@@ -234,21 +235,31 @@ def load_active_missions():
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
             cur.execute("""
                 SELECT
-                    mission_key, wallet, hero_id, mission_id,
-                    start_time, duration_hours
+                    mission_key, wallet, hero_id, hero_ids, mission_id,
+                    start_time, duration_hours, is_party
                 FROM active_missions
             """)
             rows = cur.fetchall()
 
             missions = {}
             for row in rows:
-                missions[row['mission_key']] = {
+                mission_data = {
                     'wallet': row['wallet'],
                     'hero_id': row['hero_id'],
                     'mission_id': row['mission_id'],
                     'start_time': row['start_time'].isoformat() if row['start_time'] else None,
-                    'duration_hours': row['duration_hours']
+                    'duration_hours': row['duration_hours'],
+                    'is_party': row.get('is_party') or False
                 }
+                # Include hero_ids for party missions
+                hero_ids = row.get('hero_ids')
+                if hero_ids:
+                    if isinstance(hero_ids, str):
+                        import json as json_lib
+                        mission_data['hero_ids'] = json_lib.loads(hero_ids)
+                    else:
+                        mission_data['hero_ids'] = hero_ids
+                missions[row['mission_key']] = mission_data
 
             return missions
     except Exception as e:
@@ -259,10 +270,12 @@ def load_active_missions():
 
 def save_active_missions(missions_dict):
     """
-    Guardar todas las misiones activas a PostgreSQL.
+    Guardar todas las misiones activas a PostgreSQL usando UPSERT.
     Acepta dict: {mission_key: mission_data, ...}
 
     🔥 COMPATIBLE con save_json("active_missions.json", data)
+    🔥 FIXED: Uses UPSERT instead of DELETE ALL - preserves existing missions
+    🔥 UPDATED: Includes hero_ids and is_party for party missions
     """
     if not is_postgresql_available():
         return False
@@ -270,61 +283,114 @@ def save_active_missions(missions_dict):
     conn = get_connection()
     try:
         with conn.cursor() as cur:
-            # Limpiar tabla primero
-            cur.execute("DELETE FROM active_missions")
+            # Get existing keys to know which to delete
+            cur.execute("SELECT mission_key FROM active_missions")
+            existing_keys = set(row[0] for row in cur.fetchall())
 
-            # Insertar todas las misiones
+            # Delete missions that are no longer in the dict
+            current_keys = set(missions_dict.keys())
+            keys_to_delete = existing_keys - current_keys
+            if keys_to_delete:
+                for key in keys_to_delete:
+                    cur.execute("DELETE FROM active_missions WHERE mission_key = %s", (key,))
+                print(f"  🗑️ Removed {len(keys_to_delete)} completed missions")
+
+            # UPSERT current missions (INSERT or UPDATE if exists)
             for mission_key, mission_data in missions_dict.items():
+                # Handle hero_ids for party missions
+                hero_ids = mission_data.get('hero_ids')
+                hero_ids_json = None
+                if hero_ids:
+                    import json as json_lib
+                    hero_ids_json = json_lib.dumps(hero_ids)
+
+                # Parse start_time if it's a string with 'Z'
+                start_time = mission_data.get('start_time')
+                if isinstance(start_time, str):
+                    start_time = start_time.replace('Z', '+00:00')
+
                 cur.execute("""
                     INSERT INTO active_missions (
-                        mission_key, wallet, hero_id, mission_id,
-                        start_time, duration_hours
+                        mission_key, wallet, hero_id, hero_ids, mission_id,
+                        start_time, duration_hours, is_party
                     )
-                    VALUES (%s, %s, %s, %s, %s, %s)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                    ON CONFLICT (mission_key) DO UPDATE SET
+                        wallet = EXCLUDED.wallet,
+                        hero_id = EXCLUDED.hero_id,
+                        hero_ids = EXCLUDED.hero_ids,
+                        mission_id = EXCLUDED.mission_id,
+                        start_time = EXCLUDED.start_time,
+                        duration_hours = EXCLUDED.duration_hours,
+                        is_party = EXCLUDED.is_party
                 """, (
                     mission_key,
                     mission_data.get('wallet'),
                     mission_data.get('hero_id'),
+                    hero_ids_json,
                     mission_data.get('mission_id'),
-                    mission_data.get('start_time'),
-                    mission_data.get('duration_hours')
+                    start_time,
+                    mission_data.get('duration_hours'),
+                    mission_data.get('is_party', False)
                 ))
         conn.commit()
+        print(f"✅ Saved {len(missions_dict)} active missions to PostgreSQL")
         return True
     except Exception as e:
         print(f"❌ Error saving active missions: {e}")
+        import traceback
+        traceback.print_exc()
         conn.rollback()
         return False
     finally:
         release_connection(conn)
 
 def add_active_mission(mission_key, mission_data):
-    """Agregar una misión activa (helper rápido)"""
+    """
+    Agregar una misión activa (helper rápido)
+    🔥 UPDATED: Includes hero_ids and is_party for party missions
+    """
     if not is_postgresql_available():
         return False
 
     conn = get_connection()
     try:
         with conn.cursor() as cur:
+            # Handle hero_ids for party missions
+            hero_ids = mission_data.get('hero_ids')
+            hero_ids_json = None
+            if hero_ids:
+                import json as json_lib
+                hero_ids_json = json_lib.dumps(hero_ids)
+
+            # Parse start_time if it's a string with 'Z'
+            start_time = mission_data.get('start_time')
+            if isinstance(start_time, str):
+                start_time = start_time.replace('Z', '+00:00')
+
             cur.execute("""
                 INSERT INTO active_missions (
-                    mission_key, wallet, hero_id, mission_id,
-                    start_time, duration_hours
+                    mission_key, wallet, hero_id, hero_ids, mission_id,
+                    start_time, duration_hours, is_party
                 )
-                VALUES (%s, %s, %s, %s, %s, %s)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
                 ON CONFLICT (mission_key) DO UPDATE SET
                     wallet = EXCLUDED.wallet,
                     hero_id = EXCLUDED.hero_id,
+                    hero_ids = EXCLUDED.hero_ids,
                     mission_id = EXCLUDED.mission_id,
                     start_time = EXCLUDED.start_time,
-                    duration_hours = EXCLUDED.duration_hours
+                    duration_hours = EXCLUDED.duration_hours,
+                    is_party = EXCLUDED.is_party
             """, (
                 mission_key,
                 mission_data.get('wallet'),
                 mission_data.get('hero_id'),
+                hero_ids_json,
                 mission_data.get('mission_id'),
-                mission_data.get('start_time'),
-                mission_data.get('duration_hours')
+                start_time,
+                mission_data.get('duration_hours'),
+                mission_data.get('is_party', False)
             ))
         conn.commit()
         return True

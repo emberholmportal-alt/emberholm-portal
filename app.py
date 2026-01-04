@@ -21,6 +21,114 @@ except Exception as e:
     db = None
     RealDictCursor = None
 
+# 🔥 AUTO-INITIALIZE POSTGRESQL TABLES ON STARTUP
+def ensure_postgresql_schema():
+    """
+    Asegura que las tablas de PostgreSQL existan con todas las columnas necesarias.
+    Ejecuta migraciones automáticamente al iniciar el servidor.
+    """
+    if not POSTGRESQL_AVAILABLE or not db:
+        return False
+
+    print("🔧 Checking PostgreSQL schema...")
+
+    conn = None
+    try:
+        conn = db.get_connection()
+        if not conn:
+            print("⚠️ Could not get PostgreSQL connection for schema check")
+            return False
+
+        with conn.cursor() as cur:
+            # 1. Crear tabla active_missions si no existe
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS active_missions (
+                    mission_key VARCHAR(100) PRIMARY KEY,
+                    wallet VARCHAR(42) NOT NULL,
+                    hero_id VARCHAR(10),
+                    hero_ids JSONB,
+                    mission_id VARCHAR(10) NOT NULL,
+                    start_time TIMESTAMP NOT NULL,
+                    duration_hours INTEGER NOT NULL,
+                    is_party BOOLEAN DEFAULT FALSE,
+                    created_at TIMESTAMP DEFAULT NOW()
+                )
+            """)
+
+            # 2. Migraciones: agregar columnas faltantes
+            cur.execute("""
+                DO $$
+                BEGIN
+                    IF NOT EXISTS (SELECT 1 FROM information_schema.columns
+                                   WHERE table_name = 'active_missions' AND column_name = 'hero_ids') THEN
+                        ALTER TABLE active_missions ADD COLUMN hero_ids JSONB;
+                        RAISE NOTICE 'Added hero_ids column to active_missions';
+                    END IF;
+                    IF NOT EXISTS (SELECT 1 FROM information_schema.columns
+                                   WHERE table_name = 'active_missions' AND column_name = 'is_party') THEN
+                        ALTER TABLE active_missions ADD COLUMN is_party BOOLEAN DEFAULT FALSE;
+                        RAISE NOTICE 'Added is_party column to active_missions';
+                    END IF;
+                END $$;
+            """)
+
+            # 3. Hacer hero_id nullable (para party missions)
+            cur.execute("""
+                DO $$
+                BEGIN
+                    ALTER TABLE active_missions ALTER COLUMN hero_id DROP NOT NULL;
+                EXCEPTION WHEN OTHERS THEN
+                    NULL;
+                END $$;
+            """)
+
+            # 4. Crear índices si no existen
+            cur.execute("""
+                CREATE INDEX IF NOT EXISTS idx_active_missions_wallet ON active_missions(wallet);
+                CREATE INDEX IF NOT EXISTS idx_active_missions_hero ON active_missions(hero_id);
+                CREATE INDEX IF NOT EXISTS idx_active_missions_mission ON active_missions(mission_id);
+            """)
+
+            # 5. Verificar tabla nfts
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS nfts (
+                    token_id VARCHAR(10) PRIMARY KEY,
+                    name VARCHAR(255),
+                    guild VARCHAR(100),
+                    race_class VARCHAR(100),
+                    last_known_owner VARCHAR(42),
+                    image_url TEXT,
+                    dynamic_state JSONB NOT NULL DEFAULT '{}'::jsonb,
+                    last_update TIMESTAMP DEFAULT NOW(),
+                    created_at TIMESTAMP DEFAULT NOW()
+                )
+            """)
+
+            # 6. Verificar que tenemos las misiones activas
+            cur.execute("SELECT COUNT(*) FROM active_missions")
+            count = cur.fetchone()[0]
+            print(f"  ✅ active_missions table OK ({count} active missions)")
+
+        conn.commit()
+        db.release_connection(conn)
+        print("✅ PostgreSQL schema verified/updated")
+        return True
+
+    except Exception as e:
+        print(f"⚠️ PostgreSQL schema check failed: {e}")
+        import traceback
+        traceback.print_exc()
+        if conn:
+            try:
+                db.release_connection(conn)
+            except:
+                pass
+        return False
+
+# Ejecutar verificación de schema al iniciar
+if POSTGRESQL_AVAILABLE:
+    ensure_postgresql_schema()
+
 # ⚠️ Web3 temporarily disabled due to Render deployment issues
 # Will use local cache (wallet_nfts.json) for NFT data
 WEB3_AVAILABLE = False
@@ -515,18 +623,256 @@ def load_nfts_database():
     """
     Carga la base de datos centralizada de NFTs.
     Esta es la FUENTE DE VERDAD para todos los atributos dinámicos.
-    """
-    db = load_json(NFTS_DATABASE_PATH, {})
-    # Filtrar comentarios de metadata
-    return {k: v for k, v in db.items() if not k.startswith("_")}
 
-def save_nfts_database(db):
-    """Guarda la base de datos de NFTs."""
-    # Preservar comentarios
+    🔥 POSTGRESQL FIRST: Intenta leer de PostgreSQL, si falla usa JSON como fallback.
+    """
+    # 🔥 POSTGRESQL: Try to load from database first
+    if POSTGRESQL_AVAILABLE:
+        conn = None
+        try:
+            conn = db.get_connection()
+            with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                cur.execute("""
+                    SELECT token_id, name, race_class, guild, image_url, dynamic_state,
+                           last_known_owner, last_synced, first_seen
+                    FROM nfts
+                """)
+                rows = cur.fetchall()
+
+            if rows:
+                nfts_db = {}
+                for row in rows:
+                    token_id = row['token_id']
+                    # Parse dynamic_state from JSONB
+                    ds = row['dynamic_state'] if row['dynamic_state'] else {}
+                    if isinstance(ds, str):
+                        import json as json_lib
+                        ds = json_lib.loads(ds)
+
+                    nfts_db[token_id] = {
+                        'token_id': token_id,
+                        'name': row['name'] or f"Emissary #{token_id}",
+                        'race_class': row['race_class'] or 'Unknown',
+                        'guild': row['guild'] or 'Unassigned',
+                        'image_url': row['image_url'] or f"{IPFS_GATEWAY}{IPFS_MAINNET_IMAGES_CID}/{token_id}.png",
+                        'dynamic_state': ds,
+                        'last_known_owner': row['last_known_owner'],
+                        'last_synced': str(row['last_synced']) if row['last_synced'] else None,
+                        'first_seen': str(row['first_seen']) if row['first_seen'] else None
+                    }
+                print(f"✅ Loaded {len(nfts_db)} NFTs from PostgreSQL")
+                return nfts_db
+        except Exception as e:
+            print(f"⚠️ PostgreSQL load_nfts_database failed: {e}, falling back to JSON")
+        finally:
+            if conn:
+                db.release_connection(conn)
+
+    # Fallback to JSON file
+    db_json = load_json(NFTS_DATABASE_PATH, {})
+    # Filtrar comentarios de metadata
+    return {k: v for k, v in db_json.items() if not k.startswith("_")}
+
+def save_nfts_database(db_data):
+    """
+    Guarda la base de datos de NFTs.
+
+    🔥 POSTGRESQL FIRST: Guarda en PostgreSQL Y en JSON (para backup).
+    """
+    # 🔥 POSTGRESQL: Save to database
+    if POSTGRESQL_AVAILABLE:
+        conn = None
+        try:
+            conn = db.get_connection()
+            with conn.cursor() as cur:
+                for token_id, nft in db_data.items():
+                    if token_id.startswith("_"):
+                        continue  # Skip comments
+
+                    ds = nft.get('dynamic_state', {})
+                    # Convert to JSON string for JSONB column
+                    import json as json_lib
+                    ds_json = json_lib.dumps(ds) if isinstance(ds, dict) else ds
+
+                    cur.execute("""
+                        INSERT INTO nfts (token_id, name, race_class, guild, image_url, dynamic_state, last_known_owner, last_synced)
+                        VALUES (%s, %s, %s, %s, %s, %s::jsonb, %s, NOW())
+                        ON CONFLICT (token_id) DO UPDATE SET
+                            name = EXCLUDED.name,
+                            race_class = EXCLUDED.race_class,
+                            guild = EXCLUDED.guild,
+                            image_url = EXCLUDED.image_url,
+                            dynamic_state = EXCLUDED.dynamic_state,
+                            last_known_owner = COALESCE(EXCLUDED.last_known_owner, nfts.last_known_owner),
+                            last_synced = NOW()
+                    """, (
+                        token_id,
+                        nft.get('name', f"Emissary #{token_id}"),
+                        nft.get('race_class', 'Unknown'),
+                        nft.get('guild', 'Unassigned'),
+                        nft.get('image_url'),
+                        ds_json,
+                        nft.get('last_known_owner')
+                    ))
+                conn.commit()
+            print(f"✅ Saved {len([k for k in db_data.keys() if not k.startswith('_')])} NFTs to PostgreSQL")
+        except Exception as e:
+            print(f"⚠️ PostgreSQL save_nfts_database failed: {e}")
+            import traceback
+            traceback.print_exc()
+        finally:
+            if conn:
+                db.release_connection(conn)
+
+    # Also save to JSON (backup/fallback)
     full_db = load_json(NFTS_DATABASE_PATH, {})
     comments = {k: v for k, v in full_db.items() if k.startswith("_")}
-    full_db = {**comments, **db}
+    full_db = {**comments, **db_data}
     save_json(NFTS_DATABASE_PATH, full_db)
+
+# ---------------------------------
+# Active Missions - PostgreSQL Persistence
+# ---------------------------------
+
+def load_active_missions():
+    """
+    Carga misiones activas desde PostgreSQL (fuente de verdad) con fallback a JSON.
+    """
+    if POSTGRESQL_AVAILABLE:
+        conn = None
+        try:
+            conn = db.get_connection()
+            with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                cur.execute("""
+                    SELECT mission_key, wallet, hero_id, hero_ids, mission_id,
+                           start_time, duration_hours, is_party
+                    FROM active_missions
+                """)
+                rows = cur.fetchall()
+
+            missions = {}
+            for row in rows:
+                mission_key = row['mission_key']
+                # Parse hero_ids if it's a party mission
+                hero_ids = row['hero_ids']
+                if hero_ids and isinstance(hero_ids, str):
+                    import json as json_lib
+                    hero_ids = json_lib.loads(hero_ids)
+
+                missions[mission_key] = {
+                    'wallet': row['wallet'],
+                    'hero_id': row['hero_id'],
+                    'mission_id': row['mission_id'],
+                    'start_time': row['start_time'].isoformat() if row['start_time'] else None,
+                    'duration_hours': row['duration_hours'],
+                    'is_party': row['is_party'] or False
+                }
+                if hero_ids:
+                    missions[mission_key]['hero_ids'] = hero_ids
+
+            if missions:
+                print(f"✅ Loaded {len(missions)} active missions from PostgreSQL")
+            return missions
+        except Exception as e:
+            print(f"⚠️ PostgreSQL load_active_missions failed: {e}, falling back to JSON")
+        finally:
+            if conn:
+                db.release_connection(conn)
+
+    # Fallback to JSON
+    return load_json(ACTIVE_MISSIONS_PATH, {})
+
+def save_active_missions(missions):
+    """
+    Guarda misiones activas en PostgreSQL Y JSON (backup).
+    """
+    if POSTGRESQL_AVAILABLE:
+        conn = None
+        try:
+            conn = db.get_connection()
+            with conn.cursor() as cur:
+                # First, get existing mission keys to know what to delete
+                cur.execute("SELECT mission_key FROM active_missions")
+                existing_keys = set(row[0] for row in cur.fetchall())
+
+                # Delete missions that are no longer active
+                current_keys = set(missions.keys())
+                keys_to_delete = existing_keys - current_keys
+                if keys_to_delete:
+                    for key in keys_to_delete:
+                        cur.execute("DELETE FROM active_missions WHERE mission_key = %s", (key,))
+                    print(f"  🗑️ Deleted {len(keys_to_delete)} completed missions from PostgreSQL")
+
+                # Upsert current missions
+                for mission_key, mission in missions.items():
+                    hero_ids = mission.get('hero_ids')
+                    hero_ids_json = None
+                    if hero_ids:
+                        import json as json_lib
+                        hero_ids_json = json_lib.dumps(hero_ids)
+
+                    # Parse start_time
+                    start_time = mission.get('start_time')
+                    if isinstance(start_time, str):
+                        start_time = start_time.replace('Z', '+00:00')
+
+                    cur.execute("""
+                        INSERT INTO active_missions (mission_key, wallet, hero_id, hero_ids, mission_id, start_time, duration_hours, is_party)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                        ON CONFLICT (mission_key) DO UPDATE SET
+                            wallet = EXCLUDED.wallet,
+                            hero_id = EXCLUDED.hero_id,
+                            hero_ids = EXCLUDED.hero_ids,
+                            mission_id = EXCLUDED.mission_id,
+                            start_time = EXCLUDED.start_time,
+                            duration_hours = EXCLUDED.duration_hours,
+                            is_party = EXCLUDED.is_party
+                    """, (
+                        mission_key,
+                        mission.get('wallet'),
+                        mission.get('hero_id'),
+                        hero_ids_json,
+                        mission.get('mission_id'),
+                        start_time,
+                        mission.get('duration_hours'),
+                        mission.get('is_party', False)
+                    ))
+                conn.commit()
+            print(f"✅ Saved {len(missions)} active missions to PostgreSQL")
+        except Exception as e:
+            print(f"⚠️ PostgreSQL save_active_missions failed: {e}")
+            import traceback
+            traceback.print_exc()
+        finally:
+            if conn:
+                db.release_connection(conn)
+
+    # Also save to JSON (backup)
+    save_json(ACTIVE_MISSIONS_PATH, missions)
+
+def delete_active_mission(mission_key):
+    """
+    Elimina una misión activa de PostgreSQL y JSON.
+    """
+    if POSTGRESQL_AVAILABLE:
+        conn = None
+        try:
+            conn = db.get_connection()
+            with conn.cursor() as cur:
+                cur.execute("DELETE FROM active_missions WHERE mission_key = %s", (mission_key,))
+                conn.commit()
+            print(f"✅ Deleted mission {mission_key} from PostgreSQL")
+        except Exception as e:
+            print(f"⚠️ PostgreSQL delete_active_mission failed: {e}")
+        finally:
+            if conn:
+                db.release_connection(conn)
+
+    # Also delete from JSON
+    missions = load_json(ACTIVE_MISSIONS_PATH, {})
+    if mission_key in missions:
+        del missions[mission_key]
+        save_json(ACTIVE_MISSIONS_PATH, missions)
 
 def get_nft_from_database(token_id):
     """
@@ -943,8 +1289,8 @@ def count_active_missions():
     🔥 Lee desde active_missions.json (tracking específico de misiones activas)
     Fallback: cuenta desde nfts_database.json si active_missions está vacío
     """
-    # Primero intentar desde active_missions.json (más rápido y específico)
-    active_missions = load_json(ACTIVE_MISSIONS_PATH, {})
+    # Primero intentar desde PostgreSQL/active_missions
+    active_missions = load_active_missions()
     count = len(active_missions)
 
     # Si active_missions está vacío, contar desde DB como fallback
@@ -2419,148 +2765,161 @@ def handle_party_mission_start(wallet, hero_ids, mission_id):
     """
     Handle party mission start (5 heroes required)
     """
-    # Validate party size
-    if len(hero_ids) != 5:
-        abort(400, f"Party missions require exactly 5 heroes. Received: {len(hero_ids)}")
+    try:
+        print(f"\n🎮 PARTY MISSION START REQUEST:")
+        print(f"  Wallet: {wallet}")
+        print(f"  Hero IDs: {hero_ids}")
+        print(f"  Mission ID: {mission_id}")
 
-    # Find mission
-    mission = None
-    for m in MISSIONS:
-        if m["id"] == mission_id:
-            mission = m
-            break
+        # Validate party size
+        if len(hero_ids) != 5:
+            abort(400, f"Party missions require exactly 5 heroes. Received: {len(hero_ids)}")
 
-    if mission is None:
-        # Check if it's an event
-        for e in EVENTS:
-            if e["id"] == mission_id:
-                mission = e
+        # Find mission
+        mission = None
+        for m in MISSIONS:
+            if m["id"] == mission_id:
+                mission = m
                 break
 
-    if mission is None:
-        abort(400, "Mission not found")
+        if mission is None:
+            # Check if it's an event
+            for e in EVENTS:
+                if e["id"] == mission_id:
+                    mission = e
+                    break
 
-    # Verify it's a party mission
-    if mission.get("party_size") != 5:
-        abort(400, "This mission is not a party mission")
+        if mission is None:
+            abort(400, "Mission not found")
 
-    # Load player data
-    stats_obj = load_json(STATS_PATH, {
-        "total_characters": 0,
-        "active_guilds": 6,
-        "missions_completed": 0,
-        "missions_failed": 0,
-        "total_exp_collected": 0,
-        "total_aura_collected": 0,
-        "guild_ranking": {},
-        "player_leaderboard": []
-    })
-    player_obj, players_all = ensure_player(wallet)
-    player_obj, stats_obj = apply_passive_and_regen(player_obj, stats_obj)
+        # Verify it's a party mission
+        if mission.get("party_size") != 5:
+            abort(400, "This mission is not a party mission")
 
-    # Validate all 5 heroes
-    heroes = []
-    for hero_id in hero_ids:
-        hero = None
-        for h in player_obj.get("heroes", []):
-            if h.get("token_id") == hero_id:
-                hero = h
-                break
+        # Load player data
+        stats_obj = load_json(STATS_PATH, {
+            "total_characters": 0,
+            "active_guilds": 6,
+            "missions_completed": 0,
+            "missions_failed": 0,
+            "total_exp_collected": 0,
+            "total_aura_collected": 0,
+            "guild_ranking": {},
+            "player_leaderboard": []
+        })
+        player_obj, players_all = ensure_player(wallet)
+        player_obj, stats_obj = apply_passive_and_regen(player_obj, stats_obj)
 
-        if hero is None:
-            abort(404, f"Hero {hero_id} not found")
+        # Validate all 5 heroes
+        heroes = []
+        for hero_id in hero_ids:
+            hero = None
+            for h in player_obj.get("heroes", []):
+                if h.get("token_id") == hero_id:
+                    hero = h
+                    break
 
-        ds = hero["dynamic_state"]
+            if hero is None:
+                abort(404, f"Hero {hero_id} not found")
 
-        # Validations
-        if ds.get("state") == "FALLEN":
-            abort(400, f"Hero {hero_id} is fallen. Perform reinvocation ritual first.")
+            ds = hero["dynamic_state"]
 
-        if ds.get("state") == "ON_MISSION":
-            abort(400, f"Hero {hero_id} is already on a mission")
+            # Validations
+            if ds.get("state") == "FALLEN":
+                abort(400, f"Hero {hero_id} is fallen. Perform reinvocation ritual first.")
 
-        # Check energy
-        cost_energy = mission["energy_cost"]
-        energy_current = ds.get("energy_current", 0)
-        if energy_current < cost_energy:
-            abort(400, f"Hero {hero_id} doesn't have enough energy. Required: {cost_energy}, Available: {energy_current}")
+            if ds.get("state") == "ON_MISSION":
+                abort(400, f"Hero {hero_id} is already on a mission")
 
-        # TEMPORARY: Skip cooldown validation for party missions
-        # Reason: Mission 003/006/009 can be done solo OR party mode
-        # Heroes who did it solo should be able to do party version
-        # Future: These missions will be party-only, this won't be needed
-        # mission_hist = ds.get("mission_history", {})
-        # last_run_ts = mission_hist.get(mission_id)
-        # if last_run_ts and hours_since(last_run_ts) < ROTATION_HOURS:
-        #     hours_left = ROTATION_HOURS - hours_since(last_run_ts)
-        #     abort(400, f"Hero {hero_id} already completed this mission. Cooldown: {hours_left:.1f}h remaining.")
+            # Check energy
+            cost_energy = mission["energy_cost"]
+            energy_current = ds.get("energy_current", 0)
+            if energy_current < cost_energy:
+                abort(400, f"Hero {hero_id} doesn't have enough energy. Required: {cost_energy}, Available: {energy_current}")
 
-        heroes.append(hero)
+            # TEMPORARY: Skip cooldown validation for party missions
+            # Reason: Mission 003/006/009 can be done solo OR party mode
+            # Heroes who did it solo should be able to do party version
+            # Future: These missions will be party-only, this won't be needed
+            # mission_hist = ds.get("mission_history", {})
+            # last_run_ts = mission_hist.get(mission_id)
+            # if last_run_ts and hours_since(last_run_ts) < ROTATION_HOURS:
+            #     hours_left = ROTATION_HOURS - hours_since(last_run_ts)
+            #     abort(400, f"Hero {hero_id} already completed this mission. Cooldown: {hours_left:.1f}h remaining.")
 
-    # All validations passed - start mission for all 5 heroes
-    now_utc = now_utc_str()
+            heroes.append(hero)
 
-    for hero in heroes:
-        ds = hero["dynamic_state"]
+        # All validations passed - start mission for all 5 heroes
+        now_utc = now_utc_str()
 
-        # Deduct energy
-        ds["energy_current"] = max(0, ds["energy_current"] - mission["energy_cost"])
+        for hero in heroes:
+            ds = hero["dynamic_state"]
 
-        # Set hero state to ON_MISSION
-        ds["state"] = "ON_MISSION"
-        ds["mission_start_time"] = now_utc
-        ds["current_mission_id"] = mission_id
-        ds["last_update"] = now_utc
+            # Deduct energy
+            ds["energy_current"] = max(0, ds["energy_current"] - mission["energy_cost"])
 
-        # Update NFT dynamic state in database
-        update_nft_dynamic_state(hero["token_id"], ds)
+            # Set hero state to ON_MISSION
+            ds["state"] = "ON_MISSION"
+            ds["mission_start_time"] = now_utc
+            ds["current_mission_id"] = mission_id
+            ds["last_update"] = now_utc
 
-    # Track active mission (party format)
-    active_missions = load_json(ACTIVE_MISSIONS_PATH, {})
-    mission_key = f"{wallet}_{mission_id}_party"
-    active_missions[mission_key] = {
-        "wallet": wallet,
-        "hero_ids": hero_ids,
-        "mission_id": mission_id,
-        "start_time": now_utc,
-        "duration_hours": mission["duration_hours"],
-        "is_party": True
-    }
+            # Update NFT dynamic state in database
+            update_nft_dynamic_state(hero["token_id"], ds)
 
-    save_json(ACTIVE_MISSIONS_PATH, active_missions)
+        # Track active mission (party format)
+        active_missions = load_active_missions()
+        mission_key = f"{wallet}_{mission_id}_party"
+        active_missions[mission_key] = {
+            "wallet": wallet,
+            "hero_ids": hero_ids,
+            "mission_id": mission_id,
+            "start_time": now_utc,
+            "duration_hours": mission["duration_hours"],
+            "is_party": True
+        }
 
-    # Save player data
-    players_all[wallet] = player_obj
-    save_json(PLAYERS_PATH, players_all)
-    save_json(STATS_PATH, stats_obj)
+        save_active_missions(active_missions)
 
-    print(f"\n🎮 PARTY MISSION STARTED:")
-    print(f"  Wallet: {wallet}")
-    print(f"  Heroes: {hero_ids}")
-    print(f"  Mission: {mission_id} - {mission['name']}")
-    print(f"  Duration: {mission['duration_hours']}h")
+        # Save player data
+        players_all[wallet] = player_obj
+        save_json(PLAYERS_PATH, players_all)
+        save_json(STATS_PATH, stats_obj)
 
-    # Calculate average success rate
-    total_success_rate = 0
-    for hero in heroes:
-        success_rate, bonus = calculate_mission_success_rate(hero, mission)
-        total_success_rate += success_rate
+        print(f"\n🎮 PARTY MISSION STARTED SUCCESSFULLY:")
+        print(f"  Wallet: {wallet}")
+        print(f"  Heroes: {hero_ids}")
+        print(f"  Mission: {mission_id} - {mission['name']}")
+        print(f"  Duration: {mission['duration_hours']}h")
 
-    avg_success_rate = total_success_rate / 5
+        # Calculate average success rate
+        total_success_rate = 0
+        for hero in heroes:
+            success_rate, bonus = calculate_mission_success_rate(hero, mission)
+            total_success_rate += success_rate
 
-    return jsonify({
-        "success": True,
-        "party": True,
-        "hero_ids": hero_ids,
-        "mission_id": mission_id,
-        "mission_name": mission["name"],
-        "energy_spent_per_hero": mission["energy_cost"],
-        "total_energy_spent": mission["energy_cost"] * 5,
-        "duration_hours": mission["duration_hours"],
-        "estimated_success_rate": round(avg_success_rate, 2),
-        "party_bonus": "+20% rewards for successful heroes",
-        "message": f"Party of 5 heroes embarked on {mission['name']}! Duration: {mission['duration_hours']}h"
-    })
+        avg_success_rate = total_success_rate / 5
+
+        return jsonify({
+            "success": True,
+            "party": True,
+            "hero_ids": hero_ids,
+            "mission_id": mission_id,
+            "mission_name": mission["name"],
+            "energy_spent_per_hero": mission["energy_cost"],
+            "total_energy_spent": mission["energy_cost"] * 5,
+            "duration_hours": mission["duration_hours"],
+            "estimated_success_rate": round(avg_success_rate, 2),
+            "party_bonus": "+20% rewards for successful heroes",
+            "message": f"Party of 5 heroes embarked on {mission['name']}! Duration: {mission['duration_hours']}h"
+        })
+
+    except Exception as e:
+        print(f"\n❌ PARTY MISSION START ERROR:")
+        print(f"  Error: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": f"Party mission start failed: {str(e)}"}), 500
 
 @app.route("/api/mission/start", methods=["POST"])
 def api_mission_start():
@@ -2569,195 +2928,209 @@ def api_mission_start():
     POST solo: { "wallet": "0x...", "hero_id": "00001", "mission_id": "001" }
     POST party: { "wallet": "0x...", "hero_ids": ["00001", "00002", ...], "mission_id": "003" }
     """
-    data = request.get_json(force=True)
-    wallet = data.get("wallet")
-    hero_id = data.get("hero_id")
-    hero_ids = data.get("hero_ids")
-    mission_id = data.get("mission_id")
+    try:
+        data = request.get_json(force=True)
+        wallet = data.get("wallet")
+        hero_id = data.get("hero_id")
+        hero_ids = data.get("hero_ids")
+        mission_id = data.get("mission_id")
 
-    if not wallet or not mission_id:
-        abort(400, "Missing wallet or mission_id")
+        print(f"\n🚀 MISSION START REQUEST:")
+        print(f"  Wallet: {wallet}")
+        print(f"  Hero ID: {hero_id}")
+        print(f"  Hero IDs: {hero_ids}")
+        print(f"  Mission ID: {mission_id}")
 
-    # Detect party mission
-    is_party = hero_ids is not None and len(hero_ids) > 0
+        if not wallet or not mission_id:
+            abort(400, "Missing wallet or mission_id")
 
-    if is_party:
-        # PARTY MISSION (5 HEROES)
-        return handle_party_mission_start(wallet.lower(), hero_ids, mission_id)
+        # Detect party mission
+        is_party = hero_ids is not None and len(hero_ids) > 0
 
-    # SOLO MISSION (EXISTING CODE CONTINUES)
-    if not hero_id:
-        abort(400, "Missing hero_id for solo mission")
+        if is_party:
+            # PARTY MISSION (5 HEROES)
+            return handle_party_mission_start(wallet.lower(), hero_ids, mission_id)
 
-    # 🔥 NORMALIZE wallet address to lowercase
-    wallet = wallet.lower()
+        # SOLO MISSION (EXISTING CODE CONTINUES)
+        if not hero_id:
+            abort(400, "Missing hero_id for solo mission")
 
-    stats_obj = load_json(STATS_PATH, {
-        "total_characters": 0,
-        "active_guilds": 6,
-        "missions_completed": 0,
-        "missions_failed": 0,
-        "total_exp_collected": 0,
-        "total_aura_collected": 0,
-        "guild_ranking": {},
-        "player_leaderboard": []
-    })
-    player_obj, players_all = ensure_player(wallet)
+        # 🔥 NORMALIZE wallet address to lowercase
+        wallet = wallet.lower()
 
-    # Apply passive gains
-    player_obj, stats_obj = apply_passive_and_regen(player_obj, stats_obj)
+        stats_obj = load_json(STATS_PATH, {
+            "total_characters": 0,
+            "active_guilds": 6,
+            "missions_completed": 0,
+            "missions_failed": 0,
+            "total_exp_collected": 0,
+            "total_aura_collected": 0,
+            "guild_ranking": {},
+            "player_leaderboard": []
+        })
+        player_obj, players_all = ensure_player(wallet)
 
-    # Find mission (check both MISSIONS and EVENTS)
-    mission = None
-    for m in MISSIONS:
-        if m["id"] == mission_id:
-            mission = m
-            break
+        # Apply passive gains
+        player_obj, stats_obj = apply_passive_and_regen(player_obj, stats_obj)
 
-    # If not found in missions, check events
-    if mission is None:
-        for e in EVENTS:
-            if e["id"] == mission_id:
-                mission = e
+        # Find mission (check both MISSIONS and EVENTS)
+        mission = None
+        for m in MISSIONS:
+            if m["id"] == mission_id:
+                mission = m
                 break
 
-    if mission is None:
-        abort(400, "Mission not found")
+        # If not found in missions, check events
+        if mission is None:
+            for e in EVENTS:
+                if e["id"] == mission_id:
+                    mission = e
+                    break
 
-    # Find hero
-    hero = None
-    for h in player_obj.get("heroes", []):
-        if h.get("token_id") == hero_id:
-            hero = h
-            break
-    if hero is None:
-        abort(404, "Hero not found")
+        if mission is None:
+            abort(400, "Mission not found")
 
-    ds = hero["dynamic_state"]
+        # Find hero
+        hero = None
+        for h in player_obj.get("heroes", []):
+            if h.get("token_id") == hero_id:
+                hero = h
+                break
+        if hero is None:
+            abort(404, "Hero not found")
 
-    # Check if hero is fallen
-    if ds.get("state") == "FALLEN":
-        abort(400, "Hero is fallen. Perform reinvocation ritual first.")
+        ds = hero["dynamic_state"]
 
-    # Check if hero is already on a mission
-    if ds.get("state") == "ON_MISSION":
-        abort(400, "Hero is already on a mission")
+        # Check if hero is fallen
+        if ds.get("state") == "FALLEN":
+            abort(400, "Hero is fallen. Perform reinvocation ritual first.")
 
-    # Check energy (with potential buff reduction)
-    cost_energy = mission["energy_cost"]
-    energy_current = ds.get("energy_current", 0)
+        # Check if hero is already on a mission
+        if ds.get("state") == "ON_MISSION":
+            abort(400, "Hero is already on a mission")
 
-    # 🔮 APPLY ENERGY COST REDUCTION BUFF
-    buff = ds.get("ember_roll_buff")
-    energy_reduction = 0
-    if buff:
-        expires_at = buff.get("expires_at")
-        if expires_at:
-            try:
-                expires_dt = datetime.fromisoformat(expires_at.replace('Z', '+00:00'))
-                now = datetime.now(timezone.utc)
-                if now < expires_dt:
-                    # Buff is active
-                    energy_reduction = buff.get("energy_reduction", 0)
-                    if energy_reduction > 0:
-                        original_cost = cost_energy
-                        cost_energy = int(cost_energy * (100 - energy_reduction) / 100)
-                        print(f"🔮 Energy cost reduction buff active: {original_cost} → {cost_energy} (-{energy_reduction}%)")
-            except Exception as e:
-                print(f"⚠️ Error parsing buff expiration: {e}")
+        # Check energy (with potential buff reduction)
+        cost_energy = mission["energy_cost"]
+        energy_current = ds.get("energy_current", 0)
 
-    if energy_current < cost_energy:
-        abort(400, f"Not enough energy. Required: {cost_energy}, Available: {energy_current}")
+        # 🔮 APPLY ENERGY COST REDUCTION BUFF
+        buff = ds.get("ember_roll_buff")
+        energy_reduction = 0
+        if buff:
+            expires_at = buff.get("expires_at")
+            if expires_at:
+                try:
+                    expires_dt = datetime.fromisoformat(expires_at.replace('Z', '+00:00'))
+                    now = datetime.now(timezone.utc)
+                    if now < expires_dt:
+                        # Buff is active
+                        energy_reduction = buff.get("energy_reduction", 0)
+                        if energy_reduction > 0:
+                            original_cost = cost_energy
+                            cost_energy = int(cost_energy * (100 - energy_reduction) / 100)
+                            print(f"🔮 Energy cost reduction buff active: {original_cost} → {cost_energy} (-{energy_reduction}%)")
+                except Exception as e:
+                    print(f"⚠️ Error parsing buff expiration: {e}")
 
-    # Check mission cooldown (72h)
-    mission_hist = ds.get("mission_history", {})
-    last_run_ts = mission_hist.get(mission_id)
-    if last_run_ts and hours_since(last_run_ts) < ROTATION_HOURS:
-        hours_left = ROTATION_HOURS - hours_since(last_run_ts)
-        abort(400, f"This Emissary has already served on this operation. The Order requires {hours_left:.1f}h recovery before redeployment to this mission. Select another assignment.")
+        if energy_current < cost_energy:
+            abort(400, f"Not enough energy. Required: {cost_energy}, Available: {energy_current}")
 
-    # Deduct energy
-    ds["energy_current"] = max(0, energy_current - cost_energy)
+        # Check mission cooldown (72h)
+        mission_hist = ds.get("mission_history", {})
+        last_run_ts = mission_hist.get(mission_id)
+        if last_run_ts and hours_since(last_run_ts) < ROTATION_HOURS:
+            hours_left = ROTATION_HOURS - hours_since(last_run_ts)
+            abort(400, f"This Emissary has already served on this operation. The Order requires {hours_left:.1f}h recovery before redeployment to this mission. Select another assignment.")
 
-    # Set hero state to ON_MISSION
-    ds["state"] = "ON_MISSION"
-    ds["mission_start_time"] = now_utc_str()
-    ds["current_mission_id"] = mission_id
-    ds["last_update"] = now_utc_str()
+        # Deduct energy
+        ds["energy_current"] = max(0, energy_current - cost_energy)
 
-    # Track active mission
-    active_missions = load_json(ACTIVE_MISSIONS_PATH, {})
-    mission_key = f"{wallet}_{hero_id}"
-    active_missions[mission_key] = {
-        "wallet": wallet,
-        "hero_id": hero_id,
-        "mission_id": mission_id,
-        "start_time": ds["mission_start_time"],
-        "duration_hours": mission["duration_hours"]
-    }
+        # Set hero state to ON_MISSION
+        ds["state"] = "ON_MISSION"
+        ds["mission_start_time"] = now_utc_str()
+        ds["current_mission_id"] = mission_id
+        ds["last_update"] = now_utc_str()
 
-    print(f"\n🔥 SAVING ACTIVE MISSION:")
-    print(f"  Mission Key: {mission_key}")
-    print(f"  Wallet: {wallet}")
-    print(f"  Hero ID: {hero_id}")
-    print(f"  Mission ID: {mission_id}")
-    print(f"  Start Time: {ds['mission_start_time']}")
-    print(f"  Duration: {mission['duration_hours']}h")
-    print(f"  Total active missions: {len(active_missions)}")
+        # Track active mission
+        active_missions = load_active_missions()
+        mission_key = f"{wallet}_{hero_id}"
+        active_missions[mission_key] = {
+            "wallet": wallet,
+            "hero_id": hero_id,
+            "mission_id": mission_id,
+            "start_time": ds["mission_start_time"],
+            "duration_hours": mission["duration_hours"]
+        }
 
-    save_json(ACTIVE_MISSIONS_PATH, active_missions)
+        print(f"\n🔥 SAVING ACTIVE MISSION:")
+        print(f"  Mission Key: {mission_key}")
+        print(f"  Wallet: {wallet}")
+        print(f"  Hero ID: {hero_id}")
+        print(f"  Mission ID: {mission_id}")
+        print(f"  Start Time: {ds['mission_start_time']}")
+        print(f"  Duration: {mission['duration_hours']}h")
+        print(f"  Total active missions: {len(active_missions)}")
 
-    # Verificar que se guardó correctamente
-    verify_missions = load_json(ACTIVE_MISSIONS_PATH, {})
-    print(f"  ✅ Verified: {len(verify_missions)} missions in database after save")
-    if mission_key in verify_missions:
-        print(f"  ✅ Mission {mission_key} confirmed in database")
-    else:
-        print(f"  ❌ WARNING: Mission {mission_key} NOT found in database after save!")
+        save_active_missions(active_missions)
 
-    # 🔥 GUARDAR a base de datos centralizada (fuente de verdad)
-    print(f"\n🔥 UPDATING NFT DYNAMIC STATE IN DATABASE:")
-    print(f"  Token ID: {hero_id}")
-    print(f"  New State: {ds['state']}")
-    print(f"  Mission ID: {ds['current_mission_id']}")
-    print(f"  Start Time: {ds['mission_start_time']}")
+        # Verificar que se guardó correctamente
+        verify_missions = load_active_missions()
+        print(f"  ✅ Verified: {len(verify_missions)} missions in database after save")
+        if mission_key in verify_missions:
+            print(f"  ✅ Mission {mission_key} confirmed in database")
+        else:
+            print(f"  ❌ WARNING: Mission {mission_key} NOT found in database after save!")
 
-    update_result = update_nft_dynamic_state(hero_id, ds)
-    if update_result:
-        print(f"  ✅ NFT dynamic state updated successfully")
-    else:
-        print(f"  ❌ WARNING: Failed to update NFT dynamic state!")
+        # 🔥 GUARDAR a base de datos centralizada (fuente de verdad)
+        print(f"\n🔥 UPDATING NFT DYNAMIC STATE IN DATABASE:")
+        print(f"  Token ID: {hero_id}")
+        print(f"  New State: {ds['state']}")
+        print(f"  Mission ID: {ds['current_mission_id']}")
+        print(f"  Start Time: {ds['mission_start_time']}")
 
-    # Verificar que se guardó el NFT
-    verify_nft = get_nft_from_database(hero_id)
-    if verify_nft:
-        verify_ds = verify_nft.get("dynamic_state", {})
-        print(f"  ✅ Verified NFT state: {verify_ds.get('state')}")
-        print(f"  ✅ Verified mission ID: {verify_ds.get('current_mission_id')}")
-    else:
-        print(f"  ❌ WARNING: NFT {hero_id} not found in database!")
+        update_result = update_nft_dynamic_state(hero_id, ds)
+        if update_result:
+            print(f"  ✅ NFT dynamic state updated successfully")
+        else:
+            print(f"  ❌ WARNING: Failed to update NFT dynamic state!")
 
-    # Guardar también a players.json (cache de sesión)
-    players_all[wallet] = player_obj
-    save_json(PLAYERS_PATH, players_all)
-    save_json(STATS_PATH, stats_obj)
+        # Verificar que se guardó el NFT
+        verify_nft = get_nft_from_database(hero_id)
+        if verify_nft:
+            verify_ds = verify_nft.get("dynamic_state", {})
+            print(f"  ✅ Verified NFT state: {verify_ds.get('state')}")
+            print(f"  ✅ Verified mission ID: {verify_ds.get('current_mission_id')}")
+        else:
+            print(f"  ❌ WARNING: NFT {hero_id} not found in database!")
 
-    # Calculate success rate for display
-    success_rate, bonus = calculate_mission_success_rate(hero, mission)
+        # Guardar también a players.json (cache de sesión)
+        players_all[wallet] = player_obj
+        save_json(PLAYERS_PATH, players_all)
+        save_json(STATS_PATH, stats_obj)
 
-    return jsonify({
-        "success": True,
-        "hero_id": hero_id,
-        "mission_id": mission_id,
-        "mission_name": mission["name"],
-        "energy_spent": cost_energy,
-        "hero_energy_now": ds["energy_current"],
-        "duration_hours": mission["duration_hours"],
-        "completion_time": datetime.fromisoformat(ds["mission_start_time"].replace("Z", "")) + timedelta(hours=mission["duration_hours"]),
-        "estimated_success_rate": success_rate,
-        "difficulty": mission["difficulty"],
-        "message": f"{hero.get('name', 'Emissary')} has embarked on {mission['name']}! Duration: {mission['duration_hours']}h"
-    })
+        # Calculate success rate for display
+        success_rate, bonus = calculate_mission_success_rate(hero, mission)
+
+        return jsonify({
+            "success": True,
+            "hero_id": hero_id,
+            "mission_id": mission_id,
+            "mission_name": mission["name"],
+            "energy_spent": cost_energy,
+            "hero_energy_now": ds["energy_current"],
+            "duration_hours": mission["duration_hours"],
+            "completion_time": datetime.fromisoformat(ds["mission_start_time"].replace("Z", "")) + timedelta(hours=mission["duration_hours"]),
+            "estimated_success_rate": success_rate,
+            "difficulty": mission["difficulty"],
+            "message": f"{hero.get('name', 'Emissary')} has embarked on {mission['name']}! Duration: {mission['duration_hours']}h"
+        })
+
+    except Exception as e:
+        print(f"\n❌ MISSION START ERROR:")
+        print(f"  Error: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": f"Mission start failed: {str(e)}"}), 500
 
 def handle_party_mission_complete(wallet, party_mission):
     """
@@ -2918,10 +3291,7 @@ def handle_party_mission_complete(wallet, party_mission):
         })
 
     # Remove from active missions
-    active_missions = load_json(ACTIVE_MISSIONS_PATH, {})
-    if mission_key in active_missions:
-        del active_missions[mission_key]
-        save_json(ACTIVE_MISSIONS_PATH, active_missions)
+    delete_active_mission(mission_key)
 
     # Save player data
     players_all[wallet] = player_obj
@@ -3028,7 +3398,7 @@ def api_mission_complete():
     wallet = wallet.lower()
 
     # Check if this is a party mission
-    active_missions = load_json(ACTIVE_MISSIONS_PATH, {})
+    active_missions = load_active_missions()
 
     # Look for party mission for this wallet
     party_mission = None
@@ -3149,11 +3519,8 @@ def api_mission_complete():
         achievements_granted = check_and_grant_mission_achievements(hero_id, total_missions_completed)
 
         # Remove from active missions
-        active_missions = load_json(ACTIVE_MISSIONS_PATH, {})
         mission_key = f"{wallet}_{hero_id}"
-        if mission_key in active_missions:
-            del active_missions[mission_key]
-            save_json(ACTIVE_MISSIONS_PATH, active_missions)
+        delete_active_mission(mission_key)
 
         # 🔥 GUARDAR a base de datos centralizada (fuente de verdad)
         ds["last_update"] = now_utc_str()
@@ -3252,11 +3619,8 @@ def api_mission_complete():
         stats_obj = update_guild_stats(hero_guild_name, -xp_loss, 0, stats_obj, success=False)
 
         # Remove from active missions
-        active_missions = load_json(ACTIVE_MISSIONS_PATH, {})
         mission_key = f"{wallet}_{hero_id}"
-        if mission_key in active_missions:
-            del active_missions[mission_key]
-            save_json(ACTIVE_MISSIONS_PATH, active_missions)
+        delete_active_mission(mission_key)
 
         # 🔥 GUARDAR a base de datos centralizada (fuente de verdad)
         ds["last_update"] = now_utc_str()
@@ -3298,11 +3662,8 @@ def api_mission_complete():
         stats_obj["total_deaths"] = stats_obj.get("total_deaths", 0) + 1
 
         # Remove from active missions
-        active_missions = load_json(ACTIVE_MISSIONS_PATH, {})
         mission_key = f"{wallet}_{hero_id}"
-        if mission_key in active_missions:
-            del active_missions[mission_key]
-            save_json(ACTIVE_MISSIONS_PATH, active_missions)
+        delete_active_mission(mission_key)
 
         # 🔥 GUARDAR a base de datos centralizada (fuente de verdad)
         ds["last_update"] = now_utc_str()
@@ -4078,12 +4439,27 @@ def api_setup_postgresql():
     CREATE TABLE IF NOT EXISTS active_missions (
         mission_key VARCHAR(100) PRIMARY KEY,
         wallet VARCHAR(42) NOT NULL,
-        hero_id VARCHAR(10) NOT NULL,
+        hero_id VARCHAR(10),
+        hero_ids JSONB,
         mission_id VARCHAR(10) NOT NULL,
         start_time TIMESTAMP NOT NULL,
         duration_hours INTEGER NOT NULL,
+        is_party BOOLEAN DEFAULT FALSE,
         created_at TIMESTAMP DEFAULT NOW()
     );
+
+    -- Migration: Add missing columns if they don't exist
+    DO $$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'active_missions' AND column_name = 'hero_ids') THEN
+            ALTER TABLE active_missions ADD COLUMN hero_ids JSONB;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'active_missions' AND column_name = 'is_party') THEN
+            ALTER TABLE active_missions ADD COLUMN is_party BOOLEAN DEFAULT FALSE;
+        END IF;
+        -- Make hero_id nullable for party missions
+        ALTER TABLE active_missions ALTER COLUMN hero_id DROP NOT NULL;
+    END $$;
 
     CREATE INDEX IF NOT EXISTS idx_active_missions_wallet ON active_missions(wallet);
     CREATE INDEX IF NOT EXISTS idx_active_missions_hero ON active_missions(hero_id);
@@ -4275,7 +4651,7 @@ def api_audit_system():
         # ========================================================================
         # 2. ACTIVE MISSIONS ANALYSIS
         # ========================================================================
-        active_missions = load_json(ACTIVE_MISSIONS_PATH, {})
+        active_missions = load_active_missions()
         audit_result["active_missions"]["total"] = len(active_missions)
 
         missions_by_status = {
@@ -4548,9 +4924,9 @@ def api_debug_hero(wallet, hero_id):
     except Exception as e:
         result["nft_in_database"] = {"error": str(e)}
 
-    # 2. Estado en active_missions
+    # 2. Estado en active_missions (PostgreSQL)
     try:
-        active_missions = load_json(ACTIVE_MISSIONS_PATH, {})
+        active_missions = load_active_missions()
         mission_key = f"{wallet}_{hero_id_padded}"
 
         result["active_mission"] = {
