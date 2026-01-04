@@ -1750,6 +1750,44 @@ a.social-link:hover {
 .phase-progress.phase-dusk   { background: linear-gradient(90deg, #FF6B35, #8B0000); }
 .phase-progress.phase-void   { background: linear-gradient(90deg, #6B5B95, #2D1B4E); }
 
+/* Emberholm Time Display */
+.emberholm-time {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 12px;
+    font-weight: bold;
+    color: var(--gold);
+    background: rgba(0, 0, 0, 0.4);
+    padding: 2px 6px;
+    border: 1px solid var(--border-gold);
+    margin-left: 8px;
+    letter-spacing: 1px;
+}
+
+.phase-lore {
+    font-size: 0.7em;
+    color: #666;
+    font-style: italic;
+    margin-top: 2px;
+    max-width: 200px;
+}
+
+.moon-display {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 2px;
+}
+
+.moon-icon {
+    font-size: 1em;
+}
+
+.moon-name {
+    font-size: 0.7em;
+    color: #9090c0;
+    cursor: help;
+}
+
 .console-volume-slider {
     -webkit-appearance: none;
     appearance: none;
