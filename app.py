@@ -21,6 +21,114 @@ except Exception as e:
     db = None
     RealDictCursor = None
 
+# 🔥 AUTO-INITIALIZE POSTGRESQL TABLES ON STARTUP
+def ensure_postgresql_schema():
+    """
+    Asegura que las tablas de PostgreSQL existan con todas las columnas necesarias.
+    Ejecuta migraciones automáticamente al iniciar el servidor.
+    """
+    if not POSTGRESQL_AVAILABLE or not db:
+        return False
+
+    print("🔧 Checking PostgreSQL schema...")
+
+    conn = None
+    try:
+        conn = db.get_connection()
+        if not conn:
+            print("⚠️ Could not get PostgreSQL connection for schema check")
+            return False
+
+        with conn.cursor() as cur:
+            # 1. Crear tabla active_missions si no existe
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS active_missions (
+                    mission_key VARCHAR(100) PRIMARY KEY,
+                    wallet VARCHAR(42) NOT NULL,
+                    hero_id VARCHAR(10),
+                    hero_ids JSONB,
+                    mission_id VARCHAR(10) NOT NULL,
+                    start_time TIMESTAMP NOT NULL,
+                    duration_hours INTEGER NOT NULL,
+                    is_party BOOLEAN DEFAULT FALSE,
+                    created_at TIMESTAMP DEFAULT NOW()
+                )
+            """)
+
+            # 2. Migraciones: agregar columnas faltantes
+            cur.execute("""
+                DO $$
+                BEGIN
+                    IF NOT EXISTS (SELECT 1 FROM information_schema.columns
+                                   WHERE table_name = 'active_missions' AND column_name = 'hero_ids') THEN
+                        ALTER TABLE active_missions ADD COLUMN hero_ids JSONB;
+                        RAISE NOTICE 'Added hero_ids column to active_missions';
+                    END IF;
+                    IF NOT EXISTS (SELECT 1 FROM information_schema.columns
+                                   WHERE table_name = 'active_missions' AND column_name = 'is_party') THEN
+                        ALTER TABLE active_missions ADD COLUMN is_party BOOLEAN DEFAULT FALSE;
+                        RAISE NOTICE 'Added is_party column to active_missions';
+                    END IF;
+                END $$;
+            """)
+
+            # 3. Hacer hero_id nullable (para party missions)
+            cur.execute("""
+                DO $$
+                BEGIN
+                    ALTER TABLE active_missions ALTER COLUMN hero_id DROP NOT NULL;
+                EXCEPTION WHEN OTHERS THEN
+                    NULL;
+                END $$;
+            """)
+
+            # 4. Crear índices si no existen
+            cur.execute("""
+                CREATE INDEX IF NOT EXISTS idx_active_missions_wallet ON active_missions(wallet);
+                CREATE INDEX IF NOT EXISTS idx_active_missions_hero ON active_missions(hero_id);
+                CREATE INDEX IF NOT EXISTS idx_active_missions_mission ON active_missions(mission_id);
+            """)
+
+            # 5. Verificar tabla nfts
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS nfts (
+                    token_id VARCHAR(10) PRIMARY KEY,
+                    name VARCHAR(255),
+                    guild VARCHAR(100),
+                    race_class VARCHAR(100),
+                    last_known_owner VARCHAR(42),
+                    image_url TEXT,
+                    dynamic_state JSONB NOT NULL DEFAULT '{}'::jsonb,
+                    last_update TIMESTAMP DEFAULT NOW(),
+                    created_at TIMESTAMP DEFAULT NOW()
+                )
+            """)
+
+            # 6. Verificar que tenemos las misiones activas
+            cur.execute("SELECT COUNT(*) FROM active_missions")
+            count = cur.fetchone()[0]
+            print(f"  ✅ active_missions table OK ({count} active missions)")
+
+        conn.commit()
+        db.release_connection(conn)
+        print("✅ PostgreSQL schema verified/updated")
+        return True
+
+    except Exception as e:
+        print(f"⚠️ PostgreSQL schema check failed: {e}")
+        import traceback
+        traceback.print_exc()
+        if conn:
+            try:
+                db.release_connection(conn)
+            except:
+                pass
+        return False
+
+# Ejecutar verificación de schema al iniciar
+if POSTGRESQL_AVAILABLE:
+    ensure_postgresql_schema()
+
 # ⚠️ Web3 temporarily disabled due to Render deployment issues
 # Will use local cache (wallet_nfts.json) for NFT data
 WEB3_AVAILABLE = False
