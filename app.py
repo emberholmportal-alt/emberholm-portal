@@ -1725,7 +1725,7 @@ def api_stats():
         # Top 10 emissaries por XP
         cur.execute("""
             SELECT m.token_id, m.name, m.race, m.class, m.guild,
-                   COALESCE(s.xp, 0) as xp, COALESCE(s.rank_name, 'Novice') as rank_name
+                   COALESCE(s.xp, 0) as xp
             FROM emissaries_metadata m
             LEFT JOIN emissaries_state s ON m.token_id = s.token_id
             WHERE s.minted = TRUE
@@ -1762,7 +1762,7 @@ def api_guilds():
 
         cur.execute("""
             SELECT guild_id, guild_name, total_members, total_xp,
-                   total_missions, total_aura, total_deaths,
+                   total_missions, total_deaths,
                    CASE WHEN total_missions > 0
                         THEN ROUND((successful_missions::numeric / total_missions) * 100, 1)
                         ELSE 0
@@ -1885,10 +1885,16 @@ def api_events():
         if not event_active:
             continue
 
-        # Parse dates
+        # Parse dates - ensure timezone-aware
         try:
-            available_from = datetime.fromisoformat(available_from_str.replace("Z", ""))
-            available_until = datetime.fromisoformat(available_until_str.replace("Z", ""))
+            available_from = datetime.fromisoformat(available_from_str.replace("Z", "+00:00"))
+            available_until = datetime.fromisoformat(available_until_str.replace("Z", "+00:00"))
+
+            # Ensure timezone-aware (in case the string didn't have timezone)
+            if available_from.tzinfo is None:
+                available_from = available_from.replace(tzinfo=timezone.utc)
+            if available_until.tzinfo is None:
+                available_until = available_until.replace(tzinfo=timezone.utc)
 
             # Check if current time is within event window
             if available_from <= current_time <= available_until:
@@ -2473,8 +2479,6 @@ def get_player_emissaries_from_new_tables(wallet):
                    COALESCE(s.energy, 100) as energy,
                    COALESCE(s.deaths, 0) as deaths,
                    COALESCE(s.state, 'idle') as state,
-                   COALESCE(s.rank_level, 0) as rank_level,
-                   COALESCE(s.rank_name, 'Novice') as rank_name,
                    COALESCE(s.total_missions, 0) as total_missions,
                    COALESCE(s.successful_missions, 0) as successful_missions,
                    COALESCE(s.aura, 0) as aura
@@ -3165,7 +3169,7 @@ def api_mission_start():
             "energy_spent": cost_energy,
             "hero_energy_now": ds["energy_current"],
             "duration_hours": mission["duration_hours"],
-            "completion_time": datetime.fromisoformat(ds["mission_start_time"].replace("Z", "")) + timedelta(hours=mission["duration_hours"]),
+            "completion_time": (datetime.fromisoformat(ds["mission_start_time"].replace("Z", "+00:00")) + timedelta(hours=mission["duration_hours"])).isoformat(),
             "estimated_success_rate": success_rate,
             "difficulty": mission["difficulty"],
             "message": f"{hero.get('name', 'Emissary')} has embarked on {mission['name']}! Duration: {mission['duration_hours']}h"
@@ -5288,8 +5292,11 @@ def get_balance():
                     next_reset = next_reset.replace(tzinfo=timezone.utc)
                 should_reset = now >= next_reset
             except Exception:
-                # Fallback: compare as naive
-                should_reset = datetime.utcnow() >= next_reset.replace(tzinfo=None) if next_reset.tzinfo else datetime.utcnow() >= next_reset
+                # Fallback: compare as UTC-aware
+                now_utc = datetime.now(timezone.utc)
+                if next_reset.tzinfo is None:
+                    next_reset = next_reset.replace(tzinfo=timezone.utc)
+                should_reset = now_utc >= next_reset
 
         if should_reset:
             # Reset rolls
