@@ -576,6 +576,49 @@ def check_and_grant_mission_achievements(token_id, total_missions):
 # Mission System - Probability & Outcome Calculation
 # ---------------------------------
 
+def get_equipment_stats(hero_token_id: str) -> dict:
+    """
+    Get total stats from all equipped items for a hero.
+    Returns dict with: attack, defense, xp_boost, aura_boost, luck, energy_regen, ember_boost, all_boost
+    """
+    total_stats = {
+        "attack": 0,
+        "defense": 0,
+        "xp_boost": 0,
+        "aura_boost": 0,
+        "luck": 0,
+        "energy_regen": 0,
+        "ember_boost": 0,
+        "all_boost": 0
+    }
+
+    if not POSTGRESQL_AVAILABLE:
+        return total_stats
+
+    try:
+        conn = db.get_connection()
+        cursor = conn.cursor()
+
+        # Get all equipped items for this hero
+        cursor.execute("""
+            SELECT stats FROM items WHERE equipped_by = %s
+        """, (hero_token_id,))
+
+        for row in cursor.fetchall():
+            item_stats = row[0] if row[0] else {}
+            if isinstance(item_stats, str):
+                import json as j
+                item_stats = j.loads(item_stats)
+            for key, value in item_stats.items():
+                if key in total_stats:
+                    total_stats[key] += value
+
+        db.release_connection(conn)
+    except Exception as e:
+        print(f"⚠️ Error getting equipment stats: {e}")
+
+    return total_stats
+
 def calculate_mission_success_rate(hero, mission):
     """
     Calculate total success rate for a mission based on hero attributes.
@@ -613,6 +656,17 @@ def calculate_mission_success_rate(hero, mission):
     # Aura bonus (1% per 100 Aura)
     aura_bonus = (hero_aura // 100) * BONUSES.get("aura_per_100", 1)
     bonus += aura_bonus
+
+    # ⚔️ EQUIPMENT BONUS: Apply attack stat from equipped items
+    hero_token_id = hero.get("token_id")
+    if hero_token_id:
+        equipment_stats = get_equipment_stats(hero_token_id)
+        attack_bonus = equipment_stats.get("attack", 0)
+        all_boost = equipment_stats.get("all_boost", 0)  # From runes
+        total_equipment_bonus = attack_bonus + all_boost
+        if total_equipment_bonus > 0:
+            bonus += total_equipment_bonus
+            print(f"⚔️ EQUIPMENT bonus applied: +{total_equipment_bonus}% (attack: {attack_bonus}, all: {all_boost})")
 
     # 🔮 EMBER ROLL BUFF: Success bonus
     ds = hero.get("dynamic_state", {})
@@ -718,6 +772,23 @@ def roll_mission_outcome(hero, mission):
                             print(f"🔮 EMBER ROLL XP buff applied: {original_xp} → {xp_reward} ({'+' if xp_bonus > 0 else ''}{xp_bonus}%)")
                 except Exception as e:
                     print(f"⚠️ Error parsing buff expiration: {e}")
+
+        # ⚔️ EQUIPMENT BOOSTS: Apply XP and Aura boosts from items
+        hero_token_id = hero.get("token_id")
+        if hero_token_id:
+            equipment_stats = get_equipment_stats(hero_token_id)
+            xp_boost = equipment_stats.get("xp_boost", 0) + equipment_stats.get("all_boost", 0)
+            aura_boost = equipment_stats.get("aura_boost", 0) + equipment_stats.get("all_boost", 0)
+
+            if xp_boost > 0:
+                original_xp = xp_reward
+                xp_reward = int(xp_reward * (100 + xp_boost) / 100)
+                print(f"⚔️ EQUIPMENT XP boost: {original_xp} → {xp_reward} (+{xp_boost}%)")
+
+            if aura_boost > 0:
+                original_aura = aura_reward
+                aura_reward = int(aura_reward * (100 + aura_boost) / 100)
+                print(f"⚔️ EQUIPMENT Aura boost: {original_aura} → {aura_reward} (+{aura_boost}%)")
 
         return ("SUCCESS", {
             "xp_gain": xp_reward,
@@ -5825,6 +5896,313 @@ def unequip_item():
 
     except Exception as e:
         print(f"Error unequipping item: {e}")
+        return jsonify({"error": str(e)}), 500
+
+# ---------------------------------
+# EQUIPMENT API (Routes used by inventory modal)
+# ---------------------------------
+
+@app.route('/api/equipment/equip', methods=['POST'])
+def equipment_equip():
+    """Equip an item to an emissary - called from inventory modal"""
+    data = request.get_json()
+    wallet = data.get('wallet', '').lower()
+    emissary_id = data.get('emissary_id')
+    item_id = data.get('item_id')
+    slot = data.get('slot')  # weapon, armor, helmet, accessory, amulet, or rune
+
+    if not wallet or not emissary_id or not item_id:
+        return jsonify({"error": "wallet, emissary_id and item_id required"}), 400
+
+    if not POSTGRESQL_AVAILABLE:
+        return jsonify({"success": False, "error": "Database not available"}), 503
+
+    try:
+        conn = db.get_connection()
+        cursor = conn.cursor()
+
+        # Verify item belongs to wallet and is not equipped
+        cursor.execute("""
+            SELECT type, equipped_by, stats FROM items
+            WHERE id = %s AND owner_wallet = %s
+        """, (item_id, wallet))
+        item_row = cursor.fetchone()
+
+        if not item_row:
+            db.release_connection(conn)
+            return jsonify({"error": "Item not found or doesn't belong to you"}), 404
+
+        item_type = item_row[0]
+        already_equipped = item_row[1]
+        item_stats = item_row[2]
+
+        if already_equipped:
+            db.release_connection(conn)
+            return jsonify({"error": "Item already equipped to another emissary"}), 400
+
+        # Verify emissary belongs to wallet
+        cursor.execute("""
+            SELECT token_id FROM nfts WHERE token_id = %s AND last_known_owner = %s
+        """, (emissary_id, wallet))
+        if not cursor.fetchone():
+            db.release_connection(conn)
+            return jsonify({"error": "Emissary not found or doesn't belong to you"}), 404
+
+        # Handle runes specially
+        if item_type == "rune":
+            cursor.execute("""
+                UPDATE nfts
+                SET rune_ids = array_append(COALESCE(rune_ids, ARRAY[]::integer[]), %s)
+                WHERE token_id = %s AND (rune_ids IS NULL OR array_length(rune_ids, 1) < 2)
+                RETURNING token_id
+            """, (item_id, emissary_id))
+            if not cursor.fetchone():
+                db.release_connection(conn)
+                return jsonify({"error": "Cannot equip more than 2 runes"}), 400
+        else:
+            column_map = {
+                "weapon": "weapon_id",
+                "armor": "armor_id",
+                "helmet": "helmet_id",
+                "accessory": "accessory_id",
+                "amulet": "amulet_id"
+            }
+            column = column_map.get(item_type)
+            if not column:
+                db.release_connection(conn)
+                return jsonify({"error": f"Invalid item type: {item_type}"}), 400
+
+            # Unequip existing item in that slot first
+            cursor.execute(f"SELECT {column} FROM nfts WHERE token_id = %s", (emissary_id,))
+            existing_item_row = cursor.fetchone()
+            if existing_item_row and existing_item_row[0]:
+                # Clear the old item's equipped_by
+                cursor.execute("UPDATE items SET equipped_by = NULL WHERE id = %s", (existing_item_row[0],))
+
+            # Equip new item
+            cursor.execute(f"UPDATE nfts SET {column} = %s WHERE token_id = %s", (item_id, emissary_id))
+
+        # Mark item as equipped
+        cursor.execute("UPDATE items SET equipped_by = %s WHERE id = %s", (emissary_id, item_id))
+
+        conn.commit()
+        db.release_connection(conn)
+
+        return jsonify({
+            "success": True,
+            "message": "Item equipped successfully",
+            "item_stats": item_stats
+        })
+
+    except Exception as e:
+        print(f"Error equipping item: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/equipment/unequip', methods=['POST'])
+def equipment_unequip():
+    """Unequip a single item - called from inventory modal"""
+    data = request.get_json()
+    wallet = data.get('wallet', '').lower()
+    emissary_id = data.get('emissary_id')
+    item_id = data.get('item_id')
+    slot = data.get('slot')
+
+    if not wallet or not emissary_id:
+        return jsonify({"error": "wallet and emissary_id required"}), 400
+
+    if not POSTGRESQL_AVAILABLE:
+        return jsonify({"error": "Database not available"}), 503
+
+    try:
+        conn = db.get_connection()
+        cursor = conn.cursor()
+
+        if item_id:
+            # Unequip specific item
+            cursor.execute("""
+                SELECT type FROM items WHERE id = %s AND equipped_by = %s
+            """, (item_id, emissary_id))
+            item_row = cursor.fetchone()
+            if not item_row:
+                db.release_connection(conn)
+                return jsonify({"error": "Item not found or not equipped"}), 404
+
+            item_type = item_row[0]
+        elif slot:
+            item_type = slot
+            # Find item in slot
+            if slot == "rune":
+                # Will handle below
+                pass
+            else:
+                column_map = {
+                    "weapon": "weapon_id",
+                    "armor": "armor_id",
+                    "helmet": "helmet_id",
+                    "accessory": "accessory_id",
+                    "amulet": "amulet_id"
+                }
+                column = column_map.get(slot)
+                if column:
+                    cursor.execute(f"SELECT {column} FROM nfts WHERE token_id = %s", (emissary_id,))
+                    row = cursor.fetchone()
+                    if row and row[0]:
+                        item_id = row[0]
+        else:
+            db.release_connection(conn)
+            return jsonify({"error": "item_id or slot required"}), 400
+
+        if item_type == "rune" and item_id:
+            cursor.execute("""
+                UPDATE nfts SET rune_ids = array_remove(rune_ids, %s) WHERE token_id = %s
+            """, (item_id, emissary_id))
+        elif item_id:
+            column_map = {
+                "weapon": "weapon_id",
+                "armor": "armor_id",
+                "helmet": "helmet_id",
+                "accessory": "accessory_id",
+                "amulet": "amulet_id"
+            }
+            column = column_map.get(item_type)
+            if column:
+                cursor.execute(f"UPDATE nfts SET {column} = NULL WHERE token_id = %s", (emissary_id,))
+
+        if item_id:
+            cursor.execute("UPDATE items SET equipped_by = NULL WHERE id = %s", (item_id,))
+
+        conn.commit()
+        db.release_connection(conn)
+
+        return jsonify({"success": True, "message": "Item unequipped"})
+
+    except Exception as e:
+        print(f"Error unequipping item: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/equipment/unequip-all', methods=['POST'])
+def equipment_unequip_all():
+    """Unequip all items from an emissary"""
+    data = request.get_json()
+    wallet = data.get('wallet', '').lower()
+    emissary_id = data.get('emissary_id')
+
+    if not wallet or not emissary_id:
+        return jsonify({"error": "wallet and emissary_id required"}), 400
+
+    if not POSTGRESQL_AVAILABLE:
+        return jsonify({"error": "Database not available"}), 503
+
+    try:
+        conn = db.get_connection()
+        cursor = conn.cursor()
+
+        # Clear all equipment slots on emissary
+        cursor.execute("""
+            UPDATE nfts
+            SET weapon_id = NULL, armor_id = NULL, helmet_id = NULL,
+                accessory_id = NULL, amulet_id = NULL, rune_ids = NULL
+            WHERE token_id = %s AND last_known_owner = %s
+        """, (emissary_id, wallet))
+
+        # Clear equipped_by for all items that were equipped to this emissary
+        cursor.execute("""
+            UPDATE items SET equipped_by = NULL WHERE equipped_by = %s
+        """, (emissary_id,))
+
+        conn.commit()
+        db.release_connection(conn)
+
+        return jsonify({"success": True, "message": "All items unequipped"})
+
+    except Exception as e:
+        print(f"Error unequipping all items: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/equipment/inventory/<emissary_id>', methods=['GET'])
+def get_emissary_inventory(emissary_id):
+    """Get all equipped items for an emissary"""
+    wallet = request.args.get('wallet', '').lower()
+
+    if not wallet:
+        return jsonify({"error": "wallet required"}), 400
+
+    if not POSTGRESQL_AVAILABLE:
+        return jsonify({"error": "Database not available"}), 503
+
+    try:
+        conn = db.get_connection()
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+
+        # Get emissary equipment slots
+        cursor.execute("""
+            SELECT token_id, name, weapon_id, armor_id, helmet_id,
+                   accessory_id, amulet_id, rune_ids
+            FROM nfts
+            WHERE token_id = %s AND last_known_owner = %s
+        """, (emissary_id, wallet))
+
+        emissary = cursor.fetchone()
+        if not emissary:
+            db.release_connection(conn)
+            return jsonify({"error": "Emissary not found"}), 404
+
+        # Get equipped items details
+        equipped_items = {}
+        for slot in ['weapon', 'armor', 'helmet', 'accessory', 'amulet']:
+            item_id = emissary.get(f'{slot}_id')
+            if item_id:
+                cursor.execute("""
+                    SELECT id, name, type, rarity, image_url, stats
+                    FROM items WHERE id = %s
+                """, (item_id,))
+                item = cursor.fetchone()
+                if item:
+                    equipped_items[slot] = dict(item)
+
+        # Get equipped runes
+        rune_ids = emissary.get('rune_ids') or []
+        equipped_runes = []
+        for rune_id in rune_ids:
+            cursor.execute("""
+                SELECT id, name, type, rarity, image_url, stats
+                FROM items WHERE id = %s
+            """, (rune_id,))
+            rune = cursor.fetchone()
+            if rune:
+                equipped_runes.append(dict(rune))
+
+        # Get available items (not equipped)
+        cursor.execute("""
+            SELECT id, name, type, rarity, image_url, stats
+            FROM items
+            WHERE owner_wallet = %s AND equipped_by IS NULL
+            ORDER BY
+                CASE rarity
+                    WHEN 'legendary' THEN 1
+                    WHEN 'epic' THEN 2
+                    WHEN 'rare' THEN 3
+                    ELSE 4
+                END, name
+        """, (wallet,))
+        available_items = [dict(row) for row in cursor.fetchall()]
+
+        db.release_connection(conn)
+
+        return jsonify({
+            "emissary_id": emissary_id,
+            "emissary_name": emissary.get('name'),
+            "equipped": equipped_items,
+            "runes": equipped_runes,
+            "available": available_items
+        })
+
+    except Exception as e:
+        print(f"Error getting inventory: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({"error": str(e)}), 500
 
 # ---------------------------------

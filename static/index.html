@@ -3650,6 +3650,11 @@ async function connectWallet() {
         // Update button visibility
         updateWalletButtonsVisibility();
 
+        // 🔥 Update Vault wallet UI when connected from Profile
+        if (typeof updateVaultWalletUI === 'function') {
+            updateVaultWalletUI();
+        }
+
         // 🔥 Hide glitch overlay on success
         hideGlitchOverlay();
 
@@ -3689,6 +3694,11 @@ function disconnectWallet() {
     document.getElementById("wallet-summary").innerHTML = "";
     document.getElementById("prime-emissary-card").innerHTML = `<div class="character-sheet-empty">NO DATA</div>`;
     document.getElementById("roster-table-wrap").innerHTML = "";
+
+    // 🔥 Update Vault UI
+    if (typeof updateVaultWalletUI === 'function') {
+        updateVaultWalletUI();
+    }
 
     console.log("✅ Wallet disconnected");
 
