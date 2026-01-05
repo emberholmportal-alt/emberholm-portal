@@ -985,6 +985,25 @@ document.addEventListener('DOMContentLoaded', initPortalWarning);
             <div class="section-title">VAULT // ITEM STORAGE</div>
             <div class="mono-small-note">Manage your collected items, runes, and equipment</div>
 
+            <!-- Wallet Connection for Vault -->
+            <div class="vault-wallet-bar" style="margin:15px 0; padding:12px; border:1px solid var(--border-primary); background:rgba(0,20,0,0.3);">
+                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+                    <div>
+                        <label style="color:var(--dim-green);">WALLET: </label>
+                        <span id="vault-wallet-display" style="color:#00ff00; font-size:14px; text-shadow:0 0 8px rgba(0,255,0,0.6);">Not connected</span>
+                    </div>
+                    <div>
+                        <button class="terminal-btn small-btn" id="vault-connect-btn" onclick="connectWalletForVault()">[CONNECT WALLET]</button>
+                        <button class="terminal-btn small-btn" id="vault-disconnect-btn" onclick="disconnectWalletForVault()" style="display:none;">[DISCONNECT]</button>
+                    </div>
+                </div>
+                <!-- Pending Claims Alert -->
+                <div id="vault-pending-claims" style="margin-top:10px; display:none;">
+                    <span style="color:var(--gold);">⚡ You have <span id="vault-claims-count">0</span> pending claim(s)!</span>
+                    <button class="terminal-btn small-btn" onclick="showScreen('profile')" style="margin-left:10px;">[GO TO PROFILE TO CLAIM]</button>
+                </div>
+            </div>
+
             <!-- Stats Summary -->
             <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:10px; margin:20px 0;">
                 <div style="border:1px solid var(--border-primary); padding:10px; text-align:center;">
@@ -1003,13 +1022,13 @@ document.addEventListener('DOMContentLoaded', initPortalWarning);
 
             <!-- Filter Tabs -->
             <div class="command-menu" style="margin-bottom:20px;">
-                <button class="cmd vault-filter active" onclick="loadVault(currentWallet, null)">[ALL]</button>
-                <button class="cmd vault-filter" onclick="loadVault(currentWallet, 'weapon')">[WEAPONS]</button>
-                <button class="cmd vault-filter" onclick="loadVault(currentWallet, 'armor')">[ARMORS]</button>
-                <button class="cmd vault-filter" onclick="loadVault(currentWallet, 'helmet')">[HELMETS]</button>
-                <button class="cmd vault-filter" onclick="loadVault(currentWallet, 'accessory')">[ACCESSORIES]</button>
-                <button class="cmd vault-filter" onclick="loadVault(currentWallet, 'amulet')">[AMULETS]</button>
-                <button class="cmd vault-filter" onclick="loadVault(currentWallet, 'rune')">[RUNES]</button>
+                <button class="cmd vault-filter active" onclick="loadVault(connectedWallet, null)">[ALL]</button>
+                <button class="cmd vault-filter" onclick="loadVault(connectedWallet, 'weapon')">[WEAPONS]</button>
+                <button class="cmd vault-filter" onclick="loadVault(connectedWallet, 'armor')">[ARMORS]</button>
+                <button class="cmd vault-filter" onclick="loadVault(connectedWallet, 'helmet')">[HELMETS]</button>
+                <button class="cmd vault-filter" onclick="loadVault(connectedWallet, 'accessory')">[ACCESSORIES]</button>
+                <button class="cmd vault-filter" onclick="loadVault(connectedWallet, 'amulet')">[AMULETS]</button>
+                <button class="cmd vault-filter" onclick="loadVault(connectedWallet, 'rune')">[RUNES]</button>
             </div>
 
             <!-- Items Container -->
@@ -3631,6 +3650,11 @@ async function connectWallet() {
         // Update button visibility
         updateWalletButtonsVisibility();
 
+        // 🔥 Update Vault wallet UI when connected from Profile
+        if (typeof updateVaultWalletUI === 'function') {
+            updateVaultWalletUI();
+        }
+
         // 🔥 Hide glitch overlay on success
         hideGlitchOverlay();
 
@@ -3671,6 +3695,11 @@ function disconnectWallet() {
     document.getElementById("prime-emissary-card").innerHTML = `<div class="character-sheet-empty">NO DATA</div>`;
     document.getElementById("roster-table-wrap").innerHTML = "";
 
+    // 🔥 Update Vault UI
+    if (typeof updateVaultWalletUI === 'function') {
+        updateVaultWalletUI();
+    }
+
     console.log("✅ Wallet disconnected");
 
     // Show info modal
@@ -3684,11 +3713,94 @@ function updateWalletButtonsVisibility() {
     if (connectedWallet) {
         document.getElementById("connect-wallet-btn").style.display = "none";
         document.getElementById("disconnect-wallet-btn").style.display = "inline-block";
+        // Vault buttons
+        document.getElementById("vault-connect-btn").style.display = "none";
+        document.getElementById("vault-disconnect-btn").style.display = "inline-block";
     } else {
         document.getElementById("connect-wallet-btn").style.display = "inline-block";
         document.getElementById("disconnect-wallet-btn").style.display = "none";
+        // Vault buttons
+        document.getElementById("vault-connect-btn").style.display = "inline-block";
+        document.getElementById("vault-disconnect-btn").style.display = "none";
     }
 }
+
+// 🔥 VAULT WALLET FUNCTIONS - Share state with Profile
+async function connectWalletForVault() {
+    // Reuse the main connectWallet function
+    const address = await connectWallet();
+    if (address) {
+        updateVaultWalletUI();
+        loadVault(address, null);
+        loadPendingClaimsForVault();
+    }
+}
+
+function disconnectWalletForVault() {
+    // Reuse the main disconnectWallet function
+    disconnectWallet();
+    updateVaultWalletUI();
+    // Clear vault container
+    const container = document.getElementById('vault-items-container');
+    if (container) {
+        container.innerHTML = `
+            <div class="mono-block" style="text-align:center; padding:40px;">
+                <p style="color:var(--dim-green);">Connect your wallet to view your vault.</p>
+            </div>
+        `;
+    }
+}
+
+function updateVaultWalletUI() {
+    const vaultWalletDisplay = document.getElementById('vault-wallet-display');
+    const vaultConnectBtn = document.getElementById('vault-connect-btn');
+    const vaultDisconnectBtn = document.getElementById('vault-disconnect-btn');
+    const pendingClaimsDiv = document.getElementById('vault-pending-claims');
+
+    if (connectedWallet) {
+        const shortWallet = connectedWallet.slice(0, 6) + '...' + connectedWallet.slice(-4);
+        vaultWalletDisplay.textContent = shortWallet;
+        vaultConnectBtn.style.display = 'none';
+        vaultDisconnectBtn.style.display = 'inline-block';
+    } else {
+        vaultWalletDisplay.textContent = 'Not connected';
+        vaultConnectBtn.style.display = 'inline-block';
+        vaultDisconnectBtn.style.display = 'none';
+        if (pendingClaimsDiv) pendingClaimsDiv.style.display = 'none';
+    }
+}
+
+async function loadPendingClaimsForVault() {
+    if (!connectedWallet) return;
+
+    try {
+        const response = await fetchJSON(`/api/claims/${encodeURIComponent(connectedWallet)}`);
+        const claimsCount = response.pending_claims?.length || 0;
+
+        const pendingClaimsDiv = document.getElementById('vault-pending-claims');
+        const claimsCountSpan = document.getElementById('vault-claims-count');
+
+        if (claimsCount > 0) {
+            claimsCountSpan.textContent = claimsCount;
+            pendingClaimsDiv.style.display = 'block';
+        } else {
+            pendingClaimsDiv.style.display = 'none';
+        }
+    } catch (e) {
+        console.error("Error loading pending claims for vault:", e);
+    }
+}
+
+// 🔥 Auto-update Vault when navigating to it
+const originalShowScreen = window.showScreen;
+window.showScreen = function(screenName) {
+    originalShowScreen(screenName);
+    if (screenName === 'vault' && connectedWallet) {
+        updateVaultWalletUI();
+        loadVault(connectedWallet, null);
+        loadPendingClaimsForVault();
+    }
+};
 
 // 🔥 Listen for network changes
 if (window.ethereum) {
