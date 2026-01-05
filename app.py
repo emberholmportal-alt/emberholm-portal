@@ -3298,7 +3298,12 @@ def handle_party_mission_complete(wallet, party_mission):
             guild_name = hero.get("guild")
 
         # Roll outcome for THIS SPECIFIC HERO
-        outcome, xp_gain, aura_gain, xp_loss = roll_mission_outcome(hero, mission)
+        outcome, details = roll_mission_outcome(hero, mission)
+
+        # Extract values from details dictionary
+        xp_gain = details.get("xp_gain", 0)
+        aura_gain = details.get("aura_gain", 0)
+        xp_loss = details.get("xp_loss", 0)
 
         # Apply party bonus if success
         if outcome == "SUCCESS":
