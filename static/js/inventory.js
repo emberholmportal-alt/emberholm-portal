@@ -1489,6 +1489,9 @@ window.performEmberRoll = async function(emissaryId) {
     // INITIALIZATION
     // ===============================================================
 
+    // Export loadVault globally so it can be called from HTML onclick
+    window.loadVault = loadVault;
+
     window.initInventorySystem = function(wallet) {
         currentWallet = wallet;
 

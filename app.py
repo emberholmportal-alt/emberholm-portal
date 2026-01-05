@@ -244,6 +244,198 @@ DROP_RATES = {
     "PARTY":  {"item": 25, "rune": 12}
 }
 
+# ---------------------------------
+# ITEM GENERATION TEMPLATES
+# ---------------------------------
+# Item types and their possible names/stats based on rarity
+ITEM_TEMPLATES = {
+    "weapon": {
+        "names": {
+            "common": ["Iron Sword", "Wooden Staff", "Rusty Blade", "Simple Bow"],
+            "rare": ["Steel Longsword", "Enchanted Staff", "Silver Blade", "Hunter's Bow"],
+            "epic": ["Emberforged Blade", "Arcane Scepter", "Shadow Dagger", "Dragonbone Bow"],
+            "legendary": ["Ashbringer", "Staff of the Void", "Soulreaver", "Bow of the Phoenix"]
+        },
+        "base_stats": {"attack": 10, "xp_boost": 5}
+    },
+    "armor": {
+        "names": {
+            "common": ["Leather Vest", "Cloth Robes", "Hide Armor", "Padded Tunic"],
+            "rare": ["Chainmail", "Reinforced Robes", "Scale Armor", "Knight's Plate"],
+            "epic": ["Emberforged Plate", "Arcane Vestments", "Shadow Cloak", "Dragonscale Armor"],
+            "legendary": ["Armor of the Last Ember", "Robes of Eternity", "Voidwalker Cloak", "Phoenix Plate"]
+        },
+        "base_stats": {"defense": 10, "energy_regen": 5}
+    },
+    "helmet": {
+        "names": {
+            "common": ["Leather Cap", "Cloth Hood", "Iron Helm", "Simple Circlet"],
+            "rare": ["Steel Helm", "Enchanted Hood", "Knight's Helm", "Silver Circlet"],
+            "epic": ["Emberforged Helm", "Arcane Crown", "Shadow Mask", "Dragonbone Helm"],
+            "legendary": ["Crown of Embers", "Diadem of the Void", "Mask of Shadows", "Phoenix Crest"]
+        },
+        "base_stats": {"defense": 5, "aura_boost": 5}
+    },
+    "accessory": {
+        "names": {
+            "common": ["Simple Ring", "Leather Bracelet", "Copper Pendant", "Bone Charm"],
+            "rare": ["Silver Ring", "Enchanted Bracelet", "Gold Pendant", "Spirit Charm"],
+            "epic": ["Emberstone Ring", "Arcane Bracelet", "Shadow Pendant", "Dragon Charm"],
+            "legendary": ["Ring of the Last Ember", "Bracelet of Eternity", "Void Pendant", "Phoenix Charm"]
+        },
+        "base_stats": {"luck": 5, "ember_boost": 5}
+    },
+    "amulet": {
+        "names": {
+            "common": ["Stone Amulet", "Wooden Talisman", "Bone Necklace", "Simple Locket"],
+            "rare": ["Crystal Amulet", "Enchanted Talisman", "Silver Necklace", "Spirit Locket"],
+            "epic": ["Emberstone Amulet", "Arcane Talisman", "Shadow Necklace", "Dragon Locket"],
+            "legendary": ["Amulet of the Last Ember", "Talisman of the Void", "Necklace of Shadows", "Phoenix Locket"]
+        },
+        "base_stats": {"aura_boost": 10, "xp_boost": 5}
+    }
+}
+
+RUNE_TEMPLATES = {
+    "names": {
+        "common": ["Rune of Minor Power", "Rune of Small Fortune", "Rune of Light"],
+        "rare": ["Rune of Strength", "Rune of Fortune", "Rune of Protection"],
+        "epic": ["Rune of the Ember", "Rune of the Dragon", "Rune of the Void"],
+        "legendary": ["Rune of the Last Ember", "Rune of Eternity", "Rune of the Phoenix"]
+    },
+    "base_stats": {"all_boost": 5}
+}
+
+# Rarity probabilities by difficulty
+RARITY_RATES = {
+    "EASY":   {"common": 70, "rare": 25, "epic": 4, "legendary": 1},
+    "MEDIUM": {"common": 50, "rare": 35, "epic": 12, "legendary": 3},
+    "HARD":   {"common": 30, "rare": 40, "epic": 23, "legendary": 7},
+    "PARTY":  {"common": 20, "rare": 40, "epic": 30, "legendary": 10}
+}
+
+def generate_random_item(claim_type: str, difficulty: str, wallet: str) -> dict:
+    """
+    Generate a random item based on claim type and difficulty.
+
+    Args:
+        claim_type: "ITEM" or "RUNE"
+        difficulty: "EASY", "MEDIUM", "HARD", or "PARTY"
+        wallet: Player's wallet address
+
+    Returns:
+        dict with item data ready to insert into database
+    """
+    import random
+
+    # Determine rarity based on difficulty
+    rates = RARITY_RATES.get(difficulty.upper(), RARITY_RATES["EASY"])
+    roll = random.randint(1, 100)
+
+    cumulative = 0
+    rarity = "common"
+    for r, chance in [("common", rates["common"]), ("rare", rates["rare"]),
+                      ("epic", rates["epic"]), ("legendary", rates["legendary"])]:
+        cumulative += chance
+        if roll <= cumulative:
+            rarity = r
+            break
+
+    # Rarity multipliers for stats
+    rarity_multipliers = {"common": 1, "rare": 2, "epic": 4, "legendary": 8}
+    multiplier = rarity_multipliers.get(rarity, 1)
+
+    if claim_type.upper() == "RUNE":
+        # Generate rune
+        names = RUNE_TEMPLATES["names"].get(rarity, RUNE_TEMPLATES["names"]["common"])
+        name = random.choice(names)
+        base_stats = RUNE_TEMPLATES["base_stats"]
+        stats = {k: v * multiplier for k, v in base_stats.items()}
+        item_type = "rune"
+    else:
+        # Generate item - random type
+        item_types = list(ITEM_TEMPLATES.keys())
+        item_type = random.choice(item_types)
+        template = ITEM_TEMPLATES[item_type]
+        names = template["names"].get(rarity, template["names"]["common"])
+        name = random.choice(names)
+        base_stats = template["base_stats"]
+        stats = {k: v * multiplier for k, v in base_stats.items()}
+
+    return {
+        "name": name,
+        "type": item_type,
+        "rarity": rarity,
+        "stats": stats,
+        "owner_wallet": wallet.lower(),
+        "image_url": f"/img/items/{item_type}_{rarity}.png"
+    }
+
+def insert_item_to_vault(item_data: dict) -> int:
+    """
+    Insert a generated item into the items table.
+
+    Args:
+        item_data: dict with name, type, rarity, stats, owner_wallet, image_url
+
+    Returns:
+        The inserted item's ID, or None if failed
+    """
+    if not POSTGRESQL_AVAILABLE:
+        print("⚠️ PostgreSQL not available - cannot insert item")
+        return None
+
+    try:
+        conn = db.get_connection()
+        with conn.cursor() as cur:
+            cur.execute("""
+                INSERT INTO items (name, type, rarity, stats, owner_wallet, image_url)
+                VALUES (%s, %s, %s, %s, %s, %s)
+                RETURNING id
+            """, (
+                item_data["name"],
+                item_data["type"],
+                item_data["rarity"],
+                json.dumps(item_data["stats"]),
+                item_data["owner_wallet"],
+                item_data.get("image_url", "")
+            ))
+            item_id = cur.fetchone()[0]
+            conn.commit()
+        db.release_connection(conn)
+        print(f"✅ Inserted item '{item_data['name']}' (ID: {item_id}) to vault for {item_data['owner_wallet'][:8]}...")
+        return item_id
+    except Exception as e:
+        print(f"❌ Error inserting item to vault: {e}")
+        import traceback
+        traceback.print_exc()
+        return None
+
+def get_claim_details(claim_id: str) -> dict:
+    """
+    Get details of a pending claim by claim_id.
+
+    Returns:
+        dict with claim details or None if not found
+    """
+    if not POSTGRESQL_AVAILABLE:
+        return None
+
+    try:
+        conn = db.get_connection()
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            cur.execute("""
+                SELECT id, wallet_address, claim_type, claim_id, difficulty, status
+                FROM pending_claims
+                WHERE claim_id = %s
+            """, (claim_id,))
+            claim = cur.fetchone()
+        db.release_connection(conn)
+        return dict(claim) if claim else None
+    except Exception as e:
+        print(f"❌ Error getting claim details: {e}")
+        return None
+
 # Load missions configuration from JSON
 def load_missions_config():
     """Load missions configuration from missions_config.json"""
@@ -2747,6 +2939,7 @@ def api_confirm_claim():
     """
     Confirm that a claim was successfully claimed on-chain.
     Called by frontend after successful blockchain transaction.
+    Also generates the item and adds it to the player's vault.
 
     POST: { "claim_id": "0x...", "token_id": 123, "tx_hash": "0x..." }
     """
@@ -2758,15 +2951,54 @@ def api_confirm_claim():
     if not claim_id:
         abort(400, "Missing claim_id")
 
+    # 🔥 Get claim details BEFORE marking as claimed
+    claim_details = get_claim_details(claim_id)
+    generated_item = None
+
+    if claim_details and claim_details.get("status") == "pending":
+        # Generate item based on claim type and difficulty
+        claim_type = claim_details.get("claim_type", "ITEM")
+        difficulty = claim_details.get("difficulty", "EASY")
+        wallet = claim_details.get("wallet_address", "")
+
+        print(f"🎁 Generating {claim_type} for wallet {wallet[:8]}... (difficulty: {difficulty})")
+
+        try:
+            item_data = generate_random_item(claim_type, difficulty, wallet)
+            item_id = insert_item_to_vault(item_data)
+
+            if item_id:
+                generated_item = {
+                    "id": item_id,
+                    "name": item_data["name"],
+                    "type": item_data["type"],
+                    "rarity": item_data["rarity"],
+                    "stats": item_data["stats"]
+                }
+                print(f"✅ Generated {item_data['rarity']} {item_data['type']}: {item_data['name']}")
+            else:
+                print(f"⚠️ Failed to insert item to vault (but claim will still be marked)")
+        except Exception as e:
+            print(f"❌ Error generating item: {e}")
+            import traceback
+            traceback.print_exc()
+    else:
+        print(f"⚠️ Claim {claim_id} not found or already claimed")
+
+    # Mark the claim as claimed
     success = mark_claim_as_claimed(claim_id, token_id, tx_hash)
 
     if success:
-        return jsonify({
+        response = {
             "success": True,
             "message": "Claim confirmed",
             "claim_id": claim_id,
             "token_id": token_id
-        })
+        }
+        if generated_item:
+            response["item"] = generated_item
+            response["message"] = f"Claim confirmed! You received: {generated_item['name']} ({generated_item['rarity']})"
+        return jsonify(response)
     else:
         return jsonify({
             "success": False,
