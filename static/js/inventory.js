@@ -650,29 +650,244 @@
     };
 
     // ===============================================================
-    // VAULT PAGE
+    // VAULT PAGE - READS FROM BLOCKCHAIN
     // ===============================================================
 
     async function loadVault(wallet, filterType = null) {
-        if (!wallet) return;
+        console.log("🔍 loadVault() called");
+        console.log("   Wallet:", wallet);
+        console.log("   Filter:", filterType);
+
+        if (!wallet) {
+            console.warn("⚠️ No wallet provided to loadVault");
+            return;
+        }
+
+        const container = document.getElementById('vault-items-container');
+        if (container) {
+            container.innerHTML = `
+                <div class="mono-block" style="text-align:center; padding:40px;">
+                    <div class="terminal-loading-spinner">
+                        <div class="spinner-ring"></div>
+                        <div class="spinner-core">⚔</div>
+                    </div>
+                    <p style="color:var(--dim-green); margin-top:15px;">Loading items from blockchain...</p>
+                </div>
+            `;
+        }
 
         try {
-            let url = `/api/vault?wallet=${wallet}`;
-            if (filterType) url += `&type=${filterType}`;
-
-            const response = await fetch(url);
-            const data = await response.json();
-
-            if (data.error) {
-                console.error('Error loading vault:', data.error);
+            // Check if ethers and window.ethereum are available
+            if (typeof ethers === 'undefined' || !window.ethereum) {
+                console.error("❌ ethers.js or window.ethereum not available");
+                showVaultError("Wallet not connected. Please connect your wallet.");
                 return;
             }
 
-            vaultItems = data.items || [];
+            const provider = new ethers.providers.Web3Provider(window.ethereum);
+            vaultItems = [];
+
+            // ========== LOAD ITEMS FROM EmberItems CONTRACT ==========
+            console.log("📦 Loading ITEMS from blockchain...");
+            try {
+                const itemsContract = new ethers.Contract(
+                    CONTRACT_CONFIG.CONTRACTS.EmberItems,
+                    CONTRACT_CONFIG.ITEMS_ABI,
+                    provider
+                );
+
+                const itemTokenIds = await itemsContract.tokensOfOwner(wallet);
+                console.log(`   Found ${itemTokenIds.length} items`);
+
+                for (const tokenId of itemTokenIds) {
+                    const id = tokenId.toString();
+                    try {
+                        const tokenURI = await itemsContract.tokenURI(tokenId);
+                        const metadata = await fetchTokenMetadata(tokenURI);
+
+                        vaultItems.push({
+                            id: `item-${id}`,
+                            token_id: id,
+                            contract: 'EmberItems',
+                            name: metadata.name || `Item #${id}`,
+                            type: metadata.type || 'weapon',
+                            rarity: metadata.rarity || 'common',
+                            image_url: metadata.image || '/img/items/placeholder.png',
+                            stats: metadata.stats || {},
+                            equipped_by: null
+                        });
+                    } catch (e) {
+                        console.warn(`   Failed to load item #${id}:`, e.message);
+                        // Add with default values
+                        vaultItems.push({
+                            id: `item-${id}`,
+                            token_id: id,
+                            contract: 'EmberItems',
+                            name: `Item #${id}`,
+                            type: 'weapon',
+                            rarity: 'common',
+                            image_url: '/img/items/placeholder.png',
+                            stats: {},
+                            equipped_by: null
+                        });
+                    }
+                }
+            } catch (itemsError) {
+                console.error("❌ Error loading items:", itemsError);
+            }
+
+            // ========== LOAD RUNES FROM EmberRunes CONTRACT ==========
+            console.log("📦 Loading RUNES from blockchain...");
+            try {
+                const runesContract = new ethers.Contract(
+                    CONTRACT_CONFIG.CONTRACTS.EmberRunes,
+                    CONTRACT_CONFIG.RUNES_ABI,
+                    provider
+                );
+
+                const runeTokenIds = await runesContract.tokensOfOwner(wallet);
+                console.log(`   Found ${runeTokenIds.length} runes`);
+
+                for (const tokenId of runeTokenIds) {
+                    const id = tokenId.toString();
+                    try {
+                        const tokenURI = await runesContract.tokenURI(tokenId);
+                        const metadata = await fetchTokenMetadata(tokenURI);
+
+                        vaultItems.push({
+                            id: `rune-${id}`,
+                            token_id: id,
+                            contract: 'EmberRunes',
+                            name: metadata.name || `Rune #${id}`,
+                            type: 'rune',
+                            rarity: metadata.rarity || 'common',
+                            image_url: metadata.image || '/img/runes.png',
+                            stats: metadata.stats || { all_boost: 5 },
+                            equipped_by: null
+                        });
+                    } catch (e) {
+                        console.warn(`   Failed to load rune #${id}:`, e.message);
+                        // Add with default values
+                        vaultItems.push({
+                            id: `rune-${id}`,
+                            token_id: id,
+                            contract: 'EmberRunes',
+                            name: `Rune #${id}`,
+                            type: 'rune',
+                            rarity: 'common',
+                            image_url: '/img/runes.png',
+                            stats: { all_boost: 5 },
+                            equipped_by: null
+                        });
+                    }
+                }
+            } catch (runesError) {
+                console.error("❌ Error loading runes:", runesError);
+            }
+
+            // ========== CHECK EQUIPPED STATUS FROM DATABASE ==========
+            try {
+                const response = await fetch(`/api/vault?wallet=${wallet}`);
+                const dbData = await response.json();
+
+                if (dbData.items && Array.isArray(dbData.items)) {
+                    // Merge equipped_by info from DB
+                    dbData.items.forEach(dbItem => {
+                        if (dbItem.equipped_by) {
+                            // Find matching item in vaultItems and update equipped_by
+                            const match = vaultItems.find(v =>
+                                v.name === dbItem.name ||
+                                v.token_id === String(dbItem.id)
+                            );
+                            if (match) {
+                                match.equipped_by = dbItem.equipped_by;
+                                match.equipped_by_name = dbItem.equipped_by_name;
+                            }
+                        }
+                    });
+                }
+            } catch (dbError) {
+                console.warn("⚠️ Could not fetch equipped status from DB:", dbError);
+            }
+
+            // Apply filter if specified
+            if (filterType) {
+                vaultItems = vaultItems.filter(item => item.type === filterType);
+            }
+
+            console.log(`✅ Total vault items: ${vaultItems.length}`);
             renderVault();
+            updateVaultStats();
+
         } catch (error) {
-            console.error('Error loading vault:', error);
+            console.error('❌ Error loading vault:', error);
+            showVaultError("Failed to load vault. Please try again.");
         }
+    }
+
+    // Helper to fetch token metadata from URI
+    async function fetchTokenMetadata(tokenURI) {
+        try {
+            // Convert ipfs:// to https://
+            let url = tokenURI;
+            if (url.startsWith('ipfs://')) {
+                url = url.replace('ipfs://', 'https://ipfs.io/ipfs/');
+            }
+
+            const response = await fetch(url);
+            const metadata = await response.json();
+
+            // Convert image URI if needed
+            if (metadata.image && metadata.image.startsWith('ipfs://')) {
+                metadata.image = metadata.image.replace('ipfs://', 'https://ipfs.io/ipfs/');
+            }
+
+            // Extract type and rarity from attributes if present
+            if (metadata.attributes) {
+                const typeAttr = metadata.attributes.find(a => a.trait_type === 'Type');
+                const rarityAttr = metadata.attributes.find(a => a.trait_type === 'Rarity');
+                if (typeAttr) metadata.type = typeAttr.value.toLowerCase();
+                if (rarityAttr) metadata.rarity = rarityAttr.value.toLowerCase();
+            }
+
+            return metadata;
+        } catch (e) {
+            console.warn("Failed to fetch metadata from", tokenURI, e);
+            return {};
+        }
+    }
+
+    // Show error in vault container
+    function showVaultError(message) {
+        const container = document.getElementById('vault-items-container');
+        if (container) {
+            container.innerHTML = `
+                <div class="mono-block" style="text-align:center; padding:40px;">
+                    <p style="color:#ef4444;">⚠️ ${message}</p>
+                    <button class="terminal-btn" onclick="loadVault(connectedWallet, null)" style="margin-top:15px;">
+                        [RETRY]
+                    </button>
+                </div>
+            `;
+        }
+    }
+
+    // Update vault statistics
+    function updateVaultStats() {
+        const total = vaultItems.length;
+        const equipped = vaultItems.filter(i => i.equipped_by).length;
+        const available = total - equipped;
+        const legendary = vaultItems.filter(i => i.rarity === 'legendary').length;
+
+        const totalEl = document.getElementById('vault-total');
+        const equippedEl = document.getElementById('vault-equipped');
+        const availableEl = document.getElementById('vault-available');
+        const legendaryEl = document.getElementById('vault-legendary');
+
+        if (totalEl) totalEl.textContent = total;
+        if (equippedEl) equippedEl.textContent = equipped;
+        if (availableEl) availableEl.textContent = available;
+        if (legendaryEl) legendaryEl.textContent = legendary;
     }
 
     function renderVault() {
@@ -684,10 +899,11 @@
                 <div class="mono-block" style="text-align:center; padding:40px;">
                     <p style="color:var(--dim-green);">No items in vault.</p>
                     <p style="margin-top:10px; font-size:11px;">
-                        Complete missions to earn items and rewards.
+                        Complete missions to earn item and rune drops!
                     </p>
                 </div>
             `;
+            updateVaultStats();
             return;
         }
 
@@ -726,20 +942,17 @@
                                 <div class="item-stats" style="margin-top:8px;">
                                     ${formatStats(item.stats)}
                                 </div>
-                                ${item.equipped_by ? `
-                                    <div style="margin-top:8px; font-size:11px; color:var(--primary-green);">
-                                        <span class="eq-icon">╬</span> Equipped: ${item.equipped_by_name || `#${item.equipped_by}`}
-                                    </div>
-                                ` : ''}
                             </div>
                         </div>
                         <div style="margin-top:15px; display:flex; gap:8px;">
                             ${item.equipped_by ? `
                                 <button class="terminal-btn small-btn"
-                                        onclick="unequipItem(${item.id})">[UNEQUIP]</button>
+                                        onclick="showEquipModal('${item.id}')">[CHANGE]</button>
+                                <button class="terminal-btn small-btn" style="background:#5a2020;"
+                                        onclick="unequipItemFromVault('${item.id}')">[UNEQUIP]</button>
                             ` : `
                                 <button class="terminal-btn small-btn"
-                                        onclick="showEquipModal(${item.id})">[EQUIP]</button>
+                                        onclick="showEquipModal('${item.id}')">[EQUIP]</button>
                             `}
                         </div>
                     </div>
@@ -750,18 +963,13 @@
         }
 
         container.innerHTML = html;
-
-        // Update stats
-        const total = vaultItems.length;
-        const equipped = vaultItems.filter(i => i.equipped_by).length;
-        const available = total - equipped;
-        const legendary = vaultItems.filter(i => i.rarity === 'legendary').length;
-
-        document.getElementById('vault-total').textContent = total;
-        document.getElementById('vault-equipped').textContent = equipped;
-        document.getElementById('vault-available').textContent = available;
-        document.getElementById('vault-legendary').textContent = legendary;
     }
+
+    // Unequip item from vault view
+    window.unequipItemFromVault = async function(itemId) {
+        // TODO: Implement unequip via API
+        alert('Unequip functionality coming soon!');
+    };
 
     // Show emissary selection modal when equipping an item
     window.showEquipModal = function(itemId) {
