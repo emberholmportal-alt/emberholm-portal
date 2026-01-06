@@ -696,12 +696,41 @@
                     provider
                 );
 
-                const itemTokenIds = await itemsContract.tokensOfOwner(wallet);
-                console.log(`   Found ${itemTokenIds.length} items`);
+                let itemTokenIds = [];
+
+                // Try tokensOfOwner first (if contract supports it)
+                try {
+                    itemTokenIds = await itemsContract.tokensOfOwner(wallet);
+                    console.log(`   tokensOfOwner returned ${itemTokenIds.length} items`);
+                } catch (enumError) {
+                    console.log("   tokensOfOwner not available, using ItemClaimed events...");
+
+                    // Fallback: Query ItemClaimed events for this wallet
+                    const filter = itemsContract.filters.ItemClaimed(wallet);
+                    const events = await itemsContract.queryFilter(filter, 0, 'latest');
+                    console.log(`   Found ${events.length} ItemClaimed events`);
+
+                    // Extract unique token IDs
+                    const tokenIdSet = new Set();
+                    for (const event of events) {
+                        if (event.args && event.args.tokenId) {
+                            tokenIdSet.add(event.args.tokenId.toString());
+                        }
+                    }
+                    itemTokenIds = Array.from(tokenIdSet);
+                    console.log(`   Unique token IDs: ${itemTokenIds.length}`);
+                }
 
                 for (const tokenId of itemTokenIds) {
                     const id = tokenId.toString();
                     try {
+                        // Verify ownership (in case token was transferred)
+                        const owner = await itemsContract.ownerOf(id).catch(() => null);
+                        if (owner && owner.toLowerCase() !== wallet.toLowerCase()) {
+                            console.log(`   Skipping item #${id} - no longer owned`);
+                            continue;
+                        }
+
                         const tokenURI = await itemsContract.tokenURI(tokenId);
                         const metadata = await fetchTokenMetadata(tokenURI);
 
@@ -716,6 +745,7 @@
                             stats: metadata.stats || {},
                             equipped_by: null
                         });
+                        console.log(`   ✅ Loaded item #${id}: ${metadata.name || 'Item'}`);
                     } catch (e) {
                         console.warn(`   Failed to load item #${id}:`, e.message);
                         // Add with default values
@@ -745,12 +775,41 @@
                     provider
                 );
 
-                const runeTokenIds = await runesContract.tokensOfOwner(wallet);
-                console.log(`   Found ${runeTokenIds.length} runes`);
+                let runeTokenIds = [];
+
+                // Try tokensOfOwner first (if contract supports it)
+                try {
+                    runeTokenIds = await runesContract.tokensOfOwner(wallet);
+                    console.log(`   tokensOfOwner returned ${runeTokenIds.length} runes`);
+                } catch (enumError) {
+                    console.log("   tokensOfOwner not available, using RuneClaimed events...");
+
+                    // Fallback: Query RuneClaimed events for this wallet
+                    const filter = runesContract.filters.RuneClaimed(wallet);
+                    const events = await runesContract.queryFilter(filter, 0, 'latest');
+                    console.log(`   Found ${events.length} RuneClaimed events`);
+
+                    // Extract unique token IDs
+                    const tokenIdSet = new Set();
+                    for (const event of events) {
+                        if (event.args && event.args.tokenId) {
+                            tokenIdSet.add(event.args.tokenId.toString());
+                        }
+                    }
+                    runeTokenIds = Array.from(tokenIdSet);
+                    console.log(`   Unique token IDs: ${runeTokenIds.length}`);
+                }
 
                 for (const tokenId of runeTokenIds) {
                     const id = tokenId.toString();
                     try {
+                        // Verify ownership (in case token was transferred)
+                        const owner = await runesContract.ownerOf(id).catch(() => null);
+                        if (owner && owner.toLowerCase() !== wallet.toLowerCase()) {
+                            console.log(`   Skipping rune #${id} - no longer owned`);
+                            continue;
+                        }
+
                         const tokenURI = await runesContract.tokenURI(tokenId);
                         const metadata = await fetchTokenMetadata(tokenURI);
 
@@ -765,6 +824,7 @@
                             stats: metadata.stats || { all_boost: 5 },
                             equipped_by: null
                         });
+                        console.log(`   ✅ Loaded rune #${id}: ${metadata.name || 'Rune'}`);
                     } catch (e) {
                         console.warn(`   Failed to load rune #${id}:`, e.message);
                         // Add with default values
