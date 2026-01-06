@@ -13,6 +13,15 @@
         LAND_STAKING_ENABLED: false
     };
 
+    // ========== IPFS CIDs for Items & Runes ==========
+    const IPFS_CONFIG = {
+        ITEMS_METADATA_CID: "bafybeibs6mm5rghbpld7twbj35dbpryrfimmqkbnkev6ufs4kpbp343wfm",
+        ITEMS_IMAGES_CID: "bafybeiegbqf3ypcn7uukahdf275yrmxu2g4zt4xmmrfwguufppbhzs4yx4",
+        RUNES_METADATA_CID: "bafybeiajq22kxgm764srr55wsiz4t65so5laxe2nmrryzgailzpmfes3nq",
+        RUNES_IMAGES_CID: "bafybeibmivzieas7beofrxspoqo5iughrzyvg3wgjibe626eqt37zg3sae",
+        GATEWAY: "https://ipfs.io/ipfs/"
+    };
+
     // Global state
     let currentWallet = null;
     let currentBalance = {
@@ -723,44 +732,22 @@
 
                 for (const tokenId of itemTokenIds) {
                     const id = tokenId.toString();
-                    try {
-                        // Verify ownership (in case token was transferred)
-                        const owner = await itemsContract.ownerOf(id).catch(() => null);
-                        if (owner && owner.toLowerCase() !== wallet.toLowerCase()) {
-                            console.log(`   Skipping item #${id} - no longer owned`);
-                            continue;
-                        }
 
-                        const tokenURI = await itemsContract.tokenURI(tokenId);
-                        const metadata = await fetchTokenMetadata(tokenURI);
+                    // Fetch metadata directly from IPFS (no tokenURI call)
+                    const metadata = await getItemMetadataFromIPFS(id);
 
-                        vaultItems.push({
-                            id: `item-${id}`,
-                            token_id: id,
-                            contract: 'EmberItems',
-                            name: metadata.name || `Item #${id}`,
-                            type: metadata.type || 'weapon',
-                            rarity: metadata.rarity || 'common',
-                            image_url: metadata.image || '/img/items/placeholder.png',
-                            stats: metadata.stats || {},
-                            equipped_by: null
-                        });
-                        console.log(`   ✅ Loaded item #${id}: ${metadata.name || 'Item'}`);
-                    } catch (e) {
-                        console.warn(`   Failed to load item #${id}:`, e.message);
-                        // Add with default values
-                        vaultItems.push({
-                            id: `item-${id}`,
-                            token_id: id,
-                            contract: 'EmberItems',
-                            name: `Item #${id}`,
-                            type: 'weapon',
-                            rarity: 'common',
-                            image_url: '/img/items/placeholder.png',
-                            stats: {},
-                            equipped_by: null
-                        });
-                    }
+                    vaultItems.push({
+                        id: `item-${id}`,
+                        token_id: id,
+                        contract: 'EmberItems',
+                        name: metadata.name || `Item #${id}`,
+                        type: metadata.type || 'weapon',
+                        rarity: metadata.rarity || 'common',
+                        image_url: metadata.image || '/img/crossedswords.png',
+                        stats: metadata.stats || {},
+                        equipped_by: null
+                    });
+                    console.log(`   ✅ Loaded item #${id}: ${metadata.name || 'Item'}`);
                 }
             } catch (itemsError) {
                 console.error("❌ Error loading items:", itemsError);
@@ -802,44 +789,22 @@
 
                 for (const tokenId of runeTokenIds) {
                     const id = tokenId.toString();
-                    try {
-                        // Verify ownership (in case token was transferred)
-                        const owner = await runesContract.ownerOf(id).catch(() => null);
-                        if (owner && owner.toLowerCase() !== wallet.toLowerCase()) {
-                            console.log(`   Skipping rune #${id} - no longer owned`);
-                            continue;
-                        }
 
-                        const tokenURI = await runesContract.tokenURI(tokenId);
-                        const metadata = await fetchTokenMetadata(tokenURI);
+                    // Fetch metadata directly from IPFS (no tokenURI call)
+                    const metadata = await getRuneMetadataFromIPFS(id);
 
-                        vaultItems.push({
-                            id: `rune-${id}`,
-                            token_id: id,
-                            contract: 'EmberRunes',
-                            name: metadata.name || `Rune #${id}`,
-                            type: 'rune',
-                            rarity: metadata.rarity || 'common',
-                            image_url: metadata.image || '/img/runes.png',
-                            stats: metadata.stats || { all_boost: 5 },
-                            equipped_by: null
-                        });
-                        console.log(`   ✅ Loaded rune #${id}: ${metadata.name || 'Rune'}`);
-                    } catch (e) {
-                        console.warn(`   Failed to load rune #${id}:`, e.message);
-                        // Add with default values
-                        vaultItems.push({
-                            id: `rune-${id}`,
-                            token_id: id,
-                            contract: 'EmberRunes',
-                            name: `Rune #${id}`,
-                            type: 'rune',
-                            rarity: 'common',
-                            image_url: '/img/runes.png',
-                            stats: { all_boost: 5 },
-                            equipped_by: null
-                        });
-                    }
+                    vaultItems.push({
+                        id: `rune-${id}`,
+                        token_id: id,
+                        contract: 'EmberRunes',
+                        name: metadata.name || `Rune #${id}`,
+                        type: 'rune',
+                        rarity: metadata.rarity || 'common',
+                        image_url: metadata.image || '/img/runes.png',
+                        stats: metadata.stats || { all_boost: 5 },
+                        equipped_by: null
+                    });
+                    console.log(`   ✅ Loaded rune #${id}: ${metadata.name || 'Rune'}`);
                 }
             } catch (runesError) {
                 console.error("❌ Error loading runes:", runesError);
@@ -885,35 +850,111 @@
         }
     }
 
-    // Helper to fetch token metadata from URI
-    async function fetchTokenMetadata(tokenURI) {
+    // ========== IPFS METADATA FETCHING (Direct, no contract calls) ==========
+
+    async function getItemMetadataFromIPFS(tokenId) {
+        const paddedId = tokenId.toString().padStart(5, '0');
+        const metadataUrl = `${IPFS_CONFIG.GATEWAY}${IPFS_CONFIG.ITEMS_METADATA_CID}/${paddedId}.json`;
+
+        console.log(`   🔍 Fetching item metadata from IPFS: ${metadataUrl}`);
+
         try {
-            // Convert ipfs:// to https://
-            let url = tokenURI;
-            if (url.startsWith('ipfs://')) {
-                url = url.replace('ipfs://', 'https://ipfs.io/ipfs/');
+            const response = await fetch(metadataUrl);
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
             }
 
-            const response = await fetch(url);
             const metadata = await response.json();
+            console.log(`   ✅ Item ${tokenId}: ${metadata.name}`);
 
-            // Convert image URI if needed
+            // Convert ipfs:// to https://
             if (metadata.image && metadata.image.startsWith('ipfs://')) {
-                metadata.image = metadata.image.replace('ipfs://', 'https://ipfs.io/ipfs/');
+                metadata.image = metadata.image.replace('ipfs://', IPFS_CONFIG.GATEWAY);
             }
 
-            // Extract type and rarity from attributes if present
-            if (metadata.attributes) {
-                const typeAttr = metadata.attributes.find(a => a.trait_type === 'Type');
-                const rarityAttr = metadata.attributes.find(a => a.trait_type === 'Rarity');
-                if (typeAttr) metadata.type = typeAttr.value.toLowerCase();
-                if (rarityAttr) metadata.rarity = rarityAttr.value.toLowerCase();
+            // Extract type and rarity from attributes
+            if (metadata.attributes && Array.isArray(metadata.attributes)) {
+                const typeAttr = metadata.attributes.find(a =>
+                    a.trait_type === 'Type' || a.trait_type === 'type' || a.trait_type === 'Item Type'
+                );
+                const rarityAttr = metadata.attributes.find(a =>
+                    a.trait_type === 'Rarity' || a.trait_type === 'rarity'
+                );
+
+                if (typeAttr) metadata.type = String(typeAttr.value).toLowerCase();
+                if (rarityAttr) metadata.rarity = String(rarityAttr.value).toLowerCase();
+            }
+
+            // Default image if missing
+            if (!metadata.image) {
+                metadata.image = `${IPFS_CONFIG.GATEWAY}${IPFS_CONFIG.ITEMS_IMAGES_CID}/${paddedId}.png`;
             }
 
             return metadata;
-        } catch (e) {
-            console.warn("Failed to fetch metadata from", tokenURI, e);
-            return {};
+
+        } catch (error) {
+            console.warn(`   ⚠️ Failed to fetch item ${tokenId} metadata:`, error.message);
+            // Fallback with generic image
+            const types = ['weapon', 'armor', 'helmet', 'accessory', 'amulet'];
+            const randomType = types[parseInt(tokenId) % types.length];
+            return {
+                name: `Item #${tokenId}`,
+                description: "Unknown item",
+                type: randomType,
+                rarity: 'common',
+                image: '/img/crossedswords.png',
+                stats: {},
+                attributes: []
+            };
+        }
+    }
+
+    async function getRuneMetadataFromIPFS(tokenId) {
+        const paddedId = tokenId.toString().padStart(5, '0');
+        const metadataUrl = `${IPFS_CONFIG.GATEWAY}${IPFS_CONFIG.RUNES_METADATA_CID}/${paddedId}.json`;
+
+        console.log(`   🔍 Fetching rune metadata from IPFS: ${metadataUrl}`);
+
+        try {
+            const response = await fetch(metadataUrl);
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+
+            const metadata = await response.json();
+            console.log(`   ✅ Rune ${tokenId}: ${metadata.name}`);
+
+            // Convert ipfs:// to https://
+            if (metadata.image && metadata.image.startsWith('ipfs://')) {
+                metadata.image = metadata.image.replace('ipfs://', IPFS_CONFIG.GATEWAY);
+            }
+
+            // Extract rarity from attributes
+            if (metadata.attributes && Array.isArray(metadata.attributes)) {
+                const rarityAttr = metadata.attributes.find(a =>
+                    a.trait_type === 'Rarity' || a.trait_type === 'rarity'
+                );
+                if (rarityAttr) metadata.rarity = String(rarityAttr.value).toLowerCase();
+            }
+
+            // Default image if missing
+            if (!metadata.image) {
+                metadata.image = `${IPFS_CONFIG.GATEWAY}${IPFS_CONFIG.RUNES_IMAGES_CID}/${paddedId}.png`;
+            }
+
+            return metadata;
+
+        } catch (error) {
+            console.warn(`   ⚠️ Failed to fetch rune ${tokenId} metadata:`, error.message);
+            return {
+                name: `Rune #${tokenId}`,
+                description: "Unknown rune",
+                type: 'rune',
+                rarity: 'common',
+                image: '/img/runes.png',
+                stats: { all_boost: 5 },
+                attributes: []
+            };
         }
     }
 
