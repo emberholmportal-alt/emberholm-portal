@@ -63,6 +63,41 @@
         return html;
     }
 
+    // Format attributes as benefit tags (for vault cards)
+    function formatAttributesAsTags(attributes) {
+        if (!attributes || !Array.isArray(attributes)) return '';
+
+        // Filter out Type and Rarity (already shown separately)
+        const benefitAttrs = attributes.filter(attr => {
+            const traitLower = attr.trait_type?.toLowerCase() || '';
+            return !['type', 'rarity', 'item type'].includes(traitLower);
+        });
+
+        if (benefitAttrs.length === 0) return '';
+
+        let html = '<div class="item-stats-tags">';
+        benefitAttrs.forEach(attr => {
+            const traitLower = attr.trait_type?.toLowerCase() || '';
+            let cssClass = '';
+
+            // Assign color class based on stat type
+            if (traitLower.includes('ember')) cssClass = 'ember';
+            else if (traitLower.includes('xp')) cssClass = 'xp';
+            else if (traitLower.includes('energy')) cssClass = 'energy';
+            else if (traitLower.includes('death')) cssClass = 'death';
+            else if (traitLower.includes('speed')) cssClass = 'speed';
+
+            // Format the display value
+            const value = attr.value || '';
+            const label = attr.trait_type?.replace(' Boost', '').replace(' Reduction', '').replace(' Protection', '') || '';
+
+            html += `<span class="stat-bonus ${cssClass}">${value} ${label}</span>`;
+        });
+        html += '</div>';
+
+        return html;
+    }
+
     function calculateEquipmentCount(emissary) {
         let count = 0;
         if (emissary.weapon_id) count++;
@@ -745,6 +780,7 @@
                         rarity: metadata.rarity || 'common',
                         image_url: metadata.image || '/img/crossedswords.png',
                         stats: metadata.stats || {},
+                        attributes: metadata.attributes || [],
                         equipped_by: null
                     });
                     console.log(`   ✅ Loaded item #${id}: ${metadata.name || 'Item'}`);
@@ -802,6 +838,7 @@
                         rarity: metadata.rarity || 'common',
                         image_url: metadata.image || '/img/runes.png',
                         stats: metadata.stats || { all_boost: 5 },
+                        attributes: metadata.attributes || [],
                         equipped_by: null
                     });
                     console.log(`   ✅ Loaded rune #${id}: ${metadata.name || 'Rune'}`);
@@ -1029,20 +1066,18 @@
 
                 html += `
                     <div class="item-card ${rarityClass} ${equippedClass}">
-                        <div style="display:flex; gap:15px; align-items:flex-start;">
+                        <div style="display:flex; gap:20px; align-items:flex-start;">
                             <img src="${item.image_url || '/img/items/placeholder.png'}"
-                                 style="width:64px; height:64px; border:1px solid var(--border-primary);"
+                                 class="item-image"
                                  onerror="this.src='/img/items/placeholder.png'"/>
                             <div style="flex:1;">
-                                <div style="font-weight:600; color:${getRarityColor(item.rarity)};">
+                                <div class="item-name" style="color:${getRarityColor(item.rarity)};">
                                     ${item.name}
                                 </div>
-                                <div style="font-size:11px; color:var(--dim-green); margin-top:3px;">
+                                <div class="item-rarity">
                                     ${item.type.toUpperCase()} · ${item.rarity.toUpperCase()}
                                 </div>
-                                <div class="item-stats" style="margin-top:8px;">
-                                    ${formatStats(item.stats)}
-                                </div>
+                                ${formatAttributesAsTags(item.attributes)}
                             </div>
                         </div>
                         <div style="margin-top:15px; display:flex; gap:8px;">
