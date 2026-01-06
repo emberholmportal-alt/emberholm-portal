@@ -54,6 +54,7 @@ const CONTRACT_CONFIG = {
     RUNES_ABI: [
         "function claimRune(bytes32 claimId, bytes signature) external",
         "function balanceOf(address owner) view returns (uint256)",
+        "function ownerOf(uint256 tokenId) view returns (address)",
         "function tokensOfOwner(address owner) view returns (uint256[])",
         "function tokenURI(uint256 tokenId) view returns (string)",
         "event RuneClaimed(address indexed player, uint256 indexed tokenId, bytes32 claimId)"
@@ -63,6 +64,7 @@ const CONTRACT_CONFIG = {
     ITEMS_ABI: [
         "function claimItem(bytes32 claimId, bytes signature) external",
         "function balanceOf(address owner) view returns (uint256)",
+        "function ownerOf(uint256 tokenId) view returns (address)",
         "function tokensOfOwner(address owner) view returns (uint256[])",
         "function tokenURI(uint256 tokenId) view returns (string)",
         "event ItemClaimed(address indexed player, uint256 indexed tokenId, bytes32 claimId)"

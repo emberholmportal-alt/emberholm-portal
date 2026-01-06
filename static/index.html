@@ -3214,8 +3214,11 @@ navButtons.forEach((btn, index) => {
             setActiveButton(btn);
 
             // 🔥 Load vault data when switching to vault screen
-            if (target === 'vault' && connectedWallet) {
-                if (typeof loadVault === 'function') {
+            if (target === 'vault') {
+                if (typeof updateVaultWalletUI === 'function') {
+                    updateVaultWalletUI();
+                }
+                if (connectedWallet && typeof loadVault === 'function') {
                     loadVault(connectedWallet, null);
                 }
             }
@@ -3791,16 +3794,7 @@ async function loadPendingClaimsForVault() {
     }
 }
 
-// 🔥 Auto-update Vault when navigating to it
-const originalShowScreen = window.showScreen;
-window.showScreen = function(screenName) {
-    originalShowScreen(screenName);
-    if (screenName === 'vault' && connectedWallet) {
-        updateVaultWalletUI();
-        loadVault(connectedWallet, null);
-        loadPendingClaimsForVault();
-    }
-};
+// 🔥 Note: Vault auto-loading is handled in the main navigation (switchScreen function)
 
 // 🔥 Listen for network changes
 if (window.ethereum) {
