@@ -63,6 +63,41 @@
         return html;
     }
 
+    // Format attributes as benefit tags (for vault cards)
+    function formatAttributesAsTags(attributes) {
+        if (!attributes || !Array.isArray(attributes)) return '';
+
+        // Filter out Type and Rarity (already shown separately)
+        const benefitAttrs = attributes.filter(attr => {
+            const traitLower = attr.trait_type?.toLowerCase() || '';
+            return !['type', 'rarity', 'item type'].includes(traitLower);
+        });
+
+        if (benefitAttrs.length === 0) return '';
+
+        let html = '<div class="item-stats-tags">';
+        benefitAttrs.forEach(attr => {
+            const traitLower = attr.trait_type?.toLowerCase() || '';
+            let cssClass = '';
+
+            // Assign color class based on stat type
+            if (traitLower.includes('ember')) cssClass = 'ember';
+            else if (traitLower.includes('xp')) cssClass = 'xp';
+            else if (traitLower.includes('energy')) cssClass = 'energy';
+            else if (traitLower.includes('death')) cssClass = 'death';
+            else if (traitLower.includes('speed')) cssClass = 'speed';
+
+            // Format the display value
+            const value = attr.value || '';
+            const label = attr.trait_type?.replace(' Boost', '').replace(' Reduction', '').replace(' Protection', '') || '';
+
+            html += `<span class="stat-bonus ${cssClass}">${value} ${label}</span>`;
+        });
+        html += '</div>';
+
+        return html;
+    }
+
     function calculateEquipmentCount(emissary) {
         let count = 0;
         if (emissary.weapon_id) count++;
@@ -190,10 +225,18 @@
                 return;
             }
 
-            // Fetch available vault items
-            const vaultResponse = await fetch(`/api/vault?wallet=${currentWallet}`);
-            const vaultData = await vaultResponse.json();
-            const availableItems = vaultData.items || [];
+            // Use vaultItems from blockchain (not from /api/vault database)
+            // vaultItems is loaded from blockchain events in loadVault()
+            let availableItems = [];
+            if (vaultItems && vaultItems.length > 0) {
+                availableItems = vaultItems;
+            } else {
+                // Load from blockchain if not already loaded
+                console.log("📦 Loading vault items from blockchain...");
+                await loadVault(currentWallet);
+                availableItems = vaultItems || [];
+            }
+            console.log(`📦 Available items for inventory: ${availableItems.length}`);
 
             // Build inventory HTML
             const content = buildInventoryContent(emissary, availableItems);
@@ -745,6 +788,7 @@
                         rarity: metadata.rarity || 'common',
                         image_url: metadata.image || '/img/crossedswords.png',
                         stats: metadata.stats || {},
+                        attributes: metadata.attributes || [],
                         equipped_by: null
                     });
                     console.log(`   ✅ Loaded item #${id}: ${metadata.name || 'Item'}`);
@@ -802,6 +846,7 @@
                         rarity: metadata.rarity || 'common',
                         image_url: metadata.image || '/img/runes.png',
                         stats: metadata.stats || { all_boost: 5 },
+                        attributes: metadata.attributes || [],
                         equipped_by: null
                     });
                     console.log(`   ✅ Loaded rune #${id}: ${metadata.name || 'Rune'}`);
@@ -1029,20 +1074,18 @@
 
                 html += `
                     <div class="item-card ${rarityClass} ${equippedClass}">
-                        <div style="display:flex; gap:15px; align-items:flex-start;">
+                        <div style="display:flex; gap:20px; align-items:flex-start;">
                             <img src="${item.image_url || '/img/items/placeholder.png'}"
-                                 style="width:64px; height:64px; border:1px solid var(--border-primary);"
+                                 class="item-image"
                                  onerror="this.src='/img/items/placeholder.png'"/>
                             <div style="flex:1;">
-                                <div style="font-weight:600; color:${getRarityColor(item.rarity)};">
+                                <div class="item-name" style="color:${getRarityColor(item.rarity)};">
                                     ${item.name}
                                 </div>
-                                <div style="font-size:11px; color:var(--dim-green); margin-top:3px;">
+                                <div class="item-rarity">
                                     ${item.type.toUpperCase()} · ${item.rarity.toUpperCase()}
                                 </div>
-                                <div class="item-stats" style="margin-top:8px;">
-                                    ${formatStats(item.stats)}
-                                </div>
+                                ${formatAttributesAsTags(item.attributes)}
                             </div>
                         </div>
                         <div style="margin-top:15px; display:flex; gap:8px;">
@@ -1140,7 +1183,7 @@
                 <div style="border: 1px solid var(--border-primary); padding: 12px; background: rgba(0,0,0,0.2); cursor: pointer; transition: all 0.2s;"
                      onmouseover="this.style.borderColor='var(--text-primary)'"
                      onmouseout="this.style.borderColor='var(--border-primary)'"
-                     onclick="selectEmissaryForEquip(${itemId}, '${emissary.token_id}')">
+                     onclick="selectEmissaryForEquip('${itemId}', '${emissary.token_id}')">
                     <div style="display: grid; grid-template-columns: 60px 1fr auto; gap: 12px; align-items: center;">
                         <img src="${emissary.image_url || '/img/emissary_placeholder.png'}"
                              style="width: 60px; height: 60px; border: 1px solid var(--border-primary);"

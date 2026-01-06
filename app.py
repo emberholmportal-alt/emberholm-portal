@@ -939,12 +939,16 @@ def load_nfts_database():
                         import json as json_lib
                         ds = json_lib.loads(ds)
 
+                    # Always use mainnet CID for image_url (ignore DB value which may be testnet)
+                    padded_id = str(token_id).zfill(5)
+                    mainnet_image_url = f"{IPFS_GATEWAY}{IPFS_MAINNET_IMAGES_CID}/{padded_id}.png"
+
                     nfts_db[token_id] = {
                         'token_id': token_id,
                         'name': row['name'] or f"Emissary #{token_id}",
                         'race_class': row['race_class'] or 'Unknown',
                         'guild': row['guild'] or 'Unassigned',
-                        'image_url': row['image_url'] or f"{IPFS_GATEWAY}{IPFS_MAINNET_IMAGES_CID}/{token_id}.png",
+                        'image_url': mainnet_image_url,
                         'dynamic_state': ds,
                         'last_known_owner': row['last_known_owner'],
                         'last_synced': str(row['last_synced']) if row['last_synced'] else None,
