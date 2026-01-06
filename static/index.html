@@ -5465,29 +5465,30 @@ async function showDropClaimModal(drops) {
     if (!drops || drops.length === 0) return;
 
     let content = `
-        <div style="text-align:center; margin-bottom:20px;">
-            <div style="font-size:1.5em; color:#ffaa00; margin-bottom:10px;">
-                ✨ YOU GOT ${drops.length > 1 ? 'DROPS' : 'A DROP'}! ✨
+        <div style="text-align:center; margin-bottom:15px;">
+            <div style="font-size:1.2em; color:#ffaa00;">
+                ✨ YOU GOT A DROP! ✨
             </div>
-            <div style="color:#888;">Complete the claim to receive your NFT</div>
+            <div style="color:#888; font-size:0.85em;">Complete the claim to receive your NFT</div>
         </div>
     `;
 
     for (const drop of drops) {
-        const iconClass = drop.type === 'RUNE' ? '🔮' : '⚔️';
+        const iconSrc = drop.type === 'RUNE' ? '/img/runes.png' : '/img/crossedswords.png';
+        const iconAlt = drop.type === 'RUNE' ? 'Rune' : 'Item';
         content += `
-            <div class="drop-item" style="background:#0a1a0a; border:1px solid #1a3a1a; border-radius:8px; padding:15px; margin-bottom:10px;">
-                <div style="display:flex; justify-content:space-between; align-items:center;">
-                    <div>
-                        <span style="font-size:1.5em;">${iconClass}</span>
-                        <span style="color:#44ff44; font-weight:bold; margin-left:10px;">${drop.type}</span>
+            <div class="drop-item" style="background:#0a1a0a; border:1px solid #1a3a1a; padding:12px; margin-bottom:8px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; gap:10px;">
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <img src="${iconSrc}" alt="${iconAlt}" style="width:32px; height:32px; image-rendering:pixelated;">
+                        <span style="color:#44ff44; font-weight:bold;">${drop.type}</span>
                     </div>
                     <button class="cmd-link" onclick="claimDrop('${drop.type}', '${drop.claim_id}', '${drop.signature}', '${drop.contract}')"
-                            style="background:#1a3a1a; border:1px solid #44ff44; padding:8px 16px; cursor:pointer;">
+                            style="background:#1a3a1a; border:1px solid #44ff44; padding:6px 12px; cursor:pointer; font-size:0.9em;">
                         [CLAIM ${drop.type}]
                     </button>
                 </div>
-                <div style="color:#666; font-size:0.8em; margin-top:8px;">
+                <div style="color:#555; font-size:0.75em; margin-top:6px;">
                     Contract: ${drop.contract.slice(0, 10)}...${drop.contract.slice(-8)}
                 </div>
             </div>
@@ -5495,7 +5496,7 @@ async function showDropClaimModal(drops) {
     }
 
     content += `
-        <div style="color:#888; font-size:0.8em; margin-top:15px; text-align:center;">
+        <div style="color:#666; font-size:0.75em; margin-top:10px; text-align:center;">
             Gas cost: ~$0.001 per claim on Base Mainnet
         </div>
     `;
@@ -5544,15 +5545,23 @@ async function claimDrop(dropType, claimId, signature, contractAddress) {
 
         // Confirm claim on backend
         try {
-            await fetch('/api/claims/confirm', {
+            const confirmResponse = await fetch('/api/claims/confirm', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     claim_id: claimId,
                     token_id: tokenId,
-                    tx_hash: receipt.transactionHash
+                    tx_hash: receipt.transactionHash,
+                    wallet: connectedWallet  // Send wallet as fallback
                 })
             });
+            const confirmData = await confirmResponse.json();
+            console.log("✅ Claim confirmed on backend:", confirmData);
+
+            // If item was generated, notify user
+            if (confirmData.item) {
+                console.log(`🎁 Received item: ${confirmData.item.name} (${confirmData.item.rarity})`);
+            }
         } catch (e) {
             console.warn("⚠️ Failed to confirm claim on backend:", e);
         }
@@ -5564,11 +5573,15 @@ async function claimDrop(dropType, claimId, signature, contractAddress) {
             `Your ${dropType} has been claimed successfully!\n\n` +
             (tokenId ? `Token ID: #${tokenId}\n` : '') +
             `Transaction: ${receipt.transactionHash.slice(0, 10)}...${receipt.transactionHash.slice(-8)}\n\n` +
+            `The item has been added to your VAULT.\nGo to VAULT section to equip it!\n\n` +
             `View on BaseScan:\nhttps://basescan.org/tx/${receipt.transactionHash}`
         );
 
-        // Refresh pending claims
+        // Refresh pending claims and vault
         await loadPendingClaims();
+        if (typeof loadVault === 'function' && connectedWallet) {
+            loadVault(connectedWallet, null);
+        }
 
     } catch (error) {
         hideProcessingModal();

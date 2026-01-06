@@ -3012,30 +3012,46 @@ def api_confirm_claim():
     Called by frontend after successful blockchain transaction.
     Also generates the item and adds it to the player's vault.
 
-    POST: { "claim_id": "0x...", "token_id": 123, "tx_hash": "0x..." }
+    POST: { "claim_id": "0x...", "token_id": 123, "tx_hash": "0x...", "wallet": "0x..." }
     """
     data = request.get_json(force=True)
     claim_id = data.get("claim_id")
     token_id = data.get("token_id")
     tx_hash = data.get("tx_hash")
+    frontend_wallet = data.get("wallet", "").lower()  # Fallback from frontend
+
+    print(f"\n{'='*60}")
+    print(f"🔔 CLAIM CONFIRM REQUEST")
+    print(f"   claim_id: {claim_id}")
+    print(f"   token_id: {token_id}")
+    print(f"   tx_hash: {tx_hash[:20] if tx_hash else 'None'}...")
+    print(f"   frontend_wallet: {frontend_wallet[:10] if frontend_wallet else 'None'}...")
+    print(f"{'='*60}")
 
     if not claim_id:
+        print("❌ Missing claim_id")
         abort(400, "Missing claim_id")
 
     # 🔥 Get claim details BEFORE marking as claimed
     claim_details = get_claim_details(claim_id)
     generated_item = None
 
+    print(f"📋 Claim details from DB: {claim_details}")
+
     if claim_details and claim_details.get("status") == "pending":
         # Generate item based on claim type and difficulty
         claim_type = claim_details.get("claim_type", "ITEM")
-        difficulty = claim_details.get("difficulty", "EASY")
-        wallet = claim_details.get("wallet_address", "")
+        difficulty = claim_details.get("difficulty") or "EASY"
+        wallet = claim_details.get("wallet_address") or frontend_wallet
 
-        print(f"🎁 Generating {claim_type} for wallet {wallet[:8]}... (difficulty: {difficulty})")
+        if not wallet:
+            print("⚠️ No wallet address found in claim or request!")
+
+        print(f"🎁 Generating {claim_type} for wallet {wallet[:10] if wallet else 'NONE'}... (difficulty: {difficulty})")
 
         try:
             item_data = generate_random_item(claim_type, difficulty, wallet)
+            print(f"   Item data: {item_data}")
             item_id = insert_item_to_vault(item_data)
 
             if item_id:
@@ -3046,18 +3062,21 @@ def api_confirm_claim():
                     "rarity": item_data["rarity"],
                     "stats": item_data["stats"]
                 }
-                print(f"✅ Generated {item_data['rarity']} {item_data['type']}: {item_data['name']}")
+                print(f"✅ Generated {item_data['rarity']} {item_data['type']}: {item_data['name']} (ID: {item_id})")
             else:
                 print(f"⚠️ Failed to insert item to vault (but claim will still be marked)")
         except Exception as e:
             print(f"❌ Error generating item: {e}")
             import traceback
             traceback.print_exc()
+    elif claim_details and claim_details.get("status") != "pending":
+        print(f"⚠️ Claim {claim_id} already has status: {claim_details.get('status')}")
     else:
-        print(f"⚠️ Claim {claim_id} not found or already claimed")
+        print(f"⚠️ Claim {claim_id} not found in database")
 
     # Mark the claim as claimed
     success = mark_claim_as_claimed(claim_id, token_id, tx_hash)
+    print(f"📝 Mark claim as claimed: {'SUCCESS' if success else 'FAILED'}")
 
     if success:
         response = {
@@ -3069,8 +3088,10 @@ def api_confirm_claim():
         if generated_item:
             response["item"] = generated_item
             response["message"] = f"Claim confirmed! You received: {generated_item['name']} ({generated_item['rarity']})"
+        print(f"✅ Response: {response}")
         return jsonify(response)
     else:
+        print(f"❌ Failed to mark claim as claimed")
         return jsonify({
             "success": False,
             "error": "Failed to confirm claim"
@@ -5748,6 +5769,74 @@ def get_vault():
 
     except Exception as e:
         print(f"Error getting vault: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/vault/add-item', methods=['POST'])
+def add_item_to_vault():
+    """
+    Manually add an item to a wallet's vault.
+    Useful for recovering items that were claimed on-chain but not recorded in the database.
+
+    POST: { "wallet": "0x...", "type": "weapon/armor/rune/etc", "rarity": "common/rare/epic/legendary" }
+    """
+    data = request.get_json()
+    wallet = data.get('wallet', '').lower()
+    item_type = data.get('type', 'weapon')
+    rarity = data.get('rarity', 'common')
+
+    if not wallet:
+        return jsonify({"error": "wallet required"}), 400
+
+    if not POSTGRESQL_AVAILABLE:
+        return jsonify({"error": "Database not available"}), 503
+
+    try:
+        # Generate item
+        claim_type = "RUNE" if item_type == "rune" else "ITEM"
+        item_data = generate_random_item(claim_type, "HARD", wallet)
+
+        # Override rarity if specified
+        if rarity in ["common", "rare", "epic", "legendary"]:
+            item_data["rarity"] = rarity
+            # Recalculate stats based on rarity
+            rarity_multipliers = {"common": 1, "rare": 2, "epic": 4, "legendary": 8}
+            multiplier = rarity_multipliers.get(rarity, 1)
+            if claim_type == "RUNE":
+                item_data["stats"] = {"all_boost": 5 * multiplier}
+            else:
+                # Get base stats for type
+                base = ITEM_TEMPLATES.get(item_type, {}).get("base_stats", {"attack": 10})
+                item_data["stats"] = {k: v * multiplier for k, v in base.items()}
+
+        # Override type if item (not rune)
+        if claim_type == "ITEM" and item_type in ITEM_TEMPLATES:
+            item_data["type"] = item_type
+            names = ITEM_TEMPLATES[item_type]["names"].get(rarity, ITEM_TEMPLATES[item_type]["names"]["common"])
+            import random
+            item_data["name"] = random.choice(names)
+            item_data["image_url"] = f"/img/items/{item_type}_{rarity}.png"
+
+        item_id = insert_item_to_vault(item_data)
+
+        if item_id:
+            return jsonify({
+                "success": True,
+                "message": f"Item added to vault",
+                "item": {
+                    "id": item_id,
+                    "name": item_data["name"],
+                    "type": item_data["type"],
+                    "rarity": item_data["rarity"],
+                    "stats": item_data["stats"]
+                }
+            })
+        else:
+            return jsonify({"error": "Failed to insert item"}), 500
+
+    except Exception as e:
+        print(f"Error adding item to vault: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({"error": str(e)}), 500
 
 # ---------------------------------
