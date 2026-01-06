@@ -580,6 +580,9 @@ def get_equipment_stats(hero_token_id: str) -> dict:
     """
     Get total stats from all equipped items for a hero.
     Returns dict with: attack, defense, xp_boost, aura_boost, luck, energy_regen, ember_boost, all_boost
+
+    NOTE: Items are now on blockchain. This function returns default stats.
+    Equipment bonuses are calculated on frontend from IPFS metadata.
     """
     total_stats = {
         "attack": 0,
@@ -592,31 +595,8 @@ def get_equipment_stats(hero_token_id: str) -> dict:
         "all_boost": 0
     }
 
-    if not POSTGRESQL_AVAILABLE:
-        return total_stats
-
-    try:
-        conn = db.get_connection()
-        cursor = conn.cursor()
-
-        # Get all equipped items for this hero
-        cursor.execute("""
-            SELECT stats FROM items WHERE equipped_by = %s
-        """, (hero_token_id,))
-
-        for row in cursor.fetchall():
-            item_stats = row[0] if row[0] else {}
-            if isinstance(item_stats, str):
-                import json as j
-                item_stats = j.loads(item_stats)
-            for key, value in item_stats.items():
-                if key in total_stats:
-                    total_stats[key] += value
-
-        db.release_connection(conn)
-    except Exception as e:
-        print(f"⚠️ Error getting equipment stats: {e}")
-
+    # Items are on blockchain, not in database
+    # Frontend calculates bonuses from IPFS metadata
     return total_stats
 
 def calculate_mission_success_rate(hero, mission):
@@ -4970,6 +4950,29 @@ def api_setup_postgresql():
         END IF;
     END $$;
 
+    -- Add equipment columns if they don't exist (migration for equipment system)
+    DO $$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'nfts' AND column_name = 'weapon_id') THEN
+            ALTER TABLE nfts ADD COLUMN weapon_id TEXT;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'nfts' AND column_name = 'armor_id') THEN
+            ALTER TABLE nfts ADD COLUMN armor_id TEXT;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'nfts' AND column_name = 'helmet_id') THEN
+            ALTER TABLE nfts ADD COLUMN helmet_id TEXT;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'nfts' AND column_name = 'accessory_id') THEN
+            ALTER TABLE nfts ADD COLUMN accessory_id TEXT;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'nfts' AND column_name = 'amulet_id') THEN
+            ALTER TABLE nfts ADD COLUMN amulet_id TEXT;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'nfts' AND column_name = 'rune_ids') THEN
+            ALTER TABLE nfts ADD COLUMN rune_ids TEXT[] DEFAULT ARRAY[]::TEXT[];
+        END IF;
+    END $$;
+
     CREATE TABLE IF NOT EXISTS active_missions (
         mission_key VARCHAR(100) PRIMARY KEY,
         wallet VARCHAR(42) NOT NULL,
@@ -5844,152 +5847,18 @@ def add_item_to_vault():
         return jsonify({"error": str(e)}), 500
 
 # ---------------------------------
-# EQUIPMENT API
+# EQUIPMENT API (Legacy - Deprecated)
 # ---------------------------------
 
 @app.route('/api/equip', methods=['POST'])
 def equip_item():
-    """Equip an item to an emissary"""
-    data = request.get_json()
-    item_id = data.get('item_id')
-    emissary_id = data.get('emissary_id')
-
-    if not item_id or not emissary_id:
-        return jsonify({"error": "item_id and emissary_id required"}), 400
-
-    if not POSTGRESQL_AVAILABLE:
-        return jsonify({"success": False, "message": "Database not available"}), 503
-
-    try:
-        conn = db.get_connection()
-        cursor = conn.cursor()
-
-        # Get item type
-        cursor.execute("SELECT type, equipped_by FROM items WHERE id = %s", (item_id,))
-        item_row = cursor.fetchone()
-
-        if not item_row:
-            return jsonify({"error": "Item not found"}), 404
-
-        item_type = item_row[0]
-        already_equipped_by = item_row[1]
-
-        if already_equipped_by:
-            return jsonify({"error": "Item already equipped"}), 400
-
-        # Determine which column to update based on item type
-        if item_type == "rune":
-            # Handle runes separately (array)
-            cursor.execute("""
-                UPDATE nfts
-                SET rune_ids = array_append(COALESCE(rune_ids, ARRAY[]::integer[]), %s)
-                WHERE token_id = %s AND array_length(COALESCE(rune_ids, ARRAY[]::integer[]), 1) < 2
-            """, (item_id, emissary_id))
-        else:
-            # Regular equipment
-            column_map = {
-                "weapon": "weapon_id",
-                "armor": "armor_id",
-                "helmet": "helmet_id",
-                "accessory": "accessory_id",
-                "amulet": "amulet_id"
-            }
-
-            column = column_map.get(item_type)
-            if not column:
-                return jsonify({"error": "Invalid item type"}), 400
-
-            # Update emissary
-            cursor.execute(f"""
-                UPDATE nfts
-                SET {column} = %s
-                WHERE token_id = %s
-            """, (item_id, emissary_id))
-
-        # Mark item as equipped
-        cursor.execute("""
-            UPDATE items
-            SET equipped_by = %s
-            WHERE id = %s
-        """, (emissary_id, item_id))
-
-        conn.commit()
-        db.release_connection(conn)
-
-        return jsonify({"success": True, "message": "Item equipped successfully"})
-
-    except Exception as e:
-        print(f"Error equipping item: {e}")
-        return jsonify({"error": str(e)}), 500
+    """DEPRECATED: Use /api/equipment/equip instead"""
+    return jsonify({"error": "Use /api/equipment/equip instead"}), 410
 
 @app.route('/api/unequip', methods=['POST'])
 def unequip_item():
-    """Unequip an item"""
-    data = request.get_json()
-    item_id = data.get('item_id')
-
-    if not item_id:
-        return jsonify({"error": "item_id required"}), 400
-
-    if not POSTGRESQL_AVAILABLE:
-        return jsonify({"success": False, "message": "Database not available"}), 503
-
-    try:
-        conn = db.get_connection()
-        cursor = conn.cursor()
-
-        # Get item details
-        cursor.execute("SELECT type, equipped_by FROM items WHERE id = %s", (item_id,))
-        item_row = cursor.fetchone()
-
-        if not item_row:
-            return jsonify({"error": "Item not found"}), 404
-
-        item_type = item_row[0]
-        equipped_by = item_row[1]
-
-        if not equipped_by:
-            return jsonify({"error": "Item not equipped"}), 400
-
-        # Unequip from emissary
-        if item_type == "rune":
-            cursor.execute("""
-                UPDATE nfts
-                SET rune_ids = array_remove(rune_ids, %s)
-                WHERE token_id = %s
-            """, (item_id, equipped_by))
-        else:
-            column_map = {
-                "weapon": "weapon_id",
-                "armor": "armor_id",
-                "helmet": "helmet_id",
-                "accessory": "accessory_id",
-                "amulet": "amulet_id"
-            }
-
-            column = column_map.get(item_type)
-            if column:
-                cursor.execute(f"""
-                    UPDATE nfts
-                    SET {column} = NULL
-                    WHERE token_id = %s AND {column} = %s
-                """, (equipped_by, item_id))
-
-        # Clear equipped_by in item
-        cursor.execute("""
-            UPDATE items
-            SET equipped_by = NULL
-            WHERE id = %s
-        """, (item_id,))
-
-        conn.commit()
-        db.release_connection(conn)
-
-        return jsonify({"success": True, "message": "Item unequipped successfully"})
-
-    except Exception as e:
-        print(f"Error unequipping item: {e}")
-        return jsonify({"error": str(e)}), 500
+    """DEPRECATED: Use /api/equipment/unequip instead"""
+    return jsonify({"error": "Use /api/equipment/unequip instead"}), 410
 
 # ---------------------------------
 # EQUIPMENT API (Routes used by inventory modal)
@@ -5997,15 +5866,22 @@ def unequip_item():
 
 @app.route('/api/equipment/equip', methods=['POST'])
 def equipment_equip():
-    """Equip an item to an emissary - called from inventory modal"""
+    """
+    Equip an item/rune to an emissary.
+    Items come from blockchain, we just store the item_id in the nfts table.
+    """
     data = request.get_json()
     wallet = data.get('wallet', '').lower()
     emissary_id = data.get('emissary_id')
-    item_id = data.get('item_id')
-    slot = data.get('slot')  # weapon, armor, helmet, accessory, amulet, or rune
+    item_id = data.get('item_id')  # e.g. "item-1" or "rune-2"
+    item_type = data.get('item_type')  # weapon, armor, helmet, accessory, amulet, or rune
+    token_id = data.get('token_id')  # blockchain token ID
 
     if not wallet or not emissary_id or not item_id:
         return jsonify({"error": "wallet, emissary_id and item_id required"}), 400
+
+    if not item_type:
+        return jsonify({"error": "item_type required"}), 400
 
     if not POSTGRESQL_AVAILABLE:
         return jsonify({"success": False, "error": "Database not available"}), 503
@@ -6013,25 +5889,6 @@ def equipment_equip():
     try:
         conn = db.get_connection()
         cursor = conn.cursor()
-
-        # Verify item belongs to wallet and is not equipped
-        cursor.execute("""
-            SELECT type, equipped_by, stats FROM items
-            WHERE id = %s AND owner_wallet = %s
-        """, (item_id, wallet))
-        item_row = cursor.fetchone()
-
-        if not item_row:
-            db.release_connection(conn)
-            return jsonify({"error": "Item not found or doesn't belong to you"}), 404
-
-        item_type = item_row[0]
-        already_equipped = item_row[1]
-        item_stats = item_row[2]
-
-        if already_equipped:
-            db.release_connection(conn)
-            return jsonify({"error": "Item already equipped to another emissary"}), 400
 
         # Verify emissary belongs to wallet
         cursor.execute("""
@@ -6041,11 +5898,11 @@ def equipment_equip():
             db.release_connection(conn)
             return jsonify({"error": "Emissary not found or doesn't belong to you"}), 404
 
-        # Handle runes specially
+        # Handle runes specially (can have up to 2)
         if item_type == "rune":
             cursor.execute("""
                 UPDATE nfts
-                SET rune_ids = array_append(COALESCE(rune_ids, ARRAY[]::integer[]), %s)
+                SET rune_ids = array_append(COALESCE(rune_ids, ARRAY[]::TEXT[]), %s)
                 WHERE token_id = %s AND (rune_ids IS NULL OR array_length(rune_ids, 1) < 2)
                 RETURNING token_id
             """, (item_id, emissary_id))
@@ -6065,26 +5922,15 @@ def equipment_equip():
                 db.release_connection(conn)
                 return jsonify({"error": f"Invalid item type: {item_type}"}), 400
 
-            # Unequip existing item in that slot first
-            cursor.execute(f"SELECT {column} FROM nfts WHERE token_id = %s", (emissary_id,))
-            existing_item_row = cursor.fetchone()
-            if existing_item_row and existing_item_row[0]:
-                # Clear the old item's equipped_by
-                cursor.execute("UPDATE items SET equipped_by = NULL WHERE id = %s", (existing_item_row[0],))
-
-            # Equip new item
+            # Equip new item (replaces existing)
             cursor.execute(f"UPDATE nfts SET {column} = %s WHERE token_id = %s", (item_id, emissary_id))
-
-        # Mark item as equipped
-        cursor.execute("UPDATE items SET equipped_by = %s WHERE id = %s", (emissary_id, item_id))
 
         conn.commit()
         db.release_connection(conn)
 
         return jsonify({
             "success": True,
-            "message": "Item equipped successfully",
-            "item_stats": item_stats
+            "message": f"{item_type.capitalize()} equipped successfully"
         })
 
     except Exception as e:
@@ -6095,15 +5941,26 @@ def equipment_equip():
 
 @app.route('/api/equipment/unequip', methods=['POST'])
 def equipment_unequip():
-    """Unequip a single item - called from inventory modal"""
+    """
+    Unequip a single item/rune from an emissary.
+    Items are on blockchain, we just clear the reference in nfts table.
+    """
     data = request.get_json()
     wallet = data.get('wallet', '').lower()
     emissary_id = data.get('emissary_id')
-    item_id = data.get('item_id')
-    slot = data.get('slot')
+    item_id = data.get('item_id')  # e.g. "item-1" or "rune-2"
+    item_type = data.get('item_type')  # weapon, armor, helmet, accessory, amulet, or rune
+    slot = data.get('slot')  # Alternative to item_type
 
     if not wallet or not emissary_id:
         return jsonify({"error": "wallet and emissary_id required"}), 400
+
+    # Use slot if item_type not provided
+    if not item_type and slot:
+        item_type = slot
+
+    if not item_type and not item_id:
+        return jsonify({"error": "item_type or item_id required"}), 400
 
     if not POSTGRESQL_AVAILABLE:
         return jsonify({"error": "Database not available"}), 503
@@ -6112,46 +5969,21 @@ def equipment_unequip():
         conn = db.get_connection()
         cursor = conn.cursor()
 
-        if item_id:
-            # Unequip specific item
-            cursor.execute("""
-                SELECT type FROM items WHERE id = %s AND equipped_by = %s
-            """, (item_id, emissary_id))
-            item_row = cursor.fetchone()
-            if not item_row:
-                db.release_connection(conn)
-                return jsonify({"error": "Item not found or not equipped"}), 404
-
-            item_type = item_row[0]
-        elif slot:
-            item_type = slot
-            # Find item in slot
-            if slot == "rune":
-                # Will handle below
-                pass
-            else:
-                column_map = {
-                    "weapon": "weapon_id",
-                    "armor": "armor_id",
-                    "helmet": "helmet_id",
-                    "accessory": "accessory_id",
-                    "amulet": "amulet_id"
-                }
-                column = column_map.get(slot)
-                if column:
-                    cursor.execute(f"SELECT {column} FROM nfts WHERE token_id = %s", (emissary_id,))
-                    row = cursor.fetchone()
-                    if row and row[0]:
-                        item_id = row[0]
-        else:
+        # Verify emissary belongs to wallet
+        cursor.execute("""
+            SELECT token_id FROM nfts WHERE token_id = %s AND last_known_owner = %s
+        """, (emissary_id, wallet))
+        if not cursor.fetchone():
             db.release_connection(conn)
-            return jsonify({"error": "item_id or slot required"}), 400
+            return jsonify({"error": "Emissary not found or doesn't belong to you"}), 404
 
+        # Handle runes (remove from array)
         if item_type == "rune" and item_id:
             cursor.execute("""
                 UPDATE nfts SET rune_ids = array_remove(rune_ids, %s) WHERE token_id = %s
             """, (item_id, emissary_id))
-        elif item_id:
+        elif item_type:
+            # Clear the equipment slot
             column_map = {
                 "weapon": "weapon_id",
                 "armor": "armor_id",
@@ -6162,9 +5994,6 @@ def equipment_unequip():
             column = column_map.get(item_type)
             if column:
                 cursor.execute(f"UPDATE nfts SET {column} = NULL WHERE token_id = %s", (emissary_id,))
-
-        if item_id:
-            cursor.execute("UPDATE items SET equipped_by = NULL WHERE id = %s", (item_id,))
 
         conn.commit()
         db.release_connection(conn)
@@ -6196,14 +6025,9 @@ def equipment_unequip_all():
         cursor.execute("""
             UPDATE nfts
             SET weapon_id = NULL, armor_id = NULL, helmet_id = NULL,
-                accessory_id = NULL, amulet_id = NULL, rune_ids = NULL
+                accessory_id = NULL, amulet_id = NULL, rune_ids = ARRAY[]::TEXT[]
             WHERE token_id = %s AND last_known_owner = %s
         """, (emissary_id, wallet))
-
-        # Clear equipped_by for all items that were equipped to this emissary
-        cursor.execute("""
-            UPDATE items SET equipped_by = NULL WHERE equipped_by = %s
-        """, (emissary_id,))
 
         conn.commit()
         db.release_connection(conn)
@@ -6216,7 +6040,10 @@ def equipment_unequip_all():
 
 @app.route('/api/equipment/inventory/<emissary_id>', methods=['GET'])
 def get_emissary_inventory(emissary_id):
-    """Get all equipped items for an emissary"""
+    """
+    Get equipped item IDs for an emissary.
+    Items details come from blockchain/vaultItems on frontend.
+    """
     wallet = request.args.get('wallet', '').lower()
 
     if not wallet:
@@ -6238,58 +6065,23 @@ def get_emissary_inventory(emissary_id):
         """, (emissary_id, wallet))
 
         emissary = cursor.fetchone()
-        if not emissary:
-            db.release_connection(conn)
-            return jsonify({"error": "Emissary not found"}), 404
-
-        # Get equipped items details
-        equipped_items = {}
-        for slot in ['weapon', 'armor', 'helmet', 'accessory', 'amulet']:
-            item_id = emissary.get(f'{slot}_id')
-            if item_id:
-                cursor.execute("""
-                    SELECT id, name, type, rarity, image_url, stats
-                    FROM items WHERE id = %s
-                """, (item_id,))
-                item = cursor.fetchone()
-                if item:
-                    equipped_items[slot] = dict(item)
-
-        # Get equipped runes
-        rune_ids = emissary.get('rune_ids') or []
-        equipped_runes = []
-        for rune_id in rune_ids:
-            cursor.execute("""
-                SELECT id, name, type, rarity, image_url, stats
-                FROM items WHERE id = %s
-            """, (rune_id,))
-            rune = cursor.fetchone()
-            if rune:
-                equipped_runes.append(dict(rune))
-
-        # Get available items (not equipped)
-        cursor.execute("""
-            SELECT id, name, type, rarity, image_url, stats
-            FROM items
-            WHERE owner_wallet = %s AND equipped_by IS NULL
-            ORDER BY
-                CASE rarity
-                    WHEN 'legendary' THEN 1
-                    WHEN 'epic' THEN 2
-                    WHEN 'rare' THEN 3
-                    ELSE 4
-                END, name
-        """, (wallet,))
-        available_items = [dict(row) for row in cursor.fetchall()]
-
         db.release_connection(conn)
 
+        if not emissary:
+            return jsonify({"error": "Emissary not found"}), 404
+
+        # Return just the item IDs - frontend matches with vaultItems
         return jsonify({
             "emissary_id": emissary_id,
             "emissary_name": emissary.get('name'),
-            "equipped": equipped_items,
-            "runes": equipped_runes,
-            "available": available_items
+            "equipped": {
+                "weapon": emissary.get('weapon_id'),
+                "armor": emissary.get('armor_id'),
+                "helmet": emissary.get('helmet_id'),
+                "accessory": emissary.get('accessory_id'),
+                "amulet": emissary.get('amulet_id')
+            },
+            "rune_ids": emissary.get('rune_ids') or []
         })
 
     except Exception as e:

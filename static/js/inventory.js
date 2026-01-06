@@ -1253,15 +1253,16 @@
                 return;
             }
 
-            const endpoint = item.type === 'rune' ? '/api/equipment/equip-rune' : '/api/equipment/equip';
-
-            const response = await fetch(endpoint, {
+            // Use single endpoint for both items and runes
+            const response = await fetch('/api/equipment/equip', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     wallet: currentWallet,
                     emissary_id: emissaryId,
-                    item_id: itemId
+                    item_id: itemId,
+                    item_type: item.type,  // weapon, armor, helmet, accessory, amulet, or rune
+                    token_id: item.token_id  // blockchain token ID
                 })
             });
 
