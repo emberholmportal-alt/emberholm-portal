@@ -225,10 +225,18 @@
                 return;
             }
 
-            // Fetch available vault items
-            const vaultResponse = await fetch(`/api/vault?wallet=${currentWallet}`);
-            const vaultData = await vaultResponse.json();
-            const availableItems = vaultData.items || [];
+            // Use vaultItems from blockchain (not from /api/vault database)
+            // vaultItems is loaded from blockchain events in loadVault()
+            let availableItems = [];
+            if (vaultItems && vaultItems.length > 0) {
+                availableItems = vaultItems;
+            } else {
+                // Load from blockchain if not already loaded
+                console.log("📦 Loading vault items from blockchain...");
+                await loadVault(currentWallet);
+                availableItems = vaultItems || [];
+            }
+            console.log(`📦 Available items for inventory: ${availableItems.length}`);
 
             // Build inventory HTML
             const content = buildInventoryContent(emissary, availableItems);
@@ -1175,7 +1183,7 @@
                 <div style="border: 1px solid var(--border-primary); padding: 12px; background: rgba(0,0,0,0.2); cursor: pointer; transition: all 0.2s;"
                      onmouseover="this.style.borderColor='var(--text-primary)'"
                      onmouseout="this.style.borderColor='var(--border-primary)'"
-                     onclick="selectEmissaryForEquip(${itemId}, '${emissary.token_id}')">
+                     onclick="selectEmissaryForEquip('${itemId}', '${emissary.token_id}')">
                     <div style="display: grid; grid-template-columns: 60px 1fr auto; gap: 12px; align-items: center;">
                         <img src="${emissary.image_url || '/img/emissary_placeholder.png'}"
                              style="width: 60px; height: 60px; border: 1px solid var(--border-primary);"
