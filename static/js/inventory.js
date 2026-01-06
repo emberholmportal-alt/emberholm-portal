@@ -731,8 +731,14 @@
                             continue;
                         }
 
-                        const tokenURI = await itemsContract.tokenURI(tokenId);
-                        const metadata = await fetchTokenMetadata(tokenURI);
+                        let metadata = {};
+                        try {
+                            const tokenURI = await itemsContract.tokenURI(tokenId);
+                            metadata = await fetchTokenMetadata(tokenURI, 'item', id);
+                        } catch (uriError) {
+                            console.warn(`   tokenURI failed for item #${id}, using defaults`);
+                            metadata = generateDefaultMetadata('item', id);
+                        }
 
                         vaultItems.push({
                             id: `item-${id}`,
@@ -741,7 +747,7 @@
                             name: metadata.name || `Item #${id}`,
                             type: metadata.type || 'weapon',
                             rarity: metadata.rarity || 'common',
-                            image_url: metadata.image || '/img/items/placeholder.png',
+                            image_url: metadata.image || '/img/crossedswords.png',
                             stats: metadata.stats || {},
                             equipped_by: null
                         });
@@ -810,8 +816,14 @@
                             continue;
                         }
 
-                        const tokenURI = await runesContract.tokenURI(tokenId);
-                        const metadata = await fetchTokenMetadata(tokenURI);
+                        let metadata = {};
+                        try {
+                            const tokenURI = await runesContract.tokenURI(tokenId);
+                            metadata = await fetchTokenMetadata(tokenURI, 'rune', id);
+                        } catch (uriError) {
+                            console.warn(`   tokenURI failed for rune #${id}, using defaults`);
+                            metadata = generateDefaultMetadata('rune', id);
+                        }
 
                         vaultItems.push({
                             id: `rune-${id}`,
@@ -886,7 +898,15 @@
     }
 
     // Helper to fetch token metadata from URI
-    async function fetchTokenMetadata(tokenURI) {
+    async function fetchTokenMetadata(tokenURI, contractType = 'item', tokenId = '0') {
+        console.log(`   Fetching metadata: ${tokenURI}`);
+
+        // If no tokenURI or empty, return defaults
+        if (!tokenURI || tokenURI === '' || tokenURI === 'undefined') {
+            console.log(`   No tokenURI, using defaults`);
+            return generateDefaultMetadata(contractType, tokenId);
+        }
+
         try {
             // Convert ipfs:// to https://
             let url = tokenURI;
@@ -894,26 +914,89 @@
                 url = url.replace('ipfs://', 'https://ipfs.io/ipfs/');
             }
 
-            const response = await fetch(url);
+            // Handle data: URIs (base64 encoded JSON)
+            if (url.startsWith('data:application/json')) {
+                const base64Data = url.split(',')[1];
+                const jsonStr = atob(base64Data);
+                const metadata = JSON.parse(jsonStr);
+                console.log(`   Parsed data URI metadata:`, metadata);
+                return processMetadata(metadata, contractType);
+            }
+
+            console.log(`   Fetching from URL: ${url}`);
+            const response = await fetch(url, {
+                timeout: 5000,
+                headers: { 'Accept': 'application/json' }
+            });
+
+            if (!response.ok) {
+                console.warn(`   HTTP error: ${response.status}`);
+                return generateDefaultMetadata(contractType, tokenId);
+            }
+
             const metadata = await response.json();
+            console.log(`   Received metadata:`, metadata);
+            return processMetadata(metadata, contractType);
 
-            // Convert image URI if needed
-            if (metadata.image && metadata.image.startsWith('ipfs://')) {
-                metadata.image = metadata.image.replace('ipfs://', 'https://ipfs.io/ipfs/');
-            }
-
-            // Extract type and rarity from attributes if present
-            if (metadata.attributes) {
-                const typeAttr = metadata.attributes.find(a => a.trait_type === 'Type');
-                const rarityAttr = metadata.attributes.find(a => a.trait_type === 'Rarity');
-                if (typeAttr) metadata.type = typeAttr.value.toLowerCase();
-                if (rarityAttr) metadata.rarity = rarityAttr.value.toLowerCase();
-            }
-
-            return metadata;
         } catch (e) {
-            console.warn("Failed to fetch metadata from", tokenURI, e);
-            return {};
+            console.warn(`   Failed to fetch metadata:`, e.message);
+            return generateDefaultMetadata(contractType, tokenId);
+        }
+    }
+
+    // Process metadata and extract relevant fields
+    function processMetadata(metadata, contractType) {
+        // Convert image URI if needed
+        if (metadata.image && metadata.image.startsWith('ipfs://')) {
+            metadata.image = metadata.image.replace('ipfs://', 'https://ipfs.io/ipfs/');
+        }
+
+        // Extract type and rarity from attributes if present
+        if (metadata.attributes && Array.isArray(metadata.attributes)) {
+            const typeAttr = metadata.attributes.find(a =>
+                a.trait_type === 'Type' || a.trait_type === 'type' || a.trait_type === 'Item Type'
+            );
+            const rarityAttr = metadata.attributes.find(a =>
+                a.trait_type === 'Rarity' || a.trait_type === 'rarity'
+            );
+            const statsAttr = metadata.attributes.find(a =>
+                a.trait_type === 'Stats' || a.trait_type === 'stats'
+            );
+
+            if (typeAttr) metadata.type = String(typeAttr.value).toLowerCase();
+            if (rarityAttr) metadata.rarity = String(rarityAttr.value).toLowerCase();
+            if (statsAttr) metadata.stats = statsAttr.value;
+        }
+
+        // Default image based on type
+        if (!metadata.image) {
+            metadata.image = contractType === 'rune' ? '/img/runes.png' : '/img/crossedswords.png';
+        }
+
+        return metadata;
+    }
+
+    // Generate default metadata when tokenURI fails
+    function generateDefaultMetadata(contractType, tokenId) {
+        if (contractType === 'rune') {
+            return {
+                name: `Rune #${tokenId}`,
+                type: 'rune',
+                rarity: 'common',
+                image: '/img/runes.png',
+                stats: { all_boost: 5 }
+            };
+        } else {
+            // Random item type for variety
+            const types = ['weapon', 'armor', 'helmet', 'accessory', 'amulet'];
+            const randomType = types[parseInt(tokenId) % types.length];
+            return {
+                name: `Item #${tokenId}`,
+                type: randomType,
+                rarity: 'common',
+                image: '/img/crossedswords.png',
+                stats: {}
+            };
         }
     }
 
