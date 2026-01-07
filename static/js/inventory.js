@@ -305,7 +305,7 @@
             // Fetch emissary data with equipment
             const emissaryResponse = await fetch(`/api/player/${encodeURIComponent(currentWallet)}`);
             const playerData = await emissaryResponse.json();
-            const emissary = playerData.heroes?.find(h => h.token_id === emissaryId);
+            let emissary = playerData.heroes?.find(h => h.token_id === emissaryId);
 
             if (!emissary) {
                 modalBody.innerHTML = `
@@ -315,6 +315,28 @@
                     </div>
                 `;
                 return;
+            }
+
+            // Fetch fresh equipment data from dedicated endpoint
+            try {
+                const equipResponse = await fetch(`/api/equipment/${emissaryId}`);
+                const equipData = await equipResponse.json();
+                if (equipData.equipment) {
+                    // Merge equipment data into emissary object
+                    emissary.weapon_id = equipData.equipment.weapon_id;
+                    emissary.armor_id = equipData.equipment.armor_id;
+                    emissary.helmet_id = equipData.equipment.helmet_id;
+                    emissary.accessory_id = equipData.equipment.accessory_id;
+                    emissary.amulet_id = equipData.equipment.amulet_id;
+                    emissary.rune_ids = equipData.equipment.rune_ids || [];
+                    console.log("📦 Equipment data loaded:", equipData.equipment);
+                }
+                // Also check ON_MISSION state
+                if (equipData.state === 'ON_MISSION') {
+                    emissary.on_mission = true;
+                }
+            } catch (equipErr) {
+                console.warn("Could not fetch equipment data:", equipErr);
             }
 
             // Use vaultItems from blockchain (not from /api/vault database)
@@ -393,7 +415,17 @@
             console.log(`  ${type}: ${items.length}`, items.map(i => ({id: i.id, name: i.name, type: i.type})));
         });
         console.log("All item types present:", [...new Set(availableItems.map(i => i.type))]);
+        console.log("Emissary on_mission:", emissary.on_mission);
         console.log("=====================================");
+
+        // Check if emissary is on mission - disable equip/unequip if so
+        const isOnMission = emissary.on_mission || false;
+        const disabledAttr = isOnMission ? 'disabled' : '';
+        const missionWarning = isOnMission ? `
+            <div class="mission-warning" style="background:#5a3030; border:1px solid #ff6666; padding:10px; margin-bottom:15px; text-align:center; color:#ff9999;">
+                ⚠️ EMISSARY ON MISSION - Equipment changes disabled
+            </div>
+        ` : '';
 
         const slots = [
             { key: 'weapon', label: 'WEAPON', type: 'weapon', icon: '<img src="/img/dagger.png" class="pixel-icon" alt="">' },
@@ -424,7 +456,7 @@
                                 <small>${formatStats(equippedItem.stats)}</small>
                             </div>
                         </div>
-                        <button class="terminal-btn small-btn btn-unequip" data-item-id="${equippedItem.id}" data-slot="${slot.key}">
+                        <button class="terminal-btn small-btn btn-unequip" data-item-id="${equippedItem.id}" data-slot="${slot.key}" ${disabledAttr}>
                             [UNEQUIP]
                         </button>
                     </div>
@@ -458,7 +490,7 @@
                                 ${optionsHtml}
                             </select>
                         </div>
-                        <button class="terminal-btn small-btn btn-equip" data-slot="${slot.key}" ${availableForSlot.length === 0 ? 'disabled' : ''}>
+                        <button class="terminal-btn small-btn btn-equip" data-slot="${slot.key}" ${availableForSlot.length === 0 || isOnMission ? 'disabled' : ''}>
                             [EQUIP]
                         </button>
                     </div>
@@ -489,7 +521,7 @@
                                 <small>${formatStats(equippedRune.stats)}</small>
                             </div>
                         </div>
-                        <button class="terminal-btn small-btn btn-unequip-rune" data-item-id="${equippedRune.id}" data-rune-index="${i}">
+                        <button class="terminal-btn small-btn btn-unequip-rune" data-item-id="${equippedRune.id}" data-rune-index="${i}" ${disabledAttr}>
                             [UNEQUIP]
                         </button>
                     </div>
@@ -523,7 +555,7 @@
                                 ${optionsHtml}
                             </select>
                         </div>
-                        <button class="terminal-btn small-btn btn-equip-rune" data-rune-index="${i}" ${availableRunes.length === 0 ? 'disabled' : ''}>
+                        <button class="terminal-btn small-btn btn-equip-rune" data-rune-index="${i}" ${availableRunes.length === 0 || isOnMission ? 'disabled' : ''}>
                             [EQUIP]
                         </button>
                     </div>
@@ -541,6 +573,7 @@
         else if (state === 'FALLEN') stateBadge = '💀 FALLEN';
 
         return `
+            ${missionWarning}
             <!-- Emissary Header -->
             <div style="display:grid; grid-template-columns: 120px 1fr; gap:20px; margin-bottom:20px; padding:15px; border:1px solid var(--border-primary); background:rgba(0,0,0,0.3);">
                 <div style="text-align:center;">
@@ -1048,22 +1081,25 @@
 
             // ========== CHECK EQUIPPED STATUS FROM DATABASE ==========
             try {
-                const response = await fetch(`/api/vault?wallet=${wallet}`);
-                const dbData = await response.json();
+                console.log("📦 Fetching equipped items from database...");
+                const response = await fetch(`/api/equipment/equipped-items?wallet=${wallet}`);
+                const equippedData = await response.json();
 
-                if (dbData.items && Array.isArray(dbData.items)) {
-                    // Merge equipped_by info from DB
-                    dbData.items.forEach(dbItem => {
-                        if (dbItem.equipped_by) {
-                            // Find matching item in vaultItems and update equipped_by
-                            const match = vaultItems.find(v =>
-                                v.name === dbItem.name ||
-                                v.token_id === String(dbItem.id)
-                            );
-                            if (match) {
-                                match.equipped_by = dbItem.equipped_by;
-                                match.equipped_by_name = dbItem.equipped_by_name;
-                            }
+                if (equippedData.equipped) {
+                    console.log(`   Found ${equippedData.total_equipped} equipped items`);
+
+                    // Mark items as equipped
+                    vaultItems.forEach(item => {
+                        const equippedInfo = equippedData.equipped[item.id];
+                        if (equippedInfo) {
+                            item.equipped_by = equippedInfo.emissary_id;
+                            item.equipped_by_name = equippedInfo.emissary_name;
+                            item.equipped_slot = equippedInfo.slot;
+                            console.log(`   ✓ ${item.name} equipped to ${equippedInfo.emissary_name}`);
+                        } else {
+                            item.equipped_by = null;
+                            item.equipped_by_name = null;
+                            item.equipped_slot = null;
                         }
                     });
                 }
@@ -1277,6 +1313,15 @@
                 const equippedClass = item.equipped_by ? 'equipped' : '';
                 const placeholderImg = item.type === 'rune' ? '/img/runes.png' : '/img/crossedswords.png';
 
+                // Status badge
+                const statusBadge = item.equipped_by
+                    ? `<div class="equipped-badge" style="background:#1a4a1a; border:1px solid var(--primary-green); padding:4px 8px; font-size:10px; margin-top:8px;">
+                           ⚔ EQUIPPED TO: ${item.equipped_by_name || '#' + item.equipped_by}
+                       </div>`
+                    : `<div class="available-badge" style="background:#1a3a4a; border:1px solid #4a9eff; padding:4px 8px; font-size:10px; margin-top:8px; color:#4a9eff;">
+                           ✓ AVAILABLE
+                       </div>`;
+
                 html += `
                     <div class="item-card ${rarityClass} ${equippedClass}">
                         <div style="display:flex; gap:20px; align-items:flex-start;">
@@ -1291,6 +1336,7 @@
                                     ${item.type.toUpperCase()} · ${item.rarity.toUpperCase()}
                                 </div>
                                 ${formatAttributesAsTags(item.attributes)}
+                                ${statusBadge}
                             </div>
                         </div>
                         <div style="margin-top:15px; display:flex; gap:8px;">
@@ -1298,7 +1344,7 @@
                                 <button class="terminal-btn small-btn"
                                         onclick="showEquipModal('${item.id}')">[CHANGE]</button>
                                 <button class="terminal-btn small-btn" style="background:#5a2020;"
-                                        onclick="unequipItemFromVault('${item.id}')">[UNEQUIP]</button>
+                                        onclick="unequipItemFromVault('${item.id}', '${item.equipped_by}', '${item.type}')">[UNEQUIP]</button>
                             ` : `
                                 <button class="terminal-btn small-btn"
                                         onclick="showEquipModal('${item.id}')">[EQUIP]</button>
@@ -1315,9 +1361,43 @@
     }
 
     // Unequip item from vault view
-    window.unequipItemFromVault = async function(itemId) {
-        // TODO: Implement unequip via API
-        alert('Unequip functionality coming soon!');
+    window.unequipItemFromVault = async function(itemId, emissaryId, itemType) {
+        const wallet = currentWallet || window.connectedWallet;
+        if (!wallet) {
+            alert('Please connect your wallet first.');
+            return;
+        }
+
+        if (!confirm(`Unequip this item from emissary #${emissaryId}?`)) {
+            return;
+        }
+
+        try {
+            console.log('📤 Unequipping item from vault:', { itemId, emissaryId, itemType });
+
+            const response = await fetch('/api/equipment/unequip', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    wallet: wallet,
+                    emissary_id: emissaryId,
+                    item_id: itemId,
+                    item_type: itemType
+                })
+            });
+
+            const data = await response.json();
+            if (data.error) {
+                alert('Error: ' + data.error);
+            } else {
+                console.log('✅ Item unequipped successfully');
+                // Reload vault to reflect changes
+                await loadVault(wallet);
+            }
+        } catch (error) {
+            console.error('Error unequipping item:', error);
+            alert('Failed to unequip item');
+        }
     };
 
     // Show emissary selection modal when equipping an item
