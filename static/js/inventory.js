@@ -22,6 +22,62 @@
         GATEWAY: "https://ipfs.io/ipfs/"
     };
 
+    // ========== EQUIPMENT INDICATORS FOR PROFILE ==========
+    // Render equipment slot icons for an emissary (used in Profile/Roster table)
+    window.renderEquipmentIndicators = function(emissary) {
+        if (!emissary) return '';
+
+        const slots = [
+            { key: 'weapon_id', icon: '⚔️', label: 'Weapon' },
+            { key: 'armor_id', icon: '🛡️', label: 'Armor' },
+            { key: 'helmet_id', icon: '🪖', label: 'Helmet' },
+            { key: 'accessory_id', icon: '💍', label: 'Accessory' },
+            { key: 'amulet_id', icon: '📿', label: 'Amulet' }
+        ];
+
+        // Count equipped items
+        let equippedCount = 0;
+        slots.forEach(slot => {
+            if (emissary[slot.key]) equippedCount++;
+        });
+
+        // Count runes
+        const runes = emissary.rune_ids || [];
+        const runeCount = runes.length;
+
+        // If nothing equipped, return empty
+        if (equippedCount === 0 && runeCount === 0) {
+            return '';
+        }
+
+        let html = '<div class="equipment-indicators" style="display:flex; gap:2px; margin-top:3px; font-size:0.7rem;">';
+
+        // Equipment slots
+        slots.forEach(slot => {
+            if (emissary[slot.key]) {
+                html += `<span title="${slot.label}: Equipped" style="opacity:1;">${slot.icon}</span>`;
+            } else {
+                html += `<span title="${slot.label}: Empty" style="opacity:0.2;">[ ]</span>`;
+            }
+        });
+
+        // Separator
+        html += '<span style="color:#444; margin:0 2px;">|</span>';
+
+        // Rune slots (max 2)
+        for (let i = 0; i < 2; i++) {
+            if (runes[i]) {
+                html += `<span title="Rune ${i+1}: Equipped" style="opacity:1;">💎</span>`;
+            } else {
+                html += `<span title="Rune ${i+1}: Empty" style="opacity:0.2;">[ ]</span>`;
+            }
+        }
+
+        html += '</div>';
+
+        return html;
+    };
+
     // Global state
     let currentWallet = null;
     let currentBalance = {
