@@ -123,6 +123,31 @@ def ensure_postgresql_schema():
                 END $$;
             """)
 
+            # 5c. EQUIPMENT COLUMNS - Agregar columnas para el sistema de equipamiento
+            print("  🔧 Checking equipment columns...")
+            equipment_columns = [
+                ('weapon_id', 'VARCHAR(50)'),
+                ('armor_id', 'VARCHAR(50)'),
+                ('helmet_id', 'VARCHAR(50)'),
+                ('accessory_id', 'VARCHAR(50)'),
+                ('amulet_id', 'VARCHAR(50)'),
+                ('rune_ids', 'TEXT[] DEFAULT ARRAY[]::TEXT[]')
+            ]
+
+            for col_name, col_type in equipment_columns:
+                cur.execute(f"""
+                    DO $$
+                    BEGIN
+                        IF NOT EXISTS (SELECT 1 FROM information_schema.columns
+                                       WHERE table_name = 'nfts' AND column_name = '{col_name}') THEN
+                            ALTER TABLE nfts ADD COLUMN {col_name} {col_type};
+                            RAISE NOTICE 'Added {col_name} column to nfts';
+                        END IF;
+                    END $$;
+                """)
+
+            print("  ✅ Equipment columns verified")
+
             # 6. Verificar que tenemos las misiones activas
             cur.execute("SELECT COUNT(*) FROM active_missions")
             count = cur.fetchone()[0]
@@ -5190,6 +5215,73 @@ def migrate_equipment_columns():
         result["error"] = str(e)
         result["message"] = f"❌ Migration failed: {str(e)}"
         return jsonify(result), 500
+
+# ---------------------------------
+# 🔧 ADMIN: Force Equipment Migration
+# ---------------------------------
+
+@app.route("/api/admin/migrate-equipment", methods=['GET', 'POST'])
+def admin_migrate_equipment():
+    """
+    🔧 ADMIN - Force equipment columns migration
+
+    This is an admin endpoint to force-add equipment columns.
+    Can be called via browser (GET) or programmatically (POST).
+    """
+    if not POSTGRESQL_AVAILABLE:
+        return jsonify({"success": False, "error": "PostgreSQL not available"}), 503
+
+    columns_added = []
+    columns_existing = []
+
+    try:
+        conn = db.get_connection()
+        if not conn:
+            return jsonify({"success": False, "error": "Could not connect to database"}), 500
+
+        columns = [
+            ('weapon_id', 'VARCHAR(50)'),
+            ('armor_id', 'VARCHAR(50)'),
+            ('helmet_id', 'VARCHAR(50)'),
+            ('accessory_id', 'VARCHAR(50)'),
+            ('amulet_id', 'VARCHAR(50)'),
+            ('rune_ids', 'TEXT[] DEFAULT ARRAY[]::TEXT[]')
+        ]
+
+        with conn.cursor() as cur:
+            for col_name, col_type in columns:
+                # Check if column exists
+                cur.execute("""
+                    SELECT 1 FROM information_schema.columns
+                    WHERE table_name = 'nfts' AND column_name = %s
+                """, (col_name,))
+
+                if cur.fetchone():
+                    columns_existing.append(col_name)
+                    print(f"  ✓ Column {col_name} already exists")
+                else:
+                    try:
+                        cur.execute(f"ALTER TABLE nfts ADD COLUMN {col_name} {col_type}")
+                        columns_added.append(col_name)
+                        print(f"  ✅ Added column {col_name}")
+                    except Exception as e:
+                        print(f"  ⚠️ Error adding {col_name}: {e}")
+
+        conn.commit()
+        db.release_connection(conn)
+
+        return jsonify({
+            "success": True,
+            "message": f"Migration complete. Added: {len(columns_added)}, Existing: {len(columns_existing)}",
+            "columns_added": columns_added,
+            "columns_existing": columns_existing,
+            "all_columns": [c[0] for c in columns]
+        })
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({"success": False, "error": str(e)}), 500
 
 # ---------------------------------
 # 🔍 AUDITORÍA COMPLETA DEL SISTEMA
