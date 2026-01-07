@@ -101,27 +101,18 @@
     // Map IPFS item types to valid equipment slot types
     // IPFS may return: "Item", "Ranged Weapon", "Melee Weapon", "Pendant", etc.
     // Slots expect: "weapon", "armor", "helmet", "accessory", "amulet", "rune"
-    function mapItemTypeToSlot(ipfsType) {
-        if (!ipfsType) return 'accessory'; // default fallback
+    // When ipfsType is generic ("Item"), uses itemName to infer the slot
+    function mapItemTypeToSlot(ipfsType, itemName = null) {
+        const type = ipfsType ? String(ipfsType).toLowerCase().trim() : '';
+        const name = itemName ? String(itemName).toLowerCase().trim() : '';
 
-        const type = String(ipfsType).toLowerCase().trim();
-
-        const mapping = {
+        // Type mapping (specific types take priority)
+        const typeMapping = {
             // Weapons
             'weapon': 'weapon',
             'weapons': 'weapon',
             'melee weapon': 'weapon',
             'ranged weapon': 'weapon',
-            'bow': 'weapon',
-            'sword': 'weapon',
-            'axe': 'weapon',
-            'dagger': 'weapon',
-            'staff': 'weapon',
-            'wand': 'weapon',
-            'spear': 'weapon',
-            'mace': 'weapon',
-            'crossbow': 'weapon',
-            'hunting bow': 'weapon',
 
             // Armor
             'armor': 'armor',
@@ -129,67 +120,67 @@
             'chest': 'armor',
             'chestplate': 'armor',
             'body armor': 'armor',
-            'body': 'armor',
-            'torso': 'armor',
-            'plate': 'armor',
 
             // Helmet
             'helmet': 'helmet',
             'helm': 'helmet',
-            'head': 'helmet',
             'headgear': 'helmet',
-            'cap': 'helmet',
-            'crown': 'helmet',
-            'hood': 'helmet',
-            'mask': 'helmet',
 
-            // Accessory (rings, gloves, boots, etc)
+            // Accessory
             'accessory': 'accessory',
             'accessories': 'accessory',
-            'ring': 'accessory',
-            'rings': 'accessory',
-            'gloves': 'accessory',
-            'gauntlet': 'accessory',
-            'gauntlets': 'accessory',
-            'boots': 'accessory',
-            'belt': 'accessory',
-            'bracelet': 'accessory',
             'trinket': 'accessory',
-            'charm': 'accessory',
 
-            // Amulet (necklaces, pendants)
+            // Amulet
             'amulet': 'amulet',
             'amulets': 'amulet',
             'necklace': 'amulet',
             'pendant': 'amulet',
-            'stone pendant': 'amulet',
             'talisman': 'amulet',
-            'medallion': 'amulet',
-            'locket': 'amulet',
 
-            // Rune (should come from EmberRunes contract, but just in case)
+            // Rune
             'rune': 'rune',
-            'runes': 'rune',
-
-            // Generic "Item" type - try to infer from name or default to accessory
-            'item': 'accessory',
-            'items': 'accessory'
+            'runes': 'rune'
         };
 
-        // Direct match
-        if (mapping[type]) {
-            return mapping[type];
-        }
+        // Keywords to detect type from item name
+        const nameKeywords = {
+            weapon: ['bow', 'sword', 'axe', 'dagger', 'staff', 'wand', 'spear', 'mace', 'crossbow', 'blade', 'hammer', 'club', 'pike', 'halberd', 'scythe', 'flail', 'lance', 'knife', 'katana', 'rapier', 'scimitar', 'claymore', 'cutlass', 'saber'],
+            armor: ['armor', 'armour', 'plate', 'mail', 'chest', 'breastplate', 'cuirass', 'vest', 'robe', 'tunic', 'jerkin', 'hauberk'],
+            helmet: ['helm', 'helmet', 'hat', 'crown', 'hood', 'cap', 'mask', 'coif', 'circlet', 'diadem', 'headband', 'visor'],
+            accessory: ['ring', 'glove', 'gauntlet', 'boot', 'belt', 'bracelet', 'bracer', 'cloak', 'cape', 'mantle', 'earring', 'anklet', 'sash', 'band'],
+            amulet: ['pendant', 'necklace', 'amulet', 'locket', 'medallion', 'talisman', 'charm', 'choker', 'collar', 'torc', 'stone pendant']
+        };
 
-        // Partial match - check if any key is contained in the type
-        for (const [key, value] of Object.entries(mapping)) {
-            if (type.includes(key)) {
-                return value;
+        // 1. First try direct type match (if not generic)
+        if (type && type !== 'item' && type !== 'items') {
+            if (typeMapping[type]) {
+                return typeMapping[type];
+            }
+
+            // Partial match on type
+            for (const [key, value] of Object.entries(typeMapping)) {
+                if (type.includes(key)) {
+                    return value;
+                }
             }
         }
 
-        // Default fallback
-        console.warn(`⚠️ Unknown item type: "${ipfsType}", defaulting to 'accessory'`);
+        // 2. If type is generic ("item") or not matched, use item name to infer
+        if (name) {
+            // Check each slot's keywords against the item name
+            for (const [slot, keywords] of Object.entries(nameKeywords)) {
+                for (const keyword of keywords) {
+                    if (name.includes(keyword)) {
+                        console.log(`   📦 Inferred slot from name: "${itemName}" contains "${keyword}" → "${slot}"`);
+                        return slot;
+                    }
+                }
+            }
+        }
+
+        // 3. Final fallback
+        console.warn(`⚠️ Could not determine type for "${ipfsType}" / "${itemName}", defaulting to 'accessory'`);
         return 'accessory';
     }
 
@@ -718,15 +709,24 @@
     }
 
     async function equipItem(emissaryId, slot, itemId) {
+        // Use currentWallet or fallback to global
+        const wallet = currentWallet || window.connectedWallet;
+        if (!wallet) {
+            alert('Please connect your wallet first.');
+            return;
+        }
+
         try {
+            console.log('📤 Equipping item:', { wallet, emissary_id: emissaryId, item_id: itemId, slot });
+
             const response = await fetch('/api/equipment/equip', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    wallet: currentWallet,
+                    wallet: wallet,
                     emissary_id: emissaryId,
-                    item_id: parseInt(itemId),
-                    slot: slot
+                    item_id: itemId,  // Keep as string (e.g. "item-5120")
+                    item_type: slot   // weapon, armor, helmet, accessory, amulet
                 })
             });
 
@@ -763,15 +763,24 @@
     }
 
     async function equipRune(emissaryId, itemId) {
+        // Use currentWallet or fallback to global
+        const wallet = currentWallet || window.connectedWallet;
+        if (!wallet) {
+            alert('Please connect your wallet first.');
+            return;
+        }
+
         try {
+            console.log('📤 Equipping rune:', { wallet, emissary_id: emissaryId, item_id: itemId });
+
             const response = await fetch('/api/equipment/equip', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    wallet: currentWallet,
+                    wallet: wallet,
                     emissary_id: emissaryId,
-                    item_id: parseInt(itemId),
-                    slot: 'rune'
+                    item_id: itemId,  // Keep as string (e.g. "rune-1059")
+                    item_type: 'rune'
                 })
             });
 
@@ -1112,16 +1121,17 @@
                 if (typeAttr) {
                     rawType = String(typeAttr.value);
                     // Use mapItemTypeToSlot to convert IPFS type to valid slot type
-                    metadata.type = mapItemTypeToSlot(rawType);
-                    console.log(`   📦 Item type mapping: "${rawType}" → "${metadata.type}"`);
+                    // Pass item name as second param to handle generic "Item" types
+                    metadata.type = mapItemTypeToSlot(rawType, metadata.name);
+                    console.log(`   📦 Item type mapping: "${rawType}" + name "${metadata.name}" → "${metadata.type}"`);
                 }
                 if (rarityAttr) metadata.rarity = String(rarityAttr.value).toLowerCase();
             }
 
-            // If no type found in attributes, try to infer from name
+            // If no type found in attributes, try to infer from name only
             if (!metadata.type && metadata.name) {
-                metadata.type = mapItemTypeToSlot(metadata.name);
-                console.log(`   📦 Inferred type from name "${metadata.name}" → "${metadata.type}"`);
+                metadata.type = mapItemTypeToSlot(null, metadata.name);
+                console.log(`   📦 Inferred type from name only "${metadata.name}" → "${metadata.type}"`);
             }
 
             // Default image if missing

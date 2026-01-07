@@ -5119,6 +5119,79 @@ def api_setup_postgresql():
     return jsonify(result)
 
 # ---------------------------------
+# 🔧 MIGRATION: Equipment Columns
+# ---------------------------------
+
+@app.route("/api/migrate/equipment-columns", methods=['GET', 'POST'])
+def migrate_equipment_columns():
+    """
+    🔧 MIGRATION - Add equipment columns to nfts table
+
+    This adds the columns needed for the equipment system:
+    - weapon_id, armor_id, helmet_id, accessory_id, amulet_id (TEXT)
+    - rune_ids (TEXT[])
+
+    Safe to run multiple times (uses IF NOT EXISTS).
+    Access: GET or POST /api/migrate/equipment-columns
+    """
+    if not POSTGRESQL_AVAILABLE:
+        return jsonify({"success": False, "error": "PostgreSQL not available"}), 503
+
+    result = {
+        "timestamp": now_utc_str(),
+        "success": False,
+        "columns_added": [],
+        "columns_existing": [],
+        "error": None
+    }
+
+    try:
+        conn = db.get_connection()
+        if not conn:
+            result["error"] = "Could not connect to database"
+            return jsonify(result), 500
+
+        columns_to_add = [
+            ("weapon_id", "TEXT"),
+            ("armor_id", "TEXT"),
+            ("helmet_id", "TEXT"),
+            ("accessory_id", "TEXT"),
+            ("amulet_id", "TEXT"),
+            ("rune_ids", "TEXT[] DEFAULT ARRAY[]::TEXT[]")
+        ]
+
+        with conn.cursor() as cur:
+            for col_name, col_type in columns_to_add:
+                # Check if column exists
+                cur.execute("""
+                    SELECT 1 FROM information_schema.columns
+                    WHERE table_name = 'nfts' AND column_name = %s
+                """, (col_name,))
+
+                if cur.fetchone():
+                    result["columns_existing"].append(col_name)
+                else:
+                    # Add the column
+                    cur.execute(f"ALTER TABLE nfts ADD COLUMN {col_name} {col_type}")
+                    result["columns_added"].append(col_name)
+
+        conn.commit()
+        db.release_connection(conn)
+
+        result["success"] = True
+        if result["columns_added"]:
+            result["message"] = f"✅ Added {len(result['columns_added'])} columns: {', '.join(result['columns_added'])}"
+        else:
+            result["message"] = "✅ All equipment columns already exist"
+
+        return jsonify(result)
+
+    except Exception as e:
+        result["error"] = str(e)
+        result["message"] = f"❌ Migration failed: {str(e)}"
+        return jsonify(result), 500
+
+# ---------------------------------
 # 🔍 AUDITORÍA COMPLETA DEL SISTEMA
 # ---------------------------------
 
@@ -5816,12 +5889,21 @@ def equipment_equip():
     data = request.get_json()
     wallet = data.get('wallet', '').lower()
     emissary_id = data.get('emissary_id')
-    item_id = data.get('item_id')  # e.g. "item-1" or "rune-2"
+    item_id = data.get('item_id')  # e.g. "item-1" or "rune-2" (string, not int)
     item_type = data.get('item_type')  # weapon, armor, helmet, accessory, amulet, or rune
+    slot = data.get('slot')  # Alternative to item_type
     token_id = data.get('token_id')  # blockchain token ID
+
+    # Convert item_id to string if it came as int
+    if item_id is not None:
+        item_id = str(item_id)
 
     if not wallet or not emissary_id or not item_id:
         return jsonify({"error": "wallet, emissary_id and item_id required"}), 400
+
+    # Use slot if item_type not provided
+    if not item_type and slot:
+        item_type = slot
 
     if not item_type:
         return jsonify({"error": "item_type required"}), 400
