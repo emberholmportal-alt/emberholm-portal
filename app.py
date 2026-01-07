@@ -2979,6 +2979,32 @@ def api_player(wallet):
     save_json(PLAYERS_PATH, players_all)
     save_json(STATS_PATH, stats_obj)
 
+    # 🔥 Add equipment data to each hero before returning
+    if POSTGRESQL_AVAILABLE and player_obj and 'heroes' in player_obj:
+        try:
+            conn = db.get_connection()
+            if conn:
+                cursor = conn.cursor(cursor_factory=RealDictCursor)
+                for hero in player_obj['heroes']:
+                    token_id = hero.get('token_id')
+                    if token_id:
+                        cursor.execute("""
+                            SELECT weapon_id, armor_id, helmet_id, accessory_id,
+                                   amulet_id, rune_ids
+                            FROM nfts WHERE token_id = %s
+                        """, (token_id,))
+                        equip_row = cursor.fetchone()
+                        if equip_row:
+                            hero['weapon_id'] = equip_row.get('weapon_id')
+                            hero['armor_id'] = equip_row.get('armor_id')
+                            hero['helmet_id'] = equip_row.get('helmet_id')
+                            hero['accessory_id'] = equip_row.get('accessory_id')
+                            hero['amulet_id'] = equip_row.get('amulet_id')
+                            hero['rune_ids'] = equip_row.get('rune_ids') or []
+                db.release_connection(conn)
+        except Exception as e:
+            print(f"⚠️ Error adding equipment data to heroes: {e}")
+
     return jsonify(player_obj)
 
 # ---------------------------------
@@ -6138,15 +6164,33 @@ def equipment_equip():
 
         # Handle runes specially (can have up to 2)
         if item_type == "rune":
+            # First check current rune count
+            cursor.execute("""
+                SELECT COALESCE(array_length(rune_ids, 1), 0) as rune_count
+                FROM nfts WHERE token_id = %s
+            """, (emissary_id,))
+            row = cursor.fetchone()
+            rune_count = row[0] if row else 0
+
+            if rune_count >= 2:
+                db.release_connection(conn)
+                return jsonify({"error": "Cannot equip more than 2 runes"}), 400
+
+            # Check if this rune is already equipped
+            cursor.execute("""
+                SELECT %s = ANY(COALESCE(rune_ids, ARRAY[]::TEXT[])) as already_equipped
+                FROM nfts WHERE token_id = %s
+            """, (item_id, emissary_id))
+            if cursor.fetchone()[0]:
+                db.release_connection(conn)
+                return jsonify({"error": "This rune is already equipped"}), 400
+
+            # Add rune to array
             cursor.execute("""
                 UPDATE nfts
                 SET rune_ids = array_append(COALESCE(rune_ids, ARRAY[]::TEXT[]), %s)
-                WHERE token_id = %s AND (rune_ids IS NULL OR array_length(rune_ids, 1) < 2)
-                RETURNING token_id
+                WHERE token_id = %s
             """, (item_id, emissary_id))
-            if not cursor.fetchone():
-                db.release_connection(conn)
-                return jsonify({"error": "Cannot equip more than 2 runes"}), 400
         else:
             column_map = {
                 "weapon": "weapon_id",
