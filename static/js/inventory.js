@@ -50,9 +50,16 @@
             return '';
         }
 
-        let html = '<div class="equipment-indicators" style="display:flex; gap:2px; margin-top:3px; font-size:0.7rem;">';
+        // Calculate estimated bonuses (assuming common rarity as baseline)
+        // Items: +3% EMBER, +2% XP each
+        // Runes: +3% EMBER, +3% XP each
+        const totalEmber = (equippedCount * 3) + (runeCount * 3);
+        const totalXP = (equippedCount * 2) + (runeCount * 3);
 
-        // Equipment slots
+        let html = '<div class="equipment-indicators" style="display:flex; flex-direction:column; gap:2px; margin-top:3px;">';
+
+        // Icons row
+        html += '<div style="display:flex; gap:2px; font-size:0.7rem;">';
         slots.forEach(slot => {
             if (emissary[slot.key]) {
                 html += `<span title="${slot.label}: Equipped" style="opacity:1;">${slot.icon}</span>`;
@@ -71,6 +78,15 @@
             } else {
                 html += `<span title="Rune ${i+1}: Empty" style="opacity:0.2;">[ ]</span>`;
             }
+        }
+        html += '</div>';
+
+        // Bonus row (only if there are bonuses)
+        if (totalEmber > 0 || totalXP > 0) {
+            html += `<div style="font-size:0.6rem; color:#ffa500;">`;
+            if (totalEmber > 0) html += `+${totalEmber}% 🔥`;
+            if (totalXP > 0) html += ` +${totalXP}% ⭐`;
+            html += `</div>`;
         }
 
         html += '</div>';
@@ -435,28 +451,58 @@
             speed_boost: 0
         };
 
-        // Items equipados
+        // Bonus tables by rarity - ITEMS
+        const itemBonusByRarity = {
+            'common':    { ember: 3,  xp: 2,  energy: 0, death: 0, speed: 0 },
+            'uncommon':  { ember: 5,  xp: 4,  energy: 2, death: 0, speed: 0 },
+            'rare':      { ember: 8,  xp: 6,  energy: 3, death: 2, speed: 0 },
+            'epic':      { ember: 12, xp: 10, energy: 5, death: 4, speed: 3 },
+            'legendary': { ember: 18, xp: 15, energy: 8, death: 6, speed: 5 }
+        };
+
+        // Bonus tables by rarity - RUNES (balanced)
+        const runeBonusByRarity = {
+            'common':    { ember: 3,  xp: 3,  energy: 2,  death: 2,  speed: 2 },
+            'uncommon':  { ember: 5,  xp: 5,  energy: 3,  death: 3,  speed: 3 },
+            'rare':      { ember: 8,  xp: 8,  energy: 5,  death: 5,  speed: 5 },
+            'epic':      { ember: 12, xp: 12, energy: 8,  death: 8,  speed: 8 },
+            'legendary': { ember: 18, xp: 18, energy: 12, death: 12, speed: 12 }
+        };
+
+        // Sum bonuses from equipped items
         ['weapon', 'armor', 'helmet', 'accessory', 'amulet'].forEach(slot => {
             const itemId = emissary[`${slot}_id`];
-            const item = availableItems.find(i => i.id === itemId);
-            if (item && item.stats) {
-                Object.keys(totals).forEach(key => {
-                    if (item.stats[key]) totals[key] += item.stats[key];
-                });
+            if (itemId) {
+                const item = availableItems.find(i => i.id === itemId);
+                if (item) {
+                    const rarity = (item.rarity || 'common').toLowerCase();
+                    const bonus = itemBonusByRarity[rarity] || itemBonusByRarity['common'];
+                    totals.ember_boost += bonus.ember;
+                    totals.xp_boost += bonus.xp;
+                    totals.energy_reduction += bonus.energy;
+                    totals.death_protection += bonus.death;
+                    totals.speed_boost += bonus.speed;
+                }
             }
         });
 
-        // Runas equipadas
+        // Sum bonuses from equipped runes
         (emissary.rune_ids || []).forEach(runeId => {
-            const rune = availableItems.find(i => i.id === runeId);
-            if (rune && rune.stats) {
-                Object.keys(totals).forEach(key => {
-                    if (rune.stats[key]) totals[key] += rune.stats[key];
-                });
+            if (runeId) {
+                const rune = availableItems.find(i => i.id === runeId);
+                if (rune) {
+                    const rarity = (rune.rarity || 'common').toLowerCase();
+                    const bonus = runeBonusByRarity[rarity] || runeBonusByRarity['common'];
+                    totals.ember_boost += bonus.ember;
+                    totals.xp_boost += bonus.xp;
+                    totals.energy_reduction += bonus.energy;
+                    totals.death_protection += bonus.death;
+                    totals.speed_boost += bonus.speed;
+                }
             }
         });
 
-        // TODO: Agregar boosts de Land y Rank
+        // TODO: Add boosts from Land and Rank
 
         return totals;
     }
@@ -505,7 +551,7 @@
                         </div>
                         <div class="slot-item" style="display:flex; gap:10px; align-items:center;">
                             <img src="${equippedItem.image_url || '/img/crossedswords.png'}"
-                                 style="width:40px; height:40px; border:1px solid var(--border-primary); image-rendering:pixelated;"
+                                 style="width:60px; height:60px; border:1px solid var(--border-primary); image-rendering:pixelated;"
                                  onerror="this.src='/img/crossedswords.png'"/>
                             <div>
                                 <strong>${equippedItem.name}</strong><br/>
@@ -538,7 +584,7 @@
                         <div style="display:flex; gap:10px; align-items:center; margin:10px 0;">
                             <img id="item-preview-${slot.key}"
                                  src="/img/crossedswords.png"
-                                 style="width:40px; height:40px; border:1px solid var(--border-dim); image-rendering:pixelated; opacity:0.5;"
+                                 style="width:60px; height:60px; border:1px solid var(--border-dim); image-rendering:pixelated; opacity:0.5;"
                                  onerror="this.src='/img/crossedswords.png'"/>
                             <select class="equipment-select" data-slot="${slot.key}"
                                     onchange="updateItemPreview(this, '${slot.key}')"
@@ -570,7 +616,7 @@
                         </div>
                         <div class="slot-item" style="display:flex; gap:10px; align-items:center;">
                             <img src="${equippedRune.image_url || '/img/runes.png'}"
-                                 style="width:40px; height:40px; border:1px solid var(--border-primary); image-rendering:pixelated;"
+                                 style="width:60px; height:60px; border:1px solid var(--border-primary); image-rendering:pixelated;"
                                  onerror="this.src='/img/runes.png'"/>
                             <div>
                                 <strong>${equippedRune.name}</strong><br/>
@@ -603,7 +649,7 @@
                         <div style="display:flex; gap:10px; align-items:center; margin:10px 0;">
                             <img id="rune-preview-${i}"
                                  src="/img/runes.png"
-                                 style="width:40px; height:40px; border:1px solid var(--border-dim); image-rendering:pixelated; opacity:0.5;"
+                                 style="width:60px; height:60px; border:1px solid var(--border-dim); image-rendering:pixelated; opacity:0.5;"
                                  onerror="this.src='/img/runes.png'"/>
                             <select class="rune-select" data-rune-index="${i}"
                                     onchange="updateRunePreview(this, ${i})"
