@@ -98,6 +98,101 @@
         return html;
     }
 
+    // Map IPFS item types to valid equipment slot types
+    // IPFS may return: "Item", "Ranged Weapon", "Melee Weapon", "Pendant", etc.
+    // Slots expect: "weapon", "armor", "helmet", "accessory", "amulet", "rune"
+    function mapItemTypeToSlot(ipfsType) {
+        if (!ipfsType) return 'accessory'; // default fallback
+
+        const type = String(ipfsType).toLowerCase().trim();
+
+        const mapping = {
+            // Weapons
+            'weapon': 'weapon',
+            'weapons': 'weapon',
+            'melee weapon': 'weapon',
+            'ranged weapon': 'weapon',
+            'bow': 'weapon',
+            'sword': 'weapon',
+            'axe': 'weapon',
+            'dagger': 'weapon',
+            'staff': 'weapon',
+            'wand': 'weapon',
+            'spear': 'weapon',
+            'mace': 'weapon',
+            'crossbow': 'weapon',
+            'hunting bow': 'weapon',
+
+            // Armor
+            'armor': 'armor',
+            'armour': 'armor',
+            'chest': 'armor',
+            'chestplate': 'armor',
+            'body armor': 'armor',
+            'body': 'armor',
+            'torso': 'armor',
+            'plate': 'armor',
+
+            // Helmet
+            'helmet': 'helmet',
+            'helm': 'helmet',
+            'head': 'helmet',
+            'headgear': 'helmet',
+            'cap': 'helmet',
+            'crown': 'helmet',
+            'hood': 'helmet',
+            'mask': 'helmet',
+
+            // Accessory (rings, gloves, boots, etc)
+            'accessory': 'accessory',
+            'accessories': 'accessory',
+            'ring': 'accessory',
+            'rings': 'accessory',
+            'gloves': 'accessory',
+            'gauntlet': 'accessory',
+            'gauntlets': 'accessory',
+            'boots': 'accessory',
+            'belt': 'accessory',
+            'bracelet': 'accessory',
+            'trinket': 'accessory',
+            'charm': 'accessory',
+
+            // Amulet (necklaces, pendants)
+            'amulet': 'amulet',
+            'amulets': 'amulet',
+            'necklace': 'amulet',
+            'pendant': 'amulet',
+            'stone pendant': 'amulet',
+            'talisman': 'amulet',
+            'medallion': 'amulet',
+            'locket': 'amulet',
+
+            // Rune (should come from EmberRunes contract, but just in case)
+            'rune': 'rune',
+            'runes': 'rune',
+
+            // Generic "Item" type - try to infer from name or default to accessory
+            'item': 'accessory',
+            'items': 'accessory'
+        };
+
+        // Direct match
+        if (mapping[type]) {
+            return mapping[type];
+        }
+
+        // Partial match - check if any key is contained in the type
+        for (const [key, value] of Object.entries(mapping)) {
+            if (type.includes(key)) {
+                return value;
+            }
+        }
+
+        // Default fallback
+        console.warn(`⚠️ Unknown item type: "${ipfsType}", defaulting to 'accessory'`);
+        return 'accessory';
+    }
+
     function calculateEquipmentCount(emissary) {
         let count = 0;
         if (emissary.weapon_id) count++;
@@ -348,9 +443,11 @@
                     item.type === slot.type && !item.equipped_by
                 );
 
-                let optionsHtml = '<option value="">-- Select --</option>';
+                // Build options with data-image attribute for preview
+                let optionsHtml = '<option value="" data-image="/img/crossedswords.png">-- Select --</option>';
                 availableForSlot.forEach(item => {
-                    optionsHtml += `<option value="${item.id}">${item.name} [${item.rarity}]</option>`;
+                    const imgUrl = item.image_url || '/img/crossedswords.png';
+                    optionsHtml += `<option value="${item.id}" data-image="${imgUrl}">${item.name} [${item.rarity}]</option>`;
                 });
 
                 slotsHtml += `
@@ -359,9 +456,17 @@
                             <span>${slot.icon} ${slot.label}</span>
                             <span style="color:#666;">[EMPTY]</span>
                         </div>
-                        <select class="equipment-select" data-slot="${slot.key}" style="width:100%; padding:8px; margin:10px 0; background:var(--bg-panel); color:var(--primary-green); border:1px solid var(--border-primary);">
-                            ${optionsHtml}
-                        </select>
+                        <div style="display:flex; gap:10px; align-items:center; margin:10px 0;">
+                            <img id="item-preview-${slot.key}"
+                                 src="/img/crossedswords.png"
+                                 style="width:40px; height:40px; border:1px solid var(--border-dim); image-rendering:pixelated; opacity:0.5;"
+                                 onerror="this.src='/img/crossedswords.png'"/>
+                            <select class="equipment-select" data-slot="${slot.key}"
+                                    onchange="updateItemPreview(this, '${slot.key}')"
+                                    style="flex:1; padding:8px; background:var(--bg-panel); color:var(--primary-green); border:1px solid var(--border-primary);">
+                                ${optionsHtml}
+                            </select>
+                        </div>
                         <button class="terminal-btn small-btn btn-equip" data-slot="${slot.key}" ${availableForSlot.length === 0 ? 'disabled' : ''}>
                             [EQUIP]
                         </button>
@@ -403,9 +508,11 @@
                     item.type === 'rune' && !item.equipped_by
                 );
 
-                let optionsHtml = '<option value="">-- Select --</option>';
+                // Build options with data-image attribute for preview
+                let optionsHtml = '<option value="" data-image="/img/runes.png">-- Select --</option>';
                 availableRunes.forEach(item => {
-                    optionsHtml += `<option value="${item.id}">${item.name} [${item.rarity}]</option>`;
+                    const imgUrl = item.image_url || '/img/runes.png';
+                    optionsHtml += `<option value="${item.id}" data-image="${imgUrl}">${item.name} [${item.rarity}]</option>`;
                 });
 
                 runesHtml += `
@@ -414,9 +521,17 @@
                             <span>◈ RUNE ${i + 1}</span>
                             <span style="color:#666;">[EMPTY]</span>
                         </div>
-                        <select class="rune-select" data-rune-index="${i}" style="width:100%; padding:8px; margin:10px 0; background:var(--bg-panel); color:var(--primary-green); border:1px solid var(--border-primary);">
-                            ${optionsHtml}
-                        </select>
+                        <div style="display:flex; gap:10px; align-items:center; margin:10px 0;">
+                            <img id="rune-preview-${i}"
+                                 src="/img/runes.png"
+                                 style="width:40px; height:40px; border:1px solid var(--border-dim); image-rendering:pixelated; opacity:0.5;"
+                                 onerror="this.src='/img/runes.png'"/>
+                            <select class="rune-select" data-rune-index="${i}"
+                                    onchange="updateRunePreview(this, ${i})"
+                                    style="flex:1; padding:8px; background:var(--bg-panel); color:var(--primary-green); border:1px solid var(--border-primary);">
+                                ${optionsHtml}
+                            </select>
+                        </div>
                         <button class="terminal-btn small-btn btn-equip-rune" data-rune-index="${i}" ${availableRunes.length === 0 ? 'disabled' : ''}>
                             [EQUIP]
                         </button>
@@ -693,6 +808,34 @@
         }
     }
 
+    // Update item preview image when dropdown selection changes
+    window.updateItemPreview = function(selectElement, slotKey) {
+        const selectedOption = selectElement.options[selectElement.selectedIndex];
+        const imageUrl = selectedOption?.getAttribute('data-image') || '/img/crossedswords.png';
+        const previewImg = document.getElementById(`item-preview-${slotKey}`);
+
+        if (previewImg) {
+            previewImg.src = imageUrl;
+            // Full opacity when item is selected, dim when empty
+            previewImg.style.opacity = selectElement.value ? '1' : '0.5';
+            previewImg.style.borderColor = selectElement.value ? 'var(--primary-green)' : 'var(--border-dim)';
+        }
+    };
+
+    // Update rune preview image when dropdown selection changes
+    window.updateRunePreview = function(selectElement, runeIndex) {
+        const selectedOption = selectElement.options[selectElement.selectedIndex];
+        const imageUrl = selectedOption?.getAttribute('data-image') || '/img/runes.png';
+        const previewImg = document.getElementById(`rune-preview-${runeIndex}`);
+
+        if (previewImg) {
+            previewImg.src = imageUrl;
+            // Full opacity when rune is selected, dim when empty
+            previewImg.style.opacity = selectElement.value ? '1' : '0.5';
+            previewImg.style.borderColor = selectElement.value ? 'var(--primary-green)' : 'var(--border-dim)';
+        }
+    };
+
     window.unequipAllItems = async function(emissaryId) {
         if (!confirm('Are you sure you want to unequip all items and runes from this emissary?')) {
             return;
@@ -957,6 +1100,7 @@
             }
 
             // Extract type and rarity from attributes
+            let rawType = null;
             if (metadata.attributes && Array.isArray(metadata.attributes)) {
                 const typeAttr = metadata.attributes.find(a =>
                     a.trait_type === 'Type' || a.trait_type === 'type' || a.trait_type === 'Item Type'
@@ -965,8 +1109,19 @@
                     a.trait_type === 'Rarity' || a.trait_type === 'rarity'
                 );
 
-                if (typeAttr) metadata.type = String(typeAttr.value).toLowerCase();
+                if (typeAttr) {
+                    rawType = String(typeAttr.value);
+                    // Use mapItemTypeToSlot to convert IPFS type to valid slot type
+                    metadata.type = mapItemTypeToSlot(rawType);
+                    console.log(`   📦 Item type mapping: "${rawType}" → "${metadata.type}"`);
+                }
                 if (rarityAttr) metadata.rarity = String(rarityAttr.value).toLowerCase();
+            }
+
+            // If no type found in attributes, try to infer from name
+            if (!metadata.type && metadata.name) {
+                metadata.type = mapItemTypeToSlot(metadata.name);
+                console.log(`   📦 Inferred type from name "${metadata.name}" → "${metadata.type}"`);
             }
 
             // Default image if missing
