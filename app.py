@@ -5972,6 +5972,118 @@ def unequip_item():
 # EQUIPMENT API (Routes used by inventory modal)
 # ---------------------------------
 
+@app.route('/api/equipment/<emissary_id>', methods=['GET'])
+def get_emissary_equipment(emissary_id):
+    """
+    Get equipment slots for an emissary.
+    Returns: weapon_id, armor_id, helmet_id, accessory_id, amulet_id, rune_ids
+    """
+    if not POSTGRESQL_AVAILABLE:
+        return jsonify({"error": "Database not available"}), 503
+
+    try:
+        conn = db.get_connection()
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+
+        cursor.execute("""
+            SELECT token_id, name, weapon_id, armor_id, helmet_id,
+                   accessory_id, amulet_id, rune_ids,
+                   dynamic_state->>'state' as state
+            FROM nfts WHERE token_id = %s
+        """, (emissary_id,))
+
+        row = cursor.fetchone()
+        db.release_connection(conn)
+
+        if not row:
+            return jsonify({"error": "Emissary not found"}), 404
+
+        return jsonify({
+            "token_id": row['token_id'],
+            "name": row['name'],
+            "state": row['state'] or 'READY',
+            "equipment": {
+                "weapon_id": row['weapon_id'],
+                "armor_id": row['armor_id'],
+                "helmet_id": row['helmet_id'],
+                "accessory_id": row['accessory_id'],
+                "amulet_id": row['amulet_id'],
+                "rune_ids": row['rune_ids'] or []
+            }
+        })
+
+    except Exception as e:
+        print(f"Error getting equipment: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/equipment/equipped-items', methods=['GET'])
+def get_equipped_items():
+    """
+    Get all equipped items for a wallet.
+    Returns a mapping of item_id -> emissary_id for quick lookup.
+    """
+    wallet = request.args.get('wallet', '').lower()
+
+    if not wallet:
+        return jsonify({"error": "wallet required"}), 400
+
+    if not POSTGRESQL_AVAILABLE:
+        return jsonify({"error": "Database not available"}), 503
+
+    try:
+        conn = db.get_connection()
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+
+        # Get all emissaries with their equipment
+        cursor.execute("""
+            SELECT token_id, name, weapon_id, armor_id, helmet_id,
+                   accessory_id, amulet_id, rune_ids
+            FROM nfts
+            WHERE last_known_owner = %s
+        """, (wallet,))
+
+        rows = cursor.fetchall()
+        db.release_connection(conn)
+
+        # Build a map of item_id -> {emissary_id, emissary_name, slot}
+        equipped_map = {}
+
+        for row in rows:
+            emissary_id = row['token_id']
+            emissary_name = row['name'] or f"#{emissary_id}"
+
+            # Check each slot
+            slots = ['weapon_id', 'armor_id', 'helmet_id', 'accessory_id', 'amulet_id']
+            for slot in slots:
+                item_id = row.get(slot)
+                if item_id:
+                    equipped_map[item_id] = {
+                        "emissary_id": emissary_id,
+                        "emissary_name": emissary_name,
+                        "slot": slot.replace('_id', '')
+                    }
+
+            # Check runes
+            rune_ids = row.get('rune_ids') or []
+            for i, rune_id in enumerate(rune_ids):
+                if rune_id:
+                    equipped_map[rune_id] = {
+                        "emissary_id": emissary_id,
+                        "emissary_name": emissary_name,
+                        "slot": f"rune_{i+1}"
+                    }
+
+        return jsonify({
+            "equipped": equipped_map,
+            "total_equipped": len(equipped_map)
+        })
+
+    except Exception as e:
+        print(f"Error getting equipped items: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
 @app.route('/api/equipment/equip', methods=['POST'])
 def equipment_equip():
     """
@@ -6007,13 +6119,22 @@ def equipment_equip():
         conn = db.get_connection()
         cursor = conn.cursor()
 
-        # Verify emissary belongs to wallet
+        # Verify emissary belongs to wallet AND check state
         cursor.execute("""
-            SELECT token_id FROM nfts WHERE token_id = %s AND last_known_owner = %s
+            SELECT token_id, dynamic_state->>'state' as state
+            FROM nfts WHERE token_id = %s AND last_known_owner = %s
         """, (emissary_id, wallet))
-        if not cursor.fetchone():
+        row = cursor.fetchone()
+
+        if not row:
             db.release_connection(conn)
             return jsonify({"error": "Emissary not found or doesn't belong to you"}), 404
+
+        # Block equipment changes if emissary is on mission
+        emissary_state = row[1] if row[1] else 'READY'
+        if emissary_state == 'ON_MISSION':
+            db.release_connection(conn)
+            return jsonify({"error": "Cannot change equipment while emissary is on a mission"}), 400
 
         # Handle runes specially (can have up to 2)
         if item_type == "rune":
@@ -6086,13 +6207,22 @@ def equipment_unequip():
         conn = db.get_connection()
         cursor = conn.cursor()
 
-        # Verify emissary belongs to wallet
+        # Verify emissary belongs to wallet AND check state
         cursor.execute("""
-            SELECT token_id FROM nfts WHERE token_id = %s AND last_known_owner = %s
+            SELECT token_id, dynamic_state->>'state' as state
+            FROM nfts WHERE token_id = %s AND last_known_owner = %s
         """, (emissary_id, wallet))
-        if not cursor.fetchone():
+        row = cursor.fetchone()
+
+        if not row:
             db.release_connection(conn)
             return jsonify({"error": "Emissary not found or doesn't belong to you"}), 404
+
+        # Block equipment changes if emissary is on mission
+        emissary_state = row[1] if row[1] else 'READY'
+        if emissary_state == 'ON_MISSION':
+            db.release_connection(conn)
+            return jsonify({"error": "Cannot change equipment while emissary is on a mission"}), 400
 
         # Handle runes (remove from array)
         if item_type == "rune" and item_id:
