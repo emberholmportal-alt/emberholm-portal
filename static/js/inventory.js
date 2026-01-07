@@ -1071,13 +1071,14 @@
             items.forEach(item => {
                 const rarityClass = `rarity-${item.rarity}`;
                 const equippedClass = item.equipped_by ? 'equipped' : '';
+                const placeholderImg = item.type === 'rune' ? '/img/runes.png' : '/img/crossedswords.png';
 
                 html += `
                     <div class="item-card ${rarityClass} ${equippedClass}">
                         <div style="display:flex; gap:20px; align-items:flex-start;">
-                            <img src="${item.image_url || '/img/items/placeholder.png'}"
+                            <img src="${item.image_url || placeholderImg}"
                                  class="item-image"
-                                 onerror="this.src='/img/items/placeholder.png'"/>
+                                 onerror="this.src='${placeholderImg}'"/>
                             <div style="flex:1;">
                                 <div class="item-name" style="color:${getRarityColor(item.rarity)};">
                                     ${item.name}
@@ -1241,7 +1242,10 @@
     };
 
     window.selectEmissaryForEquip = async function(itemId, emissaryId) {
-        if (!currentWallet) {
+        // Use currentWallet or fallback to global connectedWallet
+        const wallet = currentWallet || window.connectedWallet;
+
+        if (!wallet) {
             alert('Please connect your wallet first.');
             return;
         }
@@ -1249,16 +1253,25 @@
         try {
             const item = vaultItems.find(i => i.id === itemId);
             if (!item) {
-                alert('Item not found.');
+                alert('Item not found in vault.');
+                console.error('Item not found:', itemId, 'Available:', vaultItems.map(i => i.id));
                 return;
             }
+
+            console.log('📤 Equipping item:', {
+                wallet: wallet,
+                emissary_id: emissaryId,
+                item_id: itemId,
+                item_type: item.type,
+                token_id: item.token_id
+            });
 
             // Use single endpoint for both items and runes
             const response = await fetch('/api/equipment/equip', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    wallet: currentWallet,
+                    wallet: wallet,
                     emissary_id: emissaryId,
                     item_id: itemId,
                     item_type: item.type,  // weapon, armor, helmet, accessory, amulet, or rune

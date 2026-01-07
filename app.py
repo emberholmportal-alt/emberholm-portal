@@ -5707,76 +5707,19 @@ def get_balance():
 
 @app.route('/api/vault', methods=['GET'])
 def get_vault():
-    """Get all items in vault"""
+    """
+    Get vault items.
+    Items now come from blockchain, not database.
+    This endpoint returns empty array - frontend loads from blockchain.
+    """
     wallet = request.args.get('wallet', '').lower()
-    item_type = request.args.get('type')
 
     if not wallet:
         return jsonify({"error": "Wallet address required"}), 400
 
-    if not POSTGRESQL_AVAILABLE:
-        # Return mock data for testing
-        return jsonify({"items": []})
-
-    try:
-        conn = db.get_connection()
-        cursor = conn.cursor()
-
-        if item_type:
-            cursor.execute("""
-                SELECT i.id, i.name, i.type, i.rarity, i.image_url, i.stats, i.equipped_by,
-                       n.name as equipped_by_name
-                FROM items i
-                LEFT JOIN nfts n ON i.equipped_by = n.token_id
-                WHERE i.owner_wallet = %s AND i.type = %s
-                ORDER BY
-                    CASE i.rarity
-                        WHEN 'legendary' THEN 1
-                        WHEN 'epic' THEN 2
-                        WHEN 'rare' THEN 3
-                        WHEN 'common' THEN 4
-                    END,
-                    i.name
-            """, (wallet, item_type))
-        else:
-            cursor.execute("""
-                SELECT i.id, i.name, i.type, i.rarity, i.image_url, i.stats, i.equipped_by,
-                       n.name as equipped_by_name
-                FROM items i
-                LEFT JOIN nfts n ON i.equipped_by = n.token_id
-                WHERE i.owner_wallet = %s
-                ORDER BY
-                    CASE i.rarity
-                        WHEN 'legendary' THEN 1
-                        WHEN 'epic' THEN 2
-                        WHEN 'rare' THEN 3
-                        WHEN 'common' THEN 4
-                    END,
-                    i.name
-            """, (wallet,))
-
-        rows = cursor.fetchall()
-        items = []
-
-        for row in rows:
-            items.append({
-                "id": row[0],
-                "name": row[1],
-                "type": row[2],
-                "rarity": row[3],
-                "image_url": row[4],
-                "stats": row[5],
-                "equipped_by": row[6],
-                "equipped_by_name": row[7]
-            })
-
-        db.release_connection(conn)
-
-        return jsonify({"items": items})
-
-    except Exception as e:
-        print(f"Error getting vault: {e}")
-        return jsonify({"error": str(e)}), 500
+    # Items are loaded from blockchain on frontend
+    # This endpoint is kept for backwards compatibility
+    return jsonify({"items": []})
 
 @app.route('/api/vault/add-item', methods=['POST'])
 def add_item_to_vault():
