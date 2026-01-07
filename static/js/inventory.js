@@ -160,6 +160,24 @@
         return bonusTable[rarity] || bonusTable['common'];
     }
 
+    // Render equipped item bonuses for INVENTORY modal (inline format)
+    function renderEquippedItemBonuses(item) {
+        if (!item) return '';
+
+        const bonuses = getItemBonuses(item);
+        let parts = [];
+
+        if (bonuses.ember > 0) parts.push(`<span style="color:#ffa500;">EMBER +${bonuses.ember}%</span>`);
+        if (bonuses.xp > 0) parts.push(`<span style="color:#22c55e;">XP +${bonuses.xp}%</span>`);
+        if (bonuses.energy > 0) parts.push(`<span style="color:#3b82f6;">ENERGY -${bonuses.energy}%</span>`);
+        if (bonuses.death > 0) parts.push(`<span style="color:#a855f7;">DEATH -${bonuses.death}%</span>`);
+        if (bonuses.speed > 0) parts.push(`<span style="color:#eab308;">SPEED +${bonuses.speed}%</span>`);
+
+        if (parts.length === 0) return '';
+
+        return `<div style="font-size:0.75rem; margin-top:4px; color:#ccc;">${parts.join(' | ')}</div>`;
+    }
+
     // Format item bonuses as styled tags (for vault cards)
     function formatAttributesAsTags(attributes, item) {
         // Use rarity-based bonuses instead of IPFS attributes
@@ -345,6 +363,10 @@
             { key: 'amulet_id', icon: '/img/gem.png', name: 'Amulet' }
         ];
 
+        // Styles for equipped (orange glow) vs empty (gray) icons
+        const equippedStyle = 'width:16px; height:16px; image-rendering:pixelated; filter:sepia(100%) saturate(300%) brightness(1.1) hue-rotate(350deg) drop-shadow(0 0 2px #ffa500);';
+        const emptyStyle = 'width:16px; height:16px; image-rendering:pixelated; opacity:0.25; filter:grayscale(100%);';
+
         // Build icons row
         let iconsHtml = '<div class="equipment-icons-row" style="display:flex; gap:2px; margin:4px 0; align-items:center;">';
 
@@ -353,7 +375,7 @@
             const isEquipped = emissary[slot.key];
             iconsHtml += `<img src="${slot.icon}"
                                title="${slot.name}${isEquipped ? ': Equipped' : ': Empty'}"
-                               style="width:16px; height:16px; image-rendering:pixelated; ${!isEquipped ? 'opacity:0.3; filter:grayscale(100%);' : ''}"/>`;
+                               style="${isEquipped ? equippedStyle : emptyStyle}"/>`;
         });
 
         // Separator
@@ -365,7 +387,7 @@
             const isEquipped = runes[i];
             iconsHtml += `<img src="/img/runes.png"
                                title="Rune ${i+1}${isEquipped ? ': Equipped' : ': Empty'}"
-                               style="width:16px; height:16px; image-rendering:pixelated; ${!isEquipped ? 'opacity:0.3; filter:grayscale(100%);' : ''}"/>`;
+                               style="${isEquipped ? equippedStyle : emptyStyle}"/>`;
         }
         iconsHtml += '</div>';
 
@@ -609,7 +631,7 @@
                                  onerror="this.src='/img/crossedswords.png'"/>
                             <div>
                                 <strong>${equippedItem.name}</strong><br/>
-                                <small>${formatStats(equippedItem.stats)}</small>
+                                ${renderEquippedItemBonuses(equippedItem)}
                             </div>
                         </div>
                         <button class="terminal-btn small-btn btn-unequip" data-item-id="${equippedItem.id}" data-slot="${slot.key}" ${disabledAttr}>
@@ -674,7 +696,7 @@
                                  onerror="this.src='/img/runes.png'"/>
                             <div>
                                 <strong>${equippedRune.name}</strong><br/>
-                                <small>${formatStats(equippedRune.stats)}</small>
+                                ${renderEquippedItemBonuses(equippedRune)}
                             </div>
                         </div>
                         <button class="terminal-btn small-btn btn-unequip-rune" data-item-id="${equippedRune.id}" data-rune-index="${i}" ${disabledAttr}>
