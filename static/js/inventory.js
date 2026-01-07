@@ -184,6 +184,12 @@
     window.showInventoryModal = async function(emissaryId) {
         console.log('Opening inventory for emissary:', emissaryId);
 
+        // Sync wallet from global if not set locally
+        if (!currentWallet && window.connectedWallet) {
+            currentWallet = window.connectedWallet;
+            console.log("📲 Synced currentWallet from connectedWallet:", currentWallet);
+        }
+
         const modal = document.getElementById('inventory-modal');
         if (!modal) {
             console.error('Inventory modal not found');
@@ -292,6 +298,17 @@
     }
 
     function buildInventoryContent(emissary, availableItems) {
+        // ========== DEBUG: Log available items by type ==========
+        console.log("========== INVENTORY DEBUG ==========");
+        console.log("Total available items:", availableItems.length);
+        console.log("Items by type:");
+        ['weapon', 'armor', 'helmet', 'accessory', 'amulet', 'rune'].forEach(type => {
+            const items = availableItems.filter(i => i.type === type);
+            console.log(`  ${type}: ${items.length}`, items.map(i => ({id: i.id, name: i.name, type: i.type})));
+        });
+        console.log("All item types present:", [...new Set(availableItems.map(i => i.type))]);
+        console.log("=====================================");
+
         const slots = [
             { key: 'weapon', label: 'WEAPON', type: 'weapon', icon: '<img src="/img/dagger.png" class="pixel-icon" alt="">' },
             { key: 'armor', label: 'ARMOR', type: 'armor', icon: '<img src="/img/armor.png" class="pixel-icon" alt="">' },
@@ -312,9 +329,14 @@
                             <span>${slot.icon} ${slot.label}</span>
                             <span class="rarity-${equippedItem.rarity}">[${equippedItem.rarity.toUpperCase()}]</span>
                         </div>
-                        <div class="slot-item">
-                            <strong>${equippedItem.name}</strong><br/>
-                            <small>${formatStats(equippedItem.stats)}</small>
+                        <div class="slot-item" style="display:flex; gap:10px; align-items:center;">
+                            <img src="${equippedItem.image_url || '/img/crossedswords.png'}"
+                                 style="width:40px; height:40px; border:1px solid var(--border-primary); image-rendering:pixelated;"
+                                 onerror="this.src='/img/crossedswords.png'"/>
+                            <div>
+                                <strong>${equippedItem.name}</strong><br/>
+                                <small>${formatStats(equippedItem.stats)}</small>
+                            </div>
                         </div>
                         <button class="terminal-btn small-btn btn-unequip" data-item-id="${equippedItem.id}" data-slot="${slot.key}">
                             [UNEQUIP]
@@ -362,9 +384,14 @@
                             <span>◈ RUNE ${i + 1}</span>
                             <span class="rarity-${equippedRune.rarity}">[${equippedRune.rarity.toUpperCase()}]</span>
                         </div>
-                        <div class="slot-item">
-                            <strong>${equippedRune.name}</strong><br/>
-                            <small>${formatStats(equippedRune.stats)}</small>
+                        <div class="slot-item" style="display:flex; gap:10px; align-items:center;">
+                            <img src="${equippedRune.image_url || '/img/runes.png'}"
+                                 style="width:40px; height:40px; border:1px solid var(--border-primary); image-rendering:pixelated;"
+                                 onerror="this.src='/img/runes.png'"/>
+                            <div>
+                                <strong>${equippedRune.name}</strong><br/>
+                                <small>${formatStats(equippedRune.stats)}</small>
+                            </div>
                         </div>
                         <button class="terminal-btn small-btn btn-unequip-rune" data-item-id="${equippedRune.id}" data-rune-index="${i}">
                             [UNEQUIP]
@@ -710,9 +737,21 @@
         console.log("   Wallet:", wallet);
         console.log("   Filter:", filterType);
 
+        // Fallback to global wallet if not provided
+        if (!wallet) {
+            wallet = currentWallet || window.connectedWallet;
+            console.log("   Using fallback wallet:", wallet);
+        }
+
         if (!wallet) {
             console.warn("⚠️ No wallet provided to loadVault");
             return;
+        }
+
+        // Update currentWallet for consistency
+        if (!currentWallet && wallet) {
+            currentWallet = wallet;
+            console.log("📲 Updated currentWallet:", currentWallet);
         }
 
         const container = document.getElementById('vault-items-container');
@@ -1118,9 +1157,16 @@
 
     // Show emissary selection modal when equipping an item
     window.showEquipModal = function(itemId) {
-        if (!currentWallet) {
+        // Sync wallet from global if not set locally
+        const wallet = currentWallet || window.connectedWallet;
+        if (!wallet) {
             alert('Please connect your wallet first.');
             return;
+        }
+        // Update local currentWallet if it was null
+        if (!currentWallet && window.connectedWallet) {
+            currentWallet = window.connectedWallet;
+            console.log("📲 Synced currentWallet from connectedWallet:", currentWallet);
         }
 
         const modal = document.getElementById('select-emissary-modal');
@@ -1242,21 +1288,38 @@
     };
 
     window.selectEmissaryForEquip = async function(itemId, emissaryId) {
+        // ========== DEBUG: Log equip attempt ==========
+        console.log("========== EQUIP DEBUG ==========");
+        console.log("itemId:", itemId, "type:", typeof itemId);
+        console.log("emissaryId:", emissaryId, "type:", typeof emissaryId);
+        console.log("currentWallet:", currentWallet);
+        console.log("window.connectedWallet:", window.connectedWallet);
+        console.log("vaultItems count:", vaultItems.length);
+        console.log("vaultItems IDs:", vaultItems.map(i => i.id));
+        console.log("=================================");
+
         // Use currentWallet or fallback to global connectedWallet
         const wallet = currentWallet || window.connectedWallet;
 
         if (!wallet) {
+            console.error("❌ No wallet found - both currentWallet and connectedWallet are null");
             alert('Please connect your wallet first.');
             return;
         }
 
+        console.log("✅ Using wallet:", wallet);
+
         try {
             const item = vaultItems.find(i => i.id === itemId);
             if (!item) {
+                console.error("❌ Item not found in vaultItems");
+                console.error("   Looking for:", itemId);
+                console.error("   Available IDs:", vaultItems.map(i => i.id));
                 alert('Item not found in vault.');
-                console.error('Item not found:', itemId, 'Available:', vaultItems.map(i => i.id));
                 return;
             }
+
+            console.log("✅ Found item:", item.name, "type:", item.type);
 
             console.log('📤 Equipping item:', {
                 wallet: wallet,
