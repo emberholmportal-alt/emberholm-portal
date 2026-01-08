@@ -1572,6 +1572,7 @@
                         <div style="display:flex; gap:20px; align-items:flex-start;">
                             <img src="${item.image_url || placeholderImg}"
                                  class="item-image"
+                                 loading="lazy"
                                  onerror="this.src='${placeholderImg}'"/>
                             <div style="flex:1;">
                                 <div class="item-name" style="color:${getRarityColor(item.rarity)};">
@@ -1687,6 +1688,7 @@
             <div style="border: 1px solid ${getRarityColor(item.rarity)}; padding: 12px; margin: 15px 0; background: rgba(0,0,0,0.3);">
                 <div style="display: flex; gap: 12px; align-items: center;">
                     <img src="${item.image_url || '/img/items/placeholder.png'}"
+                         loading="lazy"
                          style="width: 48px; height: 48px; border: 1px solid var(--border-primary);"
                          onerror="this.src='/img/items/placeholder.png'"/>
                     <div>
@@ -1725,6 +1727,7 @@
                      onclick="selectEmissaryForEquip('${itemId}', '${emissary.token_id}')">
                     <div style="display: grid; grid-template-columns: 60px 1fr auto; gap: 12px; align-items: center;">
                         <img src="${emissary.image_url || '/img/emissary_placeholder.png'}"
+                             loading="lazy"
                              style="width: 60px; height: 60px; border: 1px solid var(--border-primary);"
                              onerror="this.src='/img/emissary_placeholder.png'"/>
                         <div>

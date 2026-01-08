@@ -3358,6 +3358,121 @@ let connectedWallet = null;
 // 🔥 NFTs fetched directly from blockchain + IPFS (NO backend dependency)
 let ipfsNFTsData = [];
 
+// =========================================================================
+// 🔥 PAGINATION SYSTEM FOR SCALABILITY
+// =========================================================================
+const PAGINATION_CONFIG = {
+    NFT_PAGE_SIZE: 50,      // NFTs per page
+    VAULT_PAGE_SIZE: 50,    // Vault items per page
+    PARALLEL_FETCH: 10      // Parallel IPFS fetches
+};
+
+// Pagination state
+window.paginationState = {
+    nfts: {
+        page: 0,
+        totalPages: 0,
+        allTokenIds: [],
+        loading: false
+    },
+    vault: {
+        page: 0,
+        totalPages: 0,
+        allItems: [],
+        loading: false
+    }
+};
+
+/**
+ * Load NFTs with pagination and parallel fetching for performance.
+ * @param {Array} tokenIds - Array of all token IDs owned by wallet
+ * @param {number} page - Page number to load (0-indexed)
+ * @returns {Promise<Array>} - Array of NFT data for the page
+ */
+async function loadNFTsWithPagination(tokenIds, page = 0) {
+    const pageSize = PAGINATION_CONFIG.NFT_PAGE_SIZE;
+    const parallelFetch = PAGINATION_CONFIG.PARALLEL_FETCH;
+    const totalPages = Math.ceil(tokenIds.length / pageSize);
+
+    const start = page * pageSize;
+    const end = Math.min(start + pageSize, tokenIds.length);
+    const pageTokenIds = tokenIds.slice(start, end);
+
+    console.log(`📄 Loading NFTs page ${page + 1}/${totalPages} (${pageTokenIds.length} items, IDs ${start + 1}-${end})`);
+
+    // Update pagination state
+    window.paginationState.nfts = {
+        page: page,
+        totalPages: totalPages,
+        allTokenIds: tokenIds,
+        loading: true
+    };
+
+    // Load in parallel batches for speed
+    const nftsData = [];
+    for (let i = 0; i < pageTokenIds.length; i += parallelFetch) {
+        const batch = pageTokenIds.slice(i, i + parallelFetch);
+        const batchResults = await Promise.all(
+            batch.map(tokenId => fetchNFTMetadataFromIPFS(parseInt(tokenId, 10)))
+        );
+        nftsData.push(...batchResults.filter(n => n !== null));
+
+        // Update progress
+        const progress = Math.min(100, Math.round((i + batch.length) / pageTokenIds.length * 100));
+        document.getElementById("connect-wallet-btn").textContent = `[LOADING ${progress}%...]`;
+    }
+
+    window.paginationState.nfts.loading = false;
+    console.log(`✅ Page ${page + 1} loaded: ${nftsData.length} NFTs`);
+
+    return nftsData;
+}
+
+/**
+ * Navigate to a specific page of NFTs
+ */
+async function loadNFTPage(page) {
+    const state = window.paginationState.nfts;
+    if (page < 0 || page >= state.totalPages || state.loading) return;
+
+    console.log(`🔄 Loading NFT page ${page + 1}...`);
+    ipfsNFTsData = await loadNFTsWithPagination(state.allTokenIds, page);
+
+    // Re-render the roster
+    await loadPlayerAndRender(connectedWallet);
+}
+
+/**
+ * Generate pagination controls HTML
+ */
+function renderPaginationControls(containerId, type = 'nfts') {
+    const state = window.paginationState[type];
+    if (!state || state.totalPages <= 1) return '';
+
+    const currentPage = state.page + 1;
+    const totalPages = state.totalPages;
+
+    return `
+        <div class="pagination-controls" style="display: flex; justify-content: center; align-items: center; gap: 15px; margin: 15px 0; padding: 10px; border-top: 1px solid rgba(255,165,0,0.3); border-bottom: 1px solid rgba(255,165,0,0.3);">
+            <button onclick="loadNFTPage(${state.page - 1})"
+                    ${state.page === 0 ? 'disabled style="opacity: 0.3; cursor: not-allowed;"' : 'style="cursor: pointer;"'}
+                    class="pagination-btn"
+                    style="padding: 5px 15px; background: transparent; border: 1px solid #ffa500; color: #ffa500;">
+                [◀ PREV]
+            </button>
+            <span style="color: #ffa500; font-family: 'VT323', monospace; font-size: 16px;">
+                Page ${currentPage} of ${totalPages} (${state.allTokenIds.length} total)
+            </span>
+            <button onclick="loadNFTPage(${state.page + 1})"
+                    ${state.page >= state.totalPages - 1 ? 'disabled style="opacity: 0.3; cursor: not-allowed;"' : 'style="cursor: pointer;"'}
+                    class="pagination-btn"
+                    style="padding: 5px 15px; background: transparent; border: 1px solid #ffa500; color: #ffa500;">
+                [NEXT ▶]
+            </button>
+        </div>
+    `;
+}
+
 // 🔥 Fetch NFT metadata directly from IPFS (like mint page does)
 async function fetchNFTMetadataFromIPFS(tokenId) {
     try {
@@ -3839,25 +3954,21 @@ async function connectWallet() {
             const totalSupply = await contract.totalSupply();
             console.log(`📊 Total supply for STATS: ${totalSupply.toString()}`);
 
-            // 🔥🔥🔥 FETCH IPFS METADATA DIRECTLY (like mint page does) 🔥🔥🔥
-            // This is the KEY fix - read directly from blockchain + IPFS, NO backend dependency
+            // 🔥🔥🔥 FETCH IPFS METADATA WITH PAGINATION (scalable for 35k+ NFTs) 🔥🔥🔥
+            // Uses parallel loading and pagination for performance
             if (tokenIds.length > 0) {
                 document.getElementById("connect-wallet-btn").textContent = "[LOADING METADATA...]";
                 updateGlitchSubtext("Fetching NFT metadata from IPFS...");
 
-                console.log(`🔥 Fetching IPFS metadata for ${tokenIds.length} NFTs...`);
-                ipfsNFTsData = [];
+                console.log(`🔥 Fetching IPFS metadata for ${tokenIds.length} NFTs (with pagination)...`);
 
-                for (const tokenIdStr of tokenIds) {
-                    const tokenIdNum = parseInt(tokenIdStr, 10);
-                    const nftData = await fetchNFTMetadataFromIPFS(tokenIdNum);
-                    ipfsNFTsData.push(nftData);
-                    console.log(`  ✅ Loaded: ${nftData.name} (${nftData.race_class})`);
-                }
+                // Use pagination for large collections
+                ipfsNFTsData = await loadNFTsWithPagination(tokenIds, 0);
 
-                console.log(`✅ All ${ipfsNFTsData.length} NFTs loaded from IPFS!`);
+                console.log(`✅ Page 1 loaded: ${ipfsNFTsData.length} NFTs (total: ${tokenIds.length})`);
             } else {
                 ipfsNFTsData = [];
+                window.paginationState.nfts = { page: 0, totalPages: 0, allTokenIds: [], loading: false };
             }
 
             // 🔥 OPTIONAL: Still sync to backend for game state persistence
@@ -4862,6 +4973,7 @@ async function loadPlayerAndRender(){
                         <div style="display:flex; flex-direction:column; align-items:center; gap:2px;">
                             <img src="${h.image_url || '/img/emissary-placeholder.png'}"
                                  alt="${h.name}"
+                                 loading="lazy"
                                  style="width:40px; height:40px; border:1px solid var(--line); object-fit:cover;"
                                  onerror="this.src='/img/emissary-placeholder.png'"/>
                             <div style="font-size:0.8em; color:#888;">ID: ${h.token_id}</div>
@@ -4953,7 +5065,11 @@ async function loadPlayerAndRender(){
                </button>`
             : '';
 
+        // Generate pagination controls if needed
+        const paginationControlsHtml = renderPaginationControls('roster-table-wrap', 'nfts');
+
         const rosterTableHtml = `
+            ${paginationControlsHtml}
             <table class="roster-table">
                 <thead>
                     <tr>
@@ -4971,6 +5087,7 @@ async function loadPlayerAndRender(){
                     ${tbodyRows}
                 </tbody>
             </table>
+            ${paginationControlsHtml}
         `;
         document.getElementById("roster-table-wrap").innerHTML = rosterTableHtml;
 
@@ -6373,6 +6490,7 @@ async function openMissionSendModal(missionId) {
                     <div style="display:flex; align-items:center;">
                         <img src="${hero.image_url || '/img/emissary-placeholder.png'}"
                              class="modal-hero-img"
+                             loading="lazy"
                              onerror="this.src='/img/emissary-placeholder.png'"/>
                         <div style="flex:1;">
                             <div class="modal-item-header">${hero.name || hero.token_id}</div>
@@ -6470,6 +6588,7 @@ async function openEventSendModal(eventId) {
                     <div style="display:flex; align-items:center;">
                         <img src="${hero.image_url || '/img/emissary-placeholder.png'}"
                              class="modal-hero-img"
+                             loading="lazy"
                              onerror="this.src='/img/emissary-placeholder.png'"/>
                         <div style="flex:1;">
                             <div class="modal-item-header">${hero.name || hero.token_id}</div>
@@ -6605,6 +6724,7 @@ async function openPartyMissionModal(missionId) {
                                style="width:20px; height:20px; cursor:pointer;"/>
                         <img src="${hero.image_url || '/img/emissary-placeholder.png'}"
                              class="modal-hero-img"
+                             loading="lazy"
                              onerror="this.src='/img/emissary-placeholder.png'"/>
                         <div style="flex:1;">
                             <div class="modal-item-header">${hero.name || hero.token_id}</div>

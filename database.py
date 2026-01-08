@@ -68,10 +68,55 @@ def clear_all_cache():
     _wallet_cache_expiry.clear()
     _wallet_missions_cache.clear()
     _missions_cache_expiry.clear()
+    _equipment_bonuses_cache.clear()
 
 # =========================================================================
-# CONNECTION POOL
+# 🔥 EQUIPMENT BONUSES CACHE
 # =========================================================================
+
+# Cache for equipment bonuses (5 minute TTL)
+_equipment_bonuses_cache = {}
+EQUIPMENT_CACHE_TTL = 300  # 5 minutes
+
+def get_cached_equipment_bonuses(emissary_id):
+    """
+    Get cached equipment bonuses for an emissary.
+    Returns cached value or None if not cached/expired.
+    """
+    cache_key = str(emissary_id).zfill(5)
+    now = time.time()
+
+    if cache_key in _equipment_bonuses_cache:
+        cached = _equipment_bonuses_cache[cache_key]
+        if now - cached['timestamp'] < EQUIPMENT_CACHE_TTL:
+            return cached['bonuses']
+        else:
+            # Expired
+            del _equipment_bonuses_cache[cache_key]
+    return None
+
+def set_cached_equipment_bonuses(emissary_id, bonuses):
+    """Cache equipment bonuses for an emissary."""
+    cache_key = str(emissary_id).zfill(5)
+    _equipment_bonuses_cache[cache_key] = {
+        'bonuses': bonuses,
+        'timestamp': time.time()
+    }
+
+def invalidate_equipment_cache(emissary_id):
+    """Invalidate equipment cache when equipment changes."""
+    cache_key = str(emissary_id).zfill(5)
+    if cache_key in _equipment_bonuses_cache:
+        del _equipment_bonuses_cache[cache_key]
+    print(f"🔄 Equipment cache invalidated for emissary {cache_key}")
+
+# =========================================================================
+# CONNECTION POOL (Optimized for scalability)
+# =========================================================================
+
+# Pool configuration - adjust based on deployment tier
+POOL_MIN_CONN = int(os.environ.get('DB_POOL_MIN', 5))
+POOL_MAX_CONN = int(os.environ.get('DB_POOL_MAX', 30))
 
 def init_connection_pool():
     """Inicializar connection pool de PostgreSQL (thread-safe con retry)"""
@@ -80,11 +125,11 @@ def init_connection_pool():
         for attempt in range(3):
             try:
                 connection_pool = ThreadedConnectionPool(
-                    minconn=3,
-                    maxconn=18,  # Render free tier ~20 conexiones, dejamos margen
+                    minconn=POOL_MIN_CONN,
+                    maxconn=POOL_MAX_CONN,
                     dsn=DATABASE_URL
                 )
-                print(f"✅ PostgreSQL ThreadedConnectionPool initialized (3-18 connections)")
+                print(f"✅ PostgreSQL ThreadedConnectionPool initialized ({POOL_MIN_CONN}-{POOL_MAX_CONN} connections)")
                 return True
             except Exception as e:
                 print(f"❌ Pool init attempt {attempt+1}/3 failed: {e}")
