@@ -26,15 +26,17 @@
 
     // Show a game-styled alert modal
     function showGameAlert(message, type = 'info') {
-        const icons = { success: '✓', error: '✗', info: 'ℹ' };
-        const titles = { success: 'SUCCESS', error: 'ERROR', info: 'NOTICE' };
+        const icons = { success: '✓', error: '✗', unequip: '✗', info: 'ℹ' };
+        const titles = { success: 'SUCCESS', error: 'ERROR', unequip: 'UNEQUIPPED', info: 'NOTICE' };
         const icon = icons[type] || icons.info;
         const title = titles[type] || titles.info;
 
         const overlay = document.createElement('div');
         overlay.className = 'game-modal-overlay';
+        // Use 'error' class for 'unequip' type to get red styling
+        const styleClass = type === 'unequip' ? 'error' : type;
         overlay.innerHTML = `
-            <div class="game-modal alert-modal ${type}">
+            <div class="game-modal alert-modal ${styleClass}">
                 <div class="modal-header">${icon} ${title}</div>
                 <div class="modal-body">
                     <p>${message}</p>
@@ -108,78 +110,6 @@
     // Expose globally for use in other scripts
     window.showGameAlert = showGameAlert;
     window.showGameConfirm = showGameConfirm;
-
-    // ========== EQUIPMENT INDICATORS FOR PROFILE ==========
-    // Render equipment slot icons for an emissary (used in Profile/Roster table)
-    window.renderEquipmentIndicators = function(emissary) {
-        if (!emissary) return '';
-
-        const slots = [
-            { key: 'weapon_id', icon: '⚔️', label: 'Weapon' },
-            { key: 'armor_id', icon: '🛡️', label: 'Armor' },
-            { key: 'helmet_id', icon: '🪖', label: 'Helmet' },
-            { key: 'accessory_id', icon: '💍', label: 'Accessory' },
-            { key: 'amulet_id', icon: '📿', label: 'Amulet' }
-        ];
-
-        // Count equipped items
-        let equippedCount = 0;
-        slots.forEach(slot => {
-            if (emissary[slot.key]) equippedCount++;
-        });
-
-        // Count runes
-        const runes = emissary.rune_ids || [];
-        const runeCount = runes.length;
-
-        // If nothing equipped, return empty
-        if (equippedCount === 0 && runeCount === 0) {
-            return '';
-        }
-
-        // Calculate estimated bonuses (assuming common rarity as baseline)
-        // Items: +3% EMBER, +2% XP each
-        // Runes: +3% EMBER, +3% XP each
-        const totalEmber = (equippedCount * 3) + (runeCount * 3);
-        const totalXP = (equippedCount * 2) + (runeCount * 3);
-
-        let html = '<div class="equipment-indicators" style="display:flex; flex-direction:column; gap:2px; margin-top:3px;">';
-
-        // Icons row
-        html += '<div style="display:flex; gap:2px; font-size:0.7rem;">';
-        slots.forEach(slot => {
-            if (emissary[slot.key]) {
-                html += `<span title="${slot.label}: Equipped" style="opacity:1;">${slot.icon}</span>`;
-            } else {
-                html += `<span title="${slot.label}: Empty" style="opacity:0.2;">[ ]</span>`;
-            }
-        });
-
-        // Separator
-        html += '<span style="color:#444; margin:0 2px;">|</span>';
-
-        // Rune slots (max 2)
-        for (let i = 0; i < 2; i++) {
-            if (runes[i]) {
-                html += `<span title="Rune ${i+1}: Equipped" style="opacity:1;">💎</span>`;
-            } else {
-                html += `<span title="Rune ${i+1}: Empty" style="opacity:0.2;">[ ]</span>`;
-            }
-        }
-        html += '</div>';
-
-        // Bonus row (only if there are bonuses)
-        if (totalEmber > 0 || totalXP > 0) {
-            html += `<div style="font-size:0.6rem; color:#ffa500;">`;
-            if (totalEmber > 0) html += `+${totalEmber}% 🔥`;
-            if (totalXP > 0) html += ` +${totalXP}% ⭐`;
-            html += `</div>`;
-        }
-
-        html += '</div>';
-
-        return html;
-    };
 
     // Global state
     let currentWallet = null;
@@ -492,12 +422,26 @@
         let totalEmber = 0;
         let totalXP = 0;
 
+        let itemCount = 0;
         slots.forEach(slot => {
-            if (emissary[slot.key]) { totalEmber += 3; totalXP += 2; }
+            if (emissary[slot.key]) {
+                itemCount++;
+                totalEmber += 3;
+                totalXP += 2;
+            }
         });
+
+        let runeCount = 0;
         runes.forEach(runeId => {
-            if (runeId) { totalEmber += 3; totalXP += 3; }
+            if (runeId) {
+                runeCount++;
+                totalEmber += 3;
+                totalXP += 3;
+            }
         });
+
+        // Debug: Show calculation
+        console.log(`   📊 Bonuses: ${itemCount} items (+${itemCount*3}% EMBER, +${itemCount*2}% XP) + ${runeCount} runes (+${runeCount*3}% EMBER, +${runeCount*3}% XP) = TOTAL: +${totalEmber}% EMBER, +${totalXP}% XP`);
 
         // Bonus text
         let bonusHtml = '';
@@ -1063,6 +1007,9 @@
             const data = await response.json();
             if (data.error) {
                 showGameAlert('Error: ' + data.error, 'error');
+            } else {
+                const slotName = slot.replace('_', ' ').toUpperCase();
+                showGameAlert(`${slotName} unequipped successfully!`, 'unequip');
             }
         } catch (error) {
             console.error('Error unequipping item:', error);
@@ -1118,6 +1065,8 @@
             const data = await response.json();
             if (data.error) {
                 showGameAlert('Error: ' + data.error, 'error');
+            } else {
+                showGameAlert('Rune unequipped successfully!', 'unequip');
             }
         } catch (error) {
             console.error('Error unequipping rune:', error);
@@ -1173,6 +1122,7 @@
             if (data.error) {
                 showGameAlert('Error: ' + data.error, 'error');
             } else {
+                showGameAlert('All items and runes unequipped!', 'unequip');
                 // Reload the modal
                 window.showInventoryModal(emissaryId);
             }
@@ -1687,6 +1637,7 @@
                 showGameAlert('Error: ' + data.error, 'error');
             } else {
                 console.log('✅ Item unequipped successfully');
+                showGameAlert('Item unequipped successfully!', 'unequip');
                 // Reload vault to reflect changes
                 await loadVault(wallet);
             }

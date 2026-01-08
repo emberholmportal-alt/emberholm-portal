@@ -504,6 +504,150 @@
     border-color: #3b82f6;
     box-shadow: 0 0 30px rgba(59, 130, 246, 0.3);
 }
+
+/* ============================================
+   MISSION STARTED MODAL WITH BONUSES
+   ============================================ */
+.mission-started-modal {
+    min-width: 360px;
+    max-width: 480px;
+}
+
+.mission-started-modal .modal-header {
+    color: #22c55e;
+    border-color: rgba(34, 197, 94, 0.3);
+}
+
+.mission-bonuses {
+    margin: 15px 0;
+    text-align: left;
+}
+
+.bonus-section {
+    margin: 10px 0;
+    padding: 10px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 5px;
+}
+
+.bonus-title {
+    color: #ffa500;
+    font-size: 0.75rem;
+    margin-bottom: 8px;
+    text-align: center;
+    letter-spacing: 1px;
+}
+
+.bonus-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 5px;
+}
+
+.base-value.strikethrough {
+    text-decoration: line-through;
+    color: #666;
+    font-size: 0.9rem;
+}
+
+.bonus-arrow {
+    color: #ffa500;
+    font-size: 0.9rem;
+}
+
+.boosted-value {
+    color: #22c55e;
+    font-size: 1.1rem;
+    font-weight: bold;
+}
+
+.bonus-badge {
+    display: inline-block;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    margin: 2px;
+}
+
+.bonus-badge.speed { background: rgba(168, 85, 247, 0.2); color: #a855f7; }
+.bonus-badge.energy { background: rgba(59, 130, 246, 0.2); color: #3b82f6; }
+.bonus-badge.ember { background: rgba(255, 165, 0, 0.2); color: #ffa500; }
+.bonus-badge.xp { background: rgba(34, 197, 94, 0.2); color: #22c55e; }
+.bonus-badge.death { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
+
+.rewards-grid {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 5px;
+}
+
+.mission-ends-at {
+    margin-top: 15px;
+    padding-top: 10px;
+    border-top: 1px solid rgba(255, 165, 0, 0.2);
+    font-size: 0.85rem;
+    color: #888;
+}
+
+.mission-ends-at strong {
+    color: #ffa500;
+}
+
+/* Mini badges for IN PROGRESS state */
+.active-bonuses-mini {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 3px;
+    margin-top: 4px;
+    justify-content: center;
+}
+
+.mini-badge {
+    font-size: 0.6rem;
+    padding: 2px 5px;
+    border-radius: 3px;
+    background: rgba(255, 165, 0, 0.15);
+    color: #ffa500;
+}
+
+.mini-badge.speed { background: rgba(168, 85, 247, 0.15); color: #a855f7; }
+.mini-badge.ember { background: rgba(255, 165, 0, 0.15); color: #ffa500; }
+.mini-badge.xp { background: rgba(34, 197, 94, 0.15); color: #22c55e; }
+
+/* ============================================
+   EQUIPMENT SLOT TEXT OVERFLOW FIX
+   ============================================ */
+.equipment-slot {
+    max-width: 220px;
+    overflow: hidden;
+}
+
+.equipment-slot select,
+.equipment-select {
+    width: 100%;
+    max-width: 180px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.equipment-slot select option {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 150px;
+}
+
+.equipment-slot .item-name,
+.slot-item strong {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 140px;
+}
 </style>
 
 <script>
@@ -4562,11 +4706,18 @@ async function loadPlayerAndRender(){
                 const now = new Date();
                 const elapsed = (now - startTime) / 1000 / 3600; // hours
 
+                // 🔥 Use stored duration with speed bonus if available
+                const storedDuration = h.active_mission_duration;
+                const activeBonuses = h.active_mission_bonuses || {};
+                const hasBonuses = activeBonuses.item_count > 0 || activeBonuses.rune_count > 0;
+
                 // Find mission duration from cached missions data
                 if (cachedMissionsData) {
                     const missionData = cachedMissionsData.find(m => m.id === currentMission);
                     if (missionData) {
-                        missionDuration = missionData.duration_hours;
+                        // Use stored duration (with speed bonus) if available, otherwise base duration
+                        missionDuration = storedDuration || missionData.duration_hours;
+                        const baseDuration = h.active_mission_base_duration || missionData.duration_hours;
                         const remaining = missionDuration - elapsed;
 
                         // 🔥 Difficulty color
@@ -4574,11 +4725,30 @@ async function loadPlayerAndRender(){
                         if (missionData.difficulty === "MEDIUM") diffColor = "#ffaa00";
                         if (missionData.difficulty === "HARD") diffColor = "#ff4444";
 
+                        // 🔥 Build bonus badges HTML
+                        let bonusBadgesHtml = '';
+                        if (hasBonuses) {
+                            bonusBadgesHtml = '<div class="active-bonuses-mini">';
+                            if (activeBonuses.speed_bonus > 0) bonusBadgesHtml += `<span class="mini-badge speed">⚡-${activeBonuses.speed_bonus}%</span>`;
+                            if (activeBonuses.ember_boost > 0) bonusBadgesHtml += `<span class="mini-badge ember">🔥+${activeBonuses.ember_boost}%</span>`;
+                            if (activeBonuses.xp_boost > 0) bonusBadgesHtml += `<span class="mini-badge xp">⭐+${activeBonuses.xp_boost}%</span>`;
+                            bonusBadgesHtml += '</div>';
+                        }
+
                         if (remaining <= 0) {
                             missionComplete = true;
-                            timeRemainingHtml = `<br/><small>Mission: [${currentMission}] ${missionData.name}<br/><span style="color:${diffColor};">● ${missionData.difficulty}</span><br/><span style="color:#44ff44;">✓ READY TO COMPLETE!</span></small>`;
+                            timeRemainingHtml = `<br/><small>Mission: [${currentMission}] ${missionData.name}<br/><span style="color:${diffColor};">● ${missionData.difficulty}</span>${bonusBadgesHtml}<br/><span style="color:#44ff44;">✓ READY TO COMPLETE!</span></small>`;
                         } else {
-                            timeRemainingHtml = `<br/><small>Mission: [${currentMission}] ${missionData.name}<br/><span style="color:${diffColor};">● ${missionData.difficulty}</span><br/>Remaining: ${remaining.toFixed(1)}h / ${missionDuration}h</small>`;
+                            // 🔥 Show remaining time with visual base→actual if speed bonus
+                            let durationDisplay;
+                            if (storedDuration && storedDuration < baseDuration && activeBonuses.speed_bonus > 0) {
+                                // Calculate what base remaining would be (proportionally)
+                                const baseRemaining = remaining * baseDuration / missionDuration;
+                                durationDisplay = `<span style="text-decoration:line-through;color:#666;">${baseRemaining.toFixed(1)}h</span> <span style="color:#a855f7;">→</span> <span style="color:#22c55e;font-weight:bold;">${remaining.toFixed(1)}h</span> <span style="color:#a855f7;">⚡</span>`;
+                            } else {
+                                durationDisplay = `${remaining.toFixed(1)}h / ${missionDuration}h`;
+                            }
+                            timeRemainingHtml = `<br/><small>Mission: [${currentMission}] ${missionData.name}<br/><span style="color:${diffColor};">● ${missionData.difficulty}</span>${bonusBadgesHtml}<br/>Remaining: ${durationDisplay}</small>`;
                         }
                     } else {
                         timeRemainingHtml = `<br/><small>Mission: ${currentMission}<br/>Elapsed: ${elapsed.toFixed(1)}h</small>`;
@@ -5198,15 +5368,8 @@ async function startMission(heroId, missionId, missionName) {
 
                 hideProcessingModal();
 
-                showInfoModal("MISSION STARTED",
-                    '<div><img src="/img/crossedswords.png" class="pixel-icon" alt=""> ' + result.mission_name + "</div><br/>" +
-                    "Difficulty: " + result.difficulty + "\n" +
-                    "Duration: " + result.duration_hours + "h\n\n" +
-                    "Energy Spent: " + result.energy_spent + "\n" +
-                    "Hero Energy Now: " + result.hero_energy_now + "\n\n" +
-                    "Estimated Success Rate: " + result.estimated_success_rate + "%\n\n" +
-                    "Your emissary is now locked and cannot start another mission until this one completes."
-                );
+                // Use new modal with equipment bonuses display
+                showMissionStartedModal(result);
             } catch(e) {
                 hideProcessingModal();
                 console.error(e);
@@ -5544,6 +5707,135 @@ function closeInfoModal() {
         infoModalCallback = null;
         callback();
     }
+}
+
+// Show Mission Started Modal with Equipment Bonuses (unified style)
+function showMissionStartedModal(result) {
+    const bonuses = result.equipment_bonuses || {};
+    const hasBonuses = bonuses.item_count > 0 || bonuses.rune_count > 0;
+
+    // Format duration helper
+    function formatDuration(hours) {
+        if (hours >= 1) {
+            const h = Math.floor(hours);
+            const m = Math.round((hours - h) * 60);
+            if (m > 0) return `${h}h ${m}m`;
+            return `${h}h`;
+        }
+        return `${Math.round(hours * 60)}m`;
+    }
+
+    // Format completion time
+    function formatTime(isoString) {
+        const date = new Date(isoString);
+        return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
+
+    // Get base and actual values
+    const baseDuration = result.base_duration_hours || result.duration_hours;
+    const actualDuration = result.duration_hours;
+    const durationChanged = hasBonuses && baseDuration !== actualDuration;
+
+    // Calculate base energy (reverse the reduction)
+    let baseEnergy = result.energy_spent;
+    if (hasBonuses && bonuses.energy_reduction > 0) {
+        baseEnergy = Math.round(result.energy_spent * 100 / (100 - bonuses.energy_reduction));
+    }
+    const energyChanged = hasBonuses && bonuses.energy_reduction > 0;
+
+    // Duration HTML - inline visual (base tachado → actual en verde)
+    let durationHtml = '';
+    if (durationChanged) {
+        durationHtml = `
+            <span style="text-decoration: line-through; color: #666;">${formatDuration(baseDuration)}</span>
+            <span style="color: #ffa500; margin: 0 6px;">→</span>
+            <span style="color: #22c55e; font-weight: bold; font-size: 1.1em;">${formatDuration(actualDuration)}</span>
+            <span style="background: rgba(168, 85, 247, 0.2); color: #a855f7; padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; margin-left: 8px;">⚡ -${bonuses.speed_bonus}%</span>
+        `;
+    } else {
+        durationHtml = `<strong>${formatDuration(actualDuration)}</strong>`;
+    }
+
+    // Energy HTML - inline visual (base tachado → actual en verde)
+    let energyHtml = '';
+    if (energyChanged) {
+        energyHtml = `
+            <span style="text-decoration: line-through; color: #666;">${baseEnergy}</span>
+            <span style="color: #ffa500; margin: 0 6px;">→</span>
+            <span style="color: #22c55e; font-weight: bold;">${result.energy_spent}</span>
+            <span style="background: rgba(59, 130, 246, 0.2); color: #3b82f6; padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; margin-left: 8px;">⚡ -${bonuses.energy_reduction}%</span>
+        `;
+    } else {
+        energyHtml = `<strong>${result.energy_spent}</strong>`;
+    }
+
+    // Rewards boost badges
+    let rewardsBadges = '';
+    if (hasBonuses && (bonuses.ember_boost > 0 || bonuses.xp_boost > 0 || bonuses.death_protection > 0)) {
+        let badges = [];
+        if (bonuses.ember_boost > 0) badges.push(`<span style="background: rgba(255, 165, 0, 0.2); color: #ffa500; padding: 3px 8px; border-radius: 4px; font-size: 0.75rem; margin: 2px;">🔥 +${bonuses.ember_boost}% EMBER</span>`);
+        if (bonuses.xp_boost > 0) badges.push(`<span style="background: rgba(34, 197, 94, 0.2); color: #22c55e; padding: 3px 8px; border-radius: 4px; font-size: 0.75rem; margin: 2px;">⭐ +${bonuses.xp_boost}% XP</span>`);
+        if (bonuses.death_protection > 0) badges.push(`<span style="background: rgba(239, 68, 68, 0.2); color: #ef4444; padding: 3px 8px; border-radius: 4px; font-size: 0.75rem; margin: 2px;">💀 -${bonuses.death_protection}% Death</span>`);
+
+        rewardsBadges = `
+            <div style="margin-top: 15px; padding-top: 12px; border-top: 1px solid rgba(255, 165, 0, 0.3);">
+                <div style="color: #ffa500; font-size: 0.75rem; margin-bottom: 8px; letter-spacing: 1px;">EQUIPMENT BONUSES ACTIVE</div>
+                <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 5px;">
+                    ${badges.join('')}
+                </div>
+                <div style="font-size: 0.65rem; color: #555; margin-top: 6px;">
+                    ${bonuses.item_count} item${bonuses.item_count !== 1 ? 's' : ''} + ${bonuses.rune_count} rune${bonuses.rune_count !== 1 ? 's' : ''} equipped
+                </div>
+            </div>
+        `;
+    }
+
+    // Difficulty color
+    const diffColor = result.difficulty === 'HARD' ? '#ef4444' : result.difficulty === 'MEDIUM' ? '#ffa500' : '#22c55e';
+
+    // Build modal HTML with unified game-modal style
+    const modalHtml = `
+        <div class="game-modal-overlay" id="mission-started-overlay" onclick="if(event.target === this) this.remove();">
+            <div class="game-modal" style="border-color: #22c55e; box-shadow: 0 0 30px rgba(34, 197, 94, 0.3);">
+                <div class="modal-header" style="color: #22c55e; border-color: rgba(34, 197, 94, 0.3);">⚔️ MISSION STARTED</div>
+                <div class="modal-body" style="text-align: center;">
+                    <p style="margin-bottom: 12px;">
+                        <img src="/img/crossedswords.png" class="pixel-icon" alt="">
+                        <strong style="font-size: 1.05em;">${result.mission_name}</strong>
+                    </p>
+                    <p style="margin-bottom: 15px;">
+                        Difficulty: <span style="color: ${diffColor}; font-weight: bold;">${result.difficulty}</span>
+                    </p>
+
+                    <div style="background: rgba(0,0,0,0.3); border-radius: 8px; padding: 12px; margin: 10px 0;">
+                        <div style="margin-bottom: 10px;">
+                            <span style="color: #888;">Duration: </span>
+                            ${durationHtml}
+                        </div>
+                        <div style="margin-bottom: 10px;">
+                            <span style="color: #888;">Energy: </span>
+                            ${energyHtml}
+                        </div>
+                        <div>
+                            <span style="color: #888;">Success Rate: </span>
+                            <strong style="color: #22c55e;">${result.estimated_success_rate}%</strong>
+                        </div>
+                    </div>
+
+                    ${rewardsBadges}
+
+                    <div style="margin-top: 15px; padding-top: 10px; border-top: 1px solid rgba(255, 165, 0, 0.2); font-size: 0.85rem; color: #888;">
+                        Mission ends at: <strong style="color: #ffa500;">${formatTime(result.completion_time)}</strong>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button style="border-color: #22c55e; color: #22c55e;" onclick="document.getElementById('mission-started-overlay').remove();">[ACCEPT]</button>
+                </div>
+            </div>
+        </div>
+    `;
+
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
 }
 
 // Show Confirm Modal (replaces confirm())
