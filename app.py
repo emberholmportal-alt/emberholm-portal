@@ -8212,13 +8212,13 @@ def start_mission_with_lock(wallet, hero_id, mission_id, equipment_bonuses=None)
                 cur.execute("""
                     INSERT INTO active_missions (mission_key, wallet, hero_id, mission_id,
                                                  start_time, duration_hours, is_party, hero_ids)
-                    VALUES (%s, %s, %s, %s, %s, %s, FALSE, ARRAY[%s])
+                    VALUES (%s, %s, %s, %s, %s, %s, FALSE, %s::jsonb)
                     ON CONFLICT (mission_key) DO UPDATE SET
                         mission_id = EXCLUDED.mission_id,
                         start_time = EXCLUDED.start_time,
                         duration_hours = EXCLUDED.duration_hours
                 """, (mission_key, wallet, hero_id_padded, mission_id,
-                      start_time, effective_duration, hero_id_padded))
+                      start_time, effective_duration, json.dumps([hero_id_padded])))
 
                 # Transaction commits via context manager
                 logger.info(f"Mission started (locked): hero={hero_id_padded}, mission={mission_id}")
