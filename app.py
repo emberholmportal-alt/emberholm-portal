@@ -3840,6 +3840,18 @@ def api_mission_start():
             "rune_count": equipment_bonuses['rune_count']
         }
 
+        # 🔍 DEBUG: Log response data
+        print(f"\n🔍 MISSION START RESPONSE DEBUG:")
+        print(f"  base_duration: {base_duration}h")
+        print(f"  effective_duration: {effective_duration}h")
+        print(f"  actual_duration_minutes: {actual_duration_minutes}m")
+        print(f"  base_energy_cost: {base_energy_cost}")
+        print(f"  cost_energy: {cost_energy}")
+        print(f"  equipment_bonuses: {equipment_bonuses}")
+        print(f"  response_data['duration']: {response_data['duration']}")
+        print(f"  response_data['energy']: {response_data['energy']}")
+        print(f"  response_data['bonuses_applied']: {response_data['bonuses_applied']}")
+
         return jsonify(response_data)
 
     except Exception as e:

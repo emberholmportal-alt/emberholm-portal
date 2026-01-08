@@ -5371,6 +5371,15 @@ async function startMission(heroId, missionId, missionName) {
 
                 const result = await res.json();
 
+                // 🔍 DEBUG: Log mission start response
+                console.log("========== MISSION START RESPONSE ==========");
+                console.log("Full response:", JSON.stringify(result, null, 2));
+                console.log("duration:", result.duration);
+                console.log("energy:", result.energy);
+                console.log("bonuses_applied:", result.bonuses_applied);
+                console.log("equipment_bonuses:", result.equipment_bonuses);
+                console.log("=============================================");
+
                 // Update UI BEFORE hiding loading modal to prevent double-clicks
                 await loadPlayerAndRender();
                 fetchStatsAndRender();
@@ -5720,12 +5729,25 @@ function closeInfoModal() {
 
 // Show Mission Started Modal with Equipment Bonuses (compact unified style)
 function showMissionStartedModal(result) {
+    // 🔍 DEBUG: Log modal input
+    console.log("========== MODAL showMissionStartedModal ==========");
+    console.log("result.duration:", result.duration);
+    console.log("result.energy:", result.energy);
+    console.log("result.bonuses_applied:", result.bonuses_applied);
+    console.log("result.equipment_bonuses:", result.equipment_bonuses);
+    console.log("result.duration_hours:", result.duration_hours);
+    console.log("result.base_duration_hours:", result.base_duration_hours);
+
     // Get bonuses from both formats for compatibility
     const bonuses = result.bonuses_applied || {};
     const equipBonuses = result.equipment_bonuses || {};
     const hasSpeedBonus = (bonuses.speed || 0) > 0;
     const hasEnergyBonus = (bonuses.energy || 0) > 0;
     const hasAnyRewardBonus = (bonuses.ember || 0) > 0 || (bonuses.xp || 0) > 0 || (bonuses.death || 0) > 0;
+
+    console.log("bonuses:", bonuses);
+    console.log("hasSpeedBonus:", hasSpeedBonus);
+    console.log("hasEnergyBonus:", hasEnergyBonus);
 
     // Format duration in hours and minutes
     function formatHoursMinutes(minutes) {
@@ -5745,6 +5767,10 @@ function showMissionStartedModal(result) {
     // Get duration values (use new format or fallback to old)
     const baseDurationMinutes = result.duration ? (result.duration.base_hours * 60) : ((result.base_duration_hours || result.duration_hours) * 60);
     const actualDurationMinutes = result.duration ? result.duration.actual_minutes : (result.duration_hours * 60);
+
+    console.log("baseDurationMinutes:", baseDurationMinutes);
+    console.log("actualDurationMinutes:", actualDurationMinutes);
+    console.log("===================================================");
 
     // Get energy values (use new format or fallback to old)
     const baseEnergy = result.energy ? result.energy.base : result.energy_spent;
