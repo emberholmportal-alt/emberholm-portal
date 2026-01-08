@@ -250,6 +250,30 @@ CHAIN_ID = 8453
 EMBER_RUNES_CONTRACT = "0xDa2D1085053c3700645a13498293D17c1cc3f595"
 EMBER_ITEMS_CONTRACT = "0xCE71702CE99Bc927216e64d57e4BD19254Ac28bA"
 
+# 🔥 IPFS CIDs for Items and Runes metadata
+ITEMS_METADATA_CID = "bafybeibs6mm5rghbpld7twbj35dbpryrfimmqkbnkev6ufs4kpbp343wfm"
+RUNES_METADATA_CID = "bafybeiajq22kxgm764srr55wsiz4t65so5laxe2nmrryzgailzpmfes3nq"
+
+# 🎮 EQUIPMENT BONUS TABLES (matches frontend inventory.js)
+ITEM_BONUSES = {
+    'common':    {'ember': 3,  'xp': 2,  'energy': 0, 'death': 0, 'speed': 0},
+    'uncommon':  {'ember': 5,  'xp': 4,  'energy': 2, 'death': 0, 'speed': 0},
+    'rare':      {'ember': 8,  'xp': 6,  'energy': 3, 'death': 2, 'speed': 0},
+    'epic':      {'ember': 12, 'xp': 10, 'energy': 5, 'death': 4, 'speed': 3},
+    'legendary': {'ember': 18, 'xp': 15, 'energy': 8, 'death': 6, 'speed': 5}
+}
+
+RUNE_BONUSES = {
+    'common':    {'ember': 3,  'xp': 3,  'energy': 2,  'death': 2,  'speed': 2},
+    'uncommon':  {'ember': 5,  'xp': 5,  'energy': 3,  'death': 3,  'speed': 3},
+    'rare':      {'ember': 8,  'xp': 8,  'energy': 5,  'death': 5,  'speed': 5},
+    'epic':      {'ember': 12, 'xp': 12, 'energy': 8,  'death': 8,  'speed': 8},
+    'legendary': {'ember': 18, 'xp': 18, 'energy': 12, 'death': 12, 'speed': 12}
+}
+
+# Cache for IPFS metadata (in-memory, clears on server restart)
+_ipfs_metadata_cache = {}
+
 # Backend signer private key (MUST be set in environment)
 BACKEND_SIGNER_PRIVATE_KEY = os.environ.get('BACKEND_SIGNER_PRIVATE_KEY', '')
 
@@ -601,6 +625,157 @@ def check_and_grant_mission_achievements(token_id, total_missions):
 # Mission System - Probability & Outcome Calculation
 # ---------------------------------
 
+# 🎮 EQUIPMENT BONUS SYSTEM
+# Fetches item/rune metadata from IPFS and calculates mission bonuses
+
+import requests
+
+def fetch_ipfs_metadata(token_id: str, is_rune: bool = False) -> dict:
+    """
+    Fetch item/rune metadata from IPFS with caching.
+    Returns metadata dict with 'rarity' field, or None if fetch fails.
+    """
+    cache_key = f"{'rune' if is_rune else 'item'}_{token_id}"
+
+    # Check cache first
+    if cache_key in _ipfs_metadata_cache:
+        return _ipfs_metadata_cache[cache_key]
+
+    try:
+        # Format token ID with leading zeros (5 digits)
+        padded_id = str(token_id).zfill(5)
+        cid = RUNES_METADATA_CID if is_rune else ITEMS_METADATA_CID
+        url = f"{IPFS_GATEWAY}{cid}/{padded_id}.json"
+
+        response = requests.get(url, timeout=10)
+        if response.status_code != 200:
+            print(f"⚠️ IPFS fetch failed for {cache_key}: HTTP {response.status_code}")
+            return None
+
+        metadata = response.json()
+
+        # Extract rarity from attributes
+        rarity = 'common'  # Default
+        if 'attributes' in metadata and isinstance(metadata['attributes'], list):
+            for attr in metadata['attributes']:
+                if attr.get('trait_type', '').lower() == 'rarity':
+                    rarity = str(attr.get('value', 'common')).lower()
+                    break
+
+        metadata['rarity'] = rarity
+
+        # Cache the result
+        _ipfs_metadata_cache[cache_key] = metadata
+        print(f"📦 Cached IPFS metadata: {cache_key} → rarity={rarity}")
+
+        return metadata
+
+    except Exception as e:
+        print(f"⚠️ IPFS fetch error for {cache_key}: {e}")
+        return None
+
+
+def get_emissary_bonuses(emissary_id: str) -> dict:
+    """
+    Calculate total equipment bonuses for an emissary.
+    Queries database for equipped items/runes, fetches metadata from IPFS,
+    and sums bonuses according to rarity tables.
+
+    Returns: {
+        'ember': int,      # +% EMBER earned
+        'xp': int,         # +% XP earned
+        'energy': int,     # -% energy cost
+        'death': int,      # -% death probability
+        'speed': int,      # -% mission duration
+        'item_count': int, # Number of equipped items
+        'rune_count': int  # Number of equipped runes
+    }
+    """
+    total_bonuses = {
+        'ember': 0,
+        'xp': 0,
+        'energy': 0,
+        'death': 0,
+        'speed': 0,
+        'item_count': 0,
+        'rune_count': 0
+    }
+
+    if not POSTGRESQL_AVAILABLE:
+        print(f"⚠️ get_emissary_bonuses: Database not available")
+        return total_bonuses
+
+    try:
+        conn = db.get_connection()
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+
+        # Get equipped items and runes
+        cursor.execute("""
+            SELECT weapon_id, armor_id, helmet_id, accessory_id, amulet_id, rune_ids
+            FROM nfts WHERE token_id = %s
+        """, (emissary_id,))
+
+        row = cursor.fetchone()
+        db.release_connection(conn)
+
+        if not row:
+            print(f"⚠️ get_emissary_bonuses: Emissary {emissary_id} not found")
+            return total_bonuses
+
+        # Process equipped items (5 slots)
+        item_slots = ['weapon_id', 'armor_id', 'helmet_id', 'accessory_id', 'amulet_id']
+        for slot in item_slots:
+            item_id = row.get(slot)
+            if item_id:
+                # Fetch metadata from IPFS
+                metadata = fetch_ipfs_metadata(item_id, is_rune=False)
+                if metadata:
+                    rarity = metadata.get('rarity', 'common')
+                    bonuses = ITEM_BONUSES.get(rarity, ITEM_BONUSES['common'])
+
+                    total_bonuses['ember'] += bonuses['ember']
+                    total_bonuses['xp'] += bonuses['xp']
+                    total_bonuses['energy'] += bonuses['energy']
+                    total_bonuses['death'] += bonuses['death']
+                    total_bonuses['speed'] += bonuses['speed']
+                    total_bonuses['item_count'] += 1
+
+                    print(f"  ⚔️ Item {slot}={item_id} ({rarity}): +{bonuses['ember']}% ember, +{bonuses['xp']}% xp")
+
+        # Process equipped runes (up to 2)
+        rune_ids = row.get('rune_ids') or []
+        for rune_id in rune_ids:
+            if rune_id:
+                # Fetch metadata from IPFS
+                metadata = fetch_ipfs_metadata(rune_id, is_rune=True)
+                if metadata:
+                    rarity = metadata.get('rarity', 'common')
+                    bonuses = RUNE_BONUSES.get(rarity, RUNE_BONUSES['common'])
+
+                    total_bonuses['ember'] += bonuses['ember']
+                    total_bonuses['xp'] += bonuses['xp']
+                    total_bonuses['energy'] += bonuses['energy']
+                    total_bonuses['death'] += bonuses['death']
+                    total_bonuses['speed'] += bonuses['speed']
+                    total_bonuses['rune_count'] += 1
+
+                    print(f"  🔮 Rune {rune_id} ({rarity}): +{bonuses['ember']}% ember, +{bonuses['xp']}% xp")
+
+        print(f"📊 TOTAL BONUSES for emissary {emissary_id}: " +
+              f"ember +{total_bonuses['ember']}%, xp +{total_bonuses['xp']}%, " +
+              f"energy -{total_bonuses['energy']}%, death -{total_bonuses['death']}%, " +
+              f"speed -{total_bonuses['speed']}% " +
+              f"({total_bonuses['item_count']} items, {total_bonuses['rune_count']} runes)")
+
+        return total_bonuses
+
+    except Exception as e:
+        print(f"⚠️ get_emissary_bonuses error: {e}")
+        import traceback
+        traceback.print_exc()
+        return total_bonuses
+
+
 def get_equipment_stats(hero_token_id: str) -> dict:
     """
     Get total stats from all equipped items for a hero.
@@ -726,9 +901,11 @@ def calculate_death_protection(hero_level, hero_aura):
 
     return min(50, protection)
 
-def roll_mission_outcome(hero, mission):
+def roll_mission_outcome(hero, mission, equipment_death_protection=0):
     """
     Roll for mission outcome.
+    Args:
+        equipment_death_protection: Additional death protection % from equipment (default 0)
     Returns: ("SUCCESS", details) | ("FAILURE", details) | ("DEATH", details)
     """
     # Calculate success rate
@@ -810,7 +987,12 @@ def roll_mission_outcome(hero, mission):
             # Calculate death protection
             hero_level = calculate_level_from_xp(hero.get("dynamic_state", {}).get("xp_total", 0))
             hero_aura = hero.get("dynamic_state", {}).get("aura_level", 0)
-            protection = calculate_death_protection(hero_level, hero_aura)
+            base_protection = calculate_death_protection(hero_level, hero_aura)
+
+            # ⚔️ Add equipment death protection (capped at 80% total)
+            protection = min(80, base_protection + equipment_death_protection)
+            if equipment_death_protection > 0:
+                print(f"⚔️ Equipment death protection: {base_protection}% + {equipment_death_protection}% = {protection}%")
 
             # Reduce death chance by protection
             effective_death_chance = death_chance * (1 - protection / 100)
@@ -3477,6 +3659,25 @@ def api_mission_start():
                 except Exception as e:
                     print(f"⚠️ Error parsing buff expiration: {e}")
 
+        # ⚔️ APPLY EQUIPMENT BONUSES (energy reduction from items/runes)
+        equipment_bonuses = get_emissary_bonuses(hero_id)
+        equipment_energy_reduction = equipment_bonuses.get('energy', 0)
+        if equipment_energy_reduction > 0:
+            original_cost = cost_energy
+            cost_energy = max(1, int(cost_energy * (100 - equipment_energy_reduction) / 100))
+            print(f"⚔️ Equipment energy reduction: {original_cost} → {cost_energy} (-{equipment_energy_reduction}%)")
+
+        # ⚔️ APPLY SPEED BONUS (reduce mission duration)
+        base_duration = mission["duration_hours"]
+        equipment_speed_bonus = equipment_bonuses.get('speed', 0)
+        if equipment_speed_bonus > 0:
+            # Speed reduces duration, minimum 10% of original
+            reduced_duration = max(base_duration * 0.1, base_duration * (100 - equipment_speed_bonus) / 100)
+            effective_duration = round(reduced_duration, 2)
+            print(f"⚔️ Equipment speed bonus: {base_duration}h → {effective_duration}h (-{equipment_speed_bonus}%)")
+        else:
+            effective_duration = base_duration
+
         if energy_current < cost_energy:
             abort(400, f"Not enough energy. Required: {cost_energy}, Available: {energy_current}")
 
@@ -3496,7 +3697,7 @@ def api_mission_start():
         ds["current_mission_id"] = mission_id
         ds["last_update"] = now_utc_str()
 
-        # Track active mission
+        # Track active mission (with equipment bonuses for completion)
         active_missions = load_active_missions()
         mission_key = f"{wallet}_{hero_id}"
         active_missions[mission_key] = {
@@ -3504,7 +3705,9 @@ def api_mission_start():
             "hero_id": hero_id,
             "mission_id": mission_id,
             "start_time": ds["mission_start_time"],
-            "duration_hours": mission["duration_hours"]
+            "duration_hours": effective_duration,
+            "base_duration_hours": base_duration,
+            "equipment_bonuses": equipment_bonuses  # Store for completion rewards
         }
 
         print(f"\n🔥 SAVING ACTIVE MISSION:")
@@ -3513,7 +3716,8 @@ def api_mission_start():
         print(f"  Hero ID: {hero_id}")
         print(f"  Mission ID: {mission_id}")
         print(f"  Start Time: {ds['mission_start_time']}")
-        print(f"  Duration: {mission['duration_hours']}h")
+        print(f"  Duration: {effective_duration}h (base: {base_duration}h)")
+        print(f"  Equipment Bonuses: ember +{equipment_bonuses['ember']}%, xp +{equipment_bonuses['xp']}%")
         print(f"  Total active missions: {len(active_missions)}")
 
         save_active_missions(active_missions)
@@ -3556,19 +3760,42 @@ def api_mission_start():
         # Calculate success rate for display
         success_rate, bonus = calculate_mission_success_rate(hero, mission)
 
-        return jsonify({
+        # Build response with equipment bonuses
+        response_data = {
             "success": True,
             "hero_id": hero_id,
             "mission_id": mission_id,
             "mission_name": mission["name"],
             "energy_spent": cost_energy,
             "hero_energy_now": ds["energy_current"],
-            "duration_hours": mission["duration_hours"],
-            "completion_time": (datetime.fromisoformat(ds["mission_start_time"].replace("Z", "+00:00")) + timedelta(hours=mission["duration_hours"])).isoformat(),
+            "duration_hours": effective_duration,
+            "base_duration_hours": base_duration,
+            "completion_time": (datetime.fromisoformat(ds["mission_start_time"].replace("Z", "+00:00")) + timedelta(hours=effective_duration)).isoformat(),
             "estimated_success_rate": success_rate,
             "difficulty": mission["difficulty"],
-            "message": f"{hero.get('name', 'Emissary')} has embarked on {mission['name']}! Duration: {mission['duration_hours']}h"
-        })
+            "message": f"{hero.get('name', 'Emissary')} has embarked on {mission['name']}!"
+        }
+
+        # Include equipment bonuses if any active
+        if equipment_bonuses['item_count'] > 0 or equipment_bonuses['rune_count'] > 0:
+            response_data["equipment_bonuses"] = {
+                "ember_boost": equipment_bonuses['ember'],
+                "xp_boost": equipment_bonuses['xp'],
+                "energy_reduction": equipment_bonuses['energy'],
+                "death_protection": equipment_bonuses['death'],
+                "speed_bonus": equipment_bonuses['speed'],
+                "item_count": equipment_bonuses['item_count'],
+                "rune_count": equipment_bonuses['rune_count']
+            }
+            # Update message with bonus info
+            if effective_duration < base_duration:
+                response_data["message"] += f" Duration: {effective_duration}h (was {base_duration}h)"
+            else:
+                response_data["message"] += f" Duration: {effective_duration}h"
+        else:
+            response_data["message"] += f" Duration: {effective_duration}h"
+
+        return jsonify(response_data)
 
     except Exception as e:
         print(f"\n❌ MISSION START ERROR:")
@@ -3576,6 +3803,110 @@ def api_mission_start():
         import traceback
         traceback.print_exc()
         return jsonify({"error": f"Mission start failed: {str(e)}"}), 500
+
+
+@app.route("/api/mission/preview", methods=["POST"])
+def api_mission_preview():
+    """
+    Preview mission with equipment bonuses applied.
+    Shows base values vs boosted values before starting a mission.
+    POST: { "wallet": "0x...", "hero_id": "00001", "mission_id": "001" }
+    """
+    try:
+        data = request.get_json(force=True)
+        wallet = data.get("wallet", "").lower()
+        hero_id = data.get("hero_id")
+        mission_id = data.get("mission_id")
+
+        if not wallet or not hero_id or not mission_id:
+            return jsonify({"error": "wallet, hero_id and mission_id required"}), 400
+
+        # Find mission
+        mission = None
+        for m in MISSIONS:
+            if m["id"] == mission_id:
+                mission = m
+                break
+        if mission is None:
+            for e in EVENTS:
+                if e["id"] == mission_id:
+                    mission = e
+                    break
+        if mission is None:
+            return jsonify({"error": "Mission not found"}), 404
+
+        # Get equipment bonuses for this emissary
+        equipment_bonuses = get_emissary_bonuses(hero_id)
+
+        # Calculate base values from mission config
+        base_energy_cost = mission["energy_cost"]
+        base_duration = mission["duration_hours"]
+        base_xp_reward = mission["reward_xp"]
+        base_aura_reward = mission["reward_aura"]
+        base_death_chance = mission.get("death_chance", 0)
+
+        # Calculate boosted values
+        energy_reduction = equipment_bonuses.get('energy', 0)
+        speed_bonus = equipment_bonuses.get('speed', 0)
+        xp_boost = equipment_bonuses.get('xp', 0)
+        ember_boost = equipment_bonuses.get('ember', 0)
+        death_protection = equipment_bonuses.get('death', 0)
+
+        # Apply reductions/boosts
+        boosted_energy_cost = max(1, int(base_energy_cost * (100 - energy_reduction) / 100)) if energy_reduction > 0 else base_energy_cost
+        boosted_duration = round(max(base_duration * 0.1, base_duration * (100 - speed_bonus) / 100), 2) if speed_bonus > 0 else base_duration
+        boosted_xp_reward = int(base_xp_reward * (100 + xp_boost) / 100) if xp_boost > 0 else base_xp_reward
+        boosted_aura_reward = int(base_aura_reward * (100 + ember_boost) / 100) if ember_boost > 0 else base_aura_reward
+
+        # Death protection reduces effective death chance
+        boosted_death_chance = round(base_death_chance * (100 - death_protection) / 100, 2) if death_protection > 0 and base_death_chance > 0 else base_death_chance
+
+        return jsonify({
+            "success": True,
+            "hero_id": hero_id,
+            "mission_id": mission_id,
+            "mission_name": mission["name"],
+            "difficulty": mission["difficulty"],
+
+            # Base values (without equipment)
+            "base": {
+                "energy_cost": base_energy_cost,
+                "duration_hours": base_duration,
+                "xp_reward": base_xp_reward,
+                "aura_reward": base_aura_reward,
+                "death_chance": base_death_chance
+            },
+
+            # Boosted values (with equipment bonuses)
+            "boosted": {
+                "energy_cost": boosted_energy_cost,
+                "duration_hours": boosted_duration,
+                "xp_reward": boosted_xp_reward,
+                "aura_reward": boosted_aura_reward,
+                "death_chance": boosted_death_chance
+            },
+
+            # Equipment bonus details
+            "equipment_bonuses": {
+                "energy_reduction": energy_reduction,
+                "speed_bonus": speed_bonus,
+                "xp_boost": xp_boost,
+                "ember_boost": ember_boost,
+                "death_protection": death_protection,
+                "item_count": equipment_bonuses.get('item_count', 0),
+                "rune_count": equipment_bonuses.get('rune_count', 0)
+            },
+
+            # Has any bonuses active?
+            "has_bonuses": equipment_bonuses.get('item_count', 0) > 0 or equipment_bonuses.get('rune_count', 0) > 0
+        })
+
+    except Exception as e:
+        print(f"❌ Mission preview error: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
+
 
 def handle_party_mission_complete(wallet, party_mission):
     """
@@ -3941,6 +4272,17 @@ def api_mission_complete():
 
         print(f"   ✅ Hero is on mission: {mission_id}")
 
+        # Step 7b: Retrieve active mission data with equipment bonuses
+        mission_key = f"{wallet}_{hero_id}"
+        active_mission_data = active_missions.get(mission_key, {})
+        stored_equipment_bonuses = active_mission_data.get("equipment_bonuses", {
+            'ember': 0, 'xp': 0, 'energy': 0, 'death': 0, 'speed': 0,
+            'item_count': 0, 'rune_count': 0
+        })
+        # Use stored duration if available (has speed bonus applied)
+        stored_duration = active_mission_data.get("duration_hours")
+        print(f"   📦 Active mission data found: duration={stored_duration}h, bonuses={stored_equipment_bonuses}")
+
         # Step 8: Find mission config
         print(f"\n[STEP 8] Finding mission config for {mission_id}...")
         mission = None
@@ -3963,25 +4305,28 @@ def api_mission_complete():
             print(f"   ❌ ERROR: Mission config not found for {mission_id}")
             abort(400, "Mission configuration not found")
 
-        # Step 9: Check duration
+        # Step 9: Check duration (use stored duration with speed bonus if available)
         print("\n[STEP 9] Checking mission duration...")
         start_time_str = ds.get("mission_start_time")
         if not start_time_str:
             print("   ❌ ERROR: No mission_start_time found")
             abort(400, "Mission start time not found")
 
+        # Use stored duration (with speed bonus) if available, otherwise use mission config
+        effective_duration = stored_duration if stored_duration is not None else mission["duration_hours"]
         print(f"   Start time: {start_time_str}")
         hours_elapsed = hours_since(start_time_str)
-        print(f"   Hours elapsed: {hours_elapsed:.2f} / {mission['duration_hours']} required")
+        print(f"   Hours elapsed: {hours_elapsed:.2f} / {effective_duration} required (base: {mission['duration_hours']}h)")
 
-        if hours_elapsed < mission["duration_hours"]:
-            hours_left = mission["duration_hours"] - hours_elapsed
+        if hours_elapsed < effective_duration:
+            hours_left = effective_duration - hours_elapsed
             print(f"   ❌ ERROR: Mission not complete, {hours_left:.1f}h remaining")
             abort(400, f"Mission not yet complete. {hours_left:.1f} hours remaining")
 
-        # Step 10: Roll for outcome
+        # Step 10: Roll for outcome (with equipment death protection)
         print("\n[STEP 10] Rolling mission outcome...")
-        outcome, details = roll_mission_outcome(hero, mission)
+        equipment_death_protection = stored_equipment_bonuses.get('death', 0)
+        outcome, details = roll_mission_outcome(hero, mission, equipment_death_protection)
         print(f"   Outcome: {outcome}")
         print(f"   Details: {details}")
 
@@ -3996,7 +4341,23 @@ def api_mission_complete():
             print("   Processing SUCCESS...")
             xp_gain = details["xp_gain"]
             aura_gain = details["aura_gain"]
-            print(f"   XP gain: {xp_gain}, Aura gain: {aura_gain}")
+
+            # ⚔️ APPLY STORED EQUIPMENT BONUSES (EMBER→aura, XP→xp)
+            # Note: Equipment bonuses from mission start are applied here
+            xp_bonus = stored_equipment_bonuses.get('xp', 0)
+            ember_bonus = stored_equipment_bonuses.get('ember', 0)
+
+            if xp_bonus > 0:
+                original_xp = xp_gain
+                xp_gain = int(xp_gain * (100 + xp_bonus) / 100)
+                print(f"   ⚔️ Equipment XP bonus: {original_xp} → {xp_gain} (+{xp_bonus}%)")
+
+            if ember_bonus > 0:
+                original_aura = aura_gain
+                aura_gain = int(aura_gain * (100 + ember_bonus) / 100)
+                print(f"   ⚔️ Equipment EMBER bonus: {original_aura} → {aura_gain} (+{ember_bonus}%)")
+
+            print(f"   Final XP gain: {xp_gain}, Final Aura gain: {aura_gain}")
 
             ds["xp_total"] = ds.get("xp_total", 0) + xp_gain
             ds["aura_level"] = ds.get("aura_level", 0) + aura_gain
@@ -4119,6 +4480,16 @@ def api_mission_complete():
                 "drop_rates": drops_result["rates"],
                 "message": f"🎉 SUCCESS! {hero.get('name', 'Emissary')} completed {mission['name']}!"
             }
+
+            # Include equipment bonuses in response if any active
+            if stored_equipment_bonuses.get('item_count', 0) > 0 or stored_equipment_bonuses.get('rune_count', 0) > 0:
+                response_data["equipment_bonuses"] = {
+                    "xp_boost": stored_equipment_bonuses.get('xp', 0),
+                    "ember_boost": stored_equipment_bonuses.get('ember', 0),
+                    "death_protection": stored_equipment_bonuses.get('death', 0),
+                    "item_count": stored_equipment_bonuses.get('item_count', 0),
+                    "rune_count": stored_equipment_bonuses.get('rune_count', 0)
+                }
 
             if drop_error_reason:
                 response_data["drop_error_reason"] = drop_error_reason
