@@ -504,6 +504,38 @@
     border-color: #3b82f6;
     box-shadow: 0 0 30px rgba(59, 130, 246, 0.3);
 }
+
+/* ============================================
+   EQUIPMENT SLOT TEXT OVERFLOW FIX
+   ============================================ */
+.equipment-slot {
+    max-width: 220px;
+    overflow: hidden;
+}
+
+.equipment-slot select,
+.equipment-select {
+    width: 100%;
+    max-width: 180px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.equipment-slot select option {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 150px;
+}
+
+.equipment-slot .item-name,
+.slot-item strong {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 140px;
+}
 </style>
 
 <script>
