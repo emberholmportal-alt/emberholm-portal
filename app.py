@@ -3187,6 +3187,35 @@ def api_player(wallet):
         except Exception as e:
             print(f"⚠️ Error adding equipment data to heroes: {e}")
 
+    # 🔥 Add active mission bonuses for heroes ON_MISSION
+    try:
+        active_missions = load_active_missions()
+        for hero in player_obj.get('heroes', []):
+            token_id = hero.get('token_id')
+            ds = hero.get('dynamic_state', {})
+            if token_id and ds.get('state') == 'ON_MISSION':
+                mission_key = f"{wallet}_{token_id}"
+                active_mission = active_missions.get(mission_key, {})
+                if active_mission:
+                    # Add equipment bonuses from active mission
+                    equipment_bonuses = active_mission.get('equipment_bonuses', {})
+                    if equipment_bonuses:
+                        hero['active_mission_bonuses'] = {
+                            'ember_boost': equipment_bonuses.get('ember', 0),
+                            'xp_boost': equipment_bonuses.get('xp', 0),
+                            'speed_bonus': equipment_bonuses.get('speed', 0),
+                            'energy_reduction': equipment_bonuses.get('energy', 0),
+                            'death_protection': equipment_bonuses.get('death', 0),
+                            'item_count': equipment_bonuses.get('item_count', 0),
+                            'rune_count': equipment_bonuses.get('rune_count', 0)
+                        }
+                    # Add stored duration (with speed bonus applied)
+                    if active_mission.get('duration_hours'):
+                        hero['active_mission_duration'] = active_mission.get('duration_hours')
+                        hero['active_mission_base_duration'] = active_mission.get('base_duration_hours', active_mission.get('duration_hours'))
+    except Exception as e:
+        print(f"⚠️ Error adding active mission bonuses: {e}")
+
     return jsonify(player_obj)
 
 # ---------------------------------
