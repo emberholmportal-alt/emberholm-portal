@@ -4706,6 +4706,15 @@ async function loadPlayerAndRender(){
                 const now = new Date();
                 const elapsed = (now - startTime) / 1000 / 3600; // hours
 
+                // Helper to format hours as "Xh Ym"
+                function formatHoursMinutes(hours) {
+                    const h = Math.floor(hours);
+                    const m = Math.round((hours - h) * 60);
+                    if (h > 0 && m > 0) return `${h}h ${m}m`;
+                    if (h > 0) return `${h}h`;
+                    return `${m}m`;
+                }
+
                 // 🔥 Use stored duration with speed bonus if available
                 const storedDuration = h.active_mission_duration;
                 const activeBonuses = h.active_mission_bonuses || {};
@@ -4744,17 +4753,17 @@ async function loadPlayerAndRender(){
                             if (storedDuration && storedDuration < baseDuration && activeBonuses.speed_bonus > 0) {
                                 // Calculate what base remaining would be (proportionally)
                                 const baseRemaining = remaining * baseDuration / missionDuration;
-                                durationDisplay = `<span style="text-decoration:line-through;color:#666;">${baseRemaining.toFixed(1)}h</span> <span style="color:#a855f7;">→</span> <span style="color:#22c55e;font-weight:bold;">${remaining.toFixed(1)}h</span> <span style="color:#a855f7;">⚡</span>`;
+                                durationDisplay = `<span style="text-decoration:line-through;color:#666;">${formatHoursMinutes(baseRemaining)}</span> <span style="color:#22c55e;font-weight:bold;margin-left:6px;">${formatHoursMinutes(remaining)}</span> <span style="color:#22c55e;">⚡</span>`;
                             } else {
-                                durationDisplay = `${remaining.toFixed(1)}h / ${missionDuration}h`;
+                                durationDisplay = `${formatHoursMinutes(remaining)}`;
                             }
                             timeRemainingHtml = `<br/><small>Mission: [${currentMission}] ${missionData.name}<br/><span style="color:${diffColor};">● ${missionData.difficulty}</span>${bonusBadgesHtml}<br/>Remaining: ${durationDisplay}</small>`;
                         }
                     } else {
-                        timeRemainingHtml = `<br/><small>Mission: ${currentMission}<br/>Elapsed: ${elapsed.toFixed(1)}h</small>`;
+                        timeRemainingHtml = `<br/><small>Mission: ${currentMission}<br/>Elapsed: ${formatHoursMinutes(elapsed)}</small>`;
                     }
                 } else {
-                    timeRemainingHtml = `<br/><small>Mission: ${currentMission}<br/>Elapsed: ${elapsed.toFixed(1)}h</small>`;
+                    timeRemainingHtml = `<br/><small>Mission: ${currentMission}<br/>Elapsed: ${formatHoursMinutes(elapsed)}</small>`;
                 }
             }
 
@@ -5709,20 +5718,22 @@ function closeInfoModal() {
     }
 }
 
-// Show Mission Started Modal with Equipment Bonuses (unified style)
+// Show Mission Started Modal with Equipment Bonuses (compact unified style)
 function showMissionStartedModal(result) {
-    const bonuses = result.equipment_bonuses || {};
-    const hasBonuses = bonuses.item_count > 0 || bonuses.rune_count > 0;
+    // Get bonuses from both formats for compatibility
+    const bonuses = result.bonuses_applied || {};
+    const equipBonuses = result.equipment_bonuses || {};
+    const hasSpeedBonus = (bonuses.speed || 0) > 0;
+    const hasEnergyBonus = (bonuses.energy || 0) > 0;
+    const hasAnyRewardBonus = (bonuses.ember || 0) > 0 || (bonuses.xp || 0) > 0 || (bonuses.death || 0) > 0;
 
-    // Format duration helper
-    function formatDuration(hours) {
-        if (hours >= 1) {
-            const h = Math.floor(hours);
-            const m = Math.round((hours - h) * 60);
-            if (m > 0) return `${h}h ${m}m`;
-            return `${h}h`;
-        }
-        return `${Math.round(hours * 60)}m`;
+    // Format duration in hours and minutes
+    function formatHoursMinutes(minutes) {
+        const h = Math.floor(minutes / 60);
+        const m = Math.round(minutes % 60);
+        if (h > 0 && m > 0) return `${h}h ${m}m`;
+        if (h > 0) return `${h}h`;
+        return `${m}m`;
     }
 
     // Format completion time
@@ -5731,105 +5742,84 @@ function showMissionStartedModal(result) {
         return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     }
 
-    // Get base and actual values
-    const baseDuration = result.base_duration_hours || result.duration_hours;
-    const actualDuration = result.duration_hours;
-    const durationChanged = hasBonuses && baseDuration !== actualDuration;
+    // Get duration values (use new format or fallback to old)
+    const baseDurationMinutes = result.duration ? (result.duration.base_hours * 60) : ((result.base_duration_hours || result.duration_hours) * 60);
+    const actualDurationMinutes = result.duration ? result.duration.actual_minutes : (result.duration_hours * 60);
 
-    // Calculate base energy (reverse the reduction)
-    let baseEnergy = result.energy_spent;
-    if (hasBonuses && bonuses.energy_reduction > 0) {
-        baseEnergy = Math.round(result.energy_spent * 100 / (100 - bonuses.energy_reduction));
-    }
-    const energyChanged = hasBonuses && bonuses.energy_reduction > 0;
+    // Get energy values (use new format or fallback to old)
+    const baseEnergy = result.energy ? result.energy.base : result.energy_spent;
+    const actualEnergy = result.energy ? result.energy.actual : result.energy_spent;
 
-    // Duration HTML - inline visual (base tachado → actual en verde)
-    let durationHtml = '';
-    if (durationChanged) {
+    // Duration HTML - base tachado → actual en verde (if speed bonus)
+    let durationHtml;
+    if (hasSpeedBonus && baseDurationMinutes !== actualDurationMinutes) {
         durationHtml = `
-            <span style="text-decoration: line-through; color: #666;">${formatDuration(baseDuration)}</span>
-            <span style="color: #ffa500; margin: 0 6px;">→</span>
-            <span style="color: #22c55e; font-weight: bold; font-size: 1.1em;">${formatDuration(actualDuration)}</span>
-            <span style="background: rgba(168, 85, 247, 0.2); color: #a855f7; padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; margin-left: 8px;">⚡ -${bonuses.speed_bonus}%</span>
+            <span style="text-decoration: line-through; color: #666;">${formatHoursMinutes(baseDurationMinutes)}</span>
+            <span style="color: #22c55e; font-weight: bold; margin-left: 10px;">${formatHoursMinutes(actualDurationMinutes)}</span>
+            <span style="color: #22c55e; font-size: 0.8em; margin-left: 5px;">(-${bonuses.speed}%)</span>
         `;
     } else {
-        durationHtml = `<strong>${formatDuration(actualDuration)}</strong>`;
+        durationHtml = `<strong>${formatHoursMinutes(actualDurationMinutes)}</strong>`;
     }
 
-    // Energy HTML - inline visual (base tachado → actual en verde)
-    let energyHtml = '';
-    if (energyChanged) {
+    // Energy HTML - base tachado → actual en verde (if energy bonus)
+    let energyHtml;
+    if (hasEnergyBonus && baseEnergy !== actualEnergy) {
         energyHtml = `
             <span style="text-decoration: line-through; color: #666;">${baseEnergy}</span>
-            <span style="color: #ffa500; margin: 0 6px;">→</span>
-            <span style="color: #22c55e; font-weight: bold;">${result.energy_spent}</span>
-            <span style="background: rgba(59, 130, 246, 0.2); color: #3b82f6; padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; margin-left: 8px;">⚡ -${bonuses.energy_reduction}%</span>
+            <span style="color: #22c55e; font-weight: bold; margin-left: 10px;">${actualEnergy}</span>
+            <span style="color: #22c55e; font-size: 0.8em; margin-left: 5px;">(-${bonuses.energy}%)</span>
         `;
     } else {
-        energyHtml = `<strong>${result.energy_spent}</strong>`;
+        energyHtml = `<strong>${actualEnergy}</strong>`;
     }
 
-    // Rewards boost badges
-    let rewardsBadges = '';
-    if (hasBonuses && (bonuses.ember_boost > 0 || bonuses.xp_boost > 0 || bonuses.death_protection > 0)) {
-        let badges = [];
-        if (bonuses.ember_boost > 0) badges.push(`<span style="background: rgba(255, 165, 0, 0.2); color: #ffa500; padding: 3px 8px; border-radius: 4px; font-size: 0.75rem; margin: 2px;">🔥 +${bonuses.ember_boost}% EMBER</span>`);
-        if (bonuses.xp_boost > 0) badges.push(`<span style="background: rgba(34, 197, 94, 0.2); color: #22c55e; padding: 3px 8px; border-radius: 4px; font-size: 0.75rem; margin: 2px;">⭐ +${bonuses.xp_boost}% XP</span>`);
-        if (bonuses.death_protection > 0) badges.push(`<span style="background: rgba(239, 68, 68, 0.2); color: #ef4444; padding: 3px 8px; border-radius: 4px; font-size: 0.75rem; margin: 2px;">💀 -${bonuses.death_protection}% Death</span>`);
+    // Bonuses line (compact)
+    let bonusesLine = '';
+    if (hasAnyRewardBonus) {
+        let bonusTags = [];
+        if (bonuses.ember > 0) bonusTags.push(`<span style="color: #ffa500;">🔥+${bonuses.ember}%</span>`);
+        if (bonuses.xp > 0) bonusTags.push(`<span style="color: #22c55e;">⭐+${bonuses.xp}%</span>`);
+        if (bonuses.death > 0) bonusTags.push(`<span style="color: #ef4444;">💀-${bonuses.death}%</span>`);
 
-        rewardsBadges = `
-            <div style="margin-top: 15px; padding-top: 12px; border-top: 1px solid rgba(255, 165, 0, 0.3);">
-                <div style="color: #ffa500; font-size: 0.75rem; margin-bottom: 8px; letter-spacing: 1px;">EQUIPMENT BONUSES ACTIVE</div>
-                <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 5px;">
-                    ${badges.join('')}
+        if (bonusTags.length > 0) {
+            bonusesLine = `
+                <div style="margin-top: 10px; font-size: 0.85em; color: #888;">
+                    Rewards: ${bonusTags.join(' ')}
                 </div>
-                <div style="font-size: 0.65rem; color: #555; margin-top: 6px;">
-                    ${bonuses.item_count} item${bonuses.item_count !== 1 ? 's' : ''} + ${bonuses.rune_count} rune${bonuses.rune_count !== 1 ? 's' : ''} equipped
-                </div>
-            </div>
-        `;
+            `;
+        }
     }
 
     // Difficulty color
     const diffColor = result.difficulty === 'HARD' ? '#ef4444' : result.difficulty === 'MEDIUM' ? '#ffa500' : '#22c55e';
 
-    // Build modal HTML with unified game-modal style
+    // Build compact modal
     const modalHtml = `
         <div class="game-modal-overlay" id="mission-started-overlay" onclick="if(event.target === this) this.remove();">
-            <div class="game-modal" style="border-color: #22c55e; box-shadow: 0 0 30px rgba(34, 197, 94, 0.3);">
-                <div class="modal-header" style="color: #22c55e; border-color: rgba(34, 197, 94, 0.3);">⚔️ MISSION STARTED</div>
-                <div class="modal-body" style="text-align: center;">
-                    <p style="margin-bottom: 12px;">
-                        <img src="/img/crossedswords.png" class="pixel-icon" alt="">
-                        <strong style="font-size: 1.05em;">${result.mission_name}</strong>
-                    </p>
-                    <p style="margin-bottom: 15px;">
-                        Difficulty: <span style="color: ${diffColor}; font-weight: bold;">${result.difficulty}</span>
-                    </p>
+            <div class="game-modal" style="border-color: #22c55e; box-shadow: 0 0 30px rgba(34, 197, 94, 0.3); max-width: 340px; padding: 15px 20px;">
+                <div class="modal-header" style="color: #22c55e; border-color: rgba(34, 197, 94, 0.3); font-size: 1rem; margin-bottom: 12px; padding-bottom: 8px;">⚔️ MISSION STARTED</div>
+                <div class="modal-body" style="text-align: center; font-size: 0.9rem;">
+                    <p style="margin-bottom: 8px;"><strong>${result.mission_name}</strong></p>
+                    <p style="margin-bottom: 12px;">Difficulty: <span style="color: ${diffColor}; font-weight: bold;">${result.difficulty}</span></p>
 
-                    <div style="background: rgba(0,0,0,0.3); border-radius: 8px; padding: 12px; margin: 10px 0;">
-                        <div style="margin-bottom: 10px;">
-                            <span style="color: #888;">Duration: </span>
-                            ${durationHtml}
-                        </div>
-                        <div style="margin-bottom: 10px;">
-                            <span style="color: #888;">Energy: </span>
-                            ${energyHtml}
+                    <div style="background: rgba(0,0,0,0.3); border-radius: 6px; padding: 10px; margin: 8px 0;">
+                        <div style="margin-bottom: 8px;">
+                            <span style="color: #888;">Duration: </span>${durationHtml}
                         </div>
                         <div>
-                            <span style="color: #888;">Success Rate: </span>
-                            <strong style="color: #22c55e;">${result.estimated_success_rate}%</strong>
+                            <span style="color: #888;">Energy: </span>${energyHtml}
                         </div>
                     </div>
 
-                    ${rewardsBadges}
+                    ${bonusesLine}
 
-                    <div style="margin-top: 15px; padding-top: 10px; border-top: 1px solid rgba(255, 165, 0, 0.2); font-size: 0.85rem; color: #888;">
-                        Mission ends at: <strong style="color: #ffa500;">${formatTime(result.completion_time)}</strong>
-                    </div>
+                    <p style="color: #888; font-size: 0.8em; margin-top: 12px;">
+                        Ends at: <strong style="color: #ffa500;">${formatTime(result.completion_time)}</strong>
+                    </p>
                 </div>
-                <div class="modal-footer">
-                    <button style="border-color: #22c55e; color: #22c55e;" onclick="document.getElementById('mission-started-overlay').remove();">[ACCEPT]</button>
+                <div class="modal-footer" style="margin-top: 10px;">
+                    <button style="border-color: #22c55e; color: #22c55e; padding: 8px 20px;" onclick="document.getElementById('mission-started-overlay').remove();">[ACCEPT]</button>
                 </div>
             </div>
         </div>
