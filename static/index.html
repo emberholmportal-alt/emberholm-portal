@@ -4177,16 +4177,25 @@ async function loadPlayerAndRender(){
             try {
                 const backendData = await fetchJSON(`/api/player/${encodeURIComponent(wallet)}`);
                 if (backendData && backendData.heroes) {
-                    // Merge dynamic_state from backend into IPFS data
+                    // Merge dynamic_state AND equipment data from backend into IPFS data
                     for (const ipfsHero of heroes) {
                         const backendHero = backendData.heroes.find(h => h.token_id === ipfsHero.token_id);
-                        if (backendHero && backendHero.dynamic_state) {
+                        if (backendHero) {
                             // Merge backend dynamic_state into IPFS hero
-                            ipfsHero.dynamic_state = {
-                                ...ipfsHero.dynamic_state,
-                                ...backendHero.dynamic_state
-                            };
-                            console.log(`  ✅ Merged game state for ${ipfsHero.name}`);
+                            if (backendHero.dynamic_state) {
+                                ipfsHero.dynamic_state = {
+                                    ...ipfsHero.dynamic_state,
+                                    ...backendHero.dynamic_state
+                                };
+                            }
+                            // 🔥 Merge equipment data from backend
+                            if (backendHero.weapon_id) ipfsHero.weapon_id = backendHero.weapon_id;
+                            if (backendHero.armor_id) ipfsHero.armor_id = backendHero.armor_id;
+                            if (backendHero.helmet_id) ipfsHero.helmet_id = backendHero.helmet_id;
+                            if (backendHero.accessory_id) ipfsHero.accessory_id = backendHero.accessory_id;
+                            if (backendHero.amulet_id) ipfsHero.amulet_id = backendHero.amulet_id;
+                            if (backendHero.rune_ids) ipfsHero.rune_ids = backendHero.rune_ids;
+                            console.log(`  ✅ Merged game state + equipment for ${ipfsHero.name}`);
                         }
                     }
                 }

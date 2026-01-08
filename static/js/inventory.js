@@ -355,6 +355,16 @@
     window.renderEquipmentIndicators = function(emissary) {
         if (!emissary) return '';
 
+        // Debug logging
+        console.log("🎒 renderEquipmentIndicators for:", emissary.token_id || emissary.id, {
+            weapon_id: emissary.weapon_id,
+            armor_id: emissary.armor_id,
+            helmet_id: emissary.helmet_id,
+            accessory_id: emissary.accessory_id,
+            amulet_id: emissary.amulet_id,
+            rune_ids: emissary.rune_ids
+        });
+
         const slots = [
             { key: 'weapon_id', icon: '/img/Swords.png', name: 'Weapon' },
             { key: 'armor_id', icon: '/img/shield.png', name: 'Armor' },
