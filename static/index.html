@@ -382,6 +382,128 @@
     0%, 50% { opacity: 1; }
     51%, 100% { opacity: 0; }
 }
+
+/* ============================================
+   GAME-STYLED MODALS (replace browser alerts)
+   ============================================ */
+.game-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.85);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 10000;
+    animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.game-modal {
+    background: linear-gradient(145deg, #1a1a2e, #0f0f1a);
+    border: 2px solid #ffa500;
+    border-radius: 8px;
+    padding: 20px 25px;
+    min-width: 320px;
+    max-width: 450px;
+    font-family: var(--font-main), monospace;
+    color: #e0d6c8;
+    box-shadow: 0 0 30px rgba(255, 165, 0, 0.3);
+}
+
+.game-modal .modal-header {
+    font-size: 1.1rem;
+    color: #ffa500;
+    text-align: center;
+    margin-bottom: 15px;
+    border-bottom: 1px solid rgba(255, 165, 0, 0.3);
+    padding-bottom: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.game-modal .modal-body {
+    text-align: center;
+    margin-bottom: 20px;
+    line-height: 1.5;
+    font-size: 0.95rem;
+}
+
+.game-modal .modal-body p {
+    margin: 0;
+    white-space: pre-wrap;
+}
+
+.game-modal .modal-footer {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+}
+
+.game-modal button {
+    background: transparent;
+    border: 1px solid #ffa500;
+    color: #ffa500;
+    padding: 10px 24px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 0.9rem;
+    transition: all 0.2s;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.game-modal button:hover {
+    background: rgba(255, 165, 0, 0.2);
+    box-shadow: 0 0 10px rgba(255, 165, 0, 0.3);
+}
+
+.game-modal button.btn-cancel {
+    border-color: #666;
+    color: #888;
+}
+
+.game-modal button.btn-cancel:hover {
+    background: rgba(100, 100, 100, 0.2);
+    border-color: #888;
+    color: #aaa;
+}
+
+.game-modal.alert-modal.success .modal-header {
+    color: #22c55e;
+    border-color: rgba(34, 197, 94, 0.3);
+}
+
+.game-modal.alert-modal.success {
+    border-color: #22c55e;
+    box-shadow: 0 0 30px rgba(34, 197, 94, 0.3);
+}
+
+.game-modal.alert-modal.error .modal-header {
+    color: #ef4444;
+    border-color: rgba(239, 68, 68, 0.3);
+}
+
+.game-modal.alert-modal.error {
+    border-color: #ef4444;
+    box-shadow: 0 0 30px rgba(239, 68, 68, 0.3);
+}
+
+.game-modal.alert-modal.info .modal-header {
+    color: #3b82f6;
+    border-color: rgba(59, 130, 246, 0.3);
+}
+
+.game-modal.alert-modal.info {
+    border-color: #3b82f6;
+    box-shadow: 0 0 30px rgba(59, 130, 246, 0.3);
+}
 </style>
 
 <script>
@@ -4177,16 +4299,25 @@ async function loadPlayerAndRender(){
             try {
                 const backendData = await fetchJSON(`/api/player/${encodeURIComponent(wallet)}`);
                 if (backendData && backendData.heroes) {
-                    // Merge dynamic_state from backend into IPFS data
+                    // Merge dynamic_state AND equipment data from backend into IPFS data
                     for (const ipfsHero of heroes) {
                         const backendHero = backendData.heroes.find(h => h.token_id === ipfsHero.token_id);
-                        if (backendHero && backendHero.dynamic_state) {
+                        if (backendHero) {
                             // Merge backend dynamic_state into IPFS hero
-                            ipfsHero.dynamic_state = {
-                                ...ipfsHero.dynamic_state,
-                                ...backendHero.dynamic_state
-                            };
-                            console.log(`  ✅ Merged game state for ${ipfsHero.name}`);
+                            if (backendHero.dynamic_state) {
+                                ipfsHero.dynamic_state = {
+                                    ...ipfsHero.dynamic_state,
+                                    ...backendHero.dynamic_state
+                                };
+                            }
+                            // 🔥 Merge equipment data from backend
+                            if (backendHero.weapon_id) ipfsHero.weapon_id = backendHero.weapon_id;
+                            if (backendHero.armor_id) ipfsHero.armor_id = backendHero.armor_id;
+                            if (backendHero.helmet_id) ipfsHero.helmet_id = backendHero.helmet_id;
+                            if (backendHero.accessory_id) ipfsHero.accessory_id = backendHero.accessory_id;
+                            if (backendHero.amulet_id) ipfsHero.amulet_id = backendHero.amulet_id;
+                            if (backendHero.rune_ids) ipfsHero.rune_ids = backendHero.rune_ids;
+                            console.log(`  ✅ Merged game state + equipment for ${ipfsHero.name}`);
                         }
                     }
                 }
@@ -4370,14 +4501,14 @@ async function loadPlayerAndRender(){
                 <div class="cs-equipment">
                     <div class="cs-equip-label">EQUIPMENT</div>
                     <div class="cs-equip-slots">
-                        <div class="cs-slot ${prime.weapon_id ? 'equipped' : ''}" title="Weapon"><img src="/img/dagger.png" class="pixel-icon" alt="Weapon"></div>
-                        <div class="cs-slot ${prime.armor_id ? 'equipped' : ''}" title="Armor"><img src="/img/armor.png" class="pixel-icon" alt="Armor"></div>
+                        <div class="cs-slot ${prime.weapon_id ? 'equipped' : ''}" title="Weapon"><img src="/img/Swords.png" class="pixel-icon" alt="Weapon"></div>
+                        <div class="cs-slot ${prime.armor_id ? 'equipped' : ''}" title="Armor"><img src="/img/shield.png" class="pixel-icon" alt="Armor"></div>
                         <div class="cs-slot ${prime.helmet_id ? 'equipped' : ''}" title="Helmet"><img src="/img/helmet.png" class="pixel-icon" alt="Helmet"></div>
                         <div class="cs-slot ${prime.accessory_id ? 'equipped' : ''}" title="Accessory"><img src="/img/ring.png" class="pixel-icon" alt="Accessory"></div>
-                        <div class="cs-slot ${prime.amulet_id ? 'equipped' : ''}" title="Amulet"><img src="/img/beads.png" class="pixel-icon" alt="Amulet"></div>
+                        <div class="cs-slot ${prime.amulet_id ? 'equipped' : ''}" title="Amulet"><img src="/img/gem.png" class="pixel-icon" alt="Amulet"></div>
                         <div class="cs-slot-divider">|</div>
-                        <div class="cs-slot ${runeCount >= 1 ? 'equipped' : ''}" title="Rune 1"><img src="/img/gem.png" class="pixel-icon" alt="Rune"></div>
-                        <div class="cs-slot ${runeCount >= 2 ? 'equipped' : ''}" title="Rune 2"><img src="/img/gem.png" class="pixel-icon" alt="Rune"></div>
+                        <div class="cs-slot ${runeCount >= 1 ? 'equipped' : ''}" title="Rune 1"><img src="/img/runes.png" class="pixel-icon" alt="Rune"></div>
+                        <div class="cs-slot ${runeCount >= 2 ? 'equipped' : ''}" title="Rune 2"><img src="/img/runes.png" class="pixel-icon" alt="Rune"></div>
                         <div class="cs-slot-divider">|</div>
                         <div class="cs-slot ${hasLand ? 'equipped' : ''}" title="Land"><img src="/img/crown.png" class="pixel-icon" alt="Land"></div>
                     </div>

@@ -22,6 +22,93 @@
         GATEWAY: "https://ipfs.io/ipfs/"
     };
 
+    // ========== GAME-STYLED MODALS (replace browser alerts) ==========
+
+    // Show a game-styled alert modal
+    function showGameAlert(message, type = 'info') {
+        const icons = { success: '✓', error: '✗', info: 'ℹ' };
+        const titles = { success: 'SUCCESS', error: 'ERROR', info: 'NOTICE' };
+        const icon = icons[type] || icons.info;
+        const title = titles[type] || titles.info;
+
+        const overlay = document.createElement('div');
+        overlay.className = 'game-modal-overlay';
+        overlay.innerHTML = `
+            <div class="game-modal alert-modal ${type}">
+                <div class="modal-header">${icon} ${title}</div>
+                <div class="modal-body">
+                    <p>${message}</p>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn-accept" onclick="this.closest('.game-modal-overlay').remove();">[ACCEPT]</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(overlay);
+
+        // Focus the button for keyboard accessibility
+        overlay.querySelector('button').focus();
+
+        // Close on ESC key
+        const handleEsc = (e) => {
+            if (e.key === 'Escape') {
+                overlay.remove();
+                document.removeEventListener('keydown', handleEsc);
+            }
+        };
+        document.addEventListener('keydown', handleEsc);
+    }
+
+    // Show a game-styled confirm modal (returns Promise)
+    function showGameConfirm(message, title = 'CONFIRM ACTION') {
+        return new Promise((resolve) => {
+            const overlay = document.createElement('div');
+            overlay.className = 'game-modal-overlay';
+            overlay.innerHTML = `
+                <div class="game-modal confirm-modal">
+                    <div class="modal-header">⚔️ ${title}</div>
+                    <div class="modal-body">
+                        <p>${message}</p>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn-confirm">[CONFIRM]</button>
+                        <button class="btn-cancel">[CANCEL]</button>
+                    </div>
+                </div>
+            `;
+
+            const confirmBtn = overlay.querySelector('.btn-confirm');
+            const cancelBtn = overlay.querySelector('.btn-cancel');
+
+            confirmBtn.onclick = () => {
+                overlay.remove();
+                resolve(true);
+            };
+
+            cancelBtn.onclick = () => {
+                overlay.remove();
+                resolve(false);
+            };
+
+            document.body.appendChild(overlay);
+            confirmBtn.focus();
+
+            // Close on ESC key (cancel)
+            const handleEsc = (e) => {
+                if (e.key === 'Escape') {
+                    overlay.remove();
+                    document.removeEventListener('keydown', handleEsc);
+                    resolve(false);
+                }
+            };
+            document.addEventListener('keydown', handleEsc);
+        });
+    }
+
+    // Expose globally for use in other scripts
+    window.showGameAlert = showGameAlert;
+    window.showGameConfirm = showGameConfirm;
+
     // ========== EQUIPMENT INDICATORS FOR PROFILE ==========
     // Render equipment slot icons for an emissary (used in Profile/Roster table)
     window.renderEquipmentIndicators = function(emissary) {
@@ -158,6 +245,24 @@
 
         const bonusTable = isRune ? runeBonuses : itemBonuses;
         return bonusTable[rarity] || bonusTable['common'];
+    }
+
+    // Render equipped item bonuses for INVENTORY modal (inline format)
+    function renderEquippedItemBonuses(item) {
+        if (!item) return '';
+
+        const bonuses = getItemBonuses(item);
+        let parts = [];
+
+        if (bonuses.ember > 0) parts.push(`<span style="color:#ffa500;">EMBER +${bonuses.ember}%</span>`);
+        if (bonuses.xp > 0) parts.push(`<span style="color:#22c55e;">XP +${bonuses.xp}%</span>`);
+        if (bonuses.energy > 0) parts.push(`<span style="color:#3b82f6;">ENERGY -${bonuses.energy}%</span>`);
+        if (bonuses.death > 0) parts.push(`<span style="color:#a855f7;">DEATH -${bonuses.death}%</span>`);
+        if (bonuses.speed > 0) parts.push(`<span style="color:#eab308;">SPEED +${bonuses.speed}%</span>`);
+
+        if (parts.length === 0) return '';
+
+        return `<div style="font-size:0.75rem; margin-top:4px; color:#ccc;">${parts.join(' | ')}</div>`;
     }
 
     // Format item bonuses as styled tags (for vault cards)
@@ -337,6 +442,16 @@
     window.renderEquipmentIndicators = function(emissary) {
         if (!emissary) return '';
 
+        // Debug logging
+        console.log("🎒 renderEquipmentIndicators for:", emissary.token_id || emissary.id, {
+            weapon_id: emissary.weapon_id,
+            armor_id: emissary.armor_id,
+            helmet_id: emissary.helmet_id,
+            accessory_id: emissary.accessory_id,
+            amulet_id: emissary.amulet_id,
+            rune_ids: emissary.rune_ids
+        });
+
         const slots = [
             { key: 'weapon_id', icon: '/img/Swords.png', name: 'Weapon' },
             { key: 'armor_id', icon: '/img/shield.png', name: 'Armor' },
@@ -344,6 +459,10 @@
             { key: 'accessory_id', icon: '/img/ring.png', name: 'Accessory' },
             { key: 'amulet_id', icon: '/img/gem.png', name: 'Amulet' }
         ];
+
+        // Styles for equipped (orange glow) vs empty (gray) icons
+        const equippedStyle = 'width:16px; height:16px; image-rendering:pixelated; filter:sepia(100%) saturate(300%) brightness(1.1) hue-rotate(350deg) drop-shadow(0 0 2px #ffa500);';
+        const emptyStyle = 'width:16px; height:16px; image-rendering:pixelated; opacity:0.25; filter:grayscale(100%);';
 
         // Build icons row
         let iconsHtml = '<div class="equipment-icons-row" style="display:flex; gap:2px; margin:4px 0; align-items:center;">';
@@ -353,7 +472,7 @@
             const isEquipped = emissary[slot.key];
             iconsHtml += `<img src="${slot.icon}"
                                title="${slot.name}${isEquipped ? ': Equipped' : ': Empty'}"
-                               style="width:16px; height:16px; image-rendering:pixelated; ${!isEquipped ? 'opacity:0.3; filter:grayscale(100%);' : ''}"/>`;
+                               style="${isEquipped ? equippedStyle : emptyStyle}"/>`;
         });
 
         // Separator
@@ -365,7 +484,7 @@
             const isEquipped = runes[i];
             iconsHtml += `<img src="/img/runes.png"
                                title="Rune ${i+1}${isEquipped ? ': Equipped' : ': Empty'}"
-                               style="width:16px; height:16px; image-rendering:pixelated; ${!isEquipped ? 'opacity:0.3; filter:grayscale(100%);' : ''}"/>`;
+                               style="${isEquipped ? equippedStyle : emptyStyle}"/>`;
         }
         iconsHtml += '</div>';
 
@@ -609,7 +728,7 @@
                                  onerror="this.src='/img/crossedswords.png'"/>
                             <div>
                                 <strong>${equippedItem.name}</strong><br/>
-                                <small>${formatStats(equippedItem.stats)}</small>
+                                ${renderEquippedItemBonuses(equippedItem)}
                             </div>
                         </div>
                         <button class="terminal-btn small-btn btn-unequip" data-item-id="${equippedItem.id}" data-slot="${slot.key}" ${disabledAttr}>
@@ -674,7 +793,7 @@
                                  onerror="this.src='/img/runes.png'"/>
                             <div>
                                 <strong>${equippedRune.name}</strong><br/>
-                                <small>${formatStats(equippedRune.stats)}</small>
+                                ${renderEquippedItemBonuses(equippedRune)}
                             </div>
                         </div>
                         <button class="terminal-btn small-btn btn-unequip-rune" data-item-id="${equippedRune.id}" data-rune-index="${i}" ${disabledAttr}>
@@ -901,7 +1020,7 @@
         // Use currentWallet or fallback to global
         const wallet = currentWallet || window.connectedWallet;
         if (!wallet) {
-            alert('Please connect your wallet first.');
+            showGameAlert('Please connect your wallet first.', 'error');
             return;
         }
 
@@ -921,11 +1040,11 @@
 
             const data = await response.json();
             if (data.error) {
-                alert('Error: ' + data.error);
+                showGameAlert('Error: ' + data.error, 'error');
             }
         } catch (error) {
             console.error('Error equipping item:', error);
-            alert('Failed to equip item');
+            showGameAlert('Failed to equip item', 'error');
         }
     }
 
@@ -943,11 +1062,11 @@
 
             const data = await response.json();
             if (data.error) {
-                alert('Error: ' + data.error);
+                showGameAlert('Error: ' + data.error, 'error');
             }
         } catch (error) {
             console.error('Error unequipping item:', error);
-            alert('Failed to unequip item');
+            showGameAlert('Failed to unequip item', 'error');
         }
     }
 
@@ -955,7 +1074,7 @@
         // Use currentWallet or fallback to global
         const wallet = currentWallet || window.connectedWallet;
         if (!wallet) {
-            alert('Please connect your wallet first.');
+            showGameAlert('Please connect your wallet first.', 'error');
             return;
         }
 
@@ -975,11 +1094,11 @@
 
             const data = await response.json();
             if (data.error) {
-                alert('Error: ' + data.error);
+                showGameAlert('Error: ' + data.error, 'error');
             }
         } catch (error) {
             console.error('Error equipping rune:', error);
-            alert('Failed to equip rune');
+            showGameAlert('Failed to equip rune', 'error');
         }
     }
 
@@ -998,11 +1117,11 @@
 
             const data = await response.json();
             if (data.error) {
-                alert('Error: ' + data.error);
+                showGameAlert('Error: ' + data.error, 'error');
             }
         } catch (error) {
             console.error('Error unequipping rune:', error);
-            alert('Failed to unequip rune');
+            showGameAlert('Failed to unequip rune', 'error');
         }
     }
 
@@ -1035,7 +1154,8 @@
     };
 
     window.unequipAllItems = async function(emissaryId) {
-        if (!confirm('Are you sure you want to unequip all items and runes from this emissary?')) {
+        const confirmed = await showGameConfirm('Are you sure you want to unequip all items and runes from this emissary?', 'UNEQUIP ALL');
+        if (!confirmed) {
             return;
         }
 
@@ -1051,14 +1171,14 @@
 
             const data = await response.json();
             if (data.error) {
-                alert('Error: ' + data.error);
+                showGameAlert('Error: ' + data.error, 'error');
             } else {
                 // Reload the modal
                 window.showInventoryModal(emissaryId);
             }
         } catch (error) {
             console.error('Error unequipping all items:', error);
-            alert('Failed to unequip all items');
+            showGameAlert('Failed to unequip all items', 'error');
         }
     };
 
@@ -1244,14 +1364,33 @@
                 if (equippedData.equipped) {
                     console.log(`   Found ${equippedData.total_equipped} equipped items`);
 
+                    // Helper to get emissary name from IPFS data or fallback
+                    const getEmissaryName = (emissaryId, backendName) => {
+                        // Try IPFS data first (window.currentEmissaries)
+                        if (window.currentEmissaries) {
+                            const ipfsEmissary = window.currentEmissaries.find(e =>
+                                String(e.token_id) === String(emissaryId)
+                            );
+                            if (ipfsEmissary && ipfsEmissary.name) {
+                                return ipfsEmissary.name;
+                            }
+                        }
+                        // Fallback to backend name or ID
+                        return backendName || `Emissary #${emissaryId}`;
+                    };
+
                     // Mark items as equipped
                     vaultItems.forEach(item => {
                         const equippedInfo = equippedData.equipped[item.id];
                         if (equippedInfo) {
                             item.equipped_by = equippedInfo.emissary_id;
-                            item.equipped_by_name = equippedInfo.emissary_name;
+                            // Get name from IPFS data with fallback to backend
+                            item.equipped_by_name = getEmissaryName(
+                                equippedInfo.emissary_id,
+                                equippedInfo.emissary_name
+                            );
                             item.equipped_slot = equippedInfo.slot;
-                            console.log(`   ✓ ${item.name} equipped to ${equippedInfo.emissary_name}`);
+                            console.log(`   ✓ ${item.name} equipped to ${item.equipped_by_name}`);
                         } else {
                             item.equipped_by = null;
                             item.equipped_by_name = null;
@@ -1520,11 +1659,12 @@
     window.unequipItemFromVault = async function(itemId, emissaryId, itemType) {
         const wallet = currentWallet || window.connectedWallet;
         if (!wallet) {
-            alert('Please connect your wallet first.');
+            showGameAlert('Please connect your wallet first.', 'error');
             return;
         }
 
-        if (!confirm(`Unequip this item from emissary #${emissaryId}?`)) {
+        const confirmed = await showGameConfirm(`Unequip this item from emissary #${emissaryId}?`, 'UNEQUIP ITEM');
+        if (!confirmed) {
             return;
         }
 
@@ -1544,7 +1684,7 @@
 
             const data = await response.json();
             if (data.error) {
-                alert('Error: ' + data.error);
+                showGameAlert('Error: ' + data.error, 'error');
             } else {
                 console.log('✅ Item unequipped successfully');
                 // Reload vault to reflect changes
@@ -1552,7 +1692,7 @@
             }
         } catch (error) {
             console.error('Error unequipping item:', error);
-            alert('Failed to unequip item');
+            showGameAlert('Failed to unequip item', 'error');
         }
     };
 
@@ -1561,7 +1701,7 @@
         // Sync wallet from global if not set locally
         const wallet = currentWallet || window.connectedWallet;
         if (!wallet) {
-            alert('Please connect your wallet first.');
+            showGameAlert('Please connect your wallet first.', 'error');
             return;
         }
         // Update local currentWallet if it was null
@@ -1576,7 +1716,7 @@
         // Find the item
         const item = vaultItems.find(i => i.id === itemId);
         if (!item) {
-            alert('Item not found.');
+            showGameAlert('Item not found.', 'error');
             return;
         }
 
@@ -1584,7 +1724,7 @@
         const readyEmissaries = getCurrentEmissaries().filter(e => e.state === 'READY');
 
         if (readyEmissaries.length === 0) {
-            alert('No READY emissaries available to equip items.\n\nEmissaries must be in READY state to equip items.');
+            showGameAlert('No READY emissaries available to equip items.\n\nEmissaries must be in READY state to equip items.', 'info');
             return;
         }
 
@@ -1704,7 +1844,7 @@
 
         if (!wallet) {
             console.error("❌ No wallet found - both currentWallet and connectedWallet are null");
-            alert('Please connect your wallet first.');
+            showGameAlert('Please connect your wallet first.', 'error');
             return;
         }
 
@@ -1716,7 +1856,7 @@
                 console.error("❌ Item not found in vaultItems");
                 console.error("   Looking for:", itemId);
                 console.error("   Available IDs:", vaultItems.map(i => i.id));
-                alert('Item not found in vault.');
+                showGameAlert('Item not found in vault.', 'error');
                 return;
             }
 
@@ -1746,7 +1886,7 @@
             const data = await response.json();
 
             if (response.ok && data.success) {
-                alert(`✓ ${item.name} equipped successfully!`);
+                showGameAlert(`✓ ${item.name} equipped successfully!`, 'success');
 
                 // Close modal
                 closeSelectEmissaryModal();
@@ -1761,11 +1901,11 @@
                     await window.loadProfileData();
                 }
             } else {
-                alert(`✗ Error: ${data.error || 'Failed to equip item'}`);
+                showGameAlert(`Error: ${data.error || 'Failed to equip item'}`, 'error');
             }
         } catch (error) {
             console.error('Error equipping item:', error);
-            alert('✗ Network error. Please try again.');
+            showGameAlert('Network error. Please try again.', 'error');
         }
     };
 
@@ -1780,7 +1920,7 @@
 // Show EMBER ROLL modal
 window.showEmberRoll = async function(emissaryId) {
     if (!currentWallet) {
-        alert('Please connect your wallet first');
+        showGameAlert('Please connect your wallet first', 'error');
         return;
     }
 
@@ -1790,7 +1930,7 @@ window.showEmberRoll = async function(emissaryId) {
         const data = await response.json();
 
         if (data.error) {
-            alert(`Error: ${data.error}`);
+            showGameAlert(`Error: ${data.error}`, 'error');
             return;
         }
 
@@ -1851,7 +1991,7 @@ window.showEmberRoll = async function(emissaryId) {
 
     } catch (error) {
         console.error('Error showing EMBER ROLL:', error);
-        alert('Failed to load EMBER ROLL');
+        showGameAlert('Failed to load EMBER ROLL', 'error');
     }
 };
 
@@ -2039,13 +2179,14 @@ window.performEmberRoll = async function(emissaryId) {
 
     window.performPush = async function(emissaryId, pushPercent, cost) {
         if (!currentWallet) {
-            alert('Please connect your wallet first.');
+            showGameAlert('Please connect your wallet first.', 'error');
             return;
         }
 
         // Confirm action
         const confirmMsg = `Push mission ${pushPercent}% for ${cost} $EMBER?\n\nThis will reduce the mission time immediately.`;
-        if (!confirm(confirmMsg)) {
+        const confirmed = await showGameConfirm(confirmMsg, 'EMBER PUSH');
+        if (!confirmed) {
             return;
         }
 
@@ -2063,7 +2204,7 @@ window.performEmberRoll = async function(emissaryId) {
             const data = await response.json();
 
             if (response.ok && data.success) {
-                alert(`✓ Mission accelerated by ${pushPercent}%!\n\nEMBER spent: ${data.ember_spent}\nTime reduced: ${data.time_reduced_hours}h`);
+                showGameAlert(`Mission accelerated by ${pushPercent}%!\n\nEMBER spent: ${data.ember_spent}\nTime reduced: ${data.time_reduced_hours}h`, 'success');
 
                 // Close modal
                 closePushModal();
@@ -2073,11 +2214,11 @@ window.performEmberRoll = async function(emissaryId) {
                     await window.loadProfileData();
                 }
             } else {
-                alert(`✗ Error: ${data.error || 'Failed to push mission'}`);
+                showGameAlert(`Error: ${data.error || 'Failed to push mission'}`, 'error');
             }
         } catch (error) {
             console.error('Error pushing mission:', error);
-            alert('✗ Network error. Please try again.');
+            showGameAlert('Network error. Please try again.', 'error');
         }
     };
 
@@ -2094,7 +2235,7 @@ window.performEmberRoll = async function(emissaryId) {
         // Find emissary in current roster
         const emissary = getCurrentEmissaries().find(e => String(e.token_id) === String(emissaryId));
         if (!emissary) {
-            alert('Emissary not found. Please refresh the page and try again.');
+            showGameAlert('Emissary not found. Please refresh the page and try again.', 'error');
             return;
         }
 
@@ -2273,13 +2414,14 @@ window.performEmberRoll = async function(emissaryId) {
 
     window.performRecover = async function(emissaryId, amount, cost) {
         if (!currentWallet) {
-            alert('Please connect your wallet first.');
+            showGameAlert('Please connect your wallet first.', 'error');
             return;
         }
 
         // Confirm action
         const confirmMsg = `Restore ${amount} energy for ${cost} $EMBER?`;
-        if (!confirm(confirmMsg)) {
+        const confirmed = await showGameConfirm(confirmMsg, 'RESTORE ENERGY');
+        if (!confirmed) {
             return;
         }
 
@@ -2297,7 +2439,7 @@ window.performEmberRoll = async function(emissaryId) {
             const data = await response.json();
 
             if (response.ok && data.success) {
-                alert(`✓ Energy restored!\n\n+${amount} energy\nEMBER spent: ${data.ember_spent}\nNew energy: ${data.new_energy}/${data.energy_max}`);
+                showGameAlert(`Energy restored!\n\n+${amount} energy\nEMBER spent: ${data.ember_spent}\nNew energy: ${data.new_energy}/${data.energy_max}`, 'success');
 
                 // Close modal
                 closeRecoverModal();
@@ -2307,11 +2449,11 @@ window.performEmberRoll = async function(emissaryId) {
                     await window.loadProfileData();
                 }
             } else {
-                alert(`✗ Error: ${data.error || 'Failed to restore energy'}`);
+                showGameAlert(`Error: ${data.error || 'Failed to restore energy'}`, 'error');
             }
         } catch (error) {
             console.error('Error recovering energy:', error);
-            alert('✗ Network error. Please try again.');
+            showGameAlert('Network error. Please try again.', 'error');
         }
     };
 
