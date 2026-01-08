@@ -3666,7 +3666,8 @@ def api_mission_start():
             abort(400, "Hero is already on a mission")
 
         # Check energy (with potential buff reduction)
-        cost_energy = mission["energy_cost"]
+        base_energy_cost = mission["energy_cost"]  # Save original before reductions
+        cost_energy = base_energy_cost
         energy_current = ds.get("energy_current", 0)
 
         # 🔮 APPLY ENERGY COST REDUCTION BUFF
@@ -3789,40 +3790,67 @@ def api_mission_start():
         # Calculate success rate for display
         success_rate, bonus = calculate_mission_success_rate(hero, mission)
 
-        # Build response with equipment bonuses
+        # Build response with equipment bonuses in correct format
+        # Calculate actual duration in minutes for frontend display
+        actual_duration_minutes = int(effective_duration * 60)
+
         response_data = {
             "success": True,
             "hero_id": hero_id,
             "mission_id": mission_id,
             "mission_name": mission["name"],
-            "energy_spent": cost_energy,
+            "difficulty": mission["difficulty"],
+            "estimated_success_rate": success_rate,
             "hero_energy_now": ds["energy_current"],
+            "completion_time": (datetime.fromisoformat(ds["mission_start_time"].replace("Z", "+00:00")) + timedelta(hours=effective_duration)).isoformat(),
+            # Duration info (for visual display: base tachado → actual en verde)
+            "duration": {
+                "base_hours": base_duration,
+                "actual_hours": effective_duration,
+                "actual_minutes": actual_duration_minutes
+            },
+            # Energy info (for visual display: base tachado → actual en verde)
+            "energy": {
+                "base": base_energy_cost,
+                "actual": cost_energy
+            },
+            # Legacy fields for backwards compatibility
             "duration_hours": effective_duration,
             "base_duration_hours": base_duration,
-            "completion_time": (datetime.fromisoformat(ds["mission_start_time"].replace("Z", "+00:00")) + timedelta(hours=effective_duration)).isoformat(),
-            "estimated_success_rate": success_rate,
-            "difficulty": mission["difficulty"],
-            "message": f"{hero.get('name', 'Emissary')} has embarked on {mission['name']}!"
+            "energy_spent": cost_energy
         }
 
-        # Include equipment bonuses if any active
-        if equipment_bonuses['item_count'] > 0 or equipment_bonuses['rune_count'] > 0:
-            response_data["equipment_bonuses"] = {
-                "ember_boost": equipment_bonuses['ember'],
-                "xp_boost": equipment_bonuses['xp'],
-                "energy_reduction": equipment_bonuses['energy'],
-                "death_protection": equipment_bonuses['death'],
-                "speed_bonus": equipment_bonuses['speed'],
-                "item_count": equipment_bonuses['item_count'],
-                "rune_count": equipment_bonuses['rune_count']
-            }
-            # Update message with bonus info
-            if effective_duration < base_duration:
-                response_data["message"] += f" Duration: {effective_duration}h (was {base_duration}h)"
-            else:
-                response_data["message"] += f" Duration: {effective_duration}h"
-        else:
-            response_data["message"] += f" Duration: {effective_duration}h"
+        # Include bonuses applied (for badge display)
+        response_data["bonuses_applied"] = {
+            "ember": equipment_bonuses['ember'],
+            "xp": equipment_bonuses['xp'],
+            "energy": equipment_bonuses['energy'],
+            "death": equipment_bonuses['death'],
+            "speed": equipment_bonuses['speed']
+        }
+
+        # Also include equipment_bonuses for backwards compatibility
+        response_data["equipment_bonuses"] = {
+            "ember_boost": equipment_bonuses['ember'],
+            "xp_boost": equipment_bonuses['xp'],
+            "energy_reduction": equipment_bonuses['energy'],
+            "death_protection": equipment_bonuses['death'],
+            "speed_bonus": equipment_bonuses['speed'],
+            "item_count": equipment_bonuses['item_count'],
+            "rune_count": equipment_bonuses['rune_count']
+        }
+
+        # 🔍 DEBUG: Log response data
+        print(f"\n🔍 MISSION START RESPONSE DEBUG:")
+        print(f"  base_duration: {base_duration}h")
+        print(f"  effective_duration: {effective_duration}h")
+        print(f"  actual_duration_minutes: {actual_duration_minutes}m")
+        print(f"  base_energy_cost: {base_energy_cost}")
+        print(f"  cost_energy: {cost_energy}")
+        print(f"  equipment_bonuses: {equipment_bonuses}")
+        print(f"  response_data['duration']: {response_data['duration']}")
+        print(f"  response_data['energy']: {response_data['energy']}")
+        print(f"  response_data['bonuses_applied']: {response_data['bonuses_applied']}")
 
         return jsonify(response_data)
 
