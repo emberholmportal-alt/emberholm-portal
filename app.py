@@ -8226,13 +8226,54 @@ def start_mission_with_lock(wallet, hero_id, mission_id, equipment_bonuses=None)
         # Invalidate caches
         db.invalidate_wallet_cache(wallet)
 
+        # Calculate completion time
+        start_dt = datetime.fromisoformat(start_time.replace('Z', '+00:00'))
+        completion_time = (start_dt + timedelta(hours=effective_duration)).isoformat()
+
+        # Calculate duration in minutes
+        actual_duration_minutes = int(effective_duration * 60)
+
+        # Build full response matching original mission start format
         return {
             'success': True,
             'hero_id': hero_id_padded,
             'mission_id': mission_id,
             'mission_name': mission_config['name'],
+            'difficulty': mission_config.get('difficulty', 'EASY'),
+            'hero_energy_now': ds['energy_current'],
+            'completion_time': completion_time,
+            # Duration info (for visual display)
+            'duration': {
+                'base_hours': base_duration,
+                'actual_hours': effective_duration,
+                'actual_minutes': actual_duration_minutes
+            },
+            # Energy info (for visual display)
+            'energy': {
+                'base': base_energy_cost,
+                'actual': cost_energy
+            },
+            # Legacy fields for backwards compatibility
             'duration_hours': effective_duration,
-            'energy_cost': cost_energy,
+            'base_duration_hours': base_duration,
+            'energy_spent': cost_energy,
+            # Bonuses applied
+            'bonuses_applied': {
+                'ember': equipment_bonuses.get('ember', 0),
+                'xp': equipment_bonuses.get('xp', 0),
+                'energy': equipment_bonuses.get('energy', 0),
+                'death': equipment_bonuses.get('death', 0),
+                'speed': equipment_bonuses.get('speed', 0)
+            },
+            'equipment_bonuses': {
+                'ember_boost': equipment_bonuses.get('ember', 0),
+                'xp_boost': equipment_bonuses.get('xp', 0),
+                'energy_reduction': equipment_bonuses.get('energy', 0),
+                'death_protection': equipment_bonuses.get('death', 0),
+                'speed_bonus': equipment_bonuses.get('speed', 0),
+                'item_count': equipment_bonuses.get('item_count', 0),
+                'rune_count': equipment_bonuses.get('rune_count', 0)
+            },
             'locked_transaction': True
         }, 200
 
