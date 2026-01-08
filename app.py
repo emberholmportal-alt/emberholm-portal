@@ -3436,6 +3436,12 @@ def api_confirm_claim():
         print("❌ Missing claim_id")
         abort(400, "Missing claim_id")
 
+    # 🔒 Use locked version when enabled
+    if USE_CLAIM_LOCKS and POSTGRESQL_AVAILABLE:
+        print("   🔒 Using locked transaction for claim confirm")
+        response, status_code = confirm_claim_with_lock(claim_id, token_id, tx_hash, frontend_wallet)
+        return jsonify(response), status_code
+
     # 🔥 Get claim details BEFORE marking as claimed
     claim_details = get_claim_details(claim_id)
     generated_item = None
@@ -3772,6 +3778,12 @@ def api_mission_start():
 
         # 🔥 NORMALIZE wallet address to lowercase
         wallet = wallet.lower()
+
+        # 🔒 Use locked version for solo missions when enabled
+        if USE_MISSION_LOCKS and POSTGRESQL_AVAILABLE:
+            print("   🔒 Using locked transaction for solo mission start")
+            response, status_code = start_mission_with_lock(wallet, hero_id, mission_id)
+            return jsonify(response), status_code
 
         stats_obj = load_json(STATS_PATH, {
             "total_characters": 0,
@@ -4377,6 +4389,11 @@ def handle_party_mission_complete(wallet, party_mission):
 
     return jsonify(response_data)
 
+# Feature flags: Enable database locks to prevent race conditions
+USE_MISSION_LOCKS = os.environ.get('USE_MISSION_LOCKS', 'true').lower() == 'true'
+USE_EQUIPMENT_LOCKS = os.environ.get('USE_EQUIPMENT_LOCKS', 'true').lower() == 'true'
+USE_CLAIM_LOCKS = os.environ.get('USE_CLAIM_LOCKS', 'true').lower() == 'true'
+
 @app.route("/api/mission/complete", methods=["POST"])
 @rate_limit(requests_per_minute=10)
 def api_mission_complete():
@@ -4384,6 +4401,9 @@ def api_mission_complete():
     Complete a mission (solo or party).
     POST solo: { "wallet": "0x...", "hero_id": "00001" }
     POST party: Mission is detected automatically from active_missions
+
+    When USE_MISSION_LOCKS=true (default), uses database locks to prevent race conditions
+    from concurrent requests completing the same mission twice.
     """
     print("\n" + "=" * 60)
     print("📥 MISSION COMPLETE REQUEST RECEIVED")
@@ -4404,6 +4424,25 @@ def api_mission_complete():
         if not wallet:
             print("   ❌ ERROR: Missing wallet")
             abort(400, "Missing wallet")
+
+        # 🔒 NEW: Use locked version for solo missions when enabled
+        # This prevents race conditions from double-clicks or concurrent requests
+        if USE_MISSION_LOCKS and hero_id and POSTGRESQL_AVAILABLE:
+            # Check if this is a party mission first
+            wallet_lower = wallet.lower()
+            active_missions = load_active_missions()
+            is_party = False
+            for key, mission_data in active_missions.items():
+                if mission_data.get("is_party") and mission_data.get("wallet") == wallet_lower:
+                    if hero_id in mission_data.get("hero_ids", []):
+                        is_party = True
+                        break
+
+            if not is_party:
+                # Solo mission - use locked version
+                print("   🔒 Using locked transaction for solo mission completion")
+                response, status_code = complete_mission_with_lock(wallet, hero_id)
+                return jsonify(response), status_code
 
         # 🔥 NORMALIZE wallet address to lowercase
         wallet = wallet.lower()
@@ -6731,6 +6770,12 @@ def equipment_equip():
     if not POSTGRESQL_AVAILABLE:
         return jsonify({"success": False, "error": "Database not available"}), 503
 
+    # 🔒 Use locked version when enabled
+    if USE_EQUIPMENT_LOCKS:
+        logger.debug(f"Using locked transaction for equip: {emissary_id}, {item_type}")
+        response, status_code = equip_item_with_lock(wallet, emissary_id, item_id, item_type)
+        return jsonify(response), status_code
+
     try:
         conn = db.get_connection()
         cursor = conn.cursor()
@@ -6841,6 +6886,12 @@ def equipment_unequip():
 
     if not POSTGRESQL_AVAILABLE:
         return jsonify({"error": "Database not available"}), 503
+
+    # 🔒 Use locked version when enabled
+    if USE_EQUIPMENT_LOCKS:
+        logger.debug(f"Using locked transaction for unequip: {emissary_id}, {item_type}")
+        response, status_code = unequip_item_with_lock(wallet, emissary_id, item_type, item_id)
+        return jsonify(response), status_code
 
     try:
         conn = db.get_connection()
@@ -7655,6 +7706,808 @@ def revive_emissary():
     except Exception as e:
         print(f"Error reviving emissary: {e}")
         return jsonify({"error": str(e)}), 500
+
+# ---------------------------------
+# 🔒 DATABASE LOCK HELPERS (Prevent Race Conditions)
+# ---------------------------------
+
+class LockAcquisitionError(Exception):
+    """Raised when a database lock cannot be acquired"""
+    pass
+
+
+def acquire_hero_lock(cursor, hero_id, wallet):
+    """
+    Acquire an exclusive lock on a hero record using SELECT ... FOR UPDATE NOWAIT.
+
+    Args:
+        cursor: Database cursor (must be within a transaction)
+        hero_id: The hero token_id to lock
+        wallet: The wallet address (for ownership verification)
+
+    Returns:
+        dict: The hero record with dynamic_state
+
+    Raises:
+        LockAcquisitionError: If the lock cannot be acquired (hero is being processed)
+    """
+    try:
+        cursor.execute("""
+            SELECT token_id, dynamic_state, weapon_id, armor_id,
+                   helmet_id, accessory_id, amulet_id, rune_ids, last_known_owner
+            FROM nfts
+            WHERE token_id = %s AND LOWER(last_known_owner) = %s
+            FOR UPDATE NOWAIT
+        """, (str(hero_id).zfill(5), wallet.lower()))
+
+        hero = cursor.fetchone()
+        if not hero:
+            raise LockAcquisitionError(f"Hero {hero_id} not found or not owned by wallet")
+
+        logger.debug(f"Lock acquired on hero {hero_id} for wallet {wallet[:10]}...")
+        return hero
+
+    except Exception as e:
+        error_str = str(e).lower()
+        if 'could not obtain lock' in error_str or 'nowait' in error_str or 'lock' in error_str:
+            logger.warning(f"Lock conflict on hero {hero_id}: {e}")
+            raise LockAcquisitionError(f"Hero {hero_id} is being processed by another request")
+        raise
+
+
+def acquire_mission_lock(cursor, hero_id, wallet):
+    """
+    Acquire an exclusive lock on an active mission record.
+
+    Args:
+        cursor: Database cursor (must be within a transaction)
+        hero_id: The hero token_id
+        wallet: The wallet address
+
+    Returns:
+        dict: The mission record if found, None if no active mission
+
+    Raises:
+        LockAcquisitionError: If the lock cannot be acquired
+    """
+    try:
+        cursor.execute("""
+            SELECT mission_key, wallet, hero_id, mission_id,
+                   start_time, duration_hours, is_party, hero_ids
+            FROM active_missions
+            WHERE hero_id = %s AND LOWER(wallet) = %s
+            FOR UPDATE NOWAIT
+        """, (str(hero_id).zfill(5), wallet.lower()))
+
+        mission = cursor.fetchone()
+        if mission:
+            logger.debug(f"Lock acquired on mission for hero {hero_id}")
+        return mission
+
+    except Exception as e:
+        error_str = str(e).lower()
+        if 'could not obtain lock' in error_str or 'nowait' in error_str or 'lock' in error_str:
+            logger.warning(f"Lock conflict on mission for hero {hero_id}: {e}")
+            raise LockAcquisitionError(f"Mission for hero {hero_id} is being processed")
+        raise
+
+
+def acquire_claim_lock(cursor, claim_id):
+    """
+    Acquire an exclusive lock on a pending claim record.
+
+    Args:
+        cursor: Database cursor (must be within a transaction)
+        claim_id: The unique claim identifier
+
+    Returns:
+        dict: The claim record if found
+
+    Raises:
+        LockAcquisitionError: If the lock cannot be acquired or claim not found
+    """
+    try:
+        cursor.execute("""
+            SELECT id, wallet_address, claim_type, claim_id, signature,
+                   mission_id, hero_id, difficulty, status, created_at
+            FROM pending_claims
+            WHERE claim_id = %s AND status = 'pending'
+            FOR UPDATE NOWAIT
+        """, (claim_id,))
+
+        claim = cursor.fetchone()
+        if not claim:
+            raise LockAcquisitionError(f"Claim {claim_id} not found or already claimed")
+
+        logger.debug(f"Lock acquired on claim {claim_id}")
+        return claim
+
+    except Exception as e:
+        error_str = str(e).lower()
+        if 'could not obtain lock' in error_str or 'nowait' in error_str or 'lock' in error_str:
+            logger.warning(f"Lock conflict on claim {claim_id}: {e}")
+            raise LockAcquisitionError(f"Claim {claim_id} is being processed")
+        raise
+
+
+def complete_mission_with_lock(wallet, hero_id):
+    """
+    Complete a solo mission with database locks to prevent race conditions.
+
+    This function acquires exclusive locks on both the hero and the active mission,
+    then processes the mission completion atomically.
+
+    Args:
+        wallet: The wallet address
+        hero_id: The hero token_id
+
+    Returns:
+        tuple: (response_dict, http_status_code)
+    """
+    wallet = wallet.lower()
+    hero_id_padded = str(hero_id).zfill(5)
+
+    if not POSTGRESQL_AVAILABLE:
+        return {'error': 'Database not available'}, 503
+
+    try:
+        with db.get_db() as conn:
+            with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                # Step 1: Acquire lock on hero
+                try:
+                    hero_row = acquire_hero_lock(cur, hero_id_padded, wallet)
+                except LockAcquisitionError as e:
+                    return {'error': str(e), 'retry': True}, 409
+
+                ds = hero_row.get('dynamic_state') or {}
+
+                # Step 2: Verify hero is on mission
+                if ds.get('state') != 'ON_MISSION':
+                    return {'error': f"Hero is not on a mission (state: {ds.get('state')})"}, 400
+
+                mission_id = ds.get('current_mission_id')
+                if not mission_id:
+                    return {'error': 'No active mission found'}, 400
+
+                # Step 3: Acquire lock on active mission
+                try:
+                    mission_row = acquire_mission_lock(cur, hero_id_padded, wallet)
+                except LockAcquisitionError as e:
+                    return {'error': str(e), 'retry': True}, 409
+
+                if not mission_row:
+                    return {'error': 'Active mission not found in database'}, 404
+
+                # Step 4: Check mission duration
+                start_time = mission_row.get('start_time')
+                duration_hours = mission_row.get('duration_hours', 1)
+
+                if start_time:
+                    # Calculate time elapsed
+                    now = datetime.now(timezone.utc)
+                    if isinstance(start_time, str):
+                        start_time = datetime.fromisoformat(start_time.replace('Z', '+00:00'))
+                    elif start_time.tzinfo is None:
+                        start_time = start_time.replace(tzinfo=timezone.utc)
+
+                    elapsed_hours = (now - start_time).total_seconds() / 3600
+
+                    if elapsed_hours < duration_hours:
+                        remaining = duration_hours - elapsed_hours
+                        return {'error': f'Mission not complete. {remaining:.1f} hours remaining'}, 400
+
+                # Step 5: Find mission config
+                mission_config = None
+                for m in MISSIONS:
+                    if m['id'] == mission_id:
+                        mission_config = m
+                        break
+                if not mission_config:
+                    for e in EVENTS:
+                        if e['id'] == mission_id:
+                            mission_config = e
+                            break
+
+                if not mission_config:
+                    return {'error': f'Mission config not found for {mission_id}'}, 400
+
+                # Step 6: Get equipment bonuses (from cache)
+                equipment_bonuses = get_emissary_bonuses(hero_id_padded)
+
+                # Step 7: Roll outcome
+                death_protection = equipment_bonuses.get('death', 0)
+                outcome, details = roll_mission_outcome_simple(ds, mission_config, death_protection)
+
+                # Step 8: Process outcome and update hero state
+                xp_gained = 0
+                aura_gained = 0
+                xp_lost = 0
+
+                if outcome == 'SUCCESS':
+                    xp_gained = details.get('xp_gain', 0)
+                    aura_gained = details.get('aura_gain', 0)
+
+                    # Apply equipment bonuses
+                    xp_bonus = equipment_bonuses.get('xp', 0)
+                    ember_bonus = equipment_bonuses.get('ember', 0)
+
+                    if xp_bonus > 0:
+                        xp_gained = int(xp_gained * (100 + xp_bonus) / 100)
+                    if ember_bonus > 0:
+                        aura_gained = int(aura_gained * (100 + ember_bonus) / 100)
+
+                    ds['xp_total'] = ds.get('xp_total', 0) + xp_gained
+                    ds['aura_level'] = ds.get('aura_level', 0) + aura_gained
+                    ds['state'] = 'READY'
+                    ds['total_missions_completed'] = ds.get('total_missions_completed', 0) + 1
+
+                elif outcome == 'FAILURE':
+                    xp_lost = details.get('xp_loss', 0)
+                    ds['xp_total'] = max(0, ds.get('xp_total', 0) - xp_lost)
+                    ds['state'] = 'READY'
+
+                elif outcome == 'DEATH':
+                    ds['state'] = 'FALLEN'
+                    ds['fallen_time'] = now_utc_str()
+                    ds['death_count'] = ds.get('death_count', 0) + 1
+
+                # Common updates
+                ds['current_mission_id'] = None
+                ds['mission_start_time'] = None
+                ds['last_mission'] = mission_config['name']
+                ds['last_update'] = now_utc_str()
+
+                # Update mission history
+                mission_hist = ds.get('mission_history', {})
+                mission_hist[mission_id] = now_utc_str()
+                ds['mission_history'] = mission_hist
+
+                # Step 9: Update hero in database (within same transaction)
+                cur.execute("""
+                    UPDATE nfts SET dynamic_state = %s, last_update = NOW()
+                    WHERE token_id = %s
+                """, (json.dumps(ds), hero_id_padded))
+
+                # Step 10: Delete active mission
+                cur.execute("""
+                    DELETE FROM active_missions WHERE hero_id = %s AND wallet = %s
+                """, (hero_id_padded, wallet))
+
+                # Step 11: Update player stats
+                cur.execute("""
+                    INSERT INTO player_stats (wallet, total_missions, total_xp_earned, total_ember_earned,
+                                             total_deaths, updated_at)
+                    VALUES (%s, 1, %s, %s, %s, CURRENT_TIMESTAMP)
+                    ON CONFLICT (wallet) DO UPDATE SET
+                        total_missions = player_stats.total_missions + 1,
+                        total_xp_earned = player_stats.total_xp_earned + EXCLUDED.total_xp_earned,
+                        total_ember_earned = player_stats.total_ember_earned + EXCLUDED.total_ember_earned,
+                        total_deaths = player_stats.total_deaths + EXCLUDED.total_deaths,
+                        updated_at = CURRENT_TIMESTAMP
+                """, (wallet, xp_gained, aura_gained, 1 if outcome == 'DEATH' else 0))
+
+                # Transaction commits automatically via context manager
+                logger.info(f"Mission complete (locked): hero={hero_id_padded}, outcome={outcome}, xp={xp_gained}")
+
+        # Step 12: Invalidate caches (after transaction commits)
+        db.invalidate_wallet_cache(wallet)
+
+        # Step 13: Build response
+        response = {
+            'success': True,
+            'outcome': outcome,
+            'hero_id': hero_id_padded,
+            'mission_name': mission_config['name'],
+            'locked_transaction': True  # Indicates this used the new locking system
+        }
+
+        if outcome == 'SUCCESS':
+            response['xp_gained'] = xp_gained
+            response['aura_gained'] = aura_gained
+            response['hero_xp_now'] = ds['xp_total']
+            response['hero_aura_now'] = ds['aura_level']
+            response['message'] = f"🎉 SUCCESS! Completed {mission_config['name']}!"
+        elif outcome == 'FAILURE':
+            response['xp_lost'] = xp_lost
+            response['hero_xp_now'] = ds['xp_total']
+            response['message'] = f"⚠️ FAILED: Lost {xp_lost} XP"
+        elif outcome == 'DEATH':
+            response['death_count'] = ds['death_count']
+            xp_cost, aura_cost = get_death_cost(ds['death_count'] - 1)
+            response['reinvocation_cost'] = {'xp': xp_cost, 'aura': aura_cost}
+            response['message'] = f"💀 FALLEN: Hero has died!"
+
+        return response, 200
+
+    except LockAcquisitionError as e:
+        logger.warning(f"Lock acquisition failed: {e}")
+        return {'error': str(e), 'retry': True}, 409
+
+    except Exception as e:
+        logger.error(f"Mission complete error: {e}")
+        import traceback
+        traceback.print_exc()
+        return {'error': f'Internal error: {str(e)}'}, 500
+
+
+def roll_mission_outcome_simple(hero_ds, mission_config, death_protection=0):
+    """
+    Simplified mission outcome roll for use within locked transactions.
+
+    Args:
+        hero_ds: Hero dynamic state dict
+        mission_config: Mission configuration dict
+        death_protection: % reduction in death probability from equipment
+
+    Returns:
+        tuple: (outcome, details)
+    """
+    import random
+
+    # Base success rate from mission
+    difficulty = mission_config.get('difficulty', 'EASY')
+
+    # Difficulty-based success rates
+    success_rates = {
+        'EASY': 85,
+        'MEDIUM': 70,
+        'HARD': 55,
+        'PARTY': 75
+    }
+
+    success_rate = success_rates.get(difficulty, 75)
+
+    # Apply hero level bonus (simplified)
+    xp_total = hero_ds.get('xp_total', 0)
+    level = min(10, xp_total // 1000)  # Rough level calculation
+    success_rate += level * 2
+
+    # Cap success rate
+    success_rate = min(95, success_rate)
+
+    roll = random.randint(1, 100)
+
+    if roll <= success_rate:
+        # Success
+        base_xp = mission_config.get('xp_reward', 50)
+        base_aura = mission_config.get('aura_reward', 10)
+
+        # Randomize slightly
+        xp_gain = int(base_xp * random.uniform(0.9, 1.2))
+        aura_gain = int(base_aura * random.uniform(0.9, 1.2))
+
+        return 'SUCCESS', {'xp_gain': xp_gain, 'aura_gain': aura_gain}
+
+    else:
+        # Failed - check for death
+        death_chance = {'EASY': 5, 'MEDIUM': 10, 'HARD': 20, 'PARTY': 8}.get(difficulty, 10)
+
+        # Apply death protection
+        if death_protection > 0:
+            death_chance = max(1, death_chance - death_protection)
+
+        death_roll = random.randint(1, 100)
+
+        if death_roll <= death_chance:
+            return 'DEATH', {}
+        else:
+            xp_loss = int(mission_config.get('xp_reward', 50) * 0.3)
+            return 'FAILURE', {'xp_loss': xp_loss}
+
+
+def start_mission_with_lock(wallet, hero_id, mission_id, equipment_bonuses=None):
+    """
+    Start a mission with database locks to prevent race conditions.
+    Locks the hero to prevent concurrent mission starts.
+
+    Args:
+        wallet: The wallet address
+        hero_id: The hero token_id
+        mission_id: The mission to start
+        equipment_bonuses: Pre-calculated equipment bonuses (optional)
+
+    Returns:
+        tuple: (response_dict, http_status_code)
+    """
+    wallet = wallet.lower()
+    hero_id_padded = str(hero_id).zfill(5)
+
+    if not POSTGRESQL_AVAILABLE:
+        return {'error': 'Database not available'}, 503
+
+    try:
+        with db.get_db() as conn:
+            with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                # Step 1: Acquire lock on hero
+                try:
+                    hero_row = acquire_hero_lock(cur, hero_id_padded, wallet)
+                except LockAcquisitionError as e:
+                    return {'error': str(e), 'retry': True}, 409
+
+                ds = hero_row.get('dynamic_state') or {}
+
+                # Step 2: Verify hero state
+                state = ds.get('state', 'READY')
+                if state == 'FALLEN':
+                    return {'error': 'Hero is fallen. Perform reinvocation ritual first.'}, 400
+                if state == 'ON_MISSION':
+                    return {'error': 'Hero is already on a mission'}, 400
+
+                # Step 3: Find mission config
+                mission_config = None
+                for m in MISSIONS:
+                    if m['id'] == mission_id:
+                        mission_config = m
+                        break
+                if not mission_config:
+                    for e in EVENTS:
+                        if e['id'] == mission_id:
+                            mission_config = e
+                            break
+
+                if not mission_config:
+                    return {'error': f'Mission not found: {mission_id}'}, 404
+
+                # Step 4: Check energy
+                base_energy_cost = mission_config.get('energy_cost', 10)
+                cost_energy = base_energy_cost
+                energy_current = ds.get('energy_current', 0)
+
+                # Apply energy reduction buffs
+                buff = ds.get('ember_roll_buff')
+                if buff:
+                    expires_at = buff.get('expires_at')
+                    if expires_at:
+                        try:
+                            expires_dt = datetime.fromisoformat(expires_at.replace('Z', '+00:00'))
+                            now = datetime.now(timezone.utc)
+                            if now < expires_dt:
+                                energy_reduction = buff.get('energy_reduction', 0)
+                                if energy_reduction > 0:
+                                    cost_energy = int(cost_energy * (100 - energy_reduction) / 100)
+                        except Exception:
+                            pass
+
+                # Apply equipment energy reduction
+                if equipment_bonuses is None:
+                    equipment_bonuses = get_emissary_bonuses(hero_id_padded)
+
+                equip_energy_reduction = equipment_bonuses.get('energy', 0)
+                if equip_energy_reduction > 0:
+                    cost_energy = max(1, int(cost_energy * (100 - equip_energy_reduction) / 100))
+
+                if energy_current < cost_energy:
+                    return {'error': f'Not enough energy. Required: {cost_energy}, Available: {energy_current}'}, 400
+
+                # Step 5: Check mission cooldown
+                mission_hist = ds.get('mission_history', {})
+                last_run_ts = mission_hist.get(mission_id)
+                if last_run_ts and hours_since(last_run_ts) < ROTATION_HOURS:
+                    hours_left = ROTATION_HOURS - hours_since(last_run_ts)
+                    return {'error': f'Mission cooldown: {hours_left:.1f}h remaining'}, 400
+
+                # Step 6: Calculate duration with speed bonus
+                base_duration = mission_config.get('duration_hours', 1)
+                speed_bonus = equipment_bonuses.get('speed', 0)
+                if speed_bonus > 0:
+                    effective_duration = max(base_duration * 0.1, base_duration * (100 - speed_bonus) / 100)
+                else:
+                    effective_duration = base_duration
+
+                # Step 7: Update hero state
+                ds['energy_current'] = max(0, energy_current - cost_energy)
+                ds['state'] = 'ON_MISSION'
+                start_time = now_utc_str()
+                ds['mission_start_time'] = start_time
+                ds['current_mission_id'] = mission_id
+                ds['last_update'] = start_time
+
+                cur.execute("""
+                    UPDATE nfts SET dynamic_state = %s, last_update = NOW()
+                    WHERE token_id = %s
+                """, (json.dumps(ds), hero_id_padded))
+
+                # Step 8: Insert active mission record
+                mission_key = f"{wallet}_{hero_id_padded}"
+                cur.execute("""
+                    INSERT INTO active_missions (mission_key, wallet, hero_id, mission_id,
+                                                 start_time, duration_hours, is_party, hero_ids)
+                    VALUES (%s, %s, %s, %s, %s, %s, FALSE, ARRAY[%s])
+                    ON CONFLICT (mission_key) DO UPDATE SET
+                        mission_id = EXCLUDED.mission_id,
+                        start_time = EXCLUDED.start_time,
+                        duration_hours = EXCLUDED.duration_hours
+                """, (mission_key, wallet, hero_id_padded, mission_id,
+                      start_time, effective_duration, hero_id_padded))
+
+                # Transaction commits via context manager
+                logger.info(f"Mission started (locked): hero={hero_id_padded}, mission={mission_id}")
+
+        # Invalidate caches
+        db.invalidate_wallet_cache(wallet)
+
+        return {
+            'success': True,
+            'hero_id': hero_id_padded,
+            'mission_id': mission_id,
+            'mission_name': mission_config['name'],
+            'duration_hours': effective_duration,
+            'energy_cost': cost_energy,
+            'locked_transaction': True
+        }, 200
+
+    except LockAcquisitionError as e:
+        logger.warning(f"Lock acquisition failed for mission start: {e}")
+        return {'error': str(e), 'retry': True}, 409
+
+    except Exception as e:
+        logger.error(f"Mission start error: {e}")
+        import traceback
+        traceback.print_exc()
+        return {'error': f'Internal error: {str(e)}'}, 500
+
+
+def equip_item_with_lock(wallet, emissary_id, item_id, item_type):
+    """
+    Equip an item with database locks to prevent race conditions.
+    Locks the hero to prevent concurrent equipment changes.
+
+    Args:
+        wallet: The wallet address
+        emissary_id: The emissary token_id
+        item_id: The item ID to equip
+        item_type: The equipment slot type
+
+    Returns:
+        tuple: (response_dict, http_status_code)
+    """
+    wallet = wallet.lower()
+    emissary_id_padded = str(emissary_id).zfill(5)
+
+    if not POSTGRESQL_AVAILABLE:
+        return {'error': 'Database not available'}, 503
+
+    try:
+        with db.get_db() as conn:
+            with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                # Step 1: Acquire lock on hero
+                try:
+                    hero_row = acquire_hero_lock(cur, emissary_id_padded, wallet)
+                except LockAcquisitionError as e:
+                    return {'error': str(e), 'retry': True}, 409
+
+                ds = hero_row.get('dynamic_state') or {}
+
+                # Step 2: Verify hero is not on mission
+                state = ds.get('state', 'READY')
+                if state == 'ON_MISSION':
+                    return {'error': 'Cannot change equipment while emissary is on a mission'}, 400
+
+                # Step 3: Handle runes specially
+                if item_type == "rune":
+                    # Check current rune count
+                    cur.execute("""
+                        SELECT COALESCE(array_length(rune_ids, 1), 0) as rune_count,
+                               COALESCE(rune_ids, ARRAY[]::TEXT[]) as rune_ids
+                        FROM nfts WHERE token_id = %s
+                    """, (emissary_id_padded,))
+                    row = cur.fetchone()
+                    rune_count = row['rune_count'] if row else 0
+                    current_runes = row['rune_ids'] if row else []
+
+                    if rune_count >= 2:
+                        return {'error': 'Cannot equip more than 2 runes'}, 400
+
+                    if item_id in current_runes:
+                        return {'error': 'This rune is already equipped'}, 400
+
+                    # Add rune
+                    cur.execute("""
+                        UPDATE nfts
+                        SET rune_ids = array_append(COALESCE(rune_ids, ARRAY[]::TEXT[]), %s)
+                        WHERE token_id = %s
+                    """, (item_id, emissary_id_padded))
+                else:
+                    # Standard equipment slot
+                    column_map = {
+                        "weapon": "weapon_id",
+                        "armor": "armor_id",
+                        "helmet": "helmet_id",
+                        "accessory": "accessory_id",
+                        "amulet": "amulet_id"
+                    }
+                    column = column_map.get(item_type)
+                    if not column:
+                        return {'error': f'Invalid item type: {item_type}'}, 400
+
+                    cur.execute(f"UPDATE nfts SET {column} = %s WHERE token_id = %s",
+                               (item_id, emissary_id_padded))
+
+                # Transaction commits via context manager
+                logger.info(f"Equipment equipped (locked): emissary={emissary_id_padded}, type={item_type}, item={item_id}")
+
+        # Invalidate equipment cache
+        db.invalidate_equipment_cache(emissary_id)
+
+        return {
+            'success': True,
+            'message': f'{item_type.capitalize()} equipped successfully',
+            'locked_transaction': True
+        }, 200
+
+    except LockAcquisitionError as e:
+        logger.warning(f"Lock acquisition failed for equip: {e}")
+        return {'error': str(e), 'retry': True}, 409
+
+    except Exception as e:
+        logger.error(f"Equip item error: {e}")
+        import traceback
+        traceback.print_exc()
+        return {'error': f'Internal error: {str(e)}'}, 500
+
+
+def unequip_item_with_lock(wallet, emissary_id, item_type, item_id=None):
+    """
+    Unequip an item with database locks to prevent race conditions.
+
+    Args:
+        wallet: The wallet address
+        emissary_id: The emissary token_id
+        item_type: The equipment slot type
+        item_id: The specific item ID (required for runes)
+
+    Returns:
+        tuple: (response_dict, http_status_code)
+    """
+    wallet = wallet.lower()
+    emissary_id_padded = str(emissary_id).zfill(5)
+
+    if not POSTGRESQL_AVAILABLE:
+        return {'error': 'Database not available'}, 503
+
+    try:
+        with db.get_db() as conn:
+            with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                # Step 1: Acquire lock on hero
+                try:
+                    hero_row = acquire_hero_lock(cur, emissary_id_padded, wallet)
+                except LockAcquisitionError as e:
+                    return {'error': str(e), 'retry': True}, 409
+
+                ds = hero_row.get('dynamic_state') or {}
+
+                # Step 2: Verify hero is not on mission
+                state = ds.get('state', 'READY')
+                if state == 'ON_MISSION':
+                    return {'error': 'Cannot change equipment while emissary is on a mission'}, 400
+
+                # Step 3: Perform unequip
+                if item_type == "rune" and item_id:
+                    cur.execute("""
+                        UPDATE nfts SET rune_ids = array_remove(rune_ids, %s) WHERE token_id = %s
+                    """, (item_id, emissary_id_padded))
+                elif item_type:
+                    column_map = {
+                        "weapon": "weapon_id",
+                        "armor": "armor_id",
+                        "helmet": "helmet_id",
+                        "accessory": "accessory_id",
+                        "amulet": "amulet_id"
+                    }
+                    column = column_map.get(item_type)
+                    if column:
+                        cur.execute(f"UPDATE nfts SET {column} = NULL WHERE token_id = %s",
+                                   (emissary_id_padded,))
+
+                # Transaction commits via context manager
+                logger.info(f"Equipment unequipped (locked): emissary={emissary_id_padded}, type={item_type}")
+
+        # Invalidate equipment cache
+        db.invalidate_equipment_cache(emissary_id)
+
+        return {
+            'success': True,
+            'message': 'Item unequipped',
+            'locked_transaction': True
+        }, 200
+
+    except LockAcquisitionError as e:
+        logger.warning(f"Lock acquisition failed for unequip: {e}")
+        return {'error': str(e), 'retry': True}, 409
+
+    except Exception as e:
+        logger.error(f"Unequip item error: {e}")
+        import traceback
+        traceback.print_exc()
+        return {'error': f'Internal error: {str(e)}'}, 500
+
+
+def confirm_claim_with_lock(claim_id, token_id=None, tx_hash=None, frontend_wallet=None):
+    """
+    Confirm a claim with database locks to prevent double-claiming.
+
+    Args:
+        claim_id: The unique claim identifier
+        token_id: The blockchain token ID (optional)
+        tx_hash: The transaction hash (optional)
+        frontend_wallet: Fallback wallet from frontend (optional)
+
+    Returns:
+        tuple: (response_dict, http_status_code)
+    """
+    if not claim_id:
+        return {'error': 'Missing claim_id'}, 400
+
+    if not POSTGRESQL_AVAILABLE:
+        return {'error': 'Database not available'}, 503
+
+    try:
+        generated_item = None
+
+        with db.get_db() as conn:
+            with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                # Step 1: Acquire lock on claim
+                try:
+                    claim_row = acquire_claim_lock(cur, claim_id)
+                except LockAcquisitionError as e:
+                    return {'error': str(e), 'retry': True}, 409
+
+                # Step 2: Get claim details
+                claim_type = claim_row.get('claim_type', 'ITEM')
+                difficulty = claim_row.get('difficulty') or 'EASY'
+                wallet = claim_row.get('wallet_address') or frontend_wallet
+
+                if not wallet:
+                    return {'error': 'No wallet address found'}, 400
+
+                wallet = wallet.lower()
+
+                # Step 3: Generate item
+                try:
+                    item_data = generate_random_item(claim_type, difficulty, wallet)
+                    item_id = insert_item_to_vault(item_data)
+
+                    if item_id:
+                        generated_item = {
+                            'id': item_id,
+                            'name': item_data['name'],
+                            'type': item_data['type'],
+                            'rarity': item_data['rarity'],
+                            'stats': item_data['stats']
+                        }
+                        logger.info(f"Generated {item_data['rarity']} {item_data['type']}: {item_data['name']}")
+                except Exception as e:
+                    logger.error(f"Error generating item: {e}")
+                    # Continue - we still want to mark claim as used
+
+                # Step 4: Mark claim as claimed (within same transaction)
+                cur.execute("""
+                    UPDATE pending_claims
+                    SET status = 'claimed',
+                        claimed_at = CURRENT_TIMESTAMP,
+                        tx_hash = %s
+                    WHERE claim_id = %s
+                """, (tx_hash, claim_id))
+
+                logger.info(f"Claim confirmed (locked): claim_id={claim_id[:20]}...")
+
+        return {
+            'success': True,
+            'message': 'Claim confirmed',
+            'generated_item': generated_item,
+            'locked_transaction': True
+        }, 200
+
+    except LockAcquisitionError as e:
+        logger.warning(f"Lock acquisition failed for claim: {e}")
+        return {'error': str(e), 'retry': True}, 409
+
+    except Exception as e:
+        logger.error(f"Claim confirm error: {e}")
+        import traceback
+        traceback.print_exc()
+        return {'error': f'Internal error: {str(e)}'}, 500
+
 
 # ---------------------------------
 # 🏥 HEALTH CHECK & MONITORING ENDPOINTS
