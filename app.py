@@ -2,9 +2,107 @@ import json
 import os
 import time
 import random
+import logging
+from collections import defaultdict
+from functools import wraps
 from datetime import datetime, timedelta, timezone
 from flask import Flask, jsonify, send_from_directory, request, abort, render_template
 from flask_cors import CORS
+
+# =========================================================================
+# 🔒 STRUCTURED LOGGING
+# =========================================================================
+logging.basicConfig(
+    format='%(asctime)s %(levelname)s [%(name)s]: %(message)s',
+    level=logging.INFO
+)
+logger = logging.getLogger('emberholm')
+
+# =========================================================================
+# 🚦 RATE LIMITING SYSTEM
+# =========================================================================
+# In-memory rate limit storage (for production, use Redis)
+_rate_limit_storage = defaultdict(list)
+_rate_limit_cleanup_last = time.time()
+
+def _cleanup_rate_limits():
+    """Clean up old rate limit entries periodically"""
+    global _rate_limit_cleanup_last
+    now = time.time()
+    # Only cleanup every 60 seconds
+    if now - _rate_limit_cleanup_last < 60:
+        return
+    _rate_limit_cleanup_last = now
+
+    cutoff = now - 120  # Remove entries older than 2 minutes
+    keys_to_remove = []
+    for key, timestamps in _rate_limit_storage.items():
+        _rate_limit_storage[key] = [t for t in timestamps if t > cutoff]
+        if not _rate_limit_storage[key]:
+            keys_to_remove.append(key)
+    for key in keys_to_remove:
+        del _rate_limit_storage[key]
+
+def rate_limit(requests_per_minute=30, key_func=None):
+    """
+    Rate limiting decorator for Flask endpoints.
+
+    Args:
+        requests_per_minute: Maximum requests allowed per minute
+        key_func: Optional function to extract rate limit key from request.
+                  If None, uses wallet from JSON body or query params, falls back to IP.
+
+    Usage:
+        @app.route("/api/mission/start", methods=["POST"])
+        @rate_limit(requests_per_minute=10)
+        def api_mission_start():
+            ...
+    """
+    def decorator(f):
+        @wraps(f)
+        def wrapper(*args, **kwargs):
+            _cleanup_rate_limits()
+
+            # Determine rate limit key
+            if key_func:
+                rate_key = key_func()
+            else:
+                # Try to get wallet from various sources
+                data = request.get_json(silent=True) or {}
+                wallet = data.get('wallet') or request.args.get('wallet')
+
+                # Try URL parameters (e.g., /api/player/<wallet>)
+                if not wallet and 'wallet' in kwargs:
+                    wallet = kwargs['wallet']
+
+                if wallet:
+                    rate_key = f"wallet:{str(wallet).lower()}"
+                else:
+                    rate_key = f"ip:{request.remote_addr}"
+
+            now = time.time()
+            window = 60  # 1 minute window
+
+            # Get timestamps within window
+            timestamps = _rate_limit_storage[rate_key]
+            timestamps = [t for t in timestamps if now - t < window]
+            _rate_limit_storage[rate_key] = timestamps
+
+            if len(timestamps) >= requests_per_minute:
+                logger.warning(f"Rate limit exceeded: {rate_key} ({len(timestamps)}/{requests_per_minute} requests)")
+                return jsonify({
+                    'error': 'Rate limit exceeded. Please wait before making more requests.',
+                    'retry_after': 60,
+                    'limit': requests_per_minute,
+                    'window': 'per minute'
+                }), 429
+
+            timestamps.append(now)
+            _rate_limit_storage[rate_key] = timestamps
+
+            return f(*args, **kwargs)
+        return wrapper
+    return decorator
 
 # 🔥 POSTGRESQL INTEGRATION - Persistence module
 try:
@@ -152,6 +250,52 @@ def ensure_postgresql_schema():
             cur.execute("SELECT COUNT(*) FROM active_missions")
             count = cur.fetchone()[0]
             print(f"  ✅ active_missions table OK ({count} active missions)")
+
+            # 7. 🔥 PLAYER STATS TABLE - Replaces JSON-based stats tracking
+            print("  🔧 Checking player_stats table...")
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS player_stats (
+                    wallet VARCHAR(42) PRIMARY KEY,
+                    total_missions INTEGER DEFAULT 0,
+                    total_xp_earned BIGINT DEFAULT 0,
+                    total_ember_earned BIGINT DEFAULT 0,
+                    total_deaths INTEGER DEFAULT 0,
+                    total_items_found INTEGER DEFAULT 0,
+                    total_runes_found INTEGER DEFAULT 0,
+                    total_sacrifices INTEGER DEFAULT 0,
+                    total_energy_spent INTEGER DEFAULT 0,
+                    longest_mission_streak INTEGER DEFAULT 0,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            cur.execute("CREATE INDEX IF NOT EXISTS idx_player_stats_wallet ON player_stats(wallet)")
+            print("  ✅ player_stats table verified")
+
+            # 8. 🔥 ADDITIONAL INDEXES FOR SCALABILITY
+            print("  🔧 Creating additional performance indexes...")
+
+            # Index for mission end time (for "missions about to complete" queries)
+            cur.execute("""
+                DO $$
+                BEGIN
+                    IF NOT EXISTS (SELECT 1 FROM information_schema.columns
+                                   WHERE table_name = 'active_missions' AND column_name = 'ends_at') THEN
+                        ALTER TABLE active_missions ADD COLUMN ends_at TIMESTAMP;
+                        RAISE NOTICE 'Added ends_at column to active_missions';
+                    END IF;
+                END $$;
+            """)
+            cur.execute("CREATE INDEX IF NOT EXISTS idx_active_missions_ends_at ON active_missions(ends_at)")
+
+            # Indexes for equipment lookups
+            cur.execute("CREATE INDEX IF NOT EXISTS idx_nfts_weapon ON nfts(weapon_id) WHERE weapon_id IS NOT NULL")
+            cur.execute("CREATE INDEX IF NOT EXISTS idx_nfts_armor ON nfts(armor_id) WHERE armor_id IS NOT NULL")
+
+            # Composite index for common queries
+            cur.execute("CREATE INDEX IF NOT EXISTS idx_nfts_owner_state ON nfts(last_known_owner, (dynamic_state->>'state'))")
+
+            print("  ✅ Additional indexes created")
 
         conn.commit()
         print("✅ PostgreSQL schema verified/updated")
@@ -681,6 +825,8 @@ def get_emissary_bonuses(emissary_id: str) -> dict:
     Queries database for equipped items/runes, fetches metadata from IPFS,
     and sums bonuses according to rarity tables.
 
+    Uses 5-minute cache to reduce database/IPFS calls.
+
     Returns: {
         'ember': int,      # +% EMBER earned
         'xp': int,         # +% XP earned
@@ -691,6 +837,12 @@ def get_emissary_bonuses(emissary_id: str) -> dict:
         'rune_count': int  # Number of equipped runes
     }
     """
+    # Check cache first
+    cached = db.get_cached_equipment_bonuses(emissary_id)
+    if cached is not None:
+        logger.debug(f"Equipment bonuses cache hit for {emissary_id}")
+        return cached
+
     total_bonuses = {
         'ember': 0,
         'xp': 0,
@@ -766,6 +918,9 @@ def get_emissary_bonuses(emissary_id: str) -> dict:
               f"energy -{total_bonuses['energy']}%, death -{total_bonuses['death']}%, " +
               f"speed -{total_bonuses['speed']}% " +
               f"({total_bonuses['item_count']} items, {total_bonuses['rune_count']} runes)")
+
+        # Cache the result for future calls
+        db.set_cached_equipment_bonuses(emissary_id, total_bonuses)
 
         return total_bonuses
 
@@ -2996,6 +3151,7 @@ def get_player_emissaries_from_new_tables(wallet):
         return []
 
 @app.route("/api/player/<wallet>", methods=["GET", "POST"])
+@rate_limit(requests_per_minute=20)
 def api_player(wallet):
     # 🔥 NORMALIZE wallet address to lowercase to avoid case sensitivity issues
     wallet = wallet.lower()
@@ -3223,6 +3379,7 @@ def api_player(wallet):
 # ---------------------------------
 
 @app.route("/api/claims/<wallet>", methods=["GET"])
+@rate_limit(requests_per_minute=10)
 def api_get_pending_claims(wallet):
     """
     Get all pending claims for a wallet.
@@ -3252,6 +3409,7 @@ def api_get_pending_claims(wallet):
     })
 
 @app.route("/api/claims/confirm", methods=["POST"])
+@rate_limit(requests_per_minute=10)
 def api_confirm_claim():
     """
     Confirm that a claim was successfully claimed on-chain.
@@ -3578,6 +3736,7 @@ def handle_party_mission_start(wallet, hero_ids, mission_id):
         return jsonify({"error": f"Party mission start failed: {str(e)}"}), 500
 
 @app.route("/api/mission/start", methods=["POST"])
+@rate_limit(requests_per_minute=10)
 def api_mission_start():
     """
     Start a mission (solo or party).
@@ -4219,6 +4378,7 @@ def handle_party_mission_complete(wallet, party_mission):
     return jsonify(response_data)
 
 @app.route("/api/mission/complete", methods=["POST"])
+@rate_limit(requests_per_minute=10)
 def api_mission_complete():
     """
     Complete a mission (solo or party).
@@ -6325,6 +6485,7 @@ def get_balance():
 # ---------------------------------
 
 @app.route('/api/vault', methods=['GET'])
+@rate_limit(requests_per_minute=20)
 def get_vault():
     """
     Get vault items.
@@ -6539,6 +6700,7 @@ def get_equipped_items():
 
 
 @app.route('/api/equipment/equip', methods=['POST'])
+@rate_limit(requests_per_minute=20)
 def equipment_equip():
     """
     Equip an item/rune to an emissary.
@@ -6638,6 +6800,10 @@ def equipment_equip():
         conn.commit()
         db.release_connection(conn)
 
+        # Invalidate equipment bonuses cache for this emissary
+        db.invalidate_equipment_cache(emissary_id)
+        logger.info(f"Equipment equipped: emissary={emissary_id}, type={item_type}, item={item_id}")
+
         return jsonify({
             "success": True,
             "message": f"{item_type.capitalize()} equipped successfully"
@@ -6650,6 +6816,7 @@ def equipment_equip():
         return jsonify({"error": str(e)}), 500
 
 @app.route('/api/equipment/unequip', methods=['POST'])
+@rate_limit(requests_per_minute=20)
 def equipment_unequip():
     """
     Unequip a single item/rune from an emissary.
@@ -6717,6 +6884,10 @@ def equipment_unequip():
         conn.commit()
         db.release_connection(conn)
 
+        # Invalidate equipment bonuses cache for this emissary
+        db.invalidate_equipment_cache(emissary_id)
+        logger.info(f"Equipment unequipped: emissary={emissary_id}, type={item_type}")
+
         return jsonify({"success": True, "message": "Item unequipped"})
 
     except Exception as e:
@@ -6724,6 +6895,7 @@ def equipment_unequip():
         return jsonify({"error": str(e)}), 500
 
 @app.route('/api/equipment/unequip-all', methods=['POST'])
+@rate_limit(requests_per_minute=10)
 def equipment_unequip_all():
     """Unequip all items from an emissary"""
     data = request.get_json()
@@ -6750,6 +6922,10 @@ def equipment_unequip_all():
 
         conn.commit()
         db.release_connection(conn)
+
+        # Invalidate equipment bonuses cache for this emissary
+        db.invalidate_equipment_cache(emissary_id)
+        logger.info(f"All equipment unequipped: emissary={emissary_id}")
 
         return jsonify({"success": True, "message": "All items unequipped"})
 
@@ -7479,6 +7655,150 @@ def revive_emissary():
     except Exception as e:
         print(f"Error reviving emissary: {e}")
         return jsonify({"error": str(e)}), 500
+
+# ---------------------------------
+# 🏥 HEALTH CHECK & MONITORING ENDPOINTS
+# ---------------------------------
+
+@app.route('/health', methods=['GET'])
+def health_check():
+    """
+    Health check endpoint for monitoring and load balancers.
+    Returns system status including database connectivity.
+    """
+    status = {
+        'status': 'healthy',
+        'timestamp': datetime.now(timezone.utc).isoformat(),
+        'version': '2.0.0',
+        'components': {}
+    }
+
+    # Check database
+    try:
+        with db.get_db() as conn:
+            with conn.cursor() as cur:
+                cur.execute("SELECT 1")
+        status['components']['database'] = 'connected'
+    except Exception as e:
+        status['components']['database'] = f'error: {str(e)[:50]}'
+        status['status'] = 'degraded'
+
+    # Pool info
+    if db.connection_pool:
+        try:
+            status['components']['pool'] = {
+                'min': db.POOL_MIN_CONN,
+                'max': db.POOL_MAX_CONN,
+                'available': True
+            }
+        except:
+            status['components']['pool'] = 'unknown'
+    else:
+        status['components']['pool'] = 'not_initialized'
+        status['status'] = 'degraded'
+
+    # Check signing capability
+    status['components']['signing'] = 'available' if SIGNING_AVAILABLE and BACKEND_SIGNER_PRIVATE_KEY else 'unavailable'
+
+    http_code = 200 if status['status'] == 'healthy' else 503
+    return jsonify(status), http_code
+
+
+@app.route('/metrics', methods=['GET'])
+def get_metrics():
+    """
+    Basic metrics endpoint for monitoring.
+    """
+    try:
+        metrics = {
+            'timestamp': datetime.now(timezone.utc).isoformat(),
+            'rate_limits': {
+                'active_keys': len(_rate_limit_storage),
+            },
+            'cache': {
+                'wallet_nfts': len(db._wallet_nfts_cache) if hasattr(db, '_wallet_nfts_cache') else 0,
+                'equipment_bonuses': len(db._equipment_bonuses_cache) if hasattr(db, '_equipment_bonuses_cache') else 0,
+                'ipfs_metadata': len(_ipfs_metadata_cache),
+            }
+        }
+
+        # Get active missions count
+        if POSTGRESQL_AVAILABLE:
+            try:
+                with db.get_db() as conn:
+                    with conn.cursor() as cur:
+                        cur.execute("SELECT COUNT(*) FROM active_missions")
+                        metrics['active_missions'] = cur.fetchone()[0]
+
+                        cur.execute("SELECT COUNT(*) FROM nfts")
+                        metrics['total_nfts'] = cur.fetchone()[0]
+
+                        cur.execute("SELECT COUNT(DISTINCT last_known_owner) FROM nfts WHERE last_known_owner IS NOT NULL")
+                        metrics['unique_wallets'] = cur.fetchone()[0]
+            except:
+                pass
+
+        return jsonify(metrics)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+# ---------------------------------
+# 📊 PLAYER STATS HELPER FUNCTIONS
+# ---------------------------------
+
+def update_player_stats(wallet, xp_earned=0, ember_earned=0, missions=0, deaths=0, items=0, runes=0, energy_spent=0, sacrifices=0):
+    """
+    Update player stats in PostgreSQL (atomic operation).
+    Replaces JSON-based stats tracking for scalability.
+    """
+    if not POSTGRESQL_AVAILABLE:
+        return False
+
+    try:
+        with db.get_db() as conn:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    INSERT INTO player_stats (
+                        wallet, total_missions, total_xp_earned, total_ember_earned,
+                        total_deaths, total_items_found, total_runes_found,
+                        total_energy_spent, total_sacrifices, updated_at
+                    )
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP)
+                    ON CONFLICT (wallet) DO UPDATE SET
+                        total_missions = player_stats.total_missions + EXCLUDED.total_missions,
+                        total_xp_earned = player_stats.total_xp_earned + EXCLUDED.total_xp_earned,
+                        total_ember_earned = player_stats.total_ember_earned + EXCLUDED.total_ember_earned,
+                        total_deaths = player_stats.total_deaths + EXCLUDED.total_deaths,
+                        total_items_found = player_stats.total_items_found + EXCLUDED.total_items_found,
+                        total_runes_found = player_stats.total_runes_found + EXCLUDED.total_runes_found,
+                        total_energy_spent = player_stats.total_energy_spent + EXCLUDED.total_energy_spent,
+                        total_sacrifices = player_stats.total_sacrifices + EXCLUDED.total_sacrifices,
+                        updated_at = CURRENT_TIMESTAMP
+                """, (wallet.lower(), missions, xp_earned, ember_earned, deaths, items, runes, energy_spent, sacrifices))
+        logger.info(f"Player stats updated: wallet={wallet[:10]}..., missions={missions}, xp={xp_earned}")
+        return True
+    except Exception as e:
+        logger.error(f"Error updating player stats: {e}")
+        return False
+
+
+def get_player_stats(wallet):
+    """Get player stats from PostgreSQL."""
+    if not POSTGRESQL_AVAILABLE:
+        return None
+
+    try:
+        with db.get_db() as conn:
+            with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                cur.execute("""
+                    SELECT * FROM player_stats WHERE wallet = %s
+                """, (wallet.lower(),))
+                return cur.fetchone()
+    except Exception as e:
+        logger.error(f"Error getting player stats: {e}")
+        return None
+
 
 # ---------------------------------
 
