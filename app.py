@@ -8184,7 +8184,16 @@ def start_mission_with_lock(wallet, hero_id, mission_id, equipment_bonuses=None)
                 last_run_ts = mission_hist.get(mission_id)
                 if last_run_ts and hours_since(last_run_ts) < ROTATION_HOURS:
                     hours_left = ROTATION_HOURS - hours_since(last_run_ts)
-                    return {'error': f'Mission cooldown: {hours_left:.1f}h remaining'}, 400
+                    hours_int = int(hours_left)
+                    minutes_int = int((hours_left - hours_int) * 60)
+                    return {
+                        'error': 'mission_cooldown',
+                        'error_type': 'cooldown',
+                        'hours': hours_int,
+                        'minutes': minutes_int,
+                        'mission_name': mission_config['name'],
+                        'message': f'This Emissary has recently completed "{mission_config["name"]}". The Order requires {hours_int}h {minutes_int}m recovery before redeployment to this same mission. Choose a different assignment.'
+                    }, 400
 
                 # Step 6: Calculate duration with speed bonus
                 base_duration = mission_config.get('duration_hours', 1)
