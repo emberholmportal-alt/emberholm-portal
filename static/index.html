@@ -6335,9 +6335,27 @@ function parseErrorMessage(errorText) {
         }
     }
 
-    // Try to parse as JSON
+    // Try to parse as JSON and check for special error types
     try {
         const jsonError = JSON.parse(errorText);
+
+        // 🕐 Special handling for mission cooldown errors
+        if (jsonError.error_type === 'cooldown' || jsonError.error === 'mission_cooldown') {
+            const hours = jsonError.hours || 0;
+            const minutes = jsonError.minutes || 0;
+            const missionName = jsonError.mission_name || 'this mission';
+
+            return `⏳ DEPLOYMENT COOLDOWN ACTIVE
+
+This Emissary has recently served on "${missionName}" and requires recovery time before being reassigned to the same operation.
+
+⏱️ Time Remaining: ${hours}h ${minutes}m
+
+📜 The Order's Protocol demands that each Emissary rest between identical deployments to maintain peak effectiveness.
+
+💡 Select a different mission from the available operations, or deploy another Emissary to this assignment.`;
+        }
+
         if (jsonError.error) message = jsonError.error;
         if (jsonError.message) message = jsonError.message;
     } catch (e) {
