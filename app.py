@@ -8703,6 +8703,163 @@ def get_metrics():
         return jsonify({'error': str(e)}), 500
 
 
+@app.route('/api/debug/nft-status/<wallet>')
+def debug_nft_status(wallet):
+    """
+    🔍 DIAGNOSTIC ENDPOINT: Check NFT metadata status for a wallet.
+
+    Returns for each NFT:
+    - PostgreSQL data (dynamic_state, XP, Aura)
+    - Metadata endpoint data
+    - Comparison of both sources
+
+    Usage: GET /api/debug/nft-status/0xYourWallet
+    """
+    wallet = wallet.lower()
+
+    if not POSTGRESQL_AVAILABLE:
+        return jsonify({'error': 'PostgreSQL not available'}), 503
+
+    results = {
+        'wallet': wallet,
+        'summary': {
+            'total_nfts': 0,
+            'with_dynamic_state': 0,
+            'without_dynamic_state': 0,
+            'with_xp': 0,
+            'metadata_matches_db': 0,
+            'metadata_mismatches': 0
+        },
+        'nfts': []
+    }
+
+    try:
+        # Get all NFTs for this wallet from PostgreSQL
+        with db.get_db() as conn:
+            with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                cur.execute("""
+                    SELECT token_id, name, dynamic_state, last_synced, last_known_owner
+                    FROM nfts
+                    WHERE LOWER(last_known_owner) = %s
+                    ORDER BY token_id
+                """, (wallet,))
+                db_nfts = cur.fetchall()
+
+        results['summary']['total_nfts'] = len(db_nfts)
+
+        for nft in db_nfts:
+            token_id = nft['token_id']
+            ds = nft['dynamic_state'] or {}
+
+            # Get PostgreSQL data
+            db_xp = ds.get('xp_total', 0) if ds else 0
+            db_aura = ds.get('aura_level', 0) if ds else 0
+            db_state = ds.get('state', 'UNKNOWN') if ds else 'NO_DATA'
+            has_dynamic_state = bool(ds and len(ds) > 0)
+
+            # Get metadata endpoint data
+            metadata_data = find_dynamic_state_for_token(token_id)
+            meta_xp = metadata_data.get('xp_total', 0)
+            meta_aura = metadata_data.get('aura_level', 0)
+
+            # Compare
+            xp_match = db_xp == meta_xp
+            aura_match = db_aura == meta_aura
+            all_match = xp_match and aura_match
+
+            # Update summary
+            if has_dynamic_state:
+                results['summary']['with_dynamic_state'] += 1
+            else:
+                results['summary']['without_dynamic_state'] += 1
+
+            if db_xp > 0:
+                results['summary']['with_xp'] += 1
+
+            if all_match:
+                results['summary']['metadata_matches_db'] += 1
+            else:
+                results['summary']['metadata_mismatches'] += 1
+
+            # Add NFT details
+            results['nfts'].append({
+                'token_id': token_id,
+                'name': nft['name'],
+                'last_synced': str(nft['last_synced']) if nft['last_synced'] else None,
+                'postgresql': {
+                    'has_dynamic_state': has_dynamic_state,
+                    'xp_total': db_xp,
+                    'aura_level': db_aura,
+                    'state': db_state,
+                    'energy': ds.get('energy_current', 0) if ds else 0,
+                    'level': ds.get('xp_level', 1) if ds else 1,
+                    'total_missions': ds.get('total_missions_completed', 0) if ds else 0
+                },
+                'metadata_endpoint': {
+                    'xp_total': meta_xp,
+                    'aura_level': meta_aura,
+                    'energy': metadata_data.get('energy_current', 0),
+                    'level': metadata_data.get('xp_level', 1)
+                },
+                'comparison': {
+                    'xp_match': xp_match,
+                    'aura_match': aura_match,
+                    'all_match': all_match,
+                    'issue': None if all_match else f"DB: XP={db_xp}, Aura={db_aura} | Metadata: XP={meta_xp}, Aura={meta_aura}"
+                }
+            })
+
+        return jsonify(results)
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/debug/sync-nft/<token_id>')
+def debug_sync_nft(token_id):
+    """
+    🔧 Force sync a specific NFT to PostgreSQL.
+
+    Usage: GET /api/debug/sync-nft/19726
+    """
+    wallet = request.args.get('wallet', '').lower()
+
+    try:
+        token_id_padded = str(token_id).zfill(5)
+
+        # Get current state before sync
+        before = get_nft_from_database(token_id_padded)
+        before_ds = before.get('dynamic_state', {}) if before else None
+
+        # Force sync
+        result = sync_nft_to_database(token_id_padded, owner_wallet=wallet if wallet else None)
+
+        after_ds = result.get('dynamic_state', {}) if result else None
+
+        return jsonify({
+            'success': True,
+            'token_id': token_id_padded,
+            'action': 'updated' if before else 'created',
+            'before': {
+                'existed': bool(before),
+                'xp': before_ds.get('xp_total', 0) if before_ds else None,
+                'aura': before_ds.get('aura_level', 0) if before_ds else None
+            },
+            'after': {
+                'xp': after_ds.get('xp_total', 0) if after_ds else 0,
+                'aura': after_ds.get('aura_level', 0) if after_ds else 0,
+                'state': after_ds.get('state', 'UNKNOWN') if after_ds else 'UNKNOWN'
+            }
+        })
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
 # ---------------------------------
 # 📊 PLAYER STATS HELPER FUNCTIONS
 # ---------------------------------
