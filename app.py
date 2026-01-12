@@ -778,8 +778,20 @@ def fetch_ipfs_metadata(token_id: str, is_rune: bool = False) -> dict:
     """
     Fetch item/rune metadata from IPFS with caching.
     Returns metadata dict with 'rarity' field, or None if fetch fails.
+
+    Handles ID formats:
+    - "rune-1059" → extracts "1059" → pads to "01059"
+    - "item-5120" → extracts "5120" → pads to "05120"
+    - "1059" → pads to "01059"
     """
-    cache_key = f"{'rune' if is_rune else 'item'}_{token_id}"
+    # Extract numeric ID from formats like "rune-1059" or "item-5120"
+    original_id = str(token_id)
+    if '-' in original_id:
+        numeric_id = original_id.split('-')[-1]  # "rune-1059" → "1059"
+    else:
+        numeric_id = original_id
+
+    cache_key = f"{'rune' if is_rune else 'item'}_{numeric_id}"
 
     # Check cache first
     if cache_key in _ipfs_metadata_cache:
@@ -787,13 +799,15 @@ def fetch_ipfs_metadata(token_id: str, is_rune: bool = False) -> dict:
 
     try:
         # Format token ID with leading zeros (5 digits)
-        padded_id = str(token_id).zfill(5)
+        padded_id = numeric_id.zfill(5)
         cid = RUNES_METADATA_CID if is_rune else ITEMS_METADATA_CID
         url = f"{IPFS_GATEWAY}{cid}/{padded_id}.json"
 
+        print(f"🔍 Fetching IPFS metadata: {original_id} → {padded_id}.json")
+
         response = requests.get(url, timeout=10)
         if response.status_code != 200:
-            print(f"⚠️ IPFS fetch failed for {cache_key}: HTTP {response.status_code}")
+            print(f"⚠️ IPFS fetch failed for {cache_key}: HTTP {response.status_code} (URL: {url})")
             return None
 
         metadata = response.json()
@@ -5177,19 +5191,23 @@ def load_base_metadata_for_token(token_id):
 
 def find_dynamic_state_for_token(token_id):
     """
-    Busca en players.json qué wallet contiene este héroe
-    y devuelve su dynamic_state (XP / Aura / Energía / última misión).
-    Si no está todavía, devolvemos defaults.
-    """
-    players_all = load_json(PLAYERS_PATH, {})
+    Busca el dynamic_state de un token (XP / Aura / Energía / última misión).
 
-    for wallet_addr, pobj in players_all.items():
-        for hero in pobj.get("heroes", []):
-            if hero.get("token_id") == str(token_id).zfill(5):
-                ds = hero.get("dynamic_state", {})
-                last_mission_name = ds.get("last_mission", "None")
+    🔥 POSTGRESQL FIRST: Lee de la base de datos PostgreSQL (fuente de verdad).
+    Fallback a players.json solo si PostgreSQL no está disponible.
+    """
+    token_id_padded = str(token_id).zfill(5)
+
+    # 🔥 POSTGRESQL: Fuente de verdad para datos dinámicos
+    if POSTGRESQL_AVAILABLE:
+        try:
+            nfts_db = load_nfts_database()  # Lee de PostgreSQL
+            nft = nfts_db.get(token_id_padded)
+
+            if nft and nft.get('dynamic_state'):
+                ds = nft['dynamic_state']
                 return {
-                    "current_guild":   ds.get("current_guild", hero.get("guild","Unknown")),
+                    "current_guild":   ds.get("current_guild", nft.get("guild", "Unknown")),
                     "xp_total":        ds.get("xp_total", 0),
                     "xp_level":        ds.get("xp_level", 1),
                     "aura_level":      ds.get("aura_level", 0),
@@ -5197,9 +5215,34 @@ def find_dynamic_state_for_token(token_id):
                     "energy_max":      ds.get("energy_max", 100),
                     "power_current":   ds.get("power_current", 0),
                     "last_update":     ds.get("last_update", now_utc_str()),
-                    "last_mission":    last_mission_name,
+                    "last_mission":    ds.get("last_mission", "None"),
+                    "total_missions_completed": ds.get("total_missions_completed", 0),
+                    "death_count":     ds.get("death_count", 0),
+                    "state":           ds.get("state", "READY"),
+                }
+        except Exception as e:
+            print(f"⚠️ PostgreSQL find_dynamic_state failed: {e}, falling back to players.json")
+
+    # 📁 FALLBACK: players.json (si PostgreSQL no está disponible)
+    players_all = load_json(PLAYERS_PATH, {})
+
+    for wallet_addr, pobj in players_all.items():
+        for hero in pobj.get("heroes", []):
+            if hero.get("token_id") == token_id_padded:
+                ds = hero.get("dynamic_state", {})
+                return {
+                    "current_guild":   ds.get("current_guild", hero.get("guild", "Unknown")),
+                    "xp_total":        ds.get("xp_total", 0),
+                    "xp_level":        ds.get("xp_level", 1),
+                    "aura_level":      ds.get("aura_level", 0),
+                    "energy_current":  ds.get("energy_current", 100),
+                    "energy_max":      ds.get("energy_max", 100),
+                    "power_current":   ds.get("power_current", 0),
+                    "last_update":     ds.get("last_update", now_utc_str()),
+                    "last_mission":    ds.get("last_mission", "None"),
                 }
 
+    # 🆕 Token no encontrado - devolver defaults
     return {
         "current_guild":   "Unassigned",
         "xp_total":        0,
@@ -5346,10 +5389,15 @@ def api_metadata(token_id):
             "value": len(achievements)
         })
 
+    # Convert ipfs:// to HTTP gateway for MetaMask/wallet compatibility
+    image_url = base_meta.get("image", "")
+    if image_url.startswith("ipfs://"):
+        image_url = image_url.replace("ipfs://", "https://ipfs.io/ipfs/")
+
     response = {
         "name":        base_meta.get("name", f"Emissary #{str(token_id).zfill(5)}"),
         "description": base_meta.get("description", "Emissary of Emberholm."),
-        "image":       base_meta.get("image", ""),
+        "image":       image_url,
         "attributes":  traits
     }
 
