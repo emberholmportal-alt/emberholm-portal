@@ -778,8 +778,20 @@ def fetch_ipfs_metadata(token_id: str, is_rune: bool = False) -> dict:
     """
     Fetch item/rune metadata from IPFS with caching.
     Returns metadata dict with 'rarity' field, or None if fetch fails.
+
+    Handles ID formats:
+    - "rune-1059" → extracts "1059" → pads to "01059"
+    - "item-5120" → extracts "5120" → pads to "05120"
+    - "1059" → pads to "01059"
     """
-    cache_key = f"{'rune' if is_rune else 'item'}_{token_id}"
+    # Extract numeric ID from formats like "rune-1059" or "item-5120"
+    original_id = str(token_id)
+    if '-' in original_id:
+        numeric_id = original_id.split('-')[-1]  # "rune-1059" → "1059"
+    else:
+        numeric_id = original_id
+
+    cache_key = f"{'rune' if is_rune else 'item'}_{numeric_id}"
 
     # Check cache first
     if cache_key in _ipfs_metadata_cache:
@@ -787,13 +799,15 @@ def fetch_ipfs_metadata(token_id: str, is_rune: bool = False) -> dict:
 
     try:
         # Format token ID with leading zeros (5 digits)
-        padded_id = str(token_id).zfill(5)
+        padded_id = numeric_id.zfill(5)
         cid = RUNES_METADATA_CID if is_rune else ITEMS_METADATA_CID
         url = f"{IPFS_GATEWAY}{cid}/{padded_id}.json"
 
+        print(f"🔍 Fetching IPFS metadata: {original_id} → {padded_id}.json")
+
         response = requests.get(url, timeout=10)
         if response.status_code != 200:
-            print(f"⚠️ IPFS fetch failed for {cache_key}: HTTP {response.status_code}")
+            print(f"⚠️ IPFS fetch failed for {cache_key}: HTTP {response.status_code} (URL: {url})")
             return None
 
         metadata = response.json()
