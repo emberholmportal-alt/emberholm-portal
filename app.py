@@ -5346,10 +5346,15 @@ def api_metadata(token_id):
             "value": len(achievements)
         })
 
+    # Convert ipfs:// to HTTP gateway for MetaMask/wallet compatibility
+    image_url = base_meta.get("image", "")
+    if image_url.startswith("ipfs://"):
+        image_url = image_url.replace("ipfs://", "https://ipfs.io/ipfs/")
+
     response = {
         "name":        base_meta.get("name", f"Emissary #{str(token_id).zfill(5)}"),
         "description": base_meta.get("description", "Emissary of Emberholm."),
-        "image":       base_meta.get("image", ""),
+        "image":       image_url,
         "attributes":  traits
     }
 
