@@ -5276,14 +5276,23 @@ def api_grant_achievement():
 # ---------------------------------
 
 @app.route("/api/metadata/<token_id>")
+@app.route("/api/metadata/<token_id>.json")
 def api_metadata(token_id):
     """
     Endpoint que OpenSea/marketplaces pueden consultar como tokenURI.
+    Soporta ambos formatos:
+    - /api/metadata/19726
+    - /api/metadata/19726.json (para contratos que agregan .json automáticamente)
+
     Combina:
     - metadata fija del héroe (race, STR, etc.)
     - estado dinámico actual (XP, Aura, Energy, Last Mission)
     y lo devuelve TODO dentro de "attributes".
     """
+    # Strip .json suffix if present (in case it comes through the first route)
+    if token_id.endswith('.json'):
+        token_id = token_id[:-5]
+
     base_meta = load_base_metadata_for_token(token_id)
     if base_meta is None:
         abort(404, "token metadata not found")
