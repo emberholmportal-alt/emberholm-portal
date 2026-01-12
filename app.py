@@ -5167,6 +5167,7 @@ def fetch_ipfs_mainnet_metadata(token_id):
             "int":             0,
             "wis":             0,
             "cha":             0,
+            "power":           0,  # Static base power
         }
 
         # Extract from fixed_profile if present
@@ -5185,7 +5186,14 @@ def fetch_ipfs_mainnet_metadata(token_id):
             if "wis"            in fixed: meta["wis"]             = fixed["wis"]
             if "cha"            in fixed: meta["cha"]             = fixed["cha"]
 
-        # Fallback to attributes[] array
+        # Also check for power in dynamic_state (it's static but stored there in some formats)
+        dyn_state = raw.get("dynamic_state", {})
+        if isinstance(dyn_state, dict) and "power_current" in dyn_state:
+            meta["power"] = dyn_state["power_current"]
+        else:
+            meta["power"] = 0
+
+        # Fallback to attributes[] array (IPFS mainnet may store stats here)
         attrs = raw.get("attributes", [])
         for trait in attrs:
             ttype = trait.get("trait_type", "").lower()
@@ -5199,8 +5207,25 @@ def fetch_ipfs_mainnet_metadata(token_id):
                 meta["rarity"] = val
             elif ttype == "guild" and meta["starting_guild"] == "Unknown":
                 meta["starting_guild"] = val
+            elif ttype == "starting guild" and meta["starting_guild"] == "Unknown":
+                meta["starting_guild"] = val
             elif ttype == "age" and meta["age"] == 0:
                 meta["age"] = val
+            # 🔥 Extract stats from attributes[] if not in fixed_profile
+            elif ttype == "str" and meta["str"] == 0:
+                meta["str"] = val
+            elif ttype == "dex" and meta["dex"] == 0:
+                meta["dex"] = val
+            elif ttype == "con" and meta["con"] == 0:
+                meta["con"] = val
+            elif ttype == "int" and meta["int"] == 0:
+                meta["int"] = val
+            elif ttype == "wis" and meta["wis"] == 0:
+                meta["wis"] = val
+            elif ttype == "cha" and meta["cha"] == 0:
+                meta["cha"] = val
+            elif ttype == "power" and meta.get("power", 0) == 0:
+                meta["power"] = val
 
         # 4. Cache the result
         IPFS_METADATA_CACHE[padded_id] = (meta, time.time())
@@ -5257,6 +5282,7 @@ def load_base_metadata_for_token(token_id):
         "int":             0,
         "wis":             0,
         "cha":             0,
+        "power":           0,  # Static base power
     }
 
     # 1) fixed_profile: tu formato real
@@ -5275,6 +5301,11 @@ def load_base_metadata_for_token(token_id):
         if "wis"            in fixed: meta["wis"]             = fixed["wis"]
         if "cha"            in fixed: meta["cha"]             = fixed["cha"]
 
+    # Also check for power in dynamic_state (it's static but stored there in some formats)
+    dyn_state = raw.get("dynamic_state", {})
+    if isinstance(dyn_state, dict) and "power_current" in dyn_state:
+        meta["power"] = dyn_state["power_current"]
+
     # 2) fallback desde attributes[] si todavía faltan cosas
     attrs = raw.get("attributes", [])
     for trait in attrs:
@@ -5292,8 +5323,25 @@ def load_base_metadata_for_token(token_id):
             meta["rarity"] = val
         elif ttype == "guild" and meta["starting_guild"] == "Unknown":
             meta["starting_guild"] = val
+        elif ttype == "starting guild" and meta["starting_guild"] == "Unknown":
+            meta["starting_guild"] = val
         elif ttype == "age" and meta["age"] == 0:
             meta["age"] = val
+        # 🔥 Extract stats from attributes[] if not in fixed_profile
+        elif ttype == "str" and meta["str"] == 0:
+            meta["str"] = val
+        elif ttype == "dex" and meta["dex"] == 0:
+            meta["dex"] = val
+        elif ttype == "con" and meta["con"] == 0:
+            meta["con"] = val
+        elif ttype == "int" and meta["int"] == 0:
+            meta["int"] = val
+        elif ttype == "wis" and meta["wis"] == 0:
+            meta["wis"] = val
+        elif ttype == "cha" and meta["cha"] == 0:
+            meta["cha"] = val
+        elif ttype == "power" and meta.get("power", 0) == 0:
+            meta["power"] = val
 
     return meta
 
@@ -5658,7 +5706,7 @@ def api_metadata(token_id):
         {"trait_type": "Level",         "value": dyn.get("xp_level", 1)},
         {"trait_type": "Aura",          "value": dyn.get("aura_level", 0)},
         {"trait_type": "Energy",        "value": energy_str},
-        {"trait_type": "Power",         "value": dyn.get("power_current", 0)},
+        {"trait_type": "Power",         "value": base_meta.get("power", 0)},  # 🔥 Static from IPFS, not PostgreSQL
         {"trait_type": "Last Mission",  "value": dyn.get("last_mission", "None")},
         {"trait_type": "Last Update",   "value": dyn.get("last_update", now_utc_str())}
     ]
