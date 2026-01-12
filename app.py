@@ -360,7 +360,13 @@ IPFS_GATEWAY = "https://ipfs.io/ipfs/"
 # 🔥 IPFS CIDs de Base Mainnet
 # Metadata JSON: bafybeidd7wtx7izjgsociwe6ynjz6c3xslqmcedr7z4wojcxs4yd5u7pim
 # Imágenes PNG:  bafybeicnvc3zagcncablcovpxgt5mtuotowvuqom6kby754ve2gwbzdvkm
+IPFS_MAINNET_METADATA_CID = "bafybeidd7wtx7izjgsociwe6ynjz6c3xslqmcedr7z4wojcxs4yd5u7pim"
 IPFS_MAINNET_IMAGES_CID = "bafybeicnvc3zagcncablcovpxgt5mtuotowvuqom6kby754ve2gwbzdvkm"
+
+# 🔥 IPFS Metadata Cache (in-memory, 10 minute TTL)
+# Key: token_id (padded), Value: (metadata_dict, timestamp)
+IPFS_METADATA_CACHE = {}
+IPFS_CACHE_TTL_SECONDS = 600  # 10 minutes
 
 # ---------------------------------
 # Blockchain Config (TEMPORARILY DISABLED)
@@ -5110,6 +5116,134 @@ def api_admin_populate_database():
 # Helpers internos para metadata dinámica (OpenSea-style)
 # ---------------------------------
 
+def fetch_ipfs_mainnet_metadata(token_id):
+    """
+    🔥 IPFS MAINNET: Fetch metadata from IPFS mainnet with caching.
+
+    This is the source of truth for NFT base attributes (race, class, etc.)
+    on Base mainnet. Uses in-memory cache with 10-minute TTL.
+
+    Returns normalized metadata dict or None if fetch fails.
+    """
+    import time
+
+    padded_id = str(token_id).zfill(5)
+
+    # 1. Check cache first
+    if padded_id in IPFS_METADATA_CACHE:
+        cached_data, cached_time = IPFS_METADATA_CACHE[padded_id]
+        if time.time() - cached_time < IPFS_CACHE_TTL_SECONDS:
+            print(f"📦 IPFS cache hit for #{padded_id}")
+            return cached_data
+
+    # 2. Fetch from IPFS mainnet
+    url = f"{IPFS_GATEWAY}{IPFS_MAINNET_METADATA_CID}/{padded_id}.json"
+    print(f"🌐 Fetching IPFS mainnet metadata: {url}")
+
+    try:
+        response = requests.get(url, timeout=15)
+        if response.status_code != 200:
+            print(f"⚠️ IPFS fetch failed for #{padded_id}: HTTP {response.status_code}")
+            return None
+
+        raw = response.json()
+
+        # 3. Normalize metadata (same logic as load_base_metadata_for_token)
+        mainnet_image = f"ipfs://{IPFS_MAINNET_IMAGES_CID}/{padded_id}.png"
+
+        meta = {
+            "token_id":        padded_id,
+            "name":            raw.get("name", f"Emissary #{padded_id}"),
+            "description":     raw.get("description", "Emissary of Emberholm."),
+            "image":           mainnet_image,
+            "race":            "Unknown",
+            "class":           "Unknown",
+            "rarity":          "Unknown",
+            "age":             0,
+            "starting_guild":  "Unknown",
+            "str":             0,
+            "dex":             0,
+            "con":             0,
+            "int":             0,
+            "wis":             0,
+            "cha":             0,
+            "power":           0,  # Static base power
+        }
+
+        # Extract from fixed_profile if present
+        fixed = raw.get("fixed_profile", {})
+        if isinstance(fixed, dict):
+            if "token_id"       in fixed: meta["token_id"]        = fixed["token_id"]
+            if "race"           in fixed: meta["race"]            = fixed["race"]
+            if "class"          in fixed: meta["class"]           = fixed["class"]
+            if "rarity"         in fixed: meta["rarity"]          = fixed["rarity"]
+            if "age"            in fixed: meta["age"]             = fixed["age"]
+            if "starting_guild" in fixed: meta["starting_guild"]  = fixed["starting_guild"]
+            if "str"            in fixed: meta["str"]             = fixed["str"]
+            if "dex"            in fixed: meta["dex"]             = fixed["dex"]
+            if "con"            in fixed: meta["con"]             = fixed["con"]
+            if "int"            in fixed: meta["int"]             = fixed["int"]
+            if "wis"            in fixed: meta["wis"]             = fixed["wis"]
+            if "cha"            in fixed: meta["cha"]             = fixed["cha"]
+
+        # Also check for power in dynamic_state (it's static but stored there in some formats)
+        dyn_state = raw.get("dynamic_state", {})
+        if isinstance(dyn_state, dict) and "power_current" in dyn_state:
+            meta["power"] = dyn_state["power_current"]
+        else:
+            meta["power"] = 0
+
+        # Fallback to attributes[] array (IPFS mainnet may store stats here)
+        attrs = raw.get("attributes", [])
+        for trait in attrs:
+            ttype = trait.get("trait_type", "").lower()
+            val   = trait.get("value")
+
+            if ttype == "race" and meta["race"] == "Unknown":
+                meta["race"] = val
+            elif ttype == "class" and meta["class"] == "Unknown":
+                meta["class"] = val
+            elif ttype == "rarity" and meta["rarity"] == "Unknown":
+                meta["rarity"] = val
+            elif ttype == "guild" and meta["starting_guild"] == "Unknown":
+                meta["starting_guild"] = val
+            elif ttype == "starting guild" and meta["starting_guild"] == "Unknown":
+                meta["starting_guild"] = val
+            elif ttype == "age" and meta["age"] == 0:
+                meta["age"] = val
+            # 🔥 Extract stats from attributes[] if not in fixed_profile
+            elif ttype == "str" and meta["str"] == 0:
+                meta["str"] = val
+            elif ttype == "dex" and meta["dex"] == 0:
+                meta["dex"] = val
+            elif ttype == "con" and meta["con"] == 0:
+                meta["con"] = val
+            elif ttype == "int" and meta["int"] == 0:
+                meta["int"] = val
+            elif ttype == "wis" and meta["wis"] == 0:
+                meta["wis"] = val
+            elif ttype == "cha" and meta["cha"] == 0:
+                meta["cha"] = val
+            elif ttype == "power" and meta.get("power", 0) == 0:
+                meta["power"] = val
+
+        # 4. Cache the result
+        IPFS_METADATA_CACHE[padded_id] = (meta, time.time())
+        print(f"✅ IPFS mainnet metadata cached for #{padded_id}: {meta['race']} {meta['class']}")
+
+        return meta
+
+    except requests.exceptions.Timeout:
+        print(f"⚠️ IPFS fetch timeout for #{padded_id}")
+        return None
+    except requests.exceptions.RequestException as e:
+        print(f"⚠️ IPFS fetch error for #{padded_id}: {e}")
+        return None
+    except Exception as e:
+        print(f"⚠️ IPFS fetch unexpected error for #{padded_id}: {e}")
+        return None
+
+
 def load_base_metadata_for_token(token_id):
     """
     Carga data/metadata/<token_id>.json (ej 00001.json)
@@ -5148,6 +5282,7 @@ def load_base_metadata_for_token(token_id):
         "int":             0,
         "wis":             0,
         "cha":             0,
+        "power":           0,  # Static base power
     }
 
     # 1) fixed_profile: tu formato real
@@ -5166,6 +5301,11 @@ def load_base_metadata_for_token(token_id):
         if "wis"            in fixed: meta["wis"]             = fixed["wis"]
         if "cha"            in fixed: meta["cha"]             = fixed["cha"]
 
+    # Also check for power in dynamic_state (it's static but stored there in some formats)
+    dyn_state = raw.get("dynamic_state", {})
+    if isinstance(dyn_state, dict) and "power_current" in dyn_state:
+        meta["power"] = dyn_state["power_current"]
+
     # 2) fallback desde attributes[] si todavía faltan cosas
     attrs = raw.get("attributes", [])
     for trait in attrs:
@@ -5183,8 +5323,25 @@ def load_base_metadata_for_token(token_id):
             meta["rarity"] = val
         elif ttype == "guild" and meta["starting_guild"] == "Unknown":
             meta["starting_guild"] = val
+        elif ttype == "starting guild" and meta["starting_guild"] == "Unknown":
+            meta["starting_guild"] = val
         elif ttype == "age" and meta["age"] == 0:
             meta["age"] = val
+        # 🔥 Extract stats from attributes[] if not in fixed_profile
+        elif ttype == "str" and meta["str"] == 0:
+            meta["str"] = val
+        elif ttype == "dex" and meta["dex"] == 0:
+            meta["dex"] = val
+        elif ttype == "con" and meta["con"] == 0:
+            meta["con"] = val
+        elif ttype == "int" and meta["int"] == 0:
+            meta["int"] = val
+        elif ttype == "wis" and meta["wis"] == 0:
+            meta["wis"] = val
+        elif ttype == "cha" and meta["cha"] == 0:
+            meta["cha"] = val
+        elif ttype == "power" and meta.get("power", 0) == 0:
+            meta["power"] = val
 
     return meta
 
@@ -5266,6 +5423,85 @@ def ensure_nft_in_postgresql(token_id):
 
     except Exception as e:
         print(f"⚠️ ensure_nft_in_postgresql failed for {token_id_padded}: {e}")
+        import traceback
+        traceback.print_exc()
+        if conn:
+            conn.rollback()
+        return False
+    finally:
+        if conn:
+            db.release_connection(conn)
+
+
+def ensure_nft_in_postgresql_with_metadata(token_id, base_meta):
+    """
+    🔥 AUTO-CREATE: Verifica si un NFT existe en PostgreSQL, si no, lo crea.
+
+    Similar a ensure_nft_in_postgresql() pero usa metadata pre-cargada
+    (ej: ya obtenida de IPFS mainnet) en vez de cargarla de archivos locales.
+
+    Esto evita duplicar la llamada a IPFS y garantiza que la metadata
+    almacenada en PostgreSQL coincida con la de mainnet.
+    """
+    if not POSTGRESQL_AVAILABLE:
+        return False
+
+    if base_meta is None:
+        return False
+
+    token_id_padded = str(token_id).zfill(5)
+    conn = None
+
+    try:
+        conn = db.get_connection()
+        cur = conn.cursor()
+
+        # 1. Verificar si ya existe en PostgreSQL
+        cur.execute("SELECT token_id FROM nfts WHERE token_id = %s", (token_id_padded,))
+        existing = cur.fetchone()
+
+        if existing:
+            # Ya existe, no hacer nada
+            return True
+
+        # 2. Crear dynamic_state inicial
+        initial_dynamic_state = {
+            "xp_total": 0,
+            "xp_level": 1,
+            "aura_level": 0,
+            "energy_current": 100,
+            "energy_max": 100,
+            "power_current": 0,
+            "last_update": now_utc_str(),
+            "last_mission": "None",
+            "total_missions_completed": 0,
+            "death_count": 0,
+            "state": "READY",
+            "current_guild": base_meta.get("starting_guild", "Unassigned")
+        }
+
+        # 3. Insertar en PostgreSQL con metadata de IPFS mainnet
+        race_class = f"{base_meta.get('race', 'Unknown')} {base_meta.get('class', 'Unknown')}"
+
+        cur.execute("""
+            INSERT INTO nfts (token_id, name, race_class, guild, image_url, dynamic_state, last_synced)
+            VALUES (%s, %s, %s, %s, %s, %s::jsonb, NOW())
+            ON CONFLICT (token_id) DO NOTHING
+        """, (
+            token_id_padded,
+            base_meta.get('name', f"Emissary #{token_id_padded}"),
+            race_class,
+            base_meta.get('starting_guild', 'Unassigned'),
+            base_meta.get('image', ''),
+            json.dumps(initial_dynamic_state)
+        ))
+
+        conn.commit()
+        print(f"✅ Auto-created NFT {token_id_padded} in PostgreSQL (from IPFS mainnet metadata)")
+        return True
+
+    except Exception as e:
+        print(f"⚠️ ensure_nft_in_postgresql_with_metadata failed for {token_id_padded}: {e}")
         import traceback
         traceback.print_exc()
         if conn:
@@ -5414,23 +5650,34 @@ def api_metadata(token_id):
     - /api/metadata/19726
     - /api/metadata/19726.json (para contratos que agregan .json automáticamente)
 
+    🔥 IPFS MAINNET FIRST: Lee metadata base de IPFS mainnet (con caché).
+    Esto asegura que los atributos (race, class, etc.) coincidan con los
+    que están en el contrato de Base mainnet.
+
     Combina:
-    - metadata fija del héroe (race, STR, etc.)
-    - estado dinámico actual (XP, Aura, Energy, Last Mission)
+    - metadata fija del héroe desde IPFS mainnet (race, STR, etc.)
+    - estado dinámico actual desde PostgreSQL (XP, Aura, Energy, Last Mission)
     y lo devuelve TODO dentro de "attributes".
     """
     # Strip .json suffix if present (in case it comes through the first route)
     if token_id.endswith('.json'):
         token_id = token_id[:-5]
 
-    base_meta = load_base_metadata_for_token(token_id)
+    # 🔥 IPFS MAINNET: Source of truth for base metadata
+    base_meta = fetch_ipfs_mainnet_metadata(token_id)
+
+    # Fallback to local files if IPFS fails
+    if base_meta is None:
+        print(f"⚠️ IPFS mainnet failed for #{token_id}, falling back to local files")
+        base_meta = load_base_metadata_for_token(token_id)
+
     if base_meta is None:
         abort(404, "token metadata not found")
 
-    # 🔥 AUTO-CREATE: Si el NFT existe en metadata pero no en PostgreSQL, crearlo
+    # 🔥 AUTO-CREATE: Si el NFT no está en PostgreSQL, crearlo con la metadata de IPFS
     # Esto permite que OpenSea/marketplaces obtengan metadata sin que el usuario
     # haya conectado su wallet primero
-    ensure_nft_in_postgresql(token_id)
+    ensure_nft_in_postgresql_with_metadata(token_id, base_meta)
 
     dyn = find_dynamic_state_for_token(token_id)
 
@@ -5459,7 +5706,7 @@ def api_metadata(token_id):
         {"trait_type": "Level",         "value": dyn.get("xp_level", 1)},
         {"trait_type": "Aura",          "value": dyn.get("aura_level", 0)},
         {"trait_type": "Energy",        "value": energy_str},
-        {"trait_type": "Power",         "value": dyn.get("power_current", 0)},
+        {"trait_type": "Power",         "value": base_meta.get("power", 0)},  # 🔥 Static from IPFS, not PostgreSQL
         {"trait_type": "Last Mission",  "value": dyn.get("last_mission", "None")},
         {"trait_type": "Last Update",   "value": dyn.get("last_update", now_utc_str())}
     ]

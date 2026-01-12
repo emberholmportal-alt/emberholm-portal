@@ -3558,6 +3558,247 @@ async function fetchNFTMetadataFromIPFS(tokenId) {
     }
 }
 
+// 🔥 Generate Base Stats HTML for Character Sheet
+function generateBaseStatsHTML(statsData) {
+    if (!statsData) {
+        return `
+            <div class="cs-base-stats">
+                <div class="cs-base-stats-label">BASE ATTRIBUTES</div>
+                <div style="text-align:center; color:#666; font-size:11px;">Loading stats...</div>
+            </div>
+        `;
+    }
+
+    return `
+        <div class="cs-base-stats">
+            <div class="cs-base-stats-label">BASE ATTRIBUTES</div>
+            <div class="cs-base-stats-grid">
+                <div class="cs-base-stat">
+                    <div class="cs-base-stat-label">STR</div>
+                    <div class="cs-base-stat-value stat-str">${statsData.str || 0}</div>
+                </div>
+                <div class="cs-base-stat">
+                    <div class="cs-base-stat-label">DEX</div>
+                    <div class="cs-base-stat-value stat-dex">${statsData.dex || 0}</div>
+                </div>
+                <div class="cs-base-stat">
+                    <div class="cs-base-stat-label">CON</div>
+                    <div class="cs-base-stat-value stat-con">${statsData.con || 0}</div>
+                </div>
+                <div class="cs-base-stat">
+                    <div class="cs-base-stat-label">INT</div>
+                    <div class="cs-base-stat-value stat-int">${statsData.int || 0}</div>
+                </div>
+                <div class="cs-base-stat">
+                    <div class="cs-base-stat-label">WIS</div>
+                    <div class="cs-base-stat-value stat-wis">${statsData.wis || 0}</div>
+                </div>
+                <div class="cs-base-stat">
+                    <div class="cs-base-stat-label">CHA</div>
+                    <div class="cs-base-stat-value stat-cha">${statsData.cha || 0}</div>
+                </div>
+                <div class="cs-base-stat">
+                    <div class="cs-base-stat-label">AGE</div>
+                    <div class="cs-base-stat-value stat-age">${statsData.age || 0}</div>
+                </div>
+                <div class="cs-base-stat">
+                    <div class="cs-base-stat-label">POWER</div>
+                    <div class="cs-base-stat-value stat-power">${statsData.power || 0}</div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+// 🔥 Fetch base stats from IPFS metadata endpoint
+async function fetchEmissaryBaseStats(tokenId) {
+    try {
+        const paddedId = String(tokenId).padStart(5, '0');
+        // Use our backend metadata endpoint which fetches from IPFS mainnet
+        const response = await fetch(`/api/metadata/${paddedId}.json`);
+        if (!response.ok) {
+            console.warn(`⚠️ Failed to fetch base stats for #${paddedId}`);
+            return null;
+        }
+        const metadata = await response.json();
+
+        // Extract stats from attributes
+        const attrs = metadata.attributes || [];
+        const getAttr = (name) => {
+            const attr = attrs.find(a => a.trait_type === name);
+            return attr ? attr.value : 0;
+        };
+
+        return {
+            str: getAttr('STR'),
+            dex: getAttr('DEX'),
+            con: getAttr('CON'),
+            int: getAttr('INT'),
+            wis: getAttr('WIS'),
+            cha: getAttr('CHA'),
+            age: getAttr('Age'),
+            power: getAttr('Power'),
+            race: getAttr('Race'),
+            class: getAttr('Class'),
+            rarity: getAttr('Rarity'),
+            guild: getAttr('Starting Guild') || getAttr('Current Guild')
+        };
+    } catch (e) {
+        console.error(`❌ Error fetching base stats for #${tokenId}:`, e);
+        return null;
+    }
+}
+
+// 🔥 Show Emissary Detail Modal
+async function showEmissaryDetailModal(heroData) {
+    if (!heroData) return;
+
+    const ds = heroData.dynamic_state || {};
+    const tokenId = heroData.token_id;
+
+    // Show loading modal first
+    showInfoModal("EMISSARY DOSSIER", `
+        <div style="text-align:center; padding:20px;">
+            <div style="font-size:14px; color:var(--gold);">Loading ${heroData.name || '#' + tokenId}...</div>
+        </div>
+    `);
+
+    // Fetch base stats from IPFS
+    const baseStats = await fetchEmissaryBaseStats(tokenId);
+
+    // Calculate equipment count
+    let equipCount = 0;
+    if (heroData.weapon_id) equipCount++;
+    if (heroData.armor_id) equipCount++;
+    if (heroData.helmet_id) equipCount++;
+    if (heroData.accessory_id) equipCount++;
+    if (heroData.amulet_id) equipCount++;
+    const runeCount = heroData.rune_ids ? heroData.rune_ids.length : 0;
+    const hasLand = heroData.land_id ? true : false;
+
+    // Status styling
+    let statusColor = "#44ff44";
+    let statusIcon = '<img src="/img/checkmark.png" class="pixel-icon" alt="✓">';
+    let statusText = ds.state || "READY";
+    if (statusText === "ON_MISSION") {
+        statusColor = "#ffaa00";
+        statusIcon = '<img src="/img/hourglass.png" class="pixel-icon" alt="⏳">';
+        statusText = "ON MISSION";
+    } else if (statusText === "FALLEN") {
+        statusColor = "#ff4444";
+        statusIcon = '<img src="/img/skull.png" class="pixel-icon" alt="💀">';
+    }
+
+    // Energy bar
+    const energyCurrent = ds.energy_current || 0;
+    const energyMax = ds.energy_max || 100;
+    const energyPercent = Math.round((energyCurrent / energyMax) * 100);
+    let energyColor = "#44ff44";
+    if (energyPercent < 30) energyColor = "#ff4444";
+    else if (energyPercent < 60) energyColor = "#ffaa00";
+
+    // Parse race and class
+    const raceClass = heroData.race_class || "";
+    const racePart = baseStats?.race || heroData.race || raceClass.split(" ")[0] || "Unknown";
+    const classPart = baseStats?.class || heroData.class || heroData.class_type || raceClass.split(" ").slice(1).join(" ") || "Unknown";
+
+    const modalContent = `
+        <div class="emissary-character-sheet" style="margin:0;">
+            <!-- CHARACTER SHEET HEADER -->
+            <div class="cs-header">
+                <div class="cs-portrait">
+                    ${heroData.image_url
+                        ? `<img src="${heroData.image_url}" alt="${heroData.name}"/>`
+                        : `<div class="cs-no-img">${tokenId || "?"}</div>`}
+                </div>
+                <div class="cs-identity">
+                    <div class="cs-name">${heroData.name || tokenId}</div>
+                    <div class="cs-subtitle">ID: #${tokenId} | RANK: ${heroData.rank || "Tier 1"}</div>
+                    <div class="cs-guild">⚔ ${heroData.guild || ds.current_guild || baseStats?.guild || "UNKNOWN GUILD"}</div>
+                </div>
+            </div>
+
+            <!-- ATTRIBUTES ROW -->
+            <div class="cs-attributes">
+                <div class="cs-attr-box">
+                    <div class="cs-attr-label">RACE</div>
+                    <div class="cs-attr-value">${racePart}</div>
+                </div>
+                <div class="cs-attr-box">
+                    <div class="cs-attr-label">CLASS</div>
+                    <div class="cs-attr-value">${classPart}</div>
+                </div>
+                <div class="cs-attr-box cs-status" style="border-color: ${statusColor};">
+                    <div class="cs-attr-label">STATUS</div>
+                    <div class="cs-attr-value" style="color: ${statusColor};">${statusIcon} ${statusText}</div>
+                </div>
+            </div>
+
+            <!-- DYNAMIC STATS GRID -->
+            <div class="cs-stats-grid">
+                <div class="cs-stat">
+                    <div class="cs-stat-icon"><img src="/img/crossedswords.png" class="pixel-icon" alt="XP"></div>
+                    <div class="cs-stat-info">
+                        <div class="cs-stat-label">XP</div>
+                        <div class="cs-stat-value">${(ds.xp_total || 0).toLocaleString()}</div>
+                    </div>
+                </div>
+                <div class="cs-stat">
+                    <div class="cs-stat-icon"><img src="/img/Sparkles.png" class="pixel-icon" alt="AURA"></div>
+                    <div class="cs-stat-info">
+                        <div class="cs-stat-label">AURA</div>
+                        <div class="cs-stat-value" style="color: var(--gold);">Lv.${ds.aura_level || 0}</div>
+                    </div>
+                </div>
+                <div class="cs-stat">
+                    <div class="cs-stat-icon"><img src="/img/Lightning.png" class="pixel-icon" alt="ENERGY"></div>
+                    <div class="cs-stat-info">
+                        <div class="cs-stat-label">ENERGY</div>
+                        <div class="cs-stat-value">${energyCurrent}/${energyMax}</div>
+                    </div>
+                    <div class="cs-energy-bar">
+                        <div class="cs-energy-fill" style="width: ${energyPercent}%; background: ${energyColor};"></div>
+                    </div>
+                </div>
+                <div class="cs-stat">
+                    <div class="cs-stat-icon"><img src="/img/skull.png" class="pixel-icon" alt="DEATHS"></div>
+                    <div class="cs-stat-info">
+                        <div class="cs-stat-label">DEATHS</div>
+                        <div class="cs-stat-value" style="color: #ff6b6b;">${ds.death_count || 0}</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- BASE STATS -->
+            ${generateBaseStatsHTML(baseStats)}
+
+            <!-- EQUIPMENT SUMMARY -->
+            <div class="cs-equipment">
+                <div class="cs-equip-label">EQUIPMENT</div>
+                <div class="cs-equip-slots">
+                    <div class="cs-slot ${heroData.weapon_id ? 'equipped' : ''}" title="Weapon"><img src="/img/Swords.png" class="pixel-icon" alt="Weapon"></div>
+                    <div class="cs-slot ${heroData.armor_id ? 'equipped' : ''}" title="Armor"><img src="/img/shield.png" class="pixel-icon" alt="Armor"></div>
+                    <div class="cs-slot ${heroData.helmet_id ? 'equipped' : ''}" title="Helmet"><img src="/img/helmet.png" class="pixel-icon" alt="Helmet"></div>
+                    <div class="cs-slot ${heroData.accessory_id ? 'equipped' : ''}" title="Accessory"><img src="/img/ring.png" class="pixel-icon" alt="Accessory"></div>
+                    <div class="cs-slot ${heroData.amulet_id ? 'equipped' : ''}" title="Amulet"><img src="/img/gem.png" class="pixel-icon" alt="Amulet"></div>
+                    <div class="cs-slot-divider">|</div>
+                    <div class="cs-slot ${runeCount >= 1 ? 'equipped' : ''}" title="Rune 1"><img src="/img/runes.png" class="pixel-icon" alt="Rune"></div>
+                    <div class="cs-slot ${runeCount >= 2 ? 'equipped' : ''}" title="Rune 2"><img src="/img/runes.png" class="pixel-icon" alt="Rune"></div>
+                    <div class="cs-slot-divider">|</div>
+                    <div class="cs-slot ${hasLand ? 'equipped' : ''}" title="Land"><img src="/img/crown.png" class="pixel-icon" alt="Land"></div>
+                </div>
+                <div class="cs-equip-count">${equipCount}/5 GEAR | ${runeCount}/2 RUNES | ${hasLand ? '1' : '0'}/1 LAND</div>
+            </div>
+        </div>
+    `;
+
+    // Update the modal with full content
+    showInfoModal("EMISSARY DOSSIER", modalContent);
+}
+
+// Store hero data globally for modal access
+let cachedHeroesData = {};
+
 /* --------- BASIC NAV --------- */
 function switchScreen(screenName){
     console.log("🔘 switchScreen called:", screenName);
@@ -4769,10 +5010,31 @@ async function loadPlayerAndRender(){
                     </div>
                     <div class="cs-equip-count">${equipCount}/5 GEAR | ${runeCount}/2 RUNES | ${hasLand ? '1' : '0'}/1 LAND</div>
                 </div>
+
+                <!-- BASE STATS (loaded async) -->
+                <div id="prime-base-stats">
+                    ${generateBaseStatsHTML(null)}
+                </div>
             `;
+
+            // 🔥 Load base stats asynchronously for TOP EMISSARY
+            (async () => {
+                const baseStats = await fetchEmissaryBaseStats(prime.token_id);
+                const baseStatsEl = document.getElementById('prime-base-stats');
+                if (baseStatsEl && baseStats) {
+                    baseStatsEl.innerHTML = generateBaseStatsHTML(baseStats);
+                }
+            })();
+
         } else {
             primeCardEl.innerHTML = `<div class="character-sheet-empty">No Emissaries registered.</div>`;
         }
+
+        // 🔥 Cache heroes data for modal access
+        cachedHeroesData = {};
+        (player.heroes || []).forEach(h => {
+            cachedHeroesData[h.token_id] = h;
+        });
 
         // roster table
         let tbodyRows = "";
@@ -4903,10 +5165,14 @@ async function loadPlayerAndRender(){
             }
 
             // Action buttons based on state
+            // 🔥 [VIEW] button opens EMISSARY DOSSIER modal with full stats
+            const viewBtn = `<button class="action-btn view" onclick="showEmissaryDetailModal(cachedHeroesData['${h.token_id}'])" title="View Full Profile">[VIEW]</button>`;
+
             let actionButtons = "";
             if (state === "READY") {
                 actionButtons = `
                     <div class="actions-cell">
+                        ${viewBtn}
                         <button class="action-btn inventory" onclick="showInventoryModal('${h.token_id}')" title="Manage Equipment">
                             [INVENTORY]
                         </button>
@@ -4921,6 +5187,7 @@ async function loadPlayerAndRender(){
                 if (missionComplete) {
                     actionButtons = `
                         <div class="actions-cell">
+                            ${viewBtn}
                             <button class="action-btn inventory" onclick="showInventoryModal('${h.token_id}')">
                                 [INVENTORY]
                             </button>
@@ -4934,14 +5201,12 @@ async function loadPlayerAndRender(){
                 } else {
                     actionButtons = `
                         <div class="actions-cell">
+                            ${viewBtn}
                             <button class="action-btn inventory" onclick="showInventoryModal('${h.token_id}')">
                                 [INVENTORY]
                             </button>
                             <button class="action-btn push" onclick="showPushModal('${h.token_id}')">
                                 [EMBER PUSH]
-                            </button>
-                            <button class="action-btn disabled">
-                                [--]
                             </button>
                             <button class="action-btn recover" onclick="showRecoverModal('${h.token_id}')">
                                 [RECOVER]
@@ -4951,17 +5216,12 @@ async function loadPlayerAndRender(){
             } else if (state === "FALLEN") {
                 actionButtons = `
                     <div class="actions-cell">
+                        ${viewBtn}
                         <button class="action-btn inventory" onclick="showInventoryModal('${h.token_id}')">
                             [INVENTORY]
                         </button>
-                        <button class="action-btn disabled">
-                            [--]
-                        </button>
                         <button class="action-btn revive reinvoke-btn" data-hero="${h.token_id}">
                             [REVIVE]
-                        </button>
-                        <button class="action-btn disabled">
-                            [--]
                         </button>
                     </div>`;
             }

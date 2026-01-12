@@ -3049,6 +3049,80 @@ button:disabled {
     letter-spacing: 0.5px;
 }
 
+/* Base Stats Section - STR, DEX, CON, INT, WIS, CHA */
+.cs-base-stats {
+    border: 1px solid var(--border-primary);
+    padding: 10px;
+    background: rgba(0, 0, 0, 0.3);
+    margin-top: 8px;
+}
+
+.cs-base-stats-label {
+    font-size: 9px;
+    color: #666;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+    text-align: center;
+}
+
+.cs-base-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+}
+
+.cs-base-stat {
+    text-align: center;
+    padding: 4px;
+    background: rgba(0, 20, 0, 0.4);
+    border: 1px solid rgba(0, 255, 0, 0.1);
+}
+
+.cs-base-stat-label {
+    font-size: 7px;
+    color: #666;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.cs-base-stat-value {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--primary-green);
+}
+
+.cs-base-stat-value.stat-str { color: #ef4444; }
+.cs-base-stat-value.stat-dex { color: #22c55e; }
+.cs-base-stat-value.stat-con { color: #f59e0b; }
+.cs-base-stat-value.stat-int { color: #3b82f6; }
+.cs-base-stat-value.stat-wis { color: #a855f7; }
+.cs-base-stat-value.stat-cha { color: #ec4899; }
+.cs-base-stat-value.stat-age { color: #6b7280; }
+.cs-base-stat-value.stat-power { color: var(--gold); }
+
+/* Emissary Details Modal */
+.emissary-detail-modal {
+    max-width: 500px;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.emissary-detail-modal .emissary-character-sheet {
+    margin: 0;
+}
+
+/* View Button in Roster */
+.action-btn.view {
+    background: rgba(59, 130, 246, 0.15);
+    border-color: #3b82f6;
+    color: #3b82f6;
+}
+
+.action-btn.view:hover {
+    background: rgba(59, 130, 246, 0.3);
+}
+
 /* Responsive adjustments */
 @media (max-width: 600px) {
     .cs-header {
