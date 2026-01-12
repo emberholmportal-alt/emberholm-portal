@@ -5189,6 +5189,93 @@ def load_base_metadata_for_token(token_id):
     return meta
 
 
+def ensure_nft_in_postgresql(token_id):
+    """
+    🔥 AUTO-CREATE: Verifica si un NFT existe en PostgreSQL, si no, lo crea.
+
+    Flujo:
+    1. Verificar si existe en PostgreSQL
+    2. Si existe → return True
+    3. Si no existe → cargar de data/metadata/
+    4. Si encontrado en metadata → crear en PostgreSQL con dynamic_state inicial
+    5. Return True si se creó exitosamente, False si no se encontró en ningún lado
+
+    Esto permite que el endpoint /api/metadata/<token_id> funcione automáticamente
+    sin necesidad de que el usuario conecte su wallet primero.
+    """
+    if not POSTGRESQL_AVAILABLE:
+        return False
+
+    token_id_padded = str(token_id).zfill(5)
+    conn = None
+
+    try:
+        conn = db.get_connection()
+        cur = conn.cursor()
+
+        # 1. Verificar si ya existe en PostgreSQL
+        cur.execute("SELECT token_id FROM nfts WHERE token_id = %s", (token_id_padded,))
+        existing = cur.fetchone()
+
+        if existing:
+            # Ya existe, no hacer nada
+            return True
+
+        # 2. Cargar metadata base desde data/metadata/
+        base_meta = load_base_metadata_for_token(token_id)
+        if base_meta is None:
+            # No existe en metadata, no podemos crearlo
+            print(f"⚠️ ensure_nft_in_postgresql: Token {token_id_padded} not found in metadata")
+            return False
+
+        # 3. Crear dynamic_state inicial
+        initial_dynamic_state = {
+            "xp_total": 0,
+            "xp_level": 1,
+            "aura_level": 0,
+            "energy_current": 100,
+            "energy_max": 100,
+            "power_current": 0,
+            "last_update": now_utc_str(),
+            "last_mission": "None",
+            "total_missions_completed": 0,
+            "death_count": 0,
+            "state": "READY",
+            "current_guild": base_meta.get("starting_guild", "Unassigned")
+        }
+
+        # 4. Insertar en PostgreSQL
+        race_class = f"{base_meta.get('race', 'Unknown')} {base_meta.get('class', 'Unknown')}"
+
+        cur.execute("""
+            INSERT INTO nfts (token_id, name, race_class, guild, image_url, dynamic_state, last_synced)
+            VALUES (%s, %s, %s, %s, %s, %s::jsonb, NOW())
+            ON CONFLICT (token_id) DO NOTHING
+        """, (
+            token_id_padded,
+            base_meta.get('name', f"Emissary #{token_id_padded}"),
+            race_class,
+            base_meta.get('starting_guild', 'Unassigned'),
+            base_meta.get('image', ''),
+            json.dumps(initial_dynamic_state)
+        ))
+
+        conn.commit()
+        print(f"✅ Auto-created NFT {token_id_padded} in PostgreSQL via metadata endpoint")
+        return True
+
+    except Exception as e:
+        print(f"⚠️ ensure_nft_in_postgresql failed for {token_id_padded}: {e}")
+        import traceback
+        traceback.print_exc()
+        if conn:
+            conn.rollback()
+        return False
+    finally:
+        if conn:
+            db.release_connection(conn)
+
+
 def find_dynamic_state_for_token(token_id):
     """
     Busca el dynamic_state de un token (XP / Aura / Energía / última misión).
@@ -5339,6 +5426,11 @@ def api_metadata(token_id):
     base_meta = load_base_metadata_for_token(token_id)
     if base_meta is None:
         abort(404, "token metadata not found")
+
+    # 🔥 AUTO-CREATE: Si el NFT existe en metadata pero no en PostgreSQL, crearlo
+    # Esto permite que OpenSea/marketplaces obtengan metadata sin que el usuario
+    # haya conectado su wallet primero
+    ensure_nft_in_postgresql(token_id)
 
     dyn = find_dynamic_state_for_token(token_id)
 
