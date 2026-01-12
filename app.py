@@ -5177,19 +5177,23 @@ def load_base_metadata_for_token(token_id):
 
 def find_dynamic_state_for_token(token_id):
     """
-    Busca en players.json qué wallet contiene este héroe
-    y devuelve su dynamic_state (XP / Aura / Energía / última misión).
-    Si no está todavía, devolvemos defaults.
-    """
-    players_all = load_json(PLAYERS_PATH, {})
+    Busca el dynamic_state de un token (XP / Aura / Energía / última misión).
 
-    for wallet_addr, pobj in players_all.items():
-        for hero in pobj.get("heroes", []):
-            if hero.get("token_id") == str(token_id).zfill(5):
-                ds = hero.get("dynamic_state", {})
-                last_mission_name = ds.get("last_mission", "None")
+    🔥 POSTGRESQL FIRST: Lee de la base de datos PostgreSQL (fuente de verdad).
+    Fallback a players.json solo si PostgreSQL no está disponible.
+    """
+    token_id_padded = str(token_id).zfill(5)
+
+    # 🔥 POSTGRESQL: Fuente de verdad para datos dinámicos
+    if POSTGRESQL_AVAILABLE:
+        try:
+            nfts_db = load_nfts_database()  # Lee de PostgreSQL
+            nft = nfts_db.get(token_id_padded)
+
+            if nft and nft.get('dynamic_state'):
+                ds = nft['dynamic_state']
                 return {
-                    "current_guild":   ds.get("current_guild", hero.get("guild","Unknown")),
+                    "current_guild":   ds.get("current_guild", nft.get("guild", "Unknown")),
                     "xp_total":        ds.get("xp_total", 0),
                     "xp_level":        ds.get("xp_level", 1),
                     "aura_level":      ds.get("aura_level", 0),
@@ -5197,9 +5201,34 @@ def find_dynamic_state_for_token(token_id):
                     "energy_max":      ds.get("energy_max", 100),
                     "power_current":   ds.get("power_current", 0),
                     "last_update":     ds.get("last_update", now_utc_str()),
-                    "last_mission":    last_mission_name,
+                    "last_mission":    ds.get("last_mission", "None"),
+                    "total_missions_completed": ds.get("total_missions_completed", 0),
+                    "death_count":     ds.get("death_count", 0),
+                    "state":           ds.get("state", "READY"),
+                }
+        except Exception as e:
+            print(f"⚠️ PostgreSQL find_dynamic_state failed: {e}, falling back to players.json")
+
+    # 📁 FALLBACK: players.json (si PostgreSQL no está disponible)
+    players_all = load_json(PLAYERS_PATH, {})
+
+    for wallet_addr, pobj in players_all.items():
+        for hero in pobj.get("heroes", []):
+            if hero.get("token_id") == token_id_padded:
+                ds = hero.get("dynamic_state", {})
+                return {
+                    "current_guild":   ds.get("current_guild", hero.get("guild", "Unknown")),
+                    "xp_total":        ds.get("xp_total", 0),
+                    "xp_level":        ds.get("xp_level", 1),
+                    "aura_level":      ds.get("aura_level", 0),
+                    "energy_current":  ds.get("energy_current", 100),
+                    "energy_max":      ds.get("energy_max", 100),
+                    "power_current":   ds.get("power_current", 0),
+                    "last_update":     ds.get("last_update", now_utc_str()),
+                    "last_mission":    ds.get("last_mission", "None"),
                 }
 
+    # 🆕 Token no encontrado - devolver defaults
     return {
         "current_guild":   "Unassigned",
         "xp_total":        0,
