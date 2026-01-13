@@ -3115,42 +3115,25 @@ button:disabled {
 }
 
 /* ===============================================================
-   CHRONICLE MODAL - Enlarged for better readability
+   CHRONICLE MODAL - Two-column layout with large portrait
    =============================================================== */
 .chronicle {
     font-size: 16px;
     line-height: 1.4;
 }
 
-.chronicle-row {
+.chronicle-main {
     display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 5px 0;
-    border-bottom: 1px solid rgba(0, 255, 0, 0.1);
-}
-
-.chronicle-row:last-child {
-    border-bottom: none;
-}
-
-.chronicle-label {
-    color: #666;
-    min-width: 60px;
-    text-transform: uppercase;
-    font-size: 12px;
-}
-
-.chronicle-value {
-    color: var(--primary-green);
-    flex: 1;
+    gap: 16px;
+    align-items: flex-start;
 }
 
 .chronicle-portrait {
-    width: 68px;
-    height: 68px;
-    border: 1px solid var(--primary-green);
+    width: 130px;
+    height: 130px;
+    border: 2px solid var(--primary-green);
     flex-shrink: 0;
+    overflow: hidden;
 }
 
 .chronicle-portrait img {
@@ -3160,33 +3143,63 @@ button:disabled {
     image-rendering: pixelated;
 }
 
+.chronicle-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.chronicle-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 10px;
+}
+
 .chronicle-name {
     font-size: 17px;
     font-weight: 700;
     color: var(--primary-green);
     text-transform: uppercase;
     text-shadow: 0 0 6px var(--primary-green);
+    line-height: 1.2;
 }
 
-.chronicle-stats-inline {
+.chronicle-meta {
+    color: #666;
+    font-size: 10px;
+    margin-bottom: 4px;
+}
+
+.chronicle-stats-row {
     display: flex;
-    gap: 12px;
+    align-items: center;
+    gap: 8px;
     flex-wrap: wrap;
+}
+
+.chronicle-row-label {
+    color: #666;
+    font-size: 10px;
+    text-transform: uppercase;
+    min-width: 36px;
 }
 
 .chronicle-stat {
     display: flex;
-    gap: 5px;
+    gap: 4px;
+    align-items: baseline;
 }
 
 .chronicle-stat-label {
     color: #555;
-    font-size: 12px;
+    font-size: 11px;
 }
 
 .chronicle-stat-value {
     font-weight: 700;
-    font-size: 15px;
+    font-size: 14px;
     text-shadow: none;
 }
 
@@ -3197,8 +3210,8 @@ button:disabled {
 }
 
 .chronicle-slot {
-    width: 26px;
-    height: 26px;
+    width: 24px;
+    height: 24px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -3210,8 +3223,8 @@ button:disabled {
 }
 
 .chronicle-slot img {
-    width: 22px;
-    height: 22px;
+    width: 20px;
+    height: 20px;
     filter: sepia(1) saturate(3) hue-rotate(-10deg) brightness(1.1);
 }
 
@@ -3244,33 +3257,6 @@ button:disabled {
 .terminal-modal-body:has(.chronicle) .modal-btn {
     padding: 10px 24px;
     font-size: 14px;
-}
-
-.chronicle {
-    padding: 0;
-    margin: 0;
-}
-
-.chronicle-row {
-    padding: 4px 0;
-}
-
-.chronicle-row:first-child {
-    padding-top: 0;
-}
-
-.chronicle-portrait {
-    width: 68px;
-    height: 68px;
-    min-width: 68px;
-    overflow: hidden;
-}
-
-.chronicle-portrait img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    display: block;
 }
 
 /* View Button in Roster */
