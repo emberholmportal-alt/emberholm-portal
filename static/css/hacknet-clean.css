@@ -3128,11 +3128,18 @@ button:disabled {
     align-items: flex-start;
 }
 
+.chronicle-left {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
 .chronicle-portrait {
     width: 130px;
     height: 130px;
     border: 2px solid var(--primary-green);
-    flex-shrink: 0;
     overflow: hidden;
 }
 
@@ -3143,18 +3150,20 @@ button:disabled {
     image-rendering: pixelated;
 }
 
+.chronicle-status {
+    padding: 3px 10px;
+    font-size: 9px;
+    text-transform: uppercase;
+    text-align: center;
+    white-space: nowrap;
+}
+
 .chronicle-info {
     flex: 1;
     display: flex;
     flex-direction: column;
-    gap: 6px;
-}
-
-.chronicle-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    gap: 10px;
+    gap: 5px;
+    min-width: 0;
 }
 
 .chronicle-name {
@@ -3169,21 +3178,22 @@ button:disabled {
 .chronicle-meta {
     color: #666;
     font-size: 10px;
-    margin-bottom: 4px;
+    margin-bottom: 2px;
 }
 
 .chronicle-stats-row {
     display: flex;
     align-items: center;
-    gap: 8px;
-    flex-wrap: wrap;
+    gap: 6px;
+    flex-wrap: nowrap;
 }
 
 .chronicle-row-label {
     color: #666;
     font-size: 10px;
     text-transform: uppercase;
-    min-width: 36px;
+    min-width: 34px;
+    flex-shrink: 0;
 }
 
 .chronicle-stat {

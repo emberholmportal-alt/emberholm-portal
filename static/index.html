@@ -3691,14 +3691,14 @@ async function showEmissaryDetailModal(heroData) {
     const modalContent = `
         <div class="chronicle">
             <div class="chronicle-main">
-                <div class="chronicle-portrait">
-                    ${heroData.image_url ? `<img src="${heroData.image_url}" alt="${heroData.name}"/>` : `<div style="color:#666;font-size:12px;text-align:center;padding-top:50px;">#${tokenId}</div>`}
+                <div class="chronicle-left">
+                    <div class="chronicle-portrait">
+                        ${heroData.image_url ? `<img src="${heroData.image_url}" alt="${heroData.name}"/>` : `<div style="color:#666;font-size:12px;text-align:center;padding-top:50px;">#${tokenId}</div>`}
+                    </div>
+                    <div class="chronicle-status" style="border:1px solid ${statusColor};color:${statusColor};">${statusText}</div>
                 </div>
                 <div class="chronicle-info">
-                    <div class="chronicle-header">
-                        <div class="chronicle-name">${heroData.name || '#' + tokenId}</div>
-                        <div style="border:1px solid ${statusColor};color:${statusColor};padding:2px 6px;font-size:9px;">${statusText}</div>
-                    </div>
+                    <div class="chronicle-name">${heroData.name || '#' + tokenId}</div>
                     <div class="chronicle-meta">#${tokenId} · ${racePart} ${classPart} · ${guild}</div>
                     <div class="chronicle-stats-row">
                         <span class="chronicle-row-label">PROG</span>
