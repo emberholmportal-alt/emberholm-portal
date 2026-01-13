@@ -3118,7 +3118,7 @@ button:disabled {
    CHRONICLE MODAL - Enlarged for better readability
    =============================================================== */
 .chronicle {
-    font-size: 14px;
+    font-size: 16px;
     line-height: 1.4;
 }
 
@@ -3136,9 +3136,9 @@ button:disabled {
 
 .chronicle-label {
     color: #666;
-    min-width: 55px;
+    min-width: 60px;
     text-transform: uppercase;
-    font-size: 11px;
+    font-size: 12px;
 }
 
 .chronicle-value {
@@ -3147,8 +3147,8 @@ button:disabled {
 }
 
 .chronicle-portrait {
-    width: 56px;
-    height: 56px;
+    width: 68px;
+    height: 68px;
     border: 1px solid var(--primary-green);
     flex-shrink: 0;
 }
@@ -3161,7 +3161,7 @@ button:disabled {
 }
 
 .chronicle-name {
-    font-size: 15px;
+    font-size: 17px;
     font-weight: 700;
     color: var(--primary-green);
     text-transform: uppercase;
@@ -3181,12 +3181,13 @@ button:disabled {
 
 .chronicle-stat-label {
     color: #555;
-    font-size: 11px;
+    font-size: 12px;
 }
 
 .chronicle-stat-value {
     font-weight: 700;
-    font-size: 13px;
+    font-size: 15px;
+    text-shadow: none;
 }
 
 .chronicle-equip-inline {
@@ -3196,8 +3197,8 @@ button:disabled {
 }
 
 .chronicle-slot {
-    width: 22px;
-    height: 22px;
+    width: 26px;
+    height: 26px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -3209,8 +3210,8 @@ button:disabled {
 }
 
 .chronicle-slot img {
-    width: 18px;
-    height: 18px;
+    width: 22px;
+    height: 22px;
     filter: sepia(1) saturate(3) hue-rotate(-10deg) brightness(1.1);
 }
 
@@ -3222,12 +3223,12 @@ button:disabled {
 
 /* Chronicle Modal - Enlarged vertical spacing */
 .terminal-modal:has(.chronicle) .terminal-modal-header {
-    padding: 10px 18px;
-    font-size: 16px;
+    padding: 12px 20px;
+    font-size: 18px;
 }
 
 .terminal-modal-body:has(.chronicle) {
-    padding: 12px 16px;
+    padding: 14px 18px;
 }
 
 .modal-message:has(.chronicle) {
@@ -3241,8 +3242,8 @@ button:disabled {
 }
 
 .terminal-modal-body:has(.chronicle) .modal-btn {
-    padding: 8px 20px;
-    font-size: 13px;
+    padding: 10px 24px;
+    font-size: 14px;
 }
 
 .chronicle {
@@ -3259,9 +3260,9 @@ button:disabled {
 }
 
 .chronicle-portrait {
-    width: 56px;
-    height: 56px;
-    min-width: 56px;
+    width: 68px;
+    height: 68px;
+    min-width: 68px;
     overflow: hidden;
 }
 

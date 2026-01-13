@@ -3678,14 +3678,14 @@ async function showEmissaryDetailModal(heroData) {
     const classPart = baseStats?.class || heroData.class || heroData.class_type || raceClass.split(" ").slice(1).join(" ") || "?";
     const guild = heroData.guild || ds.current_guild || baseStats?.guild || "?";
 
-    // Base stats inline (muted colors for readability)
+    // Base stats inline (bright colors, glow removed via CSS)
     const statsInline = baseStats ? `
-        <span class="chronicle-stat"><span class="chronicle-stat-label">STR</span><span class="chronicle-stat-value" style="color:#b91c1c;">${baseStats.str || '-'}</span></span>
-        <span class="chronicle-stat"><span class="chronicle-stat-label">DEX</span><span class="chronicle-stat-value" style="color:#15803d;">${baseStats.dex || '-'}</span></span>
-        <span class="chronicle-stat"><span class="chronicle-stat-label">CON</span><span class="chronicle-stat-value" style="color:#b45309;">${baseStats.con || '-'}</span></span>
-        <span class="chronicle-stat"><span class="chronicle-stat-label">INT</span><span class="chronicle-stat-value" style="color:#1d4ed8;">${baseStats.int || '-'}</span></span>
-        <span class="chronicle-stat"><span class="chronicle-stat-label">WIS</span><span class="chronicle-stat-value" style="color:#7c3aed;">${baseStats.wis || '-'}</span></span>
-        <span class="chronicle-stat"><span class="chronicle-stat-label">CHA</span><span class="chronicle-stat-value" style="color:#be185d;">${baseStats.cha || '-'}</span></span>
+        <span class="chronicle-stat"><span class="chronicle-stat-label">STR</span><span class="chronicle-stat-value" style="color:#ef4444;">${baseStats.str || '-'}</span></span>
+        <span class="chronicle-stat"><span class="chronicle-stat-label">DEX</span><span class="chronicle-stat-value" style="color:#22c55e;">${baseStats.dex || '-'}</span></span>
+        <span class="chronicle-stat"><span class="chronicle-stat-label">CON</span><span class="chronicle-stat-value" style="color:#f59e0b;">${baseStats.con || '-'}</span></span>
+        <span class="chronicle-stat"><span class="chronicle-stat-label">INT</span><span class="chronicle-stat-value" style="color:#3b82f6;">${baseStats.int || '-'}</span></span>
+        <span class="chronicle-stat"><span class="chronicle-stat-label">WIS</span><span class="chronicle-stat-value" style="color:#8b5cf6;">${baseStats.wis || '-'}</span></span>
+        <span class="chronicle-stat"><span class="chronicle-stat-label">CHA</span><span class="chronicle-stat-value" style="color:#ec4899;">${baseStats.cha || '-'}</span></span>
     ` : '<span style="color:#555;">-</span>';
 
     const modalContent = `
@@ -3703,10 +3703,10 @@ async function showEmissaryDetailModal(heroData) {
             <div class="chronicle-row">
                 <span class="chronicle-label">PROG</span>
                 <span class="chronicle-stats-inline">
-                    <span class="chronicle-stat"><span class="chronicle-stat-label">XP</span><span class="chronicle-stat-value" style="color:#b45309;">${(ds.xp_total || 0).toLocaleString()}</span></span>
-                    <span class="chronicle-stat"><span class="chronicle-stat-label">AURA</span><span class="chronicle-stat-value" style="color:#a16207;">Lv.${ds.aura_level || 0}</span></span>
-                    <span class="chronicle-stat"><span class="chronicle-stat-label">ENERGY</span><span class="chronicle-stat-value" style="color:#15803d;">${ds.energy_current || 0}/${ds.energy_max || 100}</span></span>
-                    <span class="chronicle-stat"><span class="chronicle-stat-label">DEATHS</span><span class="chronicle-stat-value" style="color:#b91c1c;">${ds.death_count || 0}</span></span>
+                    <span class="chronicle-stat"><span class="chronicle-stat-label">XP</span><span class="chronicle-stat-value" style="color:#f59e0b;">${(ds.xp_total || 0).toLocaleString()}</span></span>
+                    <span class="chronicle-stat"><span class="chronicle-stat-label">AURA</span><span class="chronicle-stat-value" style="color:#fbbf24;">Lv.${ds.aura_level || 0}</span></span>
+                    <span class="chronicle-stat"><span class="chronicle-stat-label">ENERGY</span><span class="chronicle-stat-value" style="color:#22c55e;">${ds.energy_current || 0}/${ds.energy_max || 100}</span></span>
+                    <span class="chronicle-stat"><span class="chronicle-stat-label">DEATHS</span><span class="chronicle-stat-value" style="color:#ef4444;">${ds.death_count || 0}</span></span>
                 </span>
             </div>
             <div class="chronicle-row">
