@@ -3094,14 +3094,14 @@ button:disabled {
     text-shadow: none;
 }
 
-.cs-base-stat-value.stat-str { color: #dc2626; }
-.cs-base-stat-value.stat-dex { color: #16a34a; }
-.cs-base-stat-value.stat-con { color: #d97706; }
-.cs-base-stat-value.stat-int { color: #2563eb; }
-.cs-base-stat-value.stat-wis { color: #9333ea; }
-.cs-base-stat-value.stat-cha { color: #db2777; }
-.cs-base-stat-value.stat-age { color: #6b7280; }
-.cs-base-stat-value.stat-power { color: #d4a017; }
+.cs-base-stat-value.stat-str { color: #ef4444; }
+.cs-base-stat-value.stat-dex { color: #22c55e; }
+.cs-base-stat-value.stat-con { color: #f59e0b; }
+.cs-base-stat-value.stat-int { color: #3b82f6; }
+.cs-base-stat-value.stat-wis { color: #8b5cf6; }
+.cs-base-stat-value.stat-cha { color: #ec4899; }
+.cs-base-stat-value.stat-age { color: #9ca3af; }
+.cs-base-stat-value.stat-power { color: #fbbf24; }
 
 /* Emissary Details Modal */
 .emissary-detail-modal {

@@ -4902,21 +4902,21 @@ async function loadPlayerAndRender(){
                         <div class="cs-stat-icon"><img src="/img/crossedswords.png" class="pixel-icon" alt="XP"></div>
                         <div class="cs-stat-info">
                             <div class="cs-stat-label">XP</div>
-                            <div class="cs-stat-value">${(ds.xp_total || 0).toLocaleString()}</div>
+                            <div class="cs-stat-value" style="color: #f59e0b;">${(ds.xp_total || 0).toLocaleString()}</div>
                         </div>
                     </div>
                     <div class="cs-stat">
                         <div class="cs-stat-icon"><img src="/img/Sparkles.png" class="pixel-icon" alt="AURA"></div>
                         <div class="cs-stat-info">
                             <div class="cs-stat-label">AURA</div>
-                            <div class="cs-stat-value" style="color: var(--gold-dim);">Lv.${ds.aura_level || 0}</div>
+                            <div class="cs-stat-value" style="color: #fbbf24;">Lv.${ds.aura_level || 0}</div>
                         </div>
                     </div>
                     <div class="cs-stat">
                         <div class="cs-stat-icon"><img src="/img/Lightning.png" class="pixel-icon" alt="ENERGY"></div>
                         <div class="cs-stat-info">
                             <div class="cs-stat-label">ENERGY</div>
-                            <div class="cs-stat-value">${energyCurrent}/${energyMax}</div>
+                            <div class="cs-stat-value" style="color: #22c55e;">${energyCurrent}/${energyMax}</div>
                         </div>
                         <div class="cs-energy-bar">
                             <div class="cs-energy-fill" style="width: ${energyPercent}%; background: ${energyColor};"></div>
@@ -4926,7 +4926,7 @@ async function loadPlayerAndRender(){
                         <div class="cs-stat-icon"><img src="/img/skull.png" class="pixel-icon" alt="DEATHS"></div>
                         <div class="cs-stat-info">
                             <div class="cs-stat-label">DEATHS</div>
-                            <div class="cs-stat-value" style="color: #dc2626;">${ds.death_count || 0}</div>
+                            <div class="cs-stat-value" style="color: #ef4444;">${ds.death_count || 0}</div>
                         </div>
                     </div>
                 </div>
