@@ -3649,151 +3649,89 @@ async function fetchEmissaryBaseStats(tokenId) {
     }
 }
 
-// 🔥 Show Emissary Detail Modal
+// 🔥 Show Emissary Chronicle Modal - Compact Horizontal View
 async function showEmissaryDetailModal(heroData) {
     if (!heroData) return;
 
     const ds = heroData.dynamic_state || {};
     const tokenId = heroData.token_id;
 
-    // Show loading modal first
-    showInfoModal("EMISSARY DOSSIER", `
-        <div style="text-align:center; padding:20px;">
-            <div style="font-size:14px; color:var(--gold);">Loading ${heroData.name || '#' + tokenId}...</div>
-        </div>
-    `);
+    // Show loading
+    showInfoModal("CHRONICLE", `<div style="text-align:center; padding:8px; font-size:11px; color:var(--gold);">Loading...</div>`);
 
     // Fetch base stats from IPFS
     const baseStats = await fetchEmissaryBaseStats(tokenId);
 
-    // Calculate equipment count
-    let equipCount = 0;
-    if (heroData.weapon_id) equipCount++;
-    if (heroData.armor_id) equipCount++;
-    if (heroData.helmet_id) equipCount++;
-    if (heroData.accessory_id) equipCount++;
-    if (heroData.amulet_id) equipCount++;
+    // Equipment
     const runeCount = heroData.rune_ids ? heroData.rune_ids.length : 0;
     const hasLand = heroData.land_id ? true : false;
 
-    // Status styling
+    // Status
     let statusColor = "#44ff44";
-    let statusIcon = '<img src="/img/checkmark.png" class="pixel-icon" alt="✓">';
     let statusText = ds.state || "READY";
-    if (statusText === "ON_MISSION") {
-        statusColor = "#ffaa00";
-        statusIcon = '<img src="/img/hourglass.png" class="pixel-icon" alt="⏳">';
-        statusText = "ON MISSION";
-    } else if (statusText === "FALLEN") {
-        statusColor = "#ff4444";
-        statusIcon = '<img src="/img/skull.png" class="pixel-icon" alt="💀">';
-    }
+    if (statusText === "ON_MISSION") { statusColor = "#ffaa00"; statusText = "ON MISSION"; }
+    else if (statusText === "FALLEN") { statusColor = "#ff4444"; }
 
-    // Energy bar
-    const energyCurrent = ds.energy_current || 0;
-    const energyMax = ds.energy_max || 100;
-    const energyPercent = Math.round((energyCurrent / energyMax) * 100);
-    let energyColor = "#44ff44";
-    if (energyPercent < 30) energyColor = "#ff4444";
-    else if (energyPercent < 60) energyColor = "#ffaa00";
-
-    // Parse race and class
+    // Parse info
     const raceClass = heroData.race_class || "";
-    const racePart = baseStats?.race || heroData.race || raceClass.split(" ")[0] || "Unknown";
-    const classPart = baseStats?.class || heroData.class || heroData.class_type || raceClass.split(" ").slice(1).join(" ") || "Unknown";
+    const racePart = baseStats?.race || heroData.race || raceClass.split(" ")[0] || "?";
+    const classPart = baseStats?.class || heroData.class || heroData.class_type || raceClass.split(" ").slice(1).join(" ") || "?";
+    const guild = heroData.guild || ds.current_guild || baseStats?.guild || "?";
+
+    // Base stats inline
+    const statsInline = baseStats ? `
+        <span class="chronicle-stat"><span class="chronicle-stat-label">STR</span><span class="chronicle-stat-value" style="color:#ef4444;">${baseStats.str || '-'}</span></span>
+        <span class="chronicle-stat"><span class="chronicle-stat-label">DEX</span><span class="chronicle-stat-value" style="color:#22c55e;">${baseStats.dex || '-'}</span></span>
+        <span class="chronicle-stat"><span class="chronicle-stat-label">CON</span><span class="chronicle-stat-value" style="color:#f59e0b;">${baseStats.con || '-'}</span></span>
+        <span class="chronicle-stat"><span class="chronicle-stat-label">INT</span><span class="chronicle-stat-value" style="color:#3b82f6;">${baseStats.int || '-'}</span></span>
+        <span class="chronicle-stat"><span class="chronicle-stat-label">WIS</span><span class="chronicle-stat-value" style="color:#a855f7;">${baseStats.wis || '-'}</span></span>
+        <span class="chronicle-stat"><span class="chronicle-stat-label">CHA</span><span class="chronicle-stat-value" style="color:#ec4899;">${baseStats.cha || '-'}</span></span>
+    ` : '<span style="color:#555;">-</span>';
 
     const modalContent = `
-        <div class="emissary-character-sheet" style="margin:0;">
-            <!-- CHARACTER SHEET HEADER -->
-            <div class="cs-header">
-                <div class="cs-portrait">
-                    ${heroData.image_url
-                        ? `<img src="${heroData.image_url}" alt="${heroData.name}"/>`
-                        : `<div class="cs-no-img">${tokenId || "?"}</div>`}
+        <div class="chronicle">
+            <div class="chronicle-row">
+                <div class="chronicle-portrait">
+                    ${heroData.image_url ? `<img src="${heroData.image_url}" alt="${heroData.name}"/>` : `<div style="color:#666;font-size:9px;text-align:center;padding-top:16px;">#${tokenId}</div>`}
                 </div>
-                <div class="cs-identity">
-                    <div class="cs-name">${heroData.name || tokenId}</div>
-                    <div class="cs-subtitle">ID: #${tokenId} | RANK: ${heroData.rank || "Tier 1"}</div>
-                    <div class="cs-guild">⚔ ${heroData.guild || ds.current_guild || baseStats?.guild || "UNKNOWN GUILD"}</div>
+                <div style="flex:1;">
+                    <div class="chronicle-name">${heroData.name || '#' + tokenId}</div>
+                    <div style="color:#666;font-size:10px;">#${tokenId} · ${racePart} ${classPart} · ${guild}</div>
                 </div>
+                <div style="border:1px solid ${statusColor};color:${statusColor};padding:2px 6px;font-size:9px;">${statusText}</div>
             </div>
-
-            <!-- ATTRIBUTES ROW -->
-            <div class="cs-attributes">
-                <div class="cs-attr-box">
-                    <div class="cs-attr-label">RACE</div>
-                    <div class="cs-attr-value">${racePart}</div>
-                </div>
-                <div class="cs-attr-box">
-                    <div class="cs-attr-label">CLASS</div>
-                    <div class="cs-attr-value">${classPart}</div>
-                </div>
-                <div class="cs-attr-box cs-status" style="border-color: ${statusColor};">
-                    <div class="cs-attr-label">STATUS</div>
-                    <div class="cs-attr-value" style="color: ${statusColor};">${statusIcon} ${statusText}</div>
-                </div>
+            <div class="chronicle-row">
+                <span class="chronicle-label">PROG</span>
+                <span class="chronicle-stats-inline">
+                    <span class="chronicle-stat"><span class="chronicle-stat-label">XP</span><span class="chronicle-stat-value" style="color:var(--primary-green);">${(ds.xp_total || 0).toLocaleString()}</span></span>
+                    <span class="chronicle-stat"><span class="chronicle-stat-label">AURA</span><span class="chronicle-stat-value" style="color:var(--gold);">Lv.${ds.aura_level || 0}</span></span>
+                    <span class="chronicle-stat"><span class="chronicle-stat-label">ENERGY</span><span class="chronicle-stat-value">${ds.energy_current || 0}/${ds.energy_max || 100}</span></span>
+                    <span class="chronicle-stat"><span class="chronicle-stat-label">DEATHS</span><span class="chronicle-stat-value" style="color:#ff6b6b;">${ds.death_count || 0}</span></span>
+                </span>
             </div>
-
-            <!-- DYNAMIC STATS GRID -->
-            <div class="cs-stats-grid">
-                <div class="cs-stat">
-                    <div class="cs-stat-icon"><img src="/img/crossedswords.png" class="pixel-icon" alt="XP"></div>
-                    <div class="cs-stat-info">
-                        <div class="cs-stat-label">XP</div>
-                        <div class="cs-stat-value">${(ds.xp_total || 0).toLocaleString()}</div>
-                    </div>
-                </div>
-                <div class="cs-stat">
-                    <div class="cs-stat-icon"><img src="/img/Sparkles.png" class="pixel-icon" alt="AURA"></div>
-                    <div class="cs-stat-info">
-                        <div class="cs-stat-label">AURA</div>
-                        <div class="cs-stat-value" style="color: var(--gold);">Lv.${ds.aura_level || 0}</div>
-                    </div>
-                </div>
-                <div class="cs-stat">
-                    <div class="cs-stat-icon"><img src="/img/Lightning.png" class="pixel-icon" alt="ENERGY"></div>
-                    <div class="cs-stat-info">
-                        <div class="cs-stat-label">ENERGY</div>
-                        <div class="cs-stat-value">${energyCurrent}/${energyMax}</div>
-                    </div>
-                    <div class="cs-energy-bar">
-                        <div class="cs-energy-fill" style="width: ${energyPercent}%; background: ${energyColor};"></div>
-                    </div>
-                </div>
-                <div class="cs-stat">
-                    <div class="cs-stat-icon"><img src="/img/skull.png" class="pixel-icon" alt="DEATHS"></div>
-                    <div class="cs-stat-info">
-                        <div class="cs-stat-label">DEATHS</div>
-                        <div class="cs-stat-value" style="color: #ff6b6b;">${ds.death_count || 0}</div>
-                    </div>
-                </div>
+            <div class="chronicle-row">
+                <span class="chronicle-label">STATS</span>
+                <span class="chronicle-stats-inline">${statsInline}</span>
             </div>
-
-            <!-- BASE STATS -->
-            ${generateBaseStatsHTML(baseStats)}
-
-            <!-- EQUIPMENT SUMMARY -->
-            <div class="cs-equipment">
-                <div class="cs-equip-label">EQUIPMENT</div>
-                <div class="cs-equip-slots">
-                    <div class="cs-slot ${heroData.weapon_id ? 'equipped' : ''}" title="Weapon"><img src="/img/Swords.png" class="pixel-icon" alt="Weapon"></div>
-                    <div class="cs-slot ${heroData.armor_id ? 'equipped' : ''}" title="Armor"><img src="/img/shield.png" class="pixel-icon" alt="Armor"></div>
-                    <div class="cs-slot ${heroData.helmet_id ? 'equipped' : ''}" title="Helmet"><img src="/img/helmet.png" class="pixel-icon" alt="Helmet"></div>
-                    <div class="cs-slot ${heroData.accessory_id ? 'equipped' : ''}" title="Accessory"><img src="/img/ring.png" class="pixel-icon" alt="Accessory"></div>
-                    <div class="cs-slot ${heroData.amulet_id ? 'equipped' : ''}" title="Amulet"><img src="/img/gem.png" class="pixel-icon" alt="Amulet"></div>
-                    <div class="cs-slot-divider">|</div>
-                    <div class="cs-slot ${runeCount >= 1 ? 'equipped' : ''}" title="Rune 1"><img src="/img/runes.png" class="pixel-icon" alt="Rune"></div>
-                    <div class="cs-slot ${runeCount >= 2 ? 'equipped' : ''}" title="Rune 2"><img src="/img/runes.png" class="pixel-icon" alt="Rune"></div>
-                    <div class="cs-slot-divider">|</div>
-                    <div class="cs-slot ${hasLand ? 'equipped' : ''}" title="Land"><img src="/img/crown.png" class="pixel-icon" alt="Land"></div>
-                </div>
-                <div class="cs-equip-count">${equipCount}/5 GEAR | ${runeCount}/2 RUNES | ${hasLand ? '1' : '0'}/1 LAND</div>
+            <div class="chronicle-row">
+                <span class="chronicle-label">GEAR</span>
+                <span class="chronicle-equip-inline">
+                    <span class="chronicle-slot ${heroData.weapon_id ? 'equipped' : ''}" title="Weapon"><img src="/img/Swords.png" alt="W"></span>
+                    <span class="chronicle-slot ${heroData.armor_id ? 'equipped' : ''}" title="Armor"><img src="/img/shield.png" alt="A"></span>
+                    <span class="chronicle-slot ${heroData.helmet_id ? 'equipped' : ''}" title="Helmet"><img src="/img/helmet.png" alt="H"></span>
+                    <span class="chronicle-slot ${heroData.accessory_id ? 'equipped' : ''}" title="Accessory"><img src="/img/ring.png" alt="Ac"></span>
+                    <span class="chronicle-slot ${heroData.amulet_id ? 'equipped' : ''}" title="Amulet"><img src="/img/gem.png" alt="Am"></span>
+                    <span class="chronicle-divider">|</span>
+                    <span class="chronicle-slot ${runeCount >= 1 ? 'equipped' : ''}" title="Rune 1"><img src="/img/runes.png" alt="R1"></span>
+                    <span class="chronicle-slot ${runeCount >= 2 ? 'equipped' : ''}" title="Rune 2"><img src="/img/runes.png" alt="R2"></span>
+                    <span class="chronicle-divider">|</span>
+                    <span class="chronicle-slot ${hasLand ? 'equipped' : ''}" title="Land"><img src="/img/crown.png" alt="L"></span>
+                </span>
             </div>
         </div>
     `;
 
-    // Update the modal with full content
-    showInfoModal("EMISSARY DOSSIER", modalContent);
+    showInfoModal("CHRONICLE", modalContent);
 }
 
 // Store hero data globally for modal access
@@ -5165,14 +5103,10 @@ async function loadPlayerAndRender(){
             }
 
             // Action buttons based on state
-            // 🔥 [VIEW] button opens EMISSARY DOSSIER modal with full stats
-            const viewBtn = `<button class="action-btn view" onclick="showEmissaryDetailModal(cachedHeroesData['${h.token_id}'])" title="View Full Profile">[VIEW]</button>`;
-
             let actionButtons = "";
             if (state === "READY") {
                 actionButtons = `
                     <div class="actions-cell">
-                        ${viewBtn}
                         <button class="action-btn inventory" onclick="showInventoryModal('${h.token_id}')" title="Manage Equipment">
                             [INVENTORY]
                         </button>
@@ -5187,7 +5121,6 @@ async function loadPlayerAndRender(){
                 if (missionComplete) {
                     actionButtons = `
                         <div class="actions-cell">
-                            ${viewBtn}
                             <button class="action-btn inventory" onclick="showInventoryModal('${h.token_id}')">
                                 [INVENTORY]
                             </button>
@@ -5201,7 +5134,6 @@ async function loadPlayerAndRender(){
                 } else {
                     actionButtons = `
                         <div class="actions-cell">
-                            ${viewBtn}
                             <button class="action-btn inventory" onclick="showInventoryModal('${h.token_id}')">
                                 [INVENTORY]
                             </button>
@@ -5216,7 +5148,6 @@ async function loadPlayerAndRender(){
             } else if (state === "FALLEN") {
                 actionButtons = `
                     <div class="actions-cell">
-                        ${viewBtn}
                         <button class="action-btn inventory" onclick="showInventoryModal('${h.token_id}')">
                             [INVENTORY]
                         </button>
@@ -5241,11 +5172,18 @@ async function loadPlayerAndRender(){
                         <div>
                             <div>${h.name || h.token_id}</div>
                             ${window.renderEquipmentIndicators ? window.renderEquipmentIndicators(h) : ''}
-                            <button class="terminal-btn" style="font-size:0.6rem; padding:2px 6px; margin-top:2px;"
-                                    onclick="downloadNFTImage('${h.image_url}', '${h.token_id}')"
-                                    title="Download NFT Image">
-                                [↓ IMG]
-                            </button>
+                            <div style="display:flex; gap:4px; margin-top:2px;">
+                                <button class="terminal-btn" style="font-size:0.6rem; padding:2px 6px;"
+                                        onclick="downloadNFTImage('${h.image_url}', '${h.token_id}')"
+                                        title="Download NFT Image">
+                                    [↓ IMG]
+                                </button>
+                                <button class="terminal-btn" style="font-size:0.6rem; padding:2px 6px; color:#3b82f6; border-color:#3b82f6;"
+                                        onclick="showEmissaryDetailModal(cachedHeroesData['${h.token_id}'])"
+                                        title="View Chronicle">
+                                    [VIEW]
+                                </button>
+                            </div>
                             ${(() => {
                                 try {
                                     const lastRoll = ds.last_gambit_roll;
