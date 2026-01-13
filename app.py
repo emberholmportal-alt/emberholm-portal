@@ -6333,6 +6333,58 @@ def admin_migrate_equipment():
         return jsonify({"success": False, "error": str(e)}), 500
 
 # ---------------------------------
+# 🔧 ADMIN: Reset EMBER Balances
+# ---------------------------------
+
+@app.route("/api/admin/reset-ember-balances", methods=['POST'])
+def admin_reset_ember_balances():
+    """
+    🔧 ADMIN - Reset all EMBER balances to 0
+
+    This resets ember_balance for all users in user_balances table.
+    Used for testing or before enabling real token integration.
+    """
+    if not POSTGRESQL_AVAILABLE:
+        return jsonify({"success": False, "error": "PostgreSQL not available"}), 503
+
+    try:
+        conn = db.get_connection()
+        if not conn:
+            return jsonify({"success": False, "error": "Could not connect to database"}), 500
+
+        with conn.cursor() as cur:
+            # Get current stats before reset
+            cur.execute("SELECT COUNT(*), SUM(ember_balance) FROM user_balances WHERE ember_balance > 0")
+            before = cur.fetchone()
+            users_with_balance = before[0] or 0
+            total_ember = before[1] or 0
+
+            # Reset all ember balances to 0
+            cur.execute("UPDATE user_balances SET ember_balance = 0, last_update = NOW()")
+            rows_updated = cur.rowcount
+
+            conn.commit()
+
+        db.release_connection(conn)
+
+        return jsonify({
+            "success": True,
+            "message": f"Reset complete. {rows_updated} users updated.",
+            "before": {
+                "users_with_balance": users_with_balance,
+                "total_ember_reset": int(total_ember)
+            },
+            "after": {
+                "all_balances": 0
+            }
+        })
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({"success": False, "error": str(e)}), 500
+
+# ---------------------------------
 # 🔍 AUDITORÍA COMPLETA DEL SISTEMA
 # ---------------------------------
 
