@@ -5435,8 +5435,8 @@ async function loadPlayerAndRender(){
                             }
                         } catch(e){
                             hideProcessingModal();
-                            console.error(e);
-                            showInfoModal("CONNECTION ERROR", "MISSION COMPLETE ERROR: Connection issue.");
+                            console.error("Mission complete error:", e);
+                            showInfoModal("ERROR", `MISSION COMPLETE ERROR:\n\n${e.message || 'Unknown error'}\n\nPlease try again or refresh the page.`);
                         }
                     }
                 );
@@ -6376,116 +6376,139 @@ async function loadPendingClaims() {
     }
 }
 
-// Show PARTY MISSION Results Modal - Detailed table layout for party mission completion
+// Show PARTY MISSION Results Modal - Compact table layout like Chronicle
 function showPartyResultsModal(result) {
-    const summary = result.summary || {};
-    const results = result.results || [];
-    const missionName = result.mission_name || 'Party Mission';
+    try {
+        const summary = result.summary || {};
+        const results = result.results || [];
+        const missionName = result.mission_name || 'Party Mission';
+        const drops = result.drops || [];
 
-    // Calculate totals
-    let totalXpGain = 0;
-    let totalXpLoss = 0;
-    let totalAura = 0;
+        // Calculate totals
+        let totalXpGain = 0;
+        let totalXpLoss = 0;
+        let totalAura = 0;
+        let totalItems = 0;
+        let totalRunes = 0;
 
-    // Build table rows for each emissary
-    let rows = '';
+        // Count drops by type
+        const itemDrops = drops.filter(d => d.type === 'ITEM').length;
+        const runeDrops = drops.filter(d => d.type === 'RUNE').length;
 
-    results.forEach(r => {
-        const outcome = r.outcome;
-        let statusIcon, statusColor, xpCell, auraCell, borderColor;
+        // Build table rows for each emissary
+        let rows = '';
 
-        if (outcome === 'SUCCESS') {
-            statusIcon = '✓';
-            statusColor = '#44ff44';
-            xpCell = `<span style="color:#44ff44">+${r.xp_gain || 0}</span>`;
-            auraCell = `<span style="color:#44ff44">+${r.aura_gain || 0}</span>`;
-            borderColor = '#1a3a1a';
-            totalXpGain += r.xp_gain || 0;
-            totalAura += r.aura_gain || 0;
-        } else if (outcome === 'FAILURE') {
-            statusIcon = '✗';
-            statusColor = '#ffaa00';
-            xpCell = `<span style="color:#ff6644">-${r.xp_loss || 0}</span>`;
-            auraCell = '<span style="color:#666">-</span>';
-            borderColor = '#3a2a1a';
-            totalXpLoss += r.xp_loss || 0;
-        } else if (outcome === 'DEATH') {
-            statusIcon = '☠';
-            statusColor = '#ff4444';
-            xpCell = '<span style="color:#ff4444">FALLEN</span>';
-            auraCell = '<span style="color:#666">-</span>';
-            borderColor = '#3a1a1a';
-            totalXpLoss += r.xp_loss || 0;
-        }
+        results.forEach((r, idx) => {
+            const outcome = r.outcome || 'SUCCESS';
+            let statusIcon, statusColor, xpCell, auraCell;
 
-        rows += `<tr style="border-bottom:1px solid ${borderColor}">
-            <td style="padding:4px 8px;color:#888">#${r.hero_id}</td>
-            <td style="padding:4px 8px;color:#ccc">${r.hero_name || 'Emissary'}</td>
-            <td style="padding:4px 8px;text-align:center;color:${statusColor}">${statusIcon}</td>
-            <td style="padding:4px 8px;text-align:right">${xpCell}</td>
-            <td style="padding:4px 8px;text-align:right">${auraCell}</td>
-        </tr>`;
-    });
-
-    const netXp = totalXpGain - totalXpLoss;
-    const successCount = summary.successes || results.filter(r => r.outcome === 'SUCCESS').length;
-    const totalCount = results.length;
-
-    let modalContent = `
-        <div style="text-align:center;margin-bottom:12px">
-            <img src="/img/party.png" class="pixel-icon" alt="" style="width:32px;height:32px">
-            <div style="color:#ffaa00;font-size:14px;margin-top:4px">${missionName}</div>
-            <div style="color:#888;font-size:11px">Party Bonus: ${summary.party_bonus || '+20%'}</div>
-        </div>
-        <div style="font-size:0.85em">
-            <table style="width:100%;border-collapse:collapse;background:#0a0a0a">
-                <thead>
-                    <tr style="background:#1a1a1a;border-bottom:2px solid #ffaa00">
-                        <th style="padding:5px 8px;text-align:left;color:#ffaa00;font-weight:normal">ID</th>
-                        <th style="padding:5px 8px;text-align:left;color:#ffaa00;font-weight:normal">EMISSARY</th>
-                        <th style="padding:5px 8px;text-align:center;color:#ffaa00;font-weight:normal"></th>
-                        <th style="padding:5px 8px;text-align:right;color:#ffaa00;font-weight:normal">XP</th>
-                        <th style="padding:5px 8px;text-align:right;color:#ffaa00;font-weight:normal">AURA</th>
-                    </tr>
-                </thead>
-                <tbody>${rows}</tbody>
-                <tfoot>
-                    <tr style="background:#1a1a0a;border-top:2px solid #ffaa00">
-                        <td colspan="2" style="padding:5px 8px;color:#ffaa00;font-weight:bold">PARTY TOTAL</td>
-                        <td style="padding:5px 8px;text-align:center;color:#888">${successCount}/${totalCount}</td>
-                        <td style="padding:5px 8px;text-align:right;color:${netXp >= 0 ? '#44ff44' : '#ff4444'};font-weight:bold">${netXp >= 0 ? '+' : ''}${netXp}</td>
-                        <td style="padding:5px 8px;text-align:right;color:#44ff44;font-weight:bold">+${totalAura}</td>
-                    </tr>
-                </tfoot>
-            </table>
-        </div>
-    `;
-
-    // Add drops info if any
-    if (result.drops && result.drops.length > 0) {
-        modalContent += `
-        <div style="margin-top:12px;padding:8px;background:#1a2a1a;border:1px solid #44ff44;text-align:center">
-            <div style="color:#44ff44;margin-bottom:4px">✨ DROPS EARNED!</div>
-            <div style="color:#ccc;font-size:0.9em">${result.drops.map(d => d.type).join(', ')}</div>
-        </div>
-        `;
-        window.pendingDrops = result.drops;
-        showInfoModal("PARTY MISSION COMPLETE", modalContent, () => {
-            if (window.pendingDrops && window.pendingDrops.length > 0) {
-                showDropClaimModal(window.pendingDrops);
+            if (outcome === 'SUCCESS') {
+                statusIcon = '✓';
+                statusColor = '#44ff44';
+                xpCell = `<span style="color:#44ff44">+${r.xp_gain || 0}</span>`;
+                auraCell = `<span style="color:#44ff44">+${r.aura_gain || 0}</span>`;
+                totalXpGain += r.xp_gain || 0;
+                totalAura += r.aura_gain || 0;
+            } else if (outcome === 'FAILURE') {
+                statusIcon = '✗';
+                statusColor = '#ffaa00';
+                xpCell = `<span style="color:#ff6644">-${r.xp_loss || 0}</span>`;
+                auraCell = '<span style="color:#444">-</span>';
+                totalXpLoss += r.xp_loss || 0;
+            } else if (outcome === 'DEATH') {
+                statusIcon = '☠';
+                statusColor = '#ff4444';
+                xpCell = '<span style="color:#ff4444">DEAD</span>';
+                auraCell = '<span style="color:#444">-</span>';
+                totalXpLoss += r.xp_loss || 0;
             }
+
+            // Truncate long names
+            const heroName = (r.hero_name || 'Emissary').length > 20
+                ? (r.hero_name || 'Emissary').substring(0, 18) + '...'
+                : (r.hero_name || 'Emissary');
+
+            rows += `<tr style="border-bottom:1px solid #222">
+                <td style="padding:3px 6px;color:#666;font-size:11px">#${r.hero_id || '?'}</td>
+                <td style="padding:3px 6px;color:#aaa;font-size:11px" title="${r.hero_name || ''}">${heroName}</td>
+                <td style="padding:3px 6px;text-align:center;color:${statusColor};font-size:12px">${statusIcon}</td>
+                <td style="padding:3px 6px;text-align:right;font-size:11px">${xpCell}</td>
+                <td style="padding:3px 6px;text-align:right;font-size:11px">${auraCell}</td>
+                <td style="padding:3px 6px;text-align:center;color:#444;font-size:11px">-</td>
+                <td style="padding:3px 6px;text-align:center;color:#444;font-size:11px">-</td>
+                <td style="padding:3px 6px;text-align:center;color:#444;font-size:11px">-</td>
+            </tr>`;
         });
-    } else {
-        // Check for drop errors
-        if (result.drop_error_reason) {
+
+        const netXp = totalXpGain - totalXpLoss;
+        const successCount = summary.successes || results.filter(r => r.outcome === 'SUCCESS').length;
+        const totalCount = results.length;
+
+        let modalContent = `
+            <div class="party-results">
+                <div style="text-align:center;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid #333">
+                    <div style="color:var(--primary-green);font-size:13px;font-weight:bold;text-transform:uppercase">${missionName}</div>
+                    <div style="color:#666;font-size:10px;margin-top:2px">Party Bonus: ${summary.party_bonus || '+20%'}</div>
+                </div>
+                <table style="width:100%;border-collapse:collapse;font-size:11px">
+                    <thead>
+                        <tr style="border-bottom:1px solid var(--primary-green)">
+                            <th style="padding:4px 6px;text-align:left;color:#666;font-weight:normal;font-size:10px">ID</th>
+                            <th style="padding:4px 6px;text-align:left;color:#666;font-weight:normal;font-size:10px">EMISSARY</th>
+                            <th style="padding:4px 6px;text-align:center;color:#666;font-weight:normal;font-size:10px"></th>
+                            <th style="padding:4px 6px;text-align:right;color:#666;font-weight:normal;font-size:10px">XP</th>
+                            <th style="padding:4px 6px;text-align:right;color:#666;font-weight:normal;font-size:10px">AURA</th>
+                            <th style="padding:4px 6px;text-align:center;color:#666;font-weight:normal;font-size:10px">EMBER</th>
+                            <th style="padding:4px 6px;text-align:center;color:#666;font-weight:normal;font-size:10px">ITEM</th>
+                            <th style="padding:4px 6px;text-align:center;color:#666;font-weight:normal;font-size:10px">RUNE</th>
+                        </tr>
+                    </thead>
+                    <tbody>${rows}</tbody>
+                    <tfoot>
+                        <tr style="border-top:1px solid var(--primary-green)">
+                            <td colspan="2" style="padding:4px 6px;color:var(--primary-green);font-weight:bold;font-size:11px">TOTAL</td>
+                            <td style="padding:4px 6px;text-align:center;color:#888;font-size:11px">${successCount}/${totalCount}</td>
+                            <td style="padding:4px 6px;text-align:right;color:${netXp >= 0 ? '#44ff44' : '#ff4444'};font-weight:bold;font-size:11px">${netXp >= 0 ? '+' : ''}${netXp}</td>
+                            <td style="padding:4px 6px;text-align:right;color:#44ff44;font-weight:bold;font-size:11px">+${totalAura}</td>
+                            <td style="padding:4px 6px;text-align:center;color:#444;font-size:11px">-</td>
+                            <td style="padding:4px 6px;text-align:center;color:${itemDrops > 0 ? '#44ff44' : '#444'};font-size:11px">${itemDrops > 0 ? itemDrops : '-'}</td>
+                            <td style="padding:4px 6px;text-align:center;color:${runeDrops > 0 ? '#44ff44' : '#444'};font-size:11px">${runeDrops > 0 ? runeDrops : '-'}</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        `;
+
+        // Add drops notice if any
+        if (drops.length > 0) {
             modalContent += `
-            <div style="margin-top:12px;padding:8px;background:#2a1a0a;border:1px solid #ffaa00;font-size:0.8em">
-                <div style="color:#ffaa00;margin-bottom:4px">⚠️ DROP NOTICE:</div>
-                <div style="color:#ccc;font-size:0.9em">${result.drop_error_reason}</div>
+            <div style="margin-top:10px;padding:6px 10px;background:#0a1a0a;border:1px solid #1a3a1a;font-size:11px;text-align:center">
+                <span style="color:#44ff44">DROPS EARNED:</span>
+                <span style="color:#aaa;margin-left:6px">${drops.map(d => d.type).join(', ')}</span>
             </div>
             `;
+            window.pendingDrops = drops;
+            showInfoModal("PARTY MISSION COMPLETE", modalContent, () => {
+                if (window.pendingDrops && window.pendingDrops.length > 0) {
+                    showDropClaimModal(window.pendingDrops);
+                }
+            });
+        } else {
+            // Check for drop errors
+            if (result.drop_error_reason) {
+                modalContent += `
+                <div style="margin-top:10px;padding:6px 10px;background:#1a1a0a;border:1px solid #3a3a1a;font-size:10px">
+                    <span style="color:#ffaa00">DROP NOTICE:</span>
+                    <span style="color:#888;margin-left:6px">${result.drop_error_reason}</span>
+                </div>
+                `;
+            }
+            showInfoModal("PARTY MISSION COMPLETE", modalContent);
         }
-        showInfoModal("PARTY MISSION COMPLETE", modalContent);
+    } catch (err) {
+        console.error("Error in showPartyResultsModal:", err);
+        showInfoModal("PARTY MISSION COMPLETE",
+            `Mission completed but there was an error displaying results.\n\nError: ${err.message || 'Unknown error'}\n\nPlease refresh the page.`);
     }
 }
 
