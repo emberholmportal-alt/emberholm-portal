@@ -2974,8 +2974,9 @@ button:disabled {
 
 .cs-stat-value {
     font-size: 14px;
-    color: var(--primary-green);
+    color: var(--dim-green);
     font-weight: 700;
+    text-shadow: none;
 }
 
 /* Energy Bar */
