@@ -1314,37 +1314,47 @@
                 if (equippedData.equipped) {
                     console.log(`   Found ${equippedData.total_equipped} equipped items`);
 
-                    // Helper to get emissary name from IPFS data or fallback
-                    const getEmissaryName = (emissaryId, backendName) => {
-                        // Try IPFS data first (window.currentEmissaries)
+                    // Helper to get emissary info from global state
+                    const getEmissaryInfo = (emissaryId, backendName) => {
+                        // Try to get full emissary data from window.currentEmissaries
                         if (window.currentEmissaries) {
-                            const ipfsEmissary = window.currentEmissaries.find(e =>
+                            const emissary = window.currentEmissaries.find(e =>
                                 String(e.token_id) === String(emissaryId)
                             );
-                            if (ipfsEmissary && ipfsEmissary.name) {
-                                return ipfsEmissary.name;
+                            if (emissary) {
+                                return {
+                                    name: emissary.name || backendName || `Emissary #${emissaryId}`,
+                                    state: emissary.state || 'READY',
+                                    isOnMission: emissary.state === 'ON_MISSION'
+                                };
                             }
                         }
-                        // Fallback to backend name or ID
-                        return backendName || `Emissary #${emissaryId}`;
+                        // Fallback - assume not on mission if we can't find data
+                        return {
+                            name: backendName || `Emissary #${emissaryId}`,
+                            state: 'READY',
+                            isOnMission: false
+                        };
                     };
 
                     // Mark items as equipped
                     vaultItems.forEach(item => {
                         const equippedInfo = equippedData.equipped[item.id];
                         if (equippedInfo) {
-                            item.equipped_by = equippedInfo.emissary_id;
-                            // Get name from IPFS data with fallback to backend
-                            item.equipped_by_name = getEmissaryName(
+                            const emissaryInfo = getEmissaryInfo(
                                 equippedInfo.emissary_id,
                                 equippedInfo.emissary_name
                             );
+                            item.equipped_by = equippedInfo.emissary_id;
+                            item.equipped_by_name = emissaryInfo.name;
                             item.equipped_slot = equippedInfo.slot;
-                            console.log(`   ✓ ${item.name} equipped to ${item.equipped_by_name}`);
+                            item.emissary_on_mission = emissaryInfo.isOnMission;
+                            console.log(`   ✓ ${item.name} equipped to ${emissaryInfo.name} (${emissaryInfo.state})`);
                         } else {
                             item.equipped_by = null;
                             item.equipped_by_name = null;
                             item.equipped_slot = null;
+                            item.emissary_on_mission = false;
                         }
                     });
                 }
@@ -1557,15 +1567,46 @@
                 const rarityClass = `rarity-${item.rarity}`;
                 const equippedClass = item.equipped_by ? 'equipped' : '';
                 const placeholderImg = item.type === 'rune' ? '/img/runes.png' : '/img/crossedswords.png';
+                const isOnMission = item.emissary_on_mission || false;
 
-                // Status badge
-                const statusBadge = item.equipped_by
-                    ? `<div class="equipped-badge" style="background:#1a4a1a; border:1px solid var(--primary-green); padding:4px 8px; font-size:10px; margin-top:8px;">
+                // Status badge - show mission lock if emissary is on mission
+                let statusBadge;
+                if (item.equipped_by && isOnMission) {
+                    statusBadge = `<div class="mission-locked-badge" style="background:#4a3a1a; border:1px solid #ffaa00; padding:4px 8px; font-size:10px; margin-top:8px; color:#ffaa00;">
+                           🔒 ON MISSION: ${item.equipped_by_name || '#' + item.equipped_by}
+                       </div>`;
+                } else if (item.equipped_by) {
+                    statusBadge = `<div class="equipped-badge" style="background:#1a4a1a; border:1px solid var(--primary-green); padding:4px 8px; font-size:10px; margin-top:8px;">
                            ⚔ EQUIPPED TO: ${item.equipped_by_name || '#' + item.equipped_by}
-                       </div>`
-                    : `<div class="available-badge" style="background:#1a3a4a; border:1px solid #4a9eff; padding:4px 8px; font-size:10px; margin-top:8px; color:#4a9eff;">
+                       </div>`;
+                } else {
+                    statusBadge = `<div class="available-badge" style="background:#1a3a4a; border:1px solid #4a9eff; padding:4px 8px; font-size:10px; margin-top:8px; color:#4a9eff;">
                            ✓ AVAILABLE
                        </div>`;
+                }
+
+                // Buttons - disabled if emissary is on mission
+                let actionButtons;
+                if (item.equipped_by && isOnMission) {
+                    actionButtons = `
+                        <button class="terminal-btn small-btn" disabled style="opacity:0.4; cursor:not-allowed;"
+                                title="Cannot change equipment while emissary is on mission">[CHANGE]</button>
+                        <button class="terminal-btn small-btn" disabled style="background:#3a2020; opacity:0.4; cursor:not-allowed;"
+                                title="Cannot unequip while emissary is on mission">[UNEQUIP]</button>
+                    `;
+                } else if (item.equipped_by) {
+                    actionButtons = `
+                        <button class="terminal-btn small-btn"
+                                onclick="showEquipModal('${item.id}')">[CHANGE]</button>
+                        <button class="terminal-btn small-btn" style="background:#5a2020;"
+                                onclick="unequipItemFromVault('${item.id}', '${item.equipped_by}', '${item.type}')">[UNEQUIP]</button>
+                    `;
+                } else {
+                    actionButtons = `
+                        <button class="terminal-btn small-btn"
+                                onclick="showEquipModal('${item.id}')">[EQUIP]</button>
+                    `;
+                }
 
                 html += `
                     <div class="item-card ${rarityClass} ${equippedClass}">
@@ -1586,15 +1627,7 @@
                             </div>
                         </div>
                         <div style="margin-top:15px; display:flex; gap:8px;">
-                            ${item.equipped_by ? `
-                                <button class="terminal-btn small-btn"
-                                        onclick="showEquipModal('${item.id}')">[CHANGE]</button>
-                                <button class="terminal-btn small-btn" style="background:#5a2020;"
-                                        onclick="unequipItemFromVault('${item.id}', '${item.equipped_by}', '${item.type}')">[UNEQUIP]</button>
-                            ` : `
-                                <button class="terminal-btn small-btn"
-                                        onclick="showEquipModal('${item.id}')">[EQUIP]</button>
-                            `}
+                            ${actionButtons}
                         </div>
                     </div>
                 `;
@@ -1672,11 +1705,19 @@
             return;
         }
 
-        // Get READY emissaries from current roster
-        const readyEmissaries = getCurrentEmissaries().filter(e => e.state === 'READY');
+        // Get all emissaries and filter by state
+        const allEmissaries = getCurrentEmissaries();
+        const readyEmissaries = allEmissaries.filter(e => e.state === 'READY');
+        const onMissionCount = allEmissaries.filter(e => e.state === 'ON_MISSION').length;
 
         if (readyEmissaries.length === 0) {
-            showGameAlert('No READY emissaries available to equip items.\n\nEmissaries must be in READY state to equip items.', 'info');
+            let message = 'No READY emissaries available to equip items.';
+            if (onMissionCount > 0) {
+                message += `\n\n⚠️ ${onMissionCount} emissary${onMissionCount > 1 ? 's are' : ' is'} currently ON MISSION.\nEquipment changes are disabled while on mission.`;
+            } else {
+                message += '\n\nEmissaries must be in READY state to equip items.';
+            }
+            showGameAlert(message, 'info');
             return;
         }
 
