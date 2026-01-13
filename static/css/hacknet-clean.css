@@ -3217,6 +3217,28 @@ button:disabled {
     margin: 0 2px;
 }
 
+/* Chronicle Modal - Compact vertical spacing */
+.terminal-modal:has(.chronicle) .terminal-modal-header {
+    padding: 8px 15px;
+    font-size: 14px;
+}
+
+.terminal-modal-body:has(.chronicle) {
+    padding: 10px 15px 8px;
+}
+
+.modal-message:has(.chronicle) {
+    margin-bottom: 6px;
+}
+
+.terminal-modal-body:has(.chronicle) .modal-buttons {
+    margin-top: 8px;
+}
+
+.chronicle-row {
+    padding: 2px 0;
+}
+
 /* View Button in Roster */
 .action-btn.view {
     background: rgba(59, 130, 246, 0.15);
