@@ -400,6 +400,17 @@
     animation: fadeIn 0.2s ease-out;
 }
 
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+        text-shadow: 0 0 10px #ff6b00;
+    }
+    50% {
+        opacity: 0.5;
+        text-shadow: 0 0 20px #ff6b00, 0 0 30px #ff6b00;
+    }
+}
+
 @keyframes fadeIn {
     from { opacity: 0; }
     to { opacity: 1; }
@@ -2751,13 +2762,13 @@ document.addEventListener('DOMContentLoaded', initPortalWarning);
         </div>
     </section>
 
-     <!-- WHITEPAPER / CONTRACT -->
+     <!-- WHITEPAPER / CONTRACTS -->
 <section class="screen" data-screen="whitepaper">
     <div class="section-block">
-        <div class="section-title">EMBERHOLM PORTAL // WHITEPAPER & CONTRACT</div>
+        <div class="section-title">EMBERHOLM PORTAL // WHITEPAPER & CONTRACTS</div>
 
         <p class="section-text">
-            Download the official project documentation or review the smart contract deployed on Base Mainnet.
+            Download the official project documentation or review the verified smart contracts deployed on Base Mainnet.
         </p>
 
         <div style="display:flex; gap:16px; flex-wrap:wrap; margin-bottom:16px; align-items:center;">
@@ -2775,22 +2786,80 @@ document.addEventListener('DOMContentLoaded', initPortalWarning);
             </a>
         </div>
 
-        <div class="section-subtitle" style="margin-top:10px;">Smart Contract (Base Mainnet)</div>
-        <div class="terminal-box">
-            <p>Contract name: <b>EmberholmPortal</b></p>
-            <p>Address: <code>0x7AB2cf80FbfB8c89868b3dFa053729ecC86E39b3</code></p>
-            <p>
-                View on Basescan:
-                <a href="https://basescan.org/address/0x7AB2cf80FbfB8c89868b3dFa053729ecC86E39b3"
-                   target="_blank"
-                   style="color:#ffcc00; text-decoration:none;">
-                    → open explorer
-                </a>
-            </p>
-            <p style="margin-top:10px; font-size:11px; opacity:.7;">
-                Official contract deployed on Base Mainnet (Chain ID: 8453).
+        <div class="section-subtitle" style="margin-top:20px; margin-bottom:15px;">VERIFIED CONTRACTS (Base Mainnet - Chain ID: 8453)</div>
+
+        <!-- Contract 1: EMBERHOLM PORTAL -->
+        <div class="terminal-box" style="margin-bottom:12px; padding:12px;">
+            <div style="display:flex; align-items:center; gap:10px; margin-bottom:6px;">
+                <span style="color:#888; font-size:11px;">#1</span>
+                <span style="color:#ffaa00; font-weight:bold; font-size:14px;">EMBERHOLM PORTAL</span>
+            </div>
+            <p style="color:#44ff44; font-size:12px; margin:4px 0;">Genesis Emissaries NFT Collection (35,000 units)</p>
+            <p style="font-family:monospace; color:#ffcc00; font-size:11px; margin:6px 0; word-break:break-all;">0x7AB2cf80FbfB8c89868b3dFa053729ecC86E39b3</p>
+            <a href="https://basescan.org/address/0x7AB2cf80FbfB8c89868b3dFa053729ecC86E39b3" target="_blank"
+               style="color:#00ccff; text-decoration:none; font-size:11px; font-weight:bold;">[VIEW ON BASESCAN →]</a>
+        </div>
+
+        <!-- Contract 2: EMBER TOKEN -->
+        <div class="terminal-box" style="margin-bottom:12px; padding:12px;">
+            <div style="display:flex; align-items:center; gap:10px; margin-bottom:6px;">
+                <span style="color:#888; font-size:11px;">#2</span>
+                <span style="color:#ffaa00; font-weight:bold; font-size:14px;">EMBER TOKEN</span>
+            </div>
+            <p style="color:#44ff44; font-size:12px; margin:4px 0;">Main utility token - $EMBER (1B supply)</p>
+            <p style="font-family:monospace; color:#ffcc00; font-size:11px; margin:6px 0; word-break:break-all;">0xbA7723fBfb44C7712C0B78108ad873DcFd5Dd73b</p>
+            <a href="https://basescan.org/address/0xbA7723fBfb44C7712C0B78108ad873DcFd5Dd73b" target="_blank"
+               style="color:#00ccff; text-decoration:none; font-size:11px; font-weight:bold;">[VIEW ON BASESCAN →]</a>
+        </div>
+
+        <!-- Contract 3: ASH TOKEN -->
+        <div class="terminal-box" style="margin-bottom:12px; padding:12px;">
+            <div style="display:flex; align-items:center; gap:10px; margin-bottom:6px;">
+                <span style="color:#888; font-size:11px;">#3</span>
+                <span style="color:#ffaa00; font-weight:bold; font-size:14px;">ASH TOKEN</span>
+            </div>
+            <p style="color:#44ff44; font-size:12px; margin:4px 0;">Governance token - $ASH (144K supply)</p>
+            <p style="font-family:monospace; color:#ffcc00; font-size:11px; margin:6px 0; word-break:break-all;">0xD4eef3eadb1Cf1B2905AA4Cd1022b8cCCC739DAb</p>
+            <a href="https://basescan.org/address/0xD4eef3eadb1Cf1B2905AA4Cd1022b8cCCC739DAb" target="_blank"
+               style="color:#00ccff; text-decoration:none; font-size:11px; font-weight:bold;">[VIEW ON BASESCAN →]</a>
+        </div>
+
+        <!-- Contract 4: EMBER ITEMS -->
+        <div class="terminal-box" style="margin-bottom:12px; padding:12px;">
+            <div style="display:flex; align-items:center; gap:10px; margin-bottom:6px;">
+                <span style="color:#888; font-size:11px;">#4</span>
+                <span style="color:#ffaa00; font-weight:bold; font-size:14px;">EMBER ITEMS</span>
+            </div>
+            <p style="color:#44ff44; font-size:12px; margin:4px 0;">Equipment NFTs (50,000 units)</p>
+            <p style="font-family:monospace; color:#ffcc00; font-size:11px; margin:6px 0; word-break:break-all;">0xCE71702CE99Bc927216e64d57e4BD19254Ac28bA</p>
+            <a href="https://basescan.org/address/0xCE71702CE99Bc927216e64d57e4BD19254Ac28bA" target="_blank"
+               style="color:#00ccff; text-decoration:none; font-size:11px; font-weight:bold;">[VIEW ON BASESCAN →]</a>
+        </div>
+
+        <!-- Contract 5: EMBER RUNES -->
+        <div class="terminal-box" style="margin-bottom:12px; padding:12px;">
+            <div style="display:flex; align-items:center; gap:10px; margin-bottom:6px;">
+                <span style="color:#888; font-size:11px;">#5</span>
+                <span style="color:#ffaa00; font-weight:bold; font-size:14px;">EMBER RUNES</span>
+            </div>
+            <p style="color:#44ff44; font-size:12px; margin:4px 0;">Rune NFTs (25,000 units)</p>
+            <p style="font-family:monospace; color:#ffcc00; font-size:11px; margin:6px 0; word-break:break-all;">0xDa2D1085053c3700645a13498293D17c1cc3f595</p>
+            <a href="https://basescan.org/address/0xDa2D1085053c3700645a13498293D17c1cc3f595" target="_blank"
+               style="color:#00ccff; text-decoration:none; font-size:11px; font-weight:bold;">[VIEW ON BASESCAN →]</a>
+        </div>
+
+        <!-- Contract 6: EMBER LANDS (Coming Soon) -->
+        <div class="terminal-box" style="margin-bottom:12px; padding:12px; border-color:#ff6b00;">
+            <div style="display:flex; align-items:center; gap:10px; margin-bottom:6px;">
+                <span style="color:#888; font-size:11px;">#6</span>
+                <span style="color:#ffaa00; font-weight:bold; font-size:14px;">EMBER LANDS</span>
+            </div>
+            <p style="color:#44ff44; font-size:12px; margin:4px 0;">Territory NFTs (10,000 units)</p>
+            <p style="font-family:monospace; color:#ff6b00; font-size:13px; margin:8px 0; text-align:center; animation: pulse 2s infinite;">
+                ◈ OPENING PORTAL... ◈
             </p>
         </div>
+
     </div>
 </section>
 
