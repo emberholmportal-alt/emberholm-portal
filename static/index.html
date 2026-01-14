@@ -403,11 +403,9 @@
 @keyframes pulse {
     0%, 100% {
         opacity: 1;
-        text-shadow: 0 0 10px #ff6b00;
     }
     50% {
         opacity: 0.5;
-        text-shadow: 0 0 20px #ff6b00, 0 0 30px #ff6b00;
     }
 }
 
@@ -1002,7 +1000,8 @@ document.addEventListener('DOMContentLoaded', initPortalWarning);
             <button class="cmd-link" data-target="announcements">[ANNOUNCEMENTS]</button>
             <button class="cmd-link" data-target="events">[EVENTS]</button>
             <button class="cmd-link" data-target="credits">[SOCIAL/CREDITS]</button>
-            <button class="cmd-link" data-target="whitepaper">[WHITEPAPER]</button>
+            <button class="cmd-link" data-target="whitepaper">[WHITEPAPER/CONTRACTS]</button>
+            <button class="cmd-link" data-target="tokenomics">[TOKENOMICS]</button>
         </div>
 
         <!-- PROGRESS BAR -->
@@ -2806,7 +2805,7 @@ document.addEventListener('DOMContentLoaded', initPortalWarning);
                 <span style="color:#888; font-size:11px;">#2</span>
                 <span style="color:#ffaa00; font-weight:bold; font-size:14px;">EMBER TOKEN</span>
             </div>
-            <p style="color:#44ff44; font-size:12px; margin:4px 0;">Main utility token - $EMBER (1B supply)</p>
+            <p style="color:#44ff44; font-size:12px; margin:4px 0;">Main utility token - $EMBER (1,000,000,000 supply)</p>
             <p style="font-family:monospace; color:#ffcc00; font-size:11px; margin:6px 0; word-break:break-all;">0xbA7723fBfb44C7712C0B78108ad873DcFd5Dd73b</p>
             <a href="https://basescan.org/address/0xbA7723fBfb44C7712C0B78108ad873DcFd5Dd73b" target="_blank"
                style="color:#00ccff; text-decoration:none; font-size:11px; font-weight:bold;">[VIEW ON BASESCAN →]</a>
@@ -2855,9 +2854,213 @@ document.addEventListener('DOMContentLoaded', initPortalWarning);
                 <span style="color:#ffaa00; font-weight:bold; font-size:14px;">EMBER LANDS</span>
             </div>
             <p style="color:#44ff44; font-size:12px; margin:4px 0;">Territory NFTs (10,000 units)</p>
-            <p style="font-family:monospace; color:#ff6b00; font-size:13px; margin:8px 0; text-align:center; animation: pulse 2s infinite;">
-                ◈ OPENING PORTAL... ◈
-            </p>
+            <p style="font-family:monospace; color:#ff6b00; font-size:12px; margin:6px 0; animation: pulse 2s infinite;">◈ OPENING PORTAL... ◈</p>
+        </div>
+
+    </div>
+</section>
+
+<!-- TOKENOMICS SECTION -->
+<section class="screen" data-screen="tokenomics">
+    <div class="section-block">
+        <div class="section-title">EMBERHOLM PORTAL // TOKENOMICS</div>
+
+        <p class="section-text">
+            Live metrics from the Emberholm ecosystem. Data fetched directly from Base Mainnet contracts.
+        </p>
+
+        <!-- HERO STATS SUMMARY -->
+        <div class="terminal-box" style="margin-bottom:20px; padding:15px; border-color:#ffaa00;">
+            <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap:15px; text-align:center;">
+                <div>
+                    <div style="color:#888; font-size:10px; margin-bottom:4px;">$EMBER PRICE</div>
+                    <div id="hero-ember-price" style="color:#44ff44; font-size:16px; font-weight:bold;">--</div>
+                    <div id="hero-ember-change" style="font-size:11px; color:#888;">--</div>
+                </div>
+                <div>
+                    <div style="color:#888; font-size:10px; margin-bottom:4px;">TOTAL BURNED</div>
+                    <div id="hero-total-burned" style="color:#ff6b00; font-size:16px; font-weight:bold;">--</div>
+                    <div style="font-size:10px; color:#888;">from supply</div>
+                </div>
+                <div>
+                    <div style="color:#888; font-size:10px; margin-bottom:4px;">REWARDS LEFT</div>
+                    <div id="hero-rewards-left" style="color:#ffcc00; font-size:16px; font-weight:bold;">--</div>
+                    <div style="font-size:10px; color:#888;">of 500M</div>
+                </div>
+                <div>
+                    <div style="color:#888; font-size:10px; margin-bottom:4px;">$ASH MINTED</div>
+                    <div id="hero-ash-minted" style="color:#a855f7; font-size:16px; font-weight:bold;">--</div>
+                    <div style="font-size:10px; color:#888;">of 144K</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- REFRESH CONTROLS -->
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+            <span id="tokenomics-last-update" style="color:#888; font-size:11px;">Last updated: --</span>
+            <button id="tokenomics-refresh-btn" onclick="refreshTokenomicsData()"
+                    style="background:#1a3a1a; border:1px solid #44ff44; color:#44ff44; padding:6px 12px; font-size:11px; cursor:pointer; font-family:monospace;">
+                [↻ REFRESH]
+            </button>
+        </div>
+
+        <!-- $EMBER PANEL -->
+        <div class="terminal-box" style="margin-bottom:15px; padding:15px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; border-bottom:1px solid #333; padding-bottom:8px;">
+                <span style="color:#ffaa00; font-weight:bold; font-size:14px;">◈ $EMBER LIVE METRICS</span>
+            </div>
+
+            <!-- PRICE -->
+            <div style="margin-bottom:15px;">
+                <div style="color:#44ff44; font-size:11px; font-weight:bold; margin-bottom:6px;">PRICE</div>
+                <div style="padding-left:12px; font-size:12px; line-height:1.8;">
+                    <div>├─ Current Price: <span id="ember-price-usd" style="color:#ffcc00;">Loading...</span></div>
+                    <div>├─ Price in ETH: <span id="ember-price-eth" style="color:#ffcc00;">Loading...</span></div>
+                    <div>└─ 24h Change: <span id="ember-price-change" style="color:#888;">--</span></div>
+                </div>
+            </div>
+
+            <!-- SUPPLY -->
+            <div style="margin-bottom:15px;">
+                <div style="color:#44ff44; font-size:11px; font-weight:bold; margin-bottom:6px;">SUPPLY</div>
+                <div style="padding-left:12px; font-size:12px; line-height:1.8;">
+                    <div>├─ Max Supply: <span style="color:#ffcc00;">1,000,000,000 $EMBER</span></div>
+                    <div>├─ Circulating: <span id="ember-circulating" style="color:#ffcc00;">Loading...</span></div>
+                    <div>├─ Locked in Vesting: <span id="ember-vesting" style="color:#ffcc00;">Loading...</span></div>
+                    <div>└─ Total Burned: <span id="ember-burned" style="color:#ff6b00;">Loading...</span></div>
+                </div>
+            </div>
+
+            <!-- REWARDS POOL -->
+            <div style="margin-bottom:15px;">
+                <div style="color:#44ff44; font-size:11px; font-weight:bold; margin-bottom:6px;">REWARDS POOL (Missions & Lands)</div>
+                <div style="padding-left:12px; font-size:12px; line-height:1.8;">
+                    <div>├─ Initial Pool: <span style="color:#ffcc00;">500,000,000 $EMBER</span></div>
+                    <div>├─ Distributed: <span id="ember-distributed" style="color:#ffcc00;">Loading...</span></div>
+                    <div>├─ Remaining: <span id="ember-remaining" style="color:#ffcc00;">Loading...</span></div>
+                    <div>└─ Pool Used: <span id="ember-pool-bar" style="color:#44ff44;">Loading...</span></div>
+                </div>
+            </div>
+
+            <!-- ASH CONVERSION -->
+            <div>
+                <div style="color:#44ff44; font-size:11px; font-weight:bold; margin-bottom:6px;">ASH CONVERSION</div>
+                <div style="padding-left:12px; font-size:12px; line-height:1.8;">
+                    <div>├─ $EMBER Burned for $ASH: <span id="ember-burned-for-ash" style="color:#ff6b00;">Loading...</span></div>
+                    <div>└─ $ASH Minted: <span id="ash-from-ember" style="color:#a855f7;">Loading...</span></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- $ASH PANEL -->
+        <div class="terminal-box" style="margin-bottom:15px; padding:15px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; border-bottom:1px solid #333; padding-bottom:8px;">
+                <span style="color:#a855f7; font-weight:bold; font-size:14px;">◈ $ASH LIVE METRICS</span>
+            </div>
+
+            <!-- PRICE -->
+            <div style="margin-bottom:15px;">
+                <div style="color:#44ff44; font-size:11px; font-weight:bold; margin-bottom:6px;">PRICE</div>
+                <div style="padding-left:12px; font-size:12px; line-height:1.8;">
+                    <div>├─ Current Price: <span id="ash-price-usd" style="color:#ffcc00;">Not yet trading</span></div>
+                    <div>├─ Price in ETH: <span id="ash-price-eth" style="color:#ffcc00;">--</span></div>
+                    <div>└─ Price in $EMBER: <span id="ash-price-ember" style="color:#ffcc00;">--</span></div>
+                </div>
+            </div>
+
+            <!-- SUPPLY -->
+            <div style="margin-bottom:15px;">
+                <div style="color:#44ff44; font-size:11px; font-weight:bold; margin-bottom:6px;">SUPPLY</div>
+                <div style="padding-left:12px; font-size:12px; line-height:1.8;">
+                    <div>├─ Max Supply: <span style="color:#ffcc00;">144,000 $ASH</span></div>
+                    <div>├─ Total Minted: <span id="ash-total-minted" style="color:#ffcc00;">Loading...</span></div>
+                    <div>├─ From Protocol (burns): <span id="ash-protocol-minted" style="color:#ffcc00;">Loading...</span></div>
+                    <div>└─ Team Allocation: <span style="color:#ffcc00;">4,400 $ASH</span></div>
+                </div>
+            </div>
+
+            <!-- PROTOCOL POOL -->
+            <div style="margin-bottom:15px;">
+                <div style="color:#44ff44; font-size:11px; font-weight:bold; margin-bottom:6px;">PROTOCOL POOL</div>
+                <div style="padding-left:12px; font-size:12px; line-height:1.8;">
+                    <div>├─ Available to Mint: <span id="ash-available" style="color:#ffcc00;">Loading...</span></div>
+                    <div>├─ Pool Used: <span id="ash-pool-bar" style="color:#a855f7;">Loading...</span></div>
+                    <div>└─ $EMBER Required to Exhaust: <span id="ash-ember-required" style="color:#ffcc00;">Loading...</span></div>
+                </div>
+            </div>
+
+            <!-- BURN STATISTICS -->
+            <div>
+                <div style="color:#44ff44; font-size:11px; font-weight:bold; margin-bottom:6px;">BURN STATISTICS</div>
+                <div style="padding-left:12px; font-size:12px; line-height:1.8;">
+                    <div>├─ Total $EMBER Burned: <span id="ash-ember-burned" style="color:#ff6b00;">Loading...</span></div>
+                    <div>├─ Unique Burners: <span id="ash-unique-burners" style="color:#ffcc00;">--</span></div>
+                    <div>└─ Avg Burn per User: <span id="ash-avg-burn" style="color:#ffcc00;">--</span></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- NFT COLLECTIONS PANEL -->
+        <div class="terminal-box" style="margin-bottom:15px; padding:15px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; border-bottom:1px solid #333; padding-bottom:8px;">
+                <span style="color:#00ccff; font-weight:bold; font-size:14px;">◈ NFT COLLECTIONS LIVE</span>
+            </div>
+
+            <!-- EMBERHOLM PORTAL -->
+            <div style="margin-bottom:15px;">
+                <div style="color:#ffaa00; font-size:11px; font-weight:bold; margin-bottom:6px;">EMBERHOLM PORTAL (Emissaries)</div>
+                <div style="padding-left:12px; font-size:12px; line-height:1.8;">
+                    <div>├─ Total Supply: <span style="color:#ffcc00;">35,000</span></div>
+                    <div>├─ Minted: <span id="portal-minted" style="color:#ffcc00;">Loading...</span></div>
+                    <div>├─ Remaining: <span id="portal-remaining" style="color:#ffcc00;">Loading...</span></div>
+                    <div>├─ Mint Price: <span id="portal-mint-price" style="color:#ffcc00;">0.0011 ETH</span></div>
+                    <div>└─ Unique Holders: <span id="portal-holders" style="color:#ffcc00;">--</span></div>
+                </div>
+            </div>
+
+            <!-- EMBER LANDS -->
+            <div style="margin-bottom:15px;">
+                <div style="color:#ffaa00; font-size:11px; font-weight:bold; margin-bottom:6px;">EMBER LANDS</div>
+                <div style="padding-left:12px; font-size:12px; line-height:1.8;">
+                    <div>├─ Total Supply: <span style="color:#ffcc00;">10,000</span></div>
+                    <div>├─ Status: <span style="color:#ff6b00; animation: pulse 2s infinite;">◈ OPENING PORTAL... ◈</span></div>
+                    <div>└─ Mint Price: <span style="color:#ffcc00;">0.0011 ETH</span></div>
+                </div>
+            </div>
+
+            <!-- EMBER ITEMS -->
+            <div style="margin-bottom:15px;">
+                <div style="color:#ffaa00; font-size:11px; font-weight:bold; margin-bottom:6px;">EMBER ITEMS</div>
+                <div style="padding-left:12px; font-size:12px; line-height:1.8;">
+                    <div>├─ Total Supply: <span style="color:#ffcc00;">50,000</span></div>
+                    <div>├─ Minted: <span id="items-minted" style="color:#ffcc00;">Loading...</span></div>
+                    <div>├─ Remaining: <span id="items-remaining" style="color:#ffcc00;">Loading...</span></div>
+                    <div>└─ Obtained via: <span style="color:#44ff44;">Mission Rewards</span></div>
+                </div>
+            </div>
+
+            <!-- EMBER RUNES -->
+            <div>
+                <div style="color:#ffaa00; font-size:11px; font-weight:bold; margin-bottom:6px;">EMBER RUNES</div>
+                <div style="padding-left:12px; font-size:12px; line-height:1.8;">
+                    <div>├─ Total Supply: <span style="color:#ffcc00;">25,000</span></div>
+                    <div>├─ Minted: <span id="runes-minted" style="color:#ffcc00;">Loading...</span></div>
+                    <div>├─ Remaining: <span id="runes-remaining" style="color:#ffcc00;">Loading...</span></div>
+                    <div>└─ Obtained via: <span style="color:#44ff44;">Mission Rewards</span></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- CONTRACT ADDRESSES REFERENCE -->
+        <div class="terminal-box" style="padding:12px; opacity:0.8;">
+            <div style="color:#888; font-size:10px; margin-bottom:8px;">CONTRACT ADDRESSES (Base Mainnet - Chain ID: 8453)</div>
+            <div style="font-size:10px; line-height:1.6; font-family:monospace;">
+                <div>EMBER: <span style="color:#ffcc00;">0xbA7723fBfb44C7712C0B78108ad873DcFd5Dd73b</span></div>
+                <div>ASH: <span style="color:#ffcc00;">0xD4eef3eadb1Cf1B2905AA4Cd1022b8cCCC739DAb</span></div>
+                <div>PORTAL: <span style="color:#ffcc00;">0x7AB2cf80FbfB8c89868b3dFa053729ecC86E39b3</span></div>
+                <div>ITEMS: <span style="color:#ffcc00;">0xCE71702CE99Bc927216e64d57e4BD19254Ac28bA</span></div>
+                <div>RUNES: <span style="color:#ffcc00;">0xDa2D1085053c3700645a13498293D17c1cc3f595</span></div>
+            </div>
         </div>
 
     </div>
@@ -8172,6 +8375,346 @@ async function loadAchievements(heroes) {
 
 <!-- INVENTORY & VAULT SYSTEM -->
 <script src="/js/inventory.js"></script>
+
+<!-- TOKENOMICS LIVE DATA -->
+<script>
+// ============================================
+// TOKENOMICS LIVE METRICS - CONTRACT FETCHING
+// ============================================
+
+const TOKENOMICS_CONFIG = {
+    // Contract addresses (Base Mainnet)
+    contracts: {
+        ember: '0xbA7723fBfb44C7712C0B78108ad873DcFd5Dd73b',
+        ash: '0xD4eef3eadb1Cf1B2905AA4Cd1022b8cCCC739DAb',
+        portal: '0x7AB2cf80FbfB8c89868b3dFa053729ecC86E39b3',
+        items: '0xCE71702CE99Bc927216e64d57e4BD19254Ac28bA',
+        runes: '0xDa2D1085053c3700645a13498293D17c1cc3f595'
+    },
+    // Base Mainnet RPC
+    rpcUrl: 'https://mainnet.base.org',
+    chainId: 8453,
+    // Refresh interval (30 seconds)
+    refreshInterval: 30000
+};
+
+// ABIs for contract calls
+const TOKENOMICS_ABIS = {
+    emberToken: [
+        'function getMetrics() view returns (uint256 maxSupply, uint256 currentSupply, uint256 circulatingSupply, uint256 totalBurned, uint256 totalLockedVesting, uint256 rewardsRemaining, uint256 rewardsDistributed, uint256 convertedToAsh, bool isDistributed, bool claimsPaused)',
+        'function rewardsPoolUsedPercent() view returns (uint256)',
+        'function totalSupply() view returns (uint256)'
+    ],
+    ashToken: [
+        'function getMetrics() view returns (uint256 maxSupply, uint256 totalMinted, uint256 protocolMinted, uint256 protocolRemaining, uint256 protocolUsedPercent, uint256 totalEmberBurned, uint256 teamAllocation, bool isTeamDistributed)',
+        'function totalSupply() view returns (uint256)'
+    ],
+    nftCollection: [
+        'function totalSupply() view returns (uint256)',
+        'function supplyInfo() view returns (uint256 total, uint256 minted, uint256 remaining)'
+    ]
+};
+
+// State
+let tokenomicsRefreshTimer = null;
+let lastTokenomicsUpdate = null;
+
+// Helper: Format large numbers
+function formatTokenNumber(value, decimals = 18) {
+    const num = parseFloat(value) / Math.pow(10, decimals);
+    if (num >= 1000000000) return (num / 1000000000).toFixed(2) + 'B';
+    if (num >= 1000000) return (num / 1000000).toFixed(2) + 'M';
+    if (num >= 1000) return (num / 1000).toFixed(2) + 'K';
+    return num.toFixed(2);
+}
+
+// Helper: Format with commas
+function formatWithCommas(num) {
+    return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+}
+
+// Helper: Generate progress bar
+function generateProgressBar(percent, width = 16) {
+    const filled = Math.round((percent / 100) * width);
+    const empty = width - filled;
+    return '█'.repeat(filled) + '░'.repeat(empty) + ` ${percent.toFixed(2)}%`;
+}
+
+// Helper: Update element text
+function updateElement(id, value) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = value;
+}
+
+// Helper: Update element with color
+function updateElementWithColor(id, value, color) {
+    const el = document.getElementById(id);
+    if (el) {
+        el.textContent = value;
+        el.style.color = color;
+    }
+}
+
+// Main fetch function
+async function refreshTokenomicsData() {
+    const btn = document.getElementById('tokenomics-refresh-btn');
+    if (btn) {
+        btn.textContent = '[↻ LOADING...]';
+        btn.disabled = true;
+    }
+
+    try {
+        // Check if ethers is available
+        if (typeof ethers === 'undefined') {
+            console.warn('Ethers.js not loaded, using fallback display');
+            showTokenomicsFallback();
+            return;
+        }
+
+        const provider = new ethers.JsonRpcProvider(TOKENOMICS_CONFIG.rpcUrl);
+
+        // Fetch all data in parallel
+        await Promise.all([
+            fetchEmberMetrics(provider),
+            fetchAshMetrics(provider),
+            fetchNFTMetrics(provider)
+        ]);
+
+        // Update last refresh time
+        lastTokenomicsUpdate = new Date();
+        updateLastRefreshTime();
+
+    } catch (error) {
+        console.error('Error fetching tokenomics data:', error);
+        showTokenomicsError();
+    } finally {
+        if (btn) {
+            btn.textContent = '[↻ REFRESH]';
+            btn.disabled = false;
+        }
+    }
+}
+
+// Fetch $EMBER metrics
+async function fetchEmberMetrics(provider) {
+    try {
+        const contract = new ethers.Contract(
+            TOKENOMICS_CONFIG.contracts.ember,
+            TOKENOMICS_ABIS.emberToken,
+            provider
+        );
+
+        const metrics = await contract.getMetrics();
+        const poolPercent = await contract.rewardsPoolUsedPercent();
+
+        // Parse metrics
+        const circulatingSupply = formatTokenNumber(metrics.circulatingSupply);
+        const totalBurned = formatTokenNumber(metrics.totalBurned);
+        const vestingLocked = formatTokenNumber(metrics.totalLockedVesting);
+        const rewardsDistributed = formatTokenNumber(metrics.rewardsDistributed);
+        const rewardsRemaining = formatTokenNumber(metrics.rewardsRemaining);
+        const convertedToAsh = formatTokenNumber(metrics.convertedToAsh);
+        const poolUsedPercent = parseFloat(poolPercent) / 100; // basis points to %
+
+        // Update UI
+        updateElement('ember-circulating', circulatingSupply + ' $EMBER');
+        updateElement('ember-vesting', vestingLocked + ' $EMBER');
+        updateElementWithColor('ember-burned', totalBurned + ' $EMBER 🔥', '#ff6b00');
+        updateElement('ember-distributed', rewardsDistributed + ' $EMBER');
+        updateElement('ember-remaining', rewardsRemaining + ' $EMBER');
+        updateElement('ember-pool-bar', generateProgressBar(poolUsedPercent));
+        updateElementWithColor('ember-burned-for-ash', convertedToAsh + ' $EMBER 🔥', '#ff6b00');
+
+        // Update hero stats
+        updateElement('hero-total-burned', totalBurned + ' 🔥');
+        updateElement('hero-rewards-left', rewardsRemaining);
+
+        // Price display (no DEX yet)
+        updateElement('ember-price-usd', 'Not yet trading');
+        updateElement('ember-price-eth', '--');
+        updateElement('hero-ember-price', '--');
+
+    } catch (error) {
+        console.error('Error fetching EMBER metrics:', error);
+        updateElement('ember-circulating', 'Error loading');
+    }
+}
+
+// Fetch $ASH metrics
+async function fetchAshMetrics(provider) {
+    try {
+        const contract = new ethers.Contract(
+            TOKENOMICS_CONFIG.contracts.ash,
+            TOKENOMICS_ABIS.ashToken,
+            provider
+        );
+
+        const metrics = await contract.getMetrics();
+
+        // Parse metrics
+        const totalMinted = formatTokenNumber(metrics.totalMinted);
+        const protocolMinted = formatTokenNumber(metrics.protocolMinted);
+        const protocolRemaining = formatTokenNumber(metrics.protocolRemaining);
+        const protocolUsedPercent = parseFloat(metrics.protocolUsedPercent) / 100;
+        const totalEmberBurned = formatTokenNumber(metrics.totalEmberBurned);
+
+        // Calculate $EMBER required to exhaust protocol pool
+        // Assuming 1000:1 ratio (1000 EMBER = 1 ASH)
+        const remainingRaw = parseFloat(metrics.protocolRemaining) / 1e18;
+        const emberRequired = formatTokenNumber((remainingRaw * 1000).toString() + '000000000000000000', 18);
+
+        // Update UI
+        updateElement('ash-total-minted', totalMinted + ' $ASH');
+        updateElement('ash-protocol-minted', protocolMinted + ' $ASH');
+        updateElement('ash-available', protocolRemaining + ' $ASH');
+        updateElement('ash-pool-bar', generateProgressBar(protocolUsedPercent));
+        updateElement('ash-ember-required', emberRequired + ' $EMBER');
+        updateElementWithColor('ash-ember-burned', totalEmberBurned + ' $EMBER 🔥', '#ff6b00');
+        updateElement('ash-from-ember', protocolMinted + ' $ASH');
+
+        // Update hero stats
+        updateElement('hero-ash-minted', totalMinted);
+
+    } catch (error) {
+        console.error('Error fetching ASH metrics:', error);
+        updateElement('ash-total-minted', 'Error loading');
+    }
+}
+
+// Fetch NFT collection metrics
+async function fetchNFTMetrics(provider) {
+    try {
+        // Portal NFT
+        const portalContract = new ethers.Contract(
+            TOKENOMICS_CONFIG.contracts.portal,
+            TOKENOMICS_ABIS.nftCollection,
+            provider
+        );
+        const portalSupply = await portalContract.totalSupply();
+        const portalMinted = parseInt(portalSupply);
+        const portalRemaining = 35000 - portalMinted;
+        updateElement('portal-minted', formatWithCommas(portalMinted) + ` (${((portalMinted/35000)*100).toFixed(1)}%)`);
+        updateElement('portal-remaining', formatWithCommas(portalRemaining));
+
+        // Items NFT
+        const itemsContract = new ethers.Contract(
+            TOKENOMICS_CONFIG.contracts.items,
+            TOKENOMICS_ABIS.nftCollection,
+            provider
+        );
+        try {
+            const itemsInfo = await itemsContract.supplyInfo();
+            updateElement('items-minted', formatWithCommas(parseInt(itemsInfo.minted)));
+            updateElement('items-remaining', formatWithCommas(parseInt(itemsInfo.remaining)));
+        } catch {
+            const itemsSupply = await itemsContract.totalSupply();
+            const itemsMinted = parseInt(itemsSupply);
+            updateElement('items-minted', formatWithCommas(itemsMinted));
+            updateElement('items-remaining', formatWithCommas(50000 - itemsMinted));
+        }
+
+        // Runes NFT
+        const runesContract = new ethers.Contract(
+            TOKENOMICS_CONFIG.contracts.runes,
+            TOKENOMICS_ABIS.nftCollection,
+            provider
+        );
+        try {
+            const runesInfo = await runesContract.supplyInfo();
+            updateElement('runes-minted', formatWithCommas(parseInt(runesInfo.minted)));
+            updateElement('runes-remaining', formatWithCommas(parseInt(runesInfo.remaining)));
+        } catch {
+            const runesSupply = await runesContract.totalSupply();
+            const runesMinted = parseInt(runesSupply);
+            updateElement('runes-minted', formatWithCommas(runesMinted));
+            updateElement('runes-remaining', formatWithCommas(25000 - runesMinted));
+        }
+
+    } catch (error) {
+        console.error('Error fetching NFT metrics:', error);
+        updateElement('portal-minted', 'Error loading');
+    }
+}
+
+// Show fallback when ethers not available
+function showTokenomicsFallback() {
+    const elements = [
+        'ember-circulating', 'ember-vesting', 'ember-burned', 'ember-distributed',
+        'ember-remaining', 'ember-pool-bar', 'ember-burned-for-ash', 'ash-from-ember',
+        'ash-total-minted', 'ash-protocol-minted', 'ash-available', 'ash-pool-bar',
+        'ash-ember-burned', 'ash-ember-required', 'portal-minted', 'portal-remaining',
+        'items-minted', 'items-remaining', 'runes-minted', 'runes-remaining'
+    ];
+    elements.forEach(id => updateElement(id, 'Connect wallet to view'));
+    updateElement('ember-price-usd', 'Not yet trading');
+    updateElement('ember-price-eth', '--');
+    updateElement('hero-ember-price', '--');
+    updateElement('hero-total-burned', '--');
+    updateElement('hero-rewards-left', '--');
+    updateElement('hero-ash-minted', '--');
+}
+
+// Show error state
+function showTokenomicsError() {
+    updateElement('tokenomics-last-update', '⚠ Error fetching data. Try again.');
+}
+
+// Update last refresh timestamp
+function updateLastRefreshTime() {
+    if (!lastTokenomicsUpdate) return;
+    const updateText = () => {
+        const seconds = Math.floor((Date.now() - lastTokenomicsUpdate.getTime()) / 1000);
+        if (seconds < 60) {
+            updateElement('tokenomics-last-update', `Last updated: ${seconds} seconds ago`);
+        } else {
+            const minutes = Math.floor(seconds / 60);
+            updateElement('tokenomics-last-update', `Last updated: ${minutes} minute${minutes > 1 ? 's' : ''} ago`);
+        }
+    };
+    updateText();
+    // Update every 5 seconds
+    setInterval(updateText, 5000);
+}
+
+// Auto-refresh setup
+function startTokenomicsAutoRefresh() {
+    if (tokenomicsRefreshTimer) clearInterval(tokenomicsRefreshTimer);
+    tokenomicsRefreshTimer = setInterval(refreshTokenomicsData, TOKENOMICS_CONFIG.refreshInterval);
+}
+
+function stopTokenomicsAutoRefresh() {
+    if (tokenomicsRefreshTimer) {
+        clearInterval(tokenomicsRefreshTimer);
+        tokenomicsRefreshTimer = null;
+    }
+}
+
+// Initialize when tokenomics section becomes visible
+document.addEventListener('DOMContentLoaded', () => {
+    // Watch for section visibility
+    const observer = new MutationObserver((mutations) => {
+        mutations.forEach((mutation) => {
+            if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+                const tokenomicsSection = document.querySelector('[data-screen="tokenomics"]');
+                if (tokenomicsSection && tokenomicsSection.classList.contains('active')) {
+                    // Section became visible, fetch data
+                    if (!lastTokenomicsUpdate) {
+                        refreshTokenomicsData();
+                    }
+                    startTokenomicsAutoRefresh();
+                } else {
+                    stopTokenomicsAutoRefresh();
+                }
+            }
+        });
+    });
+
+    const sections = document.querySelectorAll('.screen');
+    sections.forEach(section => {
+        observer.observe(section, { attributes: true });
+    });
+});
+</script>
 
 </body>
 </html>
