@@ -2339,6 +2339,19 @@ def mark_claim_as_claimed(claim_id: str, token_id: int = None, tx_hash: str = No
 @app.route("/")
 def serve_index():
     return send_from_directory(app.static_folder, "index.html")
+
+@app.route("/robots.txt")
+def serve_robots():
+    return send_from_directory(app.static_folder, "robots.txt")
+
+@app.route("/sitemap.xml")
+def serve_sitemap():
+    return send_from_directory(app.static_folder, "sitemap.xml")
+
+@app.route("/google66a4619b1c3d4430.html")
+def google_verification():
+    return send_from_directory(app.static_folder, "google66a4619b1c3d4430.html")
+
 @app.route("/mint")
 def serve_mint():
     # mint.html está en la carpeta raíz del proyecto (C:\EmberholmServer)
