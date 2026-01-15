@@ -97,7 +97,6 @@
 .feed-highlight {
     color: var(--gold);
     font-weight: 600;
-    text-shadow: 0 0 2px rgba(255, 204, 0, 0.1);
 }
 
 /* Estado de carga */
@@ -269,7 +268,7 @@
     color: #ff9500;
     margin-bottom: 30px;
     letter-spacing: 10px;
-    text-shadow: 0 0 5px rgba(255, 149, 0, 0.4);
+    text-shadow: 0 0 1px rgba(255, 149, 0, 0.15);
 }
 
 .portal-warning-text {
@@ -279,7 +278,6 @@
     line-height: 1.8;
     margin-bottom: 25px;
     min-height: 80px;
-    text-shadow: 0 0 4px rgba(255, 176, 0, 0.3);
     opacity: 0;
     transform: translateY(10px);
     transition: opacity 1.5s ease, transform 1.5s ease;
@@ -297,7 +295,6 @@
     font-weight: bold;
     margin-bottom: 35px;
     min-height: 30px;
-    text-shadow: 0 0 4px rgba(255, 149, 0, 0.4);
     opacity: 0;
     transform: translateY(10px);
     transition: opacity 1.2s ease, transform 1.2s ease;
@@ -318,7 +315,6 @@
     cursor: pointer;
     letter-spacing: 3px;
     transition: all 0.3s ease;
-    text-shadow: 0 0 4px rgba(255, 149, 0, 0.4);
     animation: btnPulse 2s ease-in-out infinite;
 }
 
@@ -1202,7 +1198,7 @@ document.addEventListener('DOMContentLoaded', initPortalWarning);
                 <div class="profile-col-left">
                     <div>
                         <label>WALLET (BASE): </label>
-                        <span id="wallet-display" style="color:#00ff00;font-size:14px;text-shadow: 0 0 4px rgba(0, 255, 0, 0.3);">Not connected</span>
+                        <span id="wallet-display" style="color:#00ff00;font-size:14px;">Not connected</span>
                         <button class="terminal-btn small-btn" id="connect-wallet-btn">[CONNECT WALLET]</button>
                         <button class="terminal-btn small-btn" id="disconnect-wallet-btn" style="display:none;">[DISCONNECT]</button>
                     </div>
@@ -1266,7 +1262,7 @@ document.addEventListener('DOMContentLoaded', initPortalWarning);
                 <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
                     <div>
                         <label style="color:var(--dim-green);">WALLET: </label>
-                        <span id="vault-wallet-display" style="color:#00ff00; font-size:14px; text-shadow:0 0 4px rgba(0,255,0,0.3);">Not connected</span>
+                        <span id="vault-wallet-display" style="color:#00ff00; font-size:14px;">Not connected</span>
                     </div>
                     <div>
                         <button class="terminal-btn small-btn" id="vault-connect-btn" onclick="connectWalletForVault()">[CONNECT WALLET]</button>
@@ -2904,7 +2900,7 @@ document.addEventListener('DOMContentLoaded', initPortalWarning);
                     </div>
                     <div class="terminal-box" style="padding:10px; text-align:center;">
                         <div style="color:#888; font-size:9px; margin-bottom:4px;">LANDS</div>
-                        <div style="color:#ff6b00; font-size:12px; font-weight:bold; animation: pulse 2s infinite;">OPENING...</div>
+                        <div style="color:#ff6b00; font-size:12px; font-weight:bold; animation: pulse 2s infinite;">OPENING PORTAL...</div>
                         <div style="font-size:9px; color:#888;">of 10,000</div>
                     </div>
                 </div>
@@ -2972,7 +2968,7 @@ document.addEventListener('DOMContentLoaded', initPortalWarning);
                         <div>├─ Initial: <span style="color:#ffcc00;">500,000,000 $EMBER</span></div>
                         <div>├─ Distributed: <span id="ember-distributed" style="color:#ffcc00;">Loading...</span></div>
                         <div>├─ Remaining: <span id="ember-remaining" style="color:#ffcc00;">Loading...</span></div>
-                        <div>└─ Progress: <span id="ember-pool-bar" style="color:#44ff44;">Loading...</span></div>
+                        <div>└─ Progress: <span id="ember-pool-bar" class="progress-bar-ascii" style="color:#44ff44;">Loading...</span></div>
                     </div>
                 </div>
 
@@ -3039,7 +3035,7 @@ document.addEventListener('DOMContentLoaded', initPortalWarning);
                         <div>├─ Available: <span style="color:#ffcc00;">139,600 $ASH (96.94%)</span></div>
                         <div>├─ Minted: <span id="ash-pool-minted" style="color:#ffcc00;">Loading...</span></div>
                         <div>├─ Remaining: <span id="ash-available" style="color:#ffcc00;">Loading...</span></div>
-                        <div>└─ Progress: <span id="ash-pool-bar" style="color:#a855f7;">Loading...</span></div>
+                        <div>└─ Progress: <span id="ash-pool-bar" class="progress-bar-ascii" style="color:#a855f7;">Loading...</span></div>
                     </div>
                 </div>
 
@@ -3083,7 +3079,7 @@ document.addEventListener('DOMContentLoaded', initPortalWarning);
                         <div>├─ Total Supply: <span style="color:#ffcc00;">35,000</span></div>
                         <div>├─ Minted: <span id="portal-minted" style="color:#ffcc00;">Loading...</span></div>
                         <div>├─ Remaining: <span id="portal-remaining" style="color:#ffcc00;">Loading...</span></div>
-                        <div>├─ Progress: <span id="portal-progress" style="color:#00ccff;">Loading...</span></div>
+                        <div>├─ Progress: <span id="portal-progress" class="progress-bar-ascii" style="color:#00ccff;">Loading...</span></div>
                         <div>└─ Mint Price: <span style="color:#ffcc00;">0.0011 ETH</span></div>
                     </div>
                     <a href="https://basescan.org/address/0x7AB2cf80FbfB8c89868b3dFa053729ecC86E39b3" target="_blank" style="color:#00ccff; text-decoration:none; font-size:10px; margin-top:8px; display:inline-block;">[VIEW ON BASESCAN →]</a>
@@ -3109,7 +3105,7 @@ document.addEventListener('DOMContentLoaded', initPortalWarning);
                         <div>├─ Total Supply: <span style="color:#ffcc00;">50,000</span></div>
                         <div>├─ Minted: <span id="items-minted" style="color:#ffcc00;">Loading...</span></div>
                         <div>├─ Remaining: <span id="items-remaining" style="color:#ffcc00;">Loading...</span></div>
-                        <div>├─ Progress: <span id="items-progress" style="color:#44ff44;">Loading...</span></div>
+                        <div>├─ Progress: <span id="items-progress" class="progress-bar-ascii" style="color:#44ff44;">Loading...</span></div>
                         <div>└─ Obtained via: <span style="color:#44ff44;">Mission Rewards</span></div>
                     </div>
                     <a href="https://basescan.org/address/0xCE71702CE99Bc927216e64d57e4BD19254Ac28bA" target="_blank" style="color:#00ccff; text-decoration:none; font-size:10px; margin-top:8px; display:inline-block;">[VIEW ON BASESCAN →]</a>
@@ -3123,7 +3119,7 @@ document.addEventListener('DOMContentLoaded', initPortalWarning);
                         <div>├─ Total Supply: <span style="color:#ffcc00;">25,000</span></div>
                         <div>├─ Minted: <span id="runes-minted" style="color:#ffcc00;">Loading...</span></div>
                         <div>├─ Remaining: <span id="runes-remaining" style="color:#ffcc00;">Loading...</span></div>
-                        <div>├─ Progress: <span id="runes-progress" style="color:#a855f7;">Loading...</span></div>
+                        <div>├─ Progress: <span id="runes-progress" class="progress-bar-ascii" style="color:#a855f7;">Loading...</span></div>
                         <div>└─ Obtained via: <span style="color:#44ff44;">Mission Rewards</span></div>
                     </div>
                     <a href="https://basescan.org/address/0xDa2D1085053c3700645a13498293D17c1cc3f595" target="_blank" style="color:#00ccff; text-decoration:none; font-size:10px; margin-top:8px; display:inline-block;">[VIEW ON BASESCAN →]</a>
@@ -8798,6 +8794,13 @@ async function loadAchievements(heroes) {
         width: 100%;
     }
 }
+
+/* Progress bar - smaller height */
+.progress-bar-ascii {
+    font-size: 9px;
+    line-height: 1;
+    letter-spacing: -1px;
+}
 </style>
 
 <!-- INVENTORY & VAULT SYSTEM -->
@@ -9311,17 +9314,25 @@ function showTokenomicsFallback() {
 function updateLastRefreshTime() {
     if (!lastTokenomicsUpdate) return;
     if (refreshTimeInterval) clearInterval(refreshTimeInterval);
-    const update = () => {
-        const s = Math.floor((Date.now() - lastTokenomicsUpdate.getTime()) / 1000);
-        updateEl('tokenomics-last-update', s < 60 ? `Last updated: ${s}s ago` : `Last updated: ${Math.floor(s/60)}m ago`);
+
+    // Format: "Jan 15, 2026 - 14:30:45"
+    const formatDateTime = (date) => {
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        const m = months[date.getMonth()];
+        const d = date.getDate();
+        const y = date.getFullYear();
+        const h = String(date.getHours()).padStart(2, '0');
+        const min = String(date.getMinutes()).padStart(2, '0');
+        const s = String(date.getSeconds()).padStart(2, '0');
+        return `${m} ${d}, ${y} - ${h}:${min}:${s}`;
     };
-    update();
-    refreshTimeInterval = setInterval(update, 5000);
+
+    updateEl('tokenomics-last-update', `Last updated: ${formatDateTime(lastTokenomicsUpdate)}`);
 }
 
 function startTokenomicsAutoRefresh() {
     if (tokenomicsRefreshTimer) clearInterval(tokenomicsRefreshTimer);
-    tokenomicsRefreshTimer = setInterval(refreshTokenomicsData, 30000);
+    tokenomicsRefreshTimer = setInterval(refreshTokenomicsData, 300000); // 5 minutes
 }
 
 function stopTokenomicsAutoRefresh() {
