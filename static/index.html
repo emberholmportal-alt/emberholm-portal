@@ -8546,18 +8546,67 @@ const NFT_ABI = [
     'function totalSupply() view returns (uint256)'
 ];
 
-// RPC endpoints with fallbacks
+// RPC endpoints with fallbacks (ordered by speed)
 const RPC_URLS = [
-    'https://mainnet.base.org',
     'https://base.llamarpc.com',
+    'https://mainnet.base.org',
     'https://base.publicnode.com',
     'https://base-mainnet.public.blastapi.io',
     'https://1rpc.io/base'
 ];
 
+// Cache configuration
+const TOKENOMICS_CACHE_KEY = 'emberholm_tokenomics_cache';
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+const RPC_TIMEOUT = 5000; // 5 seconds
+
 let tokenomicsRefreshTimer = null;
 let lastTokenomicsUpdate = null;
 let refreshTimeInterval = null;
+
+// ============================================
+// CACHE FUNCTIONS
+// ============================================
+
+function getCachedTokenomics() {
+    try {
+        const cached = localStorage.getItem(TOKENOMICS_CACHE_KEY);
+        if (!cached) return null;
+        const { data, timestamp } = JSON.parse(cached);
+        if (Date.now() - timestamp < CACHE_DURATION) {
+            console.log('📦 Using cached tokenomics data (age: ' + Math.floor((Date.now() - timestamp) / 1000) + 's)');
+            return data;
+        }
+        console.log('📦 Cache expired, will fetch fresh data');
+        return null;
+    } catch (e) {
+        console.warn('Cache read error:', e);
+        return null;
+    }
+}
+
+function setCachedTokenomics(data) {
+    try {
+        localStorage.setItem(TOKENOMICS_CACHE_KEY, JSON.stringify({
+            data,
+            timestamp: Date.now()
+        }));
+        console.log('💾 Tokenomics data cached');
+    } catch (e) {
+        console.warn('Cache write error:', e);
+    }
+}
+
+// ============================================
+// TIMEOUT HELPER
+// ============================================
+
+function withTimeout(promise, ms, errorMsg = 'Timeout') {
+    return Promise.race([
+        promise,
+        new Promise((_, reject) => setTimeout(() => reject(new Error(errorMsg)), ms))
+    ]);
+}
 
 // Tab switching
 function switchTokenomicsTab(tabName) {
@@ -8616,18 +8665,18 @@ function updateElColor(id, value, color) {
     if (el) { el.textContent = value; el.style.color = color; }
 }
 
-// Get provider with fallback RPCs (ethers v5 syntax)
+// Get provider with fallback RPCs (ethers v5 syntax) + timeout
 async function getProvider() {
-    console.log('Attempting to connect to RPC...');
+    console.log('🔌 Attempting to connect to RPC...');
     for (const url of RPC_URLS) {
         try {
-            console.log('Trying RPC:', url);
+            console.log('  Trying:', url);
             const provider = new ethers.providers.JsonRpcProvider(url);
-            const blockNumber = await provider.getBlockNumber();
-            console.log('✓ Connected to RPC:', url, '- Block:', blockNumber);
+            const blockNumber = await withTimeout(provider.getBlockNumber(), RPC_TIMEOUT, 'RPC timeout');
+            console.log('  ✓ Connected:', url, '- Block:', blockNumber);
             return provider;
         } catch (e) {
-            console.warn('✗ RPC failed:', url, '-', e.message);
+            console.warn('  ✗ Failed:', url, '-', e.message);
         }
     }
     throw new Error('All RPCs failed');
@@ -8739,12 +8788,119 @@ async function getNFTData(provider, address, maxSupply) {
     return { minted: '--', remaining: '--' };
 }
 
-// Main refresh function
-async function refreshTokenomicsData() {
+// Apply data to UI
+function applyTokenomicsData(data, source = 'live') {
+    const { ember, ash, portal, items, runes } = data;
+    const suffix = source === 'cache' ? ' (cached)' : '';
+
+    // Update EMBER
+    if (ember) {
+        updateEl('ember-circulating', ember.circulating + ' $EMBER');
+        updateEl('ember-vesting', ember.vesting + ' $EMBER');
+        updateElColor('ember-burned', ember.burned + ' $EMBER 🔥', '#ff6b00');
+        updateEl('ember-distributed', ember.distributed + ' $EMBER');
+        updateEl('ember-remaining', ember.remaining + ' $EMBER');
+        updateEl('ember-pool-bar', ember.poolBar);
+        updateElColor('ember-burned-for-ash', ember.converted + ' $EMBER 🔥', '#ff6b00');
+        updateEl('ov-ember-price', 'Not trading');
+        updateEl('ov-ember-burned', ember.burned);
+        updateEl('ov-rewards-left', ember.remaining);
+    }
+
+    // Update ASH
+    if (ash) {
+        updateEl('ash-total-minted', ash.minted + ' $ASH');
+        updateEl('ash-protocol-minted', ash.protocol + ' $ASH');
+        updateEl('ash-pool-minted', ash.protocol + ' $ASH');
+        updateEl('ash-available', ash.remaining + ' $ASH');
+        updateEl('ash-pool-bar', ash.poolBar);
+        updateElColor('ash-ember-burned', ash.emberBurned + ' $EMBER 🔥', '#ff6b00');
+        updateEl('ash-from-burns', ash.protocol + ' $ASH');
+        updateEl('ov-ash-minted', ash.minted);
+    }
+
+    // Update NFTs
+    if (portal) {
+        updateEl('portal-minted', portal.minted);
+        updateEl('portal-remaining', portal.remaining);
+        updateEl('portal-progress', portal.progress);
+        updateEl('ov-portal-minted', portal.minted);
+    }
+    if (items) {
+        updateEl('items-minted', items.minted);
+        updateEl('items-remaining', items.remaining);
+        updateEl('items-progress', items.progress);
+        updateEl('ov-items-minted', items.minted);
+    }
+    if (runes) {
+        updateEl('runes-minted', runes.minted);
+        updateEl('runes-remaining', runes.remaining);
+        updateEl('runes-progress', runes.progress);
+        updateEl('ov-runes-minted', runes.minted);
+    }
+}
+
+// Fetch fresh data from RPC
+async function fetchTokenomicsFromRPC() {
+    console.log('🌐 Fetching tokenomics from RPC...');
+    const startTime = Date.now();
+
+    const provider = await getProvider();
+
+    // All calls in parallel with timeout
+    const [ember, ash, portal, items, runes] = await Promise.all([
+        withTimeout(getEmberData(provider), RPC_TIMEOUT, 'EMBER timeout').catch(() => null),
+        withTimeout(getAshData(provider), RPC_TIMEOUT, 'ASH timeout').catch(() => null),
+        withTimeout(getNFTData(provider, CONTRACTS.PORTAL, 35000), RPC_TIMEOUT, 'PORTAL timeout').catch(() => null),
+        withTimeout(getNFTData(provider, CONTRACTS.ITEMS, 50000), RPC_TIMEOUT, 'ITEMS timeout').catch(() => null),
+        withTimeout(getNFTData(provider, CONTRACTS.RUNES, 25000), RPC_TIMEOUT, 'RUNES timeout').catch(() => null)
+    ]);
+
+    const elapsed = Date.now() - startTime;
+    console.log(`⚡ RPC fetch completed in ${elapsed}ms`);
+
+    // Format data for caching (store formatted strings)
+    const formattedData = {
+        ember: ember ? {
+            circulating: formatTokenAmount(ember.circulating),
+            burned: formatTokenAmount(ember.burned),
+            vesting: formatTokenAmount(ember.vesting),
+            distributed: formatTokenAmount(ember.rewardsDistributed),
+            remaining: formatTokenAmount(ember.rewardsRemaining),
+            converted: formatTokenAmount(ember.convertedToAsh),
+            poolBar: createProgressBar(Number(ember.rewardsDistributed), 500000000 * 1e18)
+        } : null,
+        ash: ash ? {
+            minted: formatTokenAmount(ash.totalMinted),
+            protocol: formatTokenAmount(ash.protocolMinted),
+            remaining: formatTokenAmount(ash.protocolRemaining),
+            emberBurned: formatTokenAmount(ash.emberBurned),
+            poolBar: createProgressBar(Number(ash.protocolMinted), 139600 * 1e18)
+        } : null,
+        portal: portal ? {
+            minted: formatNumber(portal.minted),
+            remaining: formatNumber(portal.remaining),
+            progress: createProgressBar(portal.minted, 35000)
+        } : null,
+        items: items ? {
+            minted: formatNumber(items.minted),
+            remaining: formatNumber(items.remaining),
+            progress: createProgressBar(items.minted, 50000)
+        } : null,
+        runes: runes ? {
+            minted: formatNumber(runes.minted),
+            remaining: formatNumber(runes.remaining),
+            progress: createProgressBar(runes.minted, 25000)
+        } : null
+    };
+
+    return formattedData;
+}
+
+// Main refresh function with progressive loading
+async function refreshTokenomicsData(forceRefresh = false) {
     const btn = document.getElementById('tokenomics-refresh-btn');
     if (btn) { btn.textContent = '[↻ LOADING...]'; btn.disabled = true; }
-
-    updateEl('tokenomics-last-update', 'Fetching data...');
 
     try {
         if (typeof ethers === 'undefined') {
@@ -8753,86 +8909,45 @@ async function refreshTokenomicsData() {
             return;
         }
 
-        console.log('Getting provider...');
-        const provider = await getProvider();
-
-        console.log('Fetching all data...');
-        const [ember, ash, portal, items, runes] = await Promise.all([
-            getEmberData(provider),
-            getAshData(provider),
-            getNFTData(provider, CONTRACTS.PORTAL, 35000),
-            getNFTData(provider, CONTRACTS.ITEMS, 50000),
-            getNFTData(provider, CONTRACTS.RUNES, 25000)
-        ]);
-
-        // Update EMBER
-        if (ember) {
-            const circ = formatTokenAmount(ember.circulating);
-            const burned = formatTokenAmount(ember.burned);
-            const vesting = formatTokenAmount(ember.vesting);
-            const distributed = formatTokenAmount(ember.rewardsDistributed);
-            const remaining = formatTokenAmount(ember.rewardsRemaining);
-            const converted = formatTokenAmount(ember.convertedToAsh);
-            const poolUsed = ember.rewardsDistributed && ember.rewardsRemaining ?
-                (Number(ember.rewardsDistributed) / (Number(ember.rewardsDistributed) + Number(ember.rewardsRemaining))) * 100 : 0;
-
-            updateEl('ember-circulating', circ + ' $EMBER');
-            updateEl('ember-vesting', vesting + ' $EMBER');
-            updateElColor('ember-burned', burned + ' $EMBER 🔥', '#ff6b00');
-            updateEl('ember-distributed', distributed + ' $EMBER');
-            updateEl('ember-remaining', remaining + ' $EMBER');
-            updateEl('ember-pool-bar', createProgressBar(Number(ember.rewardsDistributed), 500000000 * 1e18));
-            updateElColor('ember-burned-for-ash', converted + ' $EMBER 🔥', '#ff6b00');
-            updateEl('ov-ember-price', 'Not trading');
-            updateEl('ov-ember-burned', burned);
-            updateEl('ov-rewards-left', remaining);
+        // PROGRESSIVE LOADING: Show cached data immediately
+        if (!forceRefresh) {
+            const cached = getCachedTokenomics();
+            if (cached) {
+                console.log('📦 Showing cached data while fetching fresh...');
+                applyTokenomicsData(cached, 'cache');
+                updateEl('tokenomics-last-update', 'Updating...');
+            } else {
+                updateEl('tokenomics-last-update', 'Loading...');
+            }
+        } else {
+            updateEl('tokenomics-last-update', 'Refreshing...');
         }
 
-        // Update ASH
-        if (ash) {
-            const minted = formatTokenAmount(ash.totalMinted);
-            const protocol = formatTokenAmount(ash.protocolMinted);
-            const remaining = formatTokenAmount(ash.protocolRemaining);
-            const poolUsed = Number(ash.protocolUsedPercent) / 100;
-            const emberBurned = formatTokenAmount(ash.emberBurned);
+        // Fetch fresh data
+        const freshData = await fetchTokenomicsFromRPC();
 
-            updateEl('ash-total-minted', minted + ' $ASH');
-            updateEl('ash-protocol-minted', protocol + ' $ASH');
-            updateEl('ash-pool-minted', protocol + ' $ASH');
-            updateEl('ash-available', remaining + ' $ASH');
-            updateEl('ash-pool-bar', createProgressBar(Number(ash.protocolMinted), 139600 * 1e18));
-            updateElColor('ash-ember-burned', emberBurned + ' $EMBER 🔥', '#ff6b00');
-            updateEl('ash-from-burns', protocol + ' $ASH');
-            updateEl('ov-ash-minted', minted);
-        }
+        // Apply fresh data to UI
+        applyTokenomicsData(freshData, 'live');
 
-        // Update NFTs
-        if (portal) {
-            updateEl('portal-minted', formatNumber(portal.minted));
-            updateEl('portal-remaining', formatNumber(portal.remaining));
-            updateEl('portal-progress', createProgressBar(portal.minted, 35000));
-            updateEl('ov-portal-minted', formatNumber(portal.minted));
-        }
-        if (items) {
-            updateEl('items-minted', formatNumber(items.minted));
-            updateEl('items-remaining', formatNumber(items.remaining));
-            updateEl('items-progress', createProgressBar(items.minted, 50000));
-            updateEl('ov-items-minted', formatNumber(items.minted));
-        }
-        if (runes) {
-            updateEl('runes-minted', formatNumber(runes.minted));
-            updateEl('runes-remaining', formatNumber(runes.remaining));
-            updateEl('runes-progress', createProgressBar(runes.minted, 25000));
-            updateEl('ov-runes-minted', formatNumber(runes.minted));
-        }
+        // Cache the fresh data
+        setCachedTokenomics(freshData);
 
         lastTokenomicsUpdate = new Date();
         updateLastRefreshTime();
-        console.log('Tokenomics data updated successfully');
+        console.log('✅ Tokenomics data updated successfully');
 
     } catch (error) {
-        console.error('Error fetching tokenomics:', error);
-        updateEl('tokenomics-last-update', '⚠ Error: ' + error.message);
+        console.error('❌ Error fetching tokenomics:', error);
+
+        // Try to use cache as fallback
+        const cached = getCachedTokenomics();
+        if (cached) {
+            console.log('📦 Using cached data as fallback after error');
+            applyTokenomicsData(cached, 'cache');
+            updateEl('tokenomics-last-update', '⚠ Using cached data (fetch failed)');
+        } else {
+            updateEl('tokenomics-last-update', '⚠ Error: ' + error.message);
+        }
     } finally {
         if (btn) { btn.textContent = '[↻ REFRESH]'; btn.disabled = false; }
     }
