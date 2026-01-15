@@ -2972,7 +2972,7 @@ document.addEventListener('DOMContentLoaded', initPortalWarning);
                         <div>├─ Initial: <span style="color:#ffcc00;">500,000,000 $EMBER</span></div>
                         <div>├─ Distributed: <span id="ember-distributed" style="color:#ffcc00;">Loading...</span></div>
                         <div>├─ Remaining: <span id="ember-remaining" style="color:#ffcc00;">Loading...</span></div>
-                        <div>└─ Progress: <span id="ember-pool-bar" style="color:#44ff44;">Loading...</span></div>
+                        <div>└─ Progress: <span id="ember-pool-bar" class="progress-bar-ascii" style="color:#44ff44;">Loading...</span></div>
                     </div>
                 </div>
 
@@ -3039,7 +3039,7 @@ document.addEventListener('DOMContentLoaded', initPortalWarning);
                         <div>├─ Available: <span style="color:#ffcc00;">139,600 $ASH (96.94%)</span></div>
                         <div>├─ Minted: <span id="ash-pool-minted" style="color:#ffcc00;">Loading...</span></div>
                         <div>├─ Remaining: <span id="ash-available" style="color:#ffcc00;">Loading...</span></div>
-                        <div>└─ Progress: <span id="ash-pool-bar" style="color:#a855f7;">Loading...</span></div>
+                        <div>└─ Progress: <span id="ash-pool-bar" class="progress-bar-ascii" style="color:#a855f7;">Loading...</span></div>
                     </div>
                 </div>
 
@@ -3083,7 +3083,7 @@ document.addEventListener('DOMContentLoaded', initPortalWarning);
                         <div>├─ Total Supply: <span style="color:#ffcc00;">35,000</span></div>
                         <div>├─ Minted: <span id="portal-minted" style="color:#ffcc00;">Loading...</span></div>
                         <div>├─ Remaining: <span id="portal-remaining" style="color:#ffcc00;">Loading...</span></div>
-                        <div>├─ Progress: <span id="portal-progress" style="color:#00ccff;">Loading...</span></div>
+                        <div>├─ Progress: <span id="portal-progress" class="progress-bar-ascii" style="color:#00ccff;">Loading...</span></div>
                         <div>└─ Mint Price: <span style="color:#ffcc00;">0.0011 ETH</span></div>
                     </div>
                     <a href="https://basescan.org/address/0x7AB2cf80FbfB8c89868b3dFa053729ecC86E39b3" target="_blank" style="color:#00ccff; text-decoration:none; font-size:10px; margin-top:8px; display:inline-block;">[VIEW ON BASESCAN →]</a>
@@ -3109,7 +3109,7 @@ document.addEventListener('DOMContentLoaded', initPortalWarning);
                         <div>├─ Total Supply: <span style="color:#ffcc00;">50,000</span></div>
                         <div>├─ Minted: <span id="items-minted" style="color:#ffcc00;">Loading...</span></div>
                         <div>├─ Remaining: <span id="items-remaining" style="color:#ffcc00;">Loading...</span></div>
-                        <div>├─ Progress: <span id="items-progress" style="color:#44ff44;">Loading...</span></div>
+                        <div>├─ Progress: <span id="items-progress" class="progress-bar-ascii" style="color:#44ff44;">Loading...</span></div>
                         <div>└─ Obtained via: <span style="color:#44ff44;">Mission Rewards</span></div>
                     </div>
                     <a href="https://basescan.org/address/0xCE71702CE99Bc927216e64d57e4BD19254Ac28bA" target="_blank" style="color:#00ccff; text-decoration:none; font-size:10px; margin-top:8px; display:inline-block;">[VIEW ON BASESCAN →]</a>
@@ -3123,7 +3123,7 @@ document.addEventListener('DOMContentLoaded', initPortalWarning);
                         <div>├─ Total Supply: <span style="color:#ffcc00;">25,000</span></div>
                         <div>├─ Minted: <span id="runes-minted" style="color:#ffcc00;">Loading...</span></div>
                         <div>├─ Remaining: <span id="runes-remaining" style="color:#ffcc00;">Loading...</span></div>
-                        <div>├─ Progress: <span id="runes-progress" style="color:#a855f7;">Loading...</span></div>
+                        <div>├─ Progress: <span id="runes-progress" class="progress-bar-ascii" style="color:#a855f7;">Loading...</span></div>
                         <div>└─ Obtained via: <span style="color:#44ff44;">Mission Rewards</span></div>
                     </div>
                     <a href="https://basescan.org/address/0xDa2D1085053c3700645a13498293D17c1cc3f595" target="_blank" style="color:#00ccff; text-decoration:none; font-size:10px; margin-top:8px; display:inline-block;">[VIEW ON BASESCAN →]</a>
@@ -8797,6 +8797,13 @@ async function loadAchievements(heroes) {
     .cycle-stats .stat-box {
         width: 100%;
     }
+}
+
+/* Progress bar - smaller height */
+.progress-bar-ascii {
+    font-size: 9px;
+    line-height: 1;
+    letter-spacing: -1px;
 }
 </style>
 
