@@ -3143,7 +3143,7 @@ document.addEventListener('DOMContentLoaded', initPortalWarning);
 
                     <!-- Centro: Rewards Pool -->
                     <div class="cycle-node center-node">
-                        <div class="node-icon">🔥</div>
+                        <div class="node-icon">◆</div>
                         <div class="node-title">REWARDS POOL</div>
                         <div class="node-value">500M $EMBER</div>
                         <div class="node-percent">50% of Total Supply</div>
@@ -3159,7 +3159,7 @@ document.addEventListener('DOMContentLoaded', initPortalWarning);
                     <div class="channels-row">
 
                         <div class="cycle-node channel-node missions">
-                            <div class="node-icon">⚔️</div>
+                            <div class="node-icon">►</div>
                             <div class="node-title">MISSIONS</div>
                             <div class="node-desc">Complete quests with your Emissaries</div>
                             <ul class="node-details">
@@ -3171,7 +3171,7 @@ document.addEventListener('DOMContentLoaded', initPortalWarning);
                         </div>
 
                         <div class="cycle-node channel-node lands">
-                            <div class="node-icon">🏰</div>
+                            <div class="node-icon">▣</div>
                             <div class="node-title">LANDS</div>
                             <div class="node-desc">Stake territories for passive income</div>
                             <ul class="node-details">
@@ -3183,7 +3183,7 @@ document.addEventListener('DOMContentLoaded', initPortalWarning);
                         </div>
 
                         <div class="cycle-node channel-node events">
-                            <div class="node-icon">🎁</div>
+                            <div class="node-icon">☆</div>
                             <div class="node-title">EVENTS</div>
                             <div class="node-desc">Special airdrops & competitions</div>
                             <ul class="node-details">
@@ -3203,7 +3203,7 @@ document.addEventListener('DOMContentLoaded', initPortalWarning);
 
                     <!-- Players -->
                     <div class="cycle-node player-node">
-                        <div class="node-icon">👤</div>
+                        <div class="node-icon">●</div>
                         <div class="node-title">PLAYERS</div>
                         <div class="node-desc">Emissary Holders earn and decide</div>
                     </div>
@@ -3217,7 +3217,7 @@ document.addEventListener('DOMContentLoaded', initPortalWarning);
                     <div class="options-row">
 
                         <div class="cycle-node option-node burn">
-                            <div class="node-icon">🔥</div>
+                            <div class="node-icon">╬</div>
                             <div class="node-title">BURN</div>
                             <div class="node-desc">Convert to $ASH</div>
                             <div class="node-ratio">100 $EMBER → 1 $ASH</div>
@@ -3225,14 +3225,14 @@ document.addEventListener('DOMContentLoaded', initPortalWarning);
                         </div>
 
                         <div class="cycle-node option-node trade">
-                            <div class="node-icon">💱</div>
+                            <div class="node-icon">◇</div>
                             <div class="node-title">TRADE</div>
                             <div class="node-desc">Exchange P2P or DEX</div>
                             <div class="node-benefit">Liquidity & price discovery</div>
                         </div>
 
                         <div class="cycle-node option-node hold">
-                            <div class="node-icon">💎</div>
+                            <div class="node-icon">■</div>
                             <div class="node-title">HOLD</div>
                             <div class="node-desc">Accumulate for future</div>
                             <div class="node-benefit">Unlock premium features</div>
@@ -3244,7 +3244,7 @@ document.addEventListener('DOMContentLoaded', initPortalWarning);
                     <div class="burn-result">
                         <div class="flow-arrow">▼</div>
                         <div class="cycle-node ash-node">
-                            <div class="node-icon">✨</div>
+                            <div class="node-icon">✦</div>
                             <div class="node-title">$ASH</div>
                             <div class="node-desc">Governance Token</div>
                             <div style="font-size:9px; color:#888; margin-top:5px;">Vote on proposals • Shape Emberholm's future</div>
@@ -8875,10 +8875,10 @@ function getCachedTokenomics() {
         if (!cached) return null;
         const { data, timestamp } = JSON.parse(cached);
         if (Date.now() - timestamp < CACHE_DURATION) {
-            console.log('📦 Using cached tokenomics data (age: ' + Math.floor((Date.now() - timestamp) / 1000) + 's)');
+            console.log('[cache] Using cached tokenomics data (age: ' + Math.floor((Date.now() - timestamp) / 1000) + 's)');
             return data;
         }
-        console.log('📦 Cache expired, will fetch fresh data');
+        console.log('[cache] Cache expired, will fetch fresh data');
         return null;
     } catch (e) {
         console.warn('Cache read error:', e);
@@ -8892,7 +8892,7 @@ function setCachedTokenomics(data) {
             data,
             timestamp: Date.now()
         }));
-        console.log('💾 Tokenomics data cached');
+        console.log('[cache] Tokenomics data saved');
     } catch (e) {
         console.warn('Cache write error:', e);
     }
@@ -8949,11 +8949,47 @@ function formatNumber(num) {
     return Number(num).toLocaleString('en-US');
 }
 
-function createProgressBar(value, total, width = 16) {
+function createProgressBar(value, total, width = 12) {
     if (!value || !total || value === '--') return '░'.repeat(width) + ' 0%';
     const percent = (Number(value) / Number(total)) * 100;
     const filled = Math.round((percent / 100) * width);
     return '█'.repeat(filled) + '░'.repeat(width - filled) + ` ${percent.toFixed(1)}%`;
+}
+
+// Validation helper - check if value is valid (not empty/null/placeholder)
+function isValidValue(value) {
+    if (value === null || value === undefined) return false;
+    if (value === '--' || value === 'Loading...' || value === '0') return false;
+    if (typeof value === 'string' && value.trim() === '') return false;
+    return true;
+}
+
+// Merge data keeping valid old values if new ones are invalid
+function mergeTokenomicsData(oldData, newData) {
+    if (!oldData) return newData;
+    if (!newData) return oldData;
+
+    const merged = {};
+
+    // Merge each section (ember, ash, portal, items, runes)
+    for (const section of ['ember', 'ash', 'portal', 'items', 'runes']) {
+        if (!newData[section] && oldData[section]) {
+            merged[section] = oldData[section];
+        } else if (newData[section] && !oldData[section]) {
+            merged[section] = newData[section];
+        } else if (newData[section] && oldData[section]) {
+            merged[section] = {};
+            const allKeys = new Set([...Object.keys(oldData[section]), ...Object.keys(newData[section])]);
+            for (const key of allKeys) {
+                const newVal = newData[section][key];
+                const oldVal = oldData[section][key];
+                // Keep new value only if valid, otherwise keep old
+                merged[section][key] = isValidValue(newVal) ? newVal : oldVal;
+            }
+        }
+    }
+
+    return merged;
 }
 
 function updateEl(id, value) {
@@ -8968,16 +9004,16 @@ function updateElColor(id, value, color) {
 
 // Get provider with fallback RPCs (ethers v5 syntax) + timeout
 async function getProvider() {
-    console.log('🔌 Attempting to connect to RPC...');
+    console.log('[rpc] Attempting to connect...');
     for (const url of RPC_URLS) {
         try {
             console.log('  Trying:', url);
             const provider = new ethers.providers.JsonRpcProvider(url);
             const blockNumber = await withTimeout(provider.getBlockNumber(), RPC_TIMEOUT, 'RPC timeout');
-            console.log('  ✓ Connected:', url, '- Block:', blockNumber);
+            console.log('  [+] Connected:', url, '- Block:', blockNumber);
             return provider;
         } catch (e) {
-            console.warn('  ✗ Failed:', url, '-', e.message);
+            console.warn('  [-] Failed:', url, '-', e.message);
         }
     }
     throw new Error('All RPCs failed');
@@ -9153,7 +9189,7 @@ function applyTokenomicsData(data, source = 'live') {
 
 // Fetch fresh data from RPC
 async function fetchTokenomicsFromRPC() {
-    console.log('🌐 Fetching tokenomics from RPC...');
+    console.log('[rpc] Fetching tokenomics data...');
     const startTime = Date.now();
 
     const provider = await getProvider();
@@ -9168,7 +9204,7 @@ async function fetchTokenomicsFromRPC() {
     ]);
 
     const elapsed = Date.now() - startTime;
-    console.log(`⚡ RPC fetch completed in ${elapsed}ms`);
+    console.log(`[rpc] Fetch completed in ${elapsed}ms`);
 
     // Format data for caching (store formatted strings)
     const formattedData = {
@@ -9208,10 +9244,10 @@ async function fetchTokenomicsFromRPC() {
     return formattedData;
 }
 
-// Main refresh function with progressive loading
+// Main refresh function with progressive loading and smart merge
 async function refreshTokenomicsData(forceRefresh = false) {
     const btn = document.getElementById('tokenomics-refresh-btn');
-    if (btn) { btn.textContent = '[↻ LOADING...]'; btn.disabled = true; }
+    if (btn) { btn.textContent = '[* LOADING...]'; btn.disabled = true; }
 
     try {
         if (typeof ethers === 'undefined') {
@@ -9220,47 +9256,48 @@ async function refreshTokenomicsData(forceRefresh = false) {
             return;
         }
 
+        // Get cached data first
+        const cached = getCachedTokenomics();
+
         // PROGRESSIVE LOADING: Show cached data immediately
-        if (!forceRefresh) {
-            const cached = getCachedTokenomics();
-            if (cached) {
-                console.log('📦 Showing cached data while fetching fresh...');
-                applyTokenomicsData(cached, 'cache');
-                updateEl('tokenomics-last-update', 'Updating...');
-            } else {
-                updateEl('tokenomics-last-update', 'Loading...');
-            }
+        if (!forceRefresh && cached) {
+            console.log('[cache] Showing cached data while fetching fresh...');
+            applyTokenomicsData(cached, 'cache');
+            updateEl('tokenomics-last-update', 'Updating...');
         } else {
-            updateEl('tokenomics-last-update', 'Refreshing...');
+            updateEl('tokenomics-last-update', 'Loading...');
         }
 
         // Fetch fresh data
         const freshData = await fetchTokenomicsFromRPC();
 
-        // Apply fresh data to UI
-        applyTokenomicsData(freshData, 'live');
+        // SMART MERGE: Only overwrite if new data is valid
+        const mergedData = mergeTokenomicsData(cached, freshData);
 
-        // Cache the fresh data
-        setCachedTokenomics(freshData);
+        // Apply merged data to UI
+        applyTokenomicsData(mergedData, 'live');
+
+        // Cache the merged data (preserves valid old values)
+        setCachedTokenomics(mergedData);
 
         lastTokenomicsUpdate = new Date();
         updateLastRefreshTime();
-        console.log('✅ Tokenomics data updated successfully');
+        console.log('[ok] Tokenomics data updated successfully');
 
     } catch (error) {
-        console.error('❌ Error fetching tokenomics:', error);
+        console.error('[error] Error fetching tokenomics:', error);
 
-        // Try to use cache as fallback
+        // Keep showing cached data on error (don't clear UI)
         const cached = getCachedTokenomics();
         if (cached) {
-            console.log('📦 Using cached data as fallback after error');
+            console.log('[cache] Keeping cached data after error');
             applyTokenomicsData(cached, 'cache');
-            updateEl('tokenomics-last-update', '⚠ Using cached data (fetch failed)');
+            updateEl('tokenomics-last-update', 'Using cached data (offline)');
         } else {
-            updateEl('tokenomics-last-update', '⚠ Error: ' + error.message);
+            updateEl('tokenomics-last-update', 'Error: ' + error.message);
         }
     } finally {
-        if (btn) { btn.textContent = '[↻ REFRESH]'; btn.disabled = false; }
+        if (btn) { btn.textContent = '[* REFRESH]'; btn.disabled = false; }
     }
 }
 
