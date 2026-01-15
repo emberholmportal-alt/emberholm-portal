@@ -8550,7 +8550,9 @@ const NFT_ABI = [
 const RPC_URLS = [
     'https://mainnet.base.org',
     'https://base.llamarpc.com',
-    'https://base.publicnode.com'
+    'https://base.publicnode.com',
+    'https://base-mainnet.public.blastapi.io',
+    'https://1rpc.io/base'
 ];
 
 let tokenomicsRefreshTimer = null;
@@ -8614,16 +8616,18 @@ function updateElColor(id, value, color) {
     if (el) { el.textContent = value; el.style.color = color; }
 }
 
-// Get provider with fallback RPCs
+// Get provider with fallback RPCs (ethers v5 syntax)
 async function getProvider() {
+    console.log('Attempting to connect to RPC...');
     for (const url of RPC_URLS) {
         try {
-            const provider = new ethers.JsonRpcProvider(url);
-            await provider.getBlockNumber(); // Test connection
-            console.log('Connected to RPC:', url);
+            console.log('Trying RPC:', url);
+            const provider = new ethers.providers.JsonRpcProvider(url);
+            const blockNumber = await provider.getBlockNumber();
+            console.log('✓ Connected to RPC:', url, '- Block:', blockNumber);
             return provider;
         } catch (e) {
-            console.warn('RPC failed:', url);
+            console.warn('✗ RPC failed:', url, '-', e.message);
         }
     }
     throw new Error('All RPCs failed');
@@ -8653,11 +8657,15 @@ async function getEmberData(provider) {
             contract.rewardsRemaining().catch(() => null)
         ]);
         console.log('Individual calls:', { supply, burned, remaining });
+        const vestingDefault = ethers.BigNumber.from('300000000').mul(ethers.BigNumber.from('10').pow(18));
+        const rewardsPoolDefault = ethers.BigNumber.from('500000000').mul(ethers.BigNumber.from('10').pow(18));
         return {
-            circulating: supply, burned: burned || 0n, vesting: 300000000n * 10n**18n,
-            rewardsRemaining: remaining || 500000000n * 10n**18n,
-            rewardsDistributed: remaining ? 500000000n * 10n**18n - remaining : 0n,
-            convertedToAsh: 0n
+            circulating: supply,
+            burned: burned || ethers.BigNumber.from(0),
+            vesting: vestingDefault,
+            rewardsRemaining: remaining || rewardsPoolDefault,
+            rewardsDistributed: remaining ? rewardsPoolDefault.sub(remaining) : ethers.BigNumber.from(0),
+            convertedToAsh: ethers.BigNumber.from(0)
         };
     } catch (e) {
         console.error('EmberToken fetch failed:', e);
@@ -8687,10 +8695,13 @@ async function getAshData(provider) {
             contract.protocolMinted().catch(() => null),
             contract.protocolPoolRemaining().catch(() => null)
         ]);
+        const protocolPoolDefault = ethers.BigNumber.from('139600').mul(ethers.BigNumber.from('10').pow(18));
         return {
-            totalMinted: supply || 0n, protocolMinted: protocol || 0n,
-            protocolRemaining: remaining || 139600n * 10n**18n,
-            protocolUsedPercent: 0n, emberBurned: 0n
+            totalMinted: supply || ethers.BigNumber.from(0),
+            protocolMinted: protocol || ethers.BigNumber.from(0),
+            protocolRemaining: remaining || protocolPoolDefault,
+            protocolUsedPercent: ethers.BigNumber.from(0),
+            emberBurned: ethers.BigNumber.from(0)
         };
     } catch (e) {
         console.error('AshToken fetch failed:', e);
