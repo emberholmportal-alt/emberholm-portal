@@ -8505,49 +8505,52 @@ async function loadAchievements(heroes) {
 <!-- TOKENOMICS LIVE DATA -->
 <script>
 // ============================================
-// TOKENOMICS LIVE METRICS - WITH FALLBACKS
+// TOKENOMICS - VERIFIED ABIs FROM BASESCAN
 // ============================================
 
 const CONTRACTS = {
     EMBER_TOKEN: '0xbA7723fBfb44C7712C0B78108ad873DcFd5Dd73b',
     ASH_TOKEN: '0xD4eef3eadb1Cf1B2905AA4Cd1022b8cCCC739DAb',
-    EMBERHOLM_PORTAL: '0x7AB2cf80FbfB8c89868b3dFa053729ecC86E39b3',
-    EMBER_ITEMS: '0xCE71702CE99Bc927216e64d57e4BD19254Ac28bA',
-    EMBER_RUNES: '0xDa2D1085053c3700645a13498293D17c1cc3f595',
-    EMBER_LANDS: '0x75837A89359654A3c17b92704cF2255Dd42b985b'
+    PORTAL: '0x7AB2cf80FbfB8c89868b3dFa053729ecC86E39b3',
+    ITEMS: '0xCE71702CE99Bc927216e64d57e4BD19254Ac28bA',
+    RUNES: '0xDa2D1085053c3700645a13498293D17c1cc3f595',
+    LANDS: '0x75837A89359654A3c17b92704cF2255Dd42b985b'
 };
 
-const RPC_URLS = [
-    'https://mainnet.base.org',
-    'https://base.llamarpc.com',
-    'https://base.publicnode.com'
-];
-
-// ABIs with multiple function options for fallbacks
-const EMBER_TOKEN_ABI = [
+// VERIFIED ABIs from Basescan Read Contract
+const EMBER_ABI = [
+    'function getMetrics() view returns (uint256 _maxSupply, uint256 _currentSupply, uint256 _circulatingSupply, uint256 _totalBurned, uint256 _totalLockedVesting, uint256 _rewardsRemaining, uint256 _rewardsDistributed, uint256 _convertedToAsh, bool _isDistributed, bool _claimsPaused)',
     'function totalSupply() view returns (uint256)',
-    'function getMetrics() view returns (uint256, uint256, uint256, uint256, uint256, uint256, uint256, uint256, bool, bool)',
     'function rewardsRemaining() view returns (uint256)',
     'function rewardsDistributed() view returns (uint256)',
     'function totalBurned() view returns (uint256)',
-    'function emberConvertedToAsh() view returns (uint256)',
-    'function circulatingSupply() view returns (uint256)',
-    'function totalLockedInVesting() view returns (uint256)'
+    'function rewardsPoolUsedPercent() view returns (uint256)'
 ];
 
-const ASH_TOKEN_ABI = [
+const ASH_ABI = [
+    'function getMetrics() view returns (uint256 _maxSupply, uint256 _totalMinted, uint256 _protocolMinted, uint256 _protocolRemaining, uint256 _protocolUsedPercent, uint256 _totalEmberBurned, uint256 _teamAllocation, bool _isTeamDistributed)',
     'function totalSupply() view returns (uint256)',
-    'function getMetrics() view returns (uint256, uint256, uint256, uint256, uint256, uint256, uint256, bool)',
     'function protocolMinted() view returns (uint256)',
     'function protocolPoolRemaining() view returns (uint256)',
     'function emberBurnedTotal() view returns (uint256)'
 ];
 
-const NFT_ABI = [
-    'function totalSupply() view returns (uint256)',
+const PORTAL_ABI = [
     'function totalMinted() view returns (uint256)',
-    'function MAX_SUPPLY() view returns (uint256)',
-    'function supplyInfo() view returns (uint256, uint256, uint256)'
+    'function totalSupply() view returns (uint256)'
+];
+
+const NFT_ABI = [
+    'function supplyInfo() view returns (uint256 total, uint256 minted, uint256 remaining)',
+    'function totalMinted() view returns (uint256)',
+    'function totalSupply() view returns (uint256)'
+];
+
+// RPC endpoints with fallbacks
+const RPC_URLS = [
+    'https://mainnet.base.org',
+    'https://base.llamarpc.com',
+    'https://base.publicnode.com'
 ];
 
 let tokenomicsRefreshTimer = null;
@@ -8628,7 +8631,7 @@ async function getProvider() {
 
 // Fetch EMBER data with fallbacks
 async function getEmberData(provider) {
-    const contract = new ethers.Contract(CONTRACTS.EMBER_TOKEN, EMBER_TOKEN_ABI, provider);
+    const contract = new ethers.Contract(CONTRACTS.EMBER_TOKEN, EMBER_ABI, provider);
 
     try {
         console.log('Trying EmberToken.getMetrics()...');
@@ -8664,7 +8667,7 @@ async function getEmberData(provider) {
 
 // Fetch ASH data with fallbacks
 async function getAshData(provider) {
-    const contract = new ethers.Contract(CONTRACTS.ASH_TOKEN, ASH_TOKEN_ABI, provider);
+    const contract = new ethers.Contract(CONTRACTS.ASH_TOKEN, ASH_ABI, provider);
 
     try {
         console.log('Trying AshToken.getMetrics()...');
@@ -8746,9 +8749,9 @@ async function refreshTokenomicsData() {
         const [ember, ash, portal, items, runes] = await Promise.all([
             getEmberData(provider),
             getAshData(provider),
-            getNFTData(provider, CONTRACTS.EMBERHOLM_PORTAL, 35000),
-            getNFTData(provider, CONTRACTS.EMBER_ITEMS, 50000),
-            getNFTData(provider, CONTRACTS.EMBER_RUNES, 25000)
+            getNFTData(provider, CONTRACTS.PORTAL, 35000),
+            getNFTData(provider, CONTRACTS.ITEMS, 50000),
+            getNFTData(provider, CONTRACTS.RUNES, 25000)
         ]);
 
         // Update EMBER
