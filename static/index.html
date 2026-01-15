@@ -97,7 +97,6 @@
 .feed-highlight {
     color: var(--gold);
     font-weight: 600;
-    text-shadow: 0 0 2px rgba(255, 204, 0, 0.1);
 }
 
 /* Estado de carga */
@@ -269,7 +268,7 @@
     color: #ff9500;
     margin-bottom: 30px;
     letter-spacing: 10px;
-    text-shadow: 0 0 2px rgba(255, 149, 0, 0.25);
+    text-shadow: 0 0 1px rgba(255, 149, 0, 0.15);
 }
 
 .portal-warning-text {
@@ -279,7 +278,6 @@
     line-height: 1.8;
     margin-bottom: 25px;
     min-height: 80px;
-    text-shadow: 0 0 2px rgba(255, 176, 0, 0.2);
     opacity: 0;
     transform: translateY(10px);
     transition: opacity 1.5s ease, transform 1.5s ease;
@@ -297,7 +295,6 @@
     font-weight: bold;
     margin-bottom: 35px;
     min-height: 30px;
-    text-shadow: 0 0 2px rgba(255, 149, 0, 0.25);
     opacity: 0;
     transform: translateY(10px);
     transition: opacity 1.2s ease, transform 1.2s ease;
@@ -318,7 +315,6 @@
     cursor: pointer;
     letter-spacing: 3px;
     transition: all 0.3s ease;
-    text-shadow: 0 0 2px rgba(255, 149, 0, 0.25);
     animation: btnPulse 2s ease-in-out infinite;
 }
 
@@ -1202,7 +1198,7 @@ document.addEventListener('DOMContentLoaded', initPortalWarning);
                 <div class="profile-col-left">
                     <div>
                         <label>WALLET (BASE): </label>
-                        <span id="wallet-display" style="color:#00ff00;font-size:14px;text-shadow: 0 0 2px rgba(0, 255, 0, 0.2);">Not connected</span>
+                        <span id="wallet-display" style="color:#00ff00;font-size:14px;">Not connected</span>
                         <button class="terminal-btn small-btn" id="connect-wallet-btn">[CONNECT WALLET]</button>
                         <button class="terminal-btn small-btn" id="disconnect-wallet-btn" style="display:none;">[DISCONNECT]</button>
                     </div>
@@ -1266,7 +1262,7 @@ document.addEventListener('DOMContentLoaded', initPortalWarning);
                 <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
                     <div>
                         <label style="color:var(--dim-green);">WALLET: </label>
-                        <span id="vault-wallet-display" style="color:#00ff00; font-size:14px; text-shadow:0 0 2px rgba(0,255,0,0.2);">Not connected</span>
+                        <span id="vault-wallet-display" style="color:#00ff00; font-size:14px;">Not connected</span>
                     </div>
                     <div>
                         <button class="terminal-btn small-btn" id="vault-connect-btn" onclick="connectWalletForVault()">[CONNECT WALLET]</button>
