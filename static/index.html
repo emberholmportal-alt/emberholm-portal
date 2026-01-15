@@ -269,7 +269,7 @@
     color: #ff9500;
     margin-bottom: 30px;
     letter-spacing: 10px;
-    text-shadow: 0 0 20px #ff9500;
+    text-shadow: 0 0 5px rgba(255, 149, 0, 0.4);
 }
 
 .portal-warning-text {
@@ -279,7 +279,7 @@
     line-height: 1.8;
     margin-bottom: 25px;
     min-height: 80px;
-    text-shadow: 0 0 10px rgba(255, 176, 0, 0.5);
+    text-shadow: 0 0 4px rgba(255, 176, 0, 0.3);
     opacity: 0;
     transform: translateY(10px);
     transition: opacity 1.5s ease, transform 1.5s ease;
@@ -297,7 +297,7 @@
     font-weight: bold;
     margin-bottom: 35px;
     min-height: 30px;
-    text-shadow: 0 0 15px rgba(255, 149, 0, 0.7);
+    text-shadow: 0 0 4px rgba(255, 149, 0, 0.4);
     opacity: 0;
     transform: translateY(10px);
     transition: opacity 1.2s ease, transform 1.2s ease;
@@ -318,23 +318,23 @@
     cursor: pointer;
     letter-spacing: 3px;
     transition: all 0.3s ease;
-    text-shadow: 0 0 10px #ff9500;
+    text-shadow: 0 0 4px rgba(255, 149, 0, 0.4);
     animation: btnPulse 2s ease-in-out infinite;
 }
 
 @keyframes btnPulse {
     0%, 100% {
-        box-shadow: 0 0 10px rgba(255, 149, 0, 0.3);
+        box-shadow: 0 0 5px rgba(255, 149, 0, 0.2);
     }
     50% {
-        box-shadow: 0 0 25px rgba(255, 149, 0, 0.6);
+        box-shadow: 0 0 10px rgba(255, 149, 0, 0.4);
     }
 }
 
 .portal-enter-btn:hover {
     background: #ff9500;
     color: #000;
-    box-shadow: 0 0 40px rgba(255, 149, 0, 0.8);
+    box-shadow: 0 0 15px rgba(255, 149, 0, 0.5);
     transform: scale(1.05);
 }
 
@@ -423,7 +423,7 @@
     max-width: 450px;
     font-family: var(--font-main), monospace;
     color: #e0d6c8;
-    box-shadow: 0 0 30px rgba(255, 165, 0, 0.3);
+    box-shadow: 0 0 12px rgba(255, 165, 0, 0.2);
 }
 
 .game-modal .modal-header {
@@ -470,7 +470,7 @@
 
 .game-modal button:hover {
     background: rgba(255, 165, 0, 0.2);
-    box-shadow: 0 0 10px rgba(255, 165, 0, 0.3);
+    box-shadow: 0 0 6px rgba(255, 165, 0, 0.3);
 }
 
 .game-modal button.btn-cancel {
@@ -491,7 +491,7 @@
 
 .game-modal.alert-modal.success {
     border-color: #22c55e;
-    box-shadow: 0 0 30px rgba(34, 197, 94, 0.3);
+    box-shadow: 0 0 12px rgba(34, 197, 94, 0.2);
 }
 
 .game-modal.alert-modal.error .modal-header {
@@ -501,7 +501,7 @@
 
 .game-modal.alert-modal.error {
     border-color: #ef4444;
-    box-shadow: 0 0 30px rgba(239, 68, 68, 0.3);
+    box-shadow: 0 0 12px rgba(239, 68, 68, 0.2);
 }
 
 .game-modal.alert-modal.info .modal-header {
@@ -511,7 +511,7 @@
 
 .game-modal.alert-modal.info {
     border-color: #3b82f6;
-    box-shadow: 0 0 30px rgba(59, 130, 246, 0.3);
+    box-shadow: 0 0 12px rgba(59, 130, 246, 0.2);
 }
 
 /* ============================================
@@ -1202,7 +1202,7 @@ document.addEventListener('DOMContentLoaded', initPortalWarning);
                 <div class="profile-col-left">
                     <div>
                         <label>WALLET (BASE): </label>
-                        <span id="wallet-display" style="color:#00ff00;font-size:14px;text-shadow: 0 0 8px rgba(0, 255, 0, 0.6);">Not connected</span>
+                        <span id="wallet-display" style="color:#00ff00;font-size:14px;text-shadow: 0 0 4px rgba(0, 255, 0, 0.3);">Not connected</span>
                         <button class="terminal-btn small-btn" id="connect-wallet-btn">[CONNECT WALLET]</button>
                         <button class="terminal-btn small-btn" id="disconnect-wallet-btn" style="display:none;">[DISCONNECT]</button>
                     </div>
@@ -1266,7 +1266,7 @@ document.addEventListener('DOMContentLoaded', initPortalWarning);
                 <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
                     <div>
                         <label style="color:var(--dim-green);">WALLET: </label>
-                        <span id="vault-wallet-display" style="color:#00ff00; font-size:14px; text-shadow:0 0 8px rgba(0,255,0,0.6);">Not connected</span>
+                        <span id="vault-wallet-display" style="color:#00ff00; font-size:14px; text-shadow:0 0 4px rgba(0,255,0,0.3);">Not connected</span>
                     </div>
                     <div>
                         <button class="terminal-btn small-btn" id="vault-connect-btn" onclick="connectWalletForVault()">[CONNECT WALLET]</button>
@@ -6629,7 +6629,7 @@ function showMissionStartedModal(result) {
     // Build compact modal
     const modalHtml = `
         <div class="game-modal-overlay" id="mission-started-overlay" onclick="if(event.target === this) this.remove();">
-            <div class="game-modal" style="border-color: #22c55e; box-shadow: 0 0 30px rgba(34, 197, 94, 0.3); max-width: 340px; padding: 15px 20px;">
+            <div class="game-modal" style="border-color: #22c55e; box-shadow: 0 0 10px rgba(34, 197, 94, 0.2); max-width: 340px; padding: 15px 20px;">
                 <div class="modal-header" style="color: #22c55e; border-color: rgba(34, 197, 94, 0.3); font-size: 1rem; margin-bottom: 12px; padding-bottom: 8px;">⚔️ MISSION STARTED</div>
                 <div class="modal-body" style="text-align: center; font-size: 0.9rem;">
                     <p style="margin-bottom: 8px;"><strong>${result.mission_name}</strong></p>
@@ -8641,7 +8641,7 @@ async function loadAchievements(heroes) {
 
 .center-node {
     border-color: #f59e0b;
-    box-shadow: 0 0 15px rgba(245, 158, 11, 0.2);
+    box-shadow: 0 0 8px rgba(245, 158, 11, 0.15);
 }
 
 .center-node .node-title { color: #f59e0b; }
@@ -8723,7 +8723,7 @@ async function loadAchievements(heroes) {
 
 .ash-node {
     border-color: #a855f7;
-    box-shadow: 0 0 12px rgba(168, 85, 247, 0.2);
+    box-shadow: 0 0 8px rgba(168, 85, 247, 0.15);
 }
 
 .ash-node .node-title { color: #a855f7; }
