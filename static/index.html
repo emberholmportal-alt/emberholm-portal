@@ -3133,59 +3133,146 @@ document.addEventListener('DOMContentLoaded', initPortalWarning);
 
         <!-- TAB: ECONOMY FLOW -->
         <div id="tab-flow" class="tokenomics-content" style="display:none;">
-            <div class="terminal-box" style="padding:15px;">
-                <div style="color:#ffaa00; font-weight:bold; margin-bottom:10px;">◈ THE CYCLE OF EMBER</div>
+            <div class="cycle-container">
+                <div style="color:#ffaa00; font-weight:bold; margin-bottom:5px; font-size:14px;">◈ THE CYCLE OF EMBER</div>
                 <p style="color:#888; font-size:11px; font-style:italic; margin-bottom:20px; border-left:2px solid #ffaa00; padding-left:10px;">
                     "The eternal flow of energy through Emberholm"
                 </p>
 
-                <!-- ASCII FLOW DIAGRAM -->
-                <div style="font-family:monospace; font-size:10px; line-height:1.4; color:#44ff44; text-align:center; padding:10px; background:rgba(0,0,0,0.3);">
-<pre style="margin:0; color:#44ff44;">
-              ┌─────────────────┐
-              │  REWARDS POOL   │
-              │   500M $EMBER   │
-              └────────┬────────┘
-                       │
-      ┌────────────────┼────────────────┐
-      ▼                ▼                ▼
-┌──────────┐    ┌──────────┐    ┌──────────┐
-│<span style="color:#ffcc00;"> MISSIONS </span>│    │<span style="color:#ff6b00;">  LANDS   </span>│    │<span style="color:#00ccff;">  EVENTS  </span>│
-│  Quests  │    │ Staking  │    │ Airdrops │
-└────┬─────┘    └────┬─────┘    └────┬─────┘
-     │               │               │
-     └───────────────┼───────────────┘
-                     ▼
-              ┌─────────────┐
-              │<span style="color:#ffaa00;">   PLAYERS   </span>│
-              │  (Holders)  │
-              └──────┬──────┘
-                     │
-       ┌─────────────┼─────────────┐
-       ▼             ▼             ▼
- ┌──────────┐  ┌──────────┐  ┌──────────┐
- │<span style="color:#ff6b00;">   BURN   </span>│  │<span style="color:#ffcc00;">   TRADE  </span>│  │<span style="color:#44ff44;">   HOLD   </span>│
- │ for $ASH │  │   P2P    │  │  Stake   │
- └────┬─────┘  └──────────┘  └──────────┘
-      │
-      ▼
- ┌──────────┐
- │<span style="color:#a855f7;">   $ASH   </span>│
- │Governance│
- └──────────┘
-</pre>
+                <div class="cycle-diagram">
+
+                    <!-- Centro: Rewards Pool -->
+                    <div class="cycle-node center-node">
+                        <div class="node-icon">🔥</div>
+                        <div class="node-title">REWARDS POOL</div>
+                        <div class="node-value">500M $EMBER</div>
+                        <div class="node-percent">50% of Total Supply</div>
+                    </div>
+
+                    <!-- Fila de distribución -->
+                    <div class="distribution-row">
+                        <div class="flow-arrow">▼</div>
+                        <div class="flow-label">Distribution Channels</div>
+                    </div>
+
+                    <!-- 3 Canales de distribución -->
+                    <div class="channels-row">
+
+                        <div class="cycle-node channel-node missions">
+                            <div class="node-icon">⚔️</div>
+                            <div class="node-title">MISSIONS</div>
+                            <div class="node-desc">Complete quests with your Emissaries</div>
+                            <ul class="node-details">
+                                <li>Easy: 10-50 $EMBER</li>
+                                <li>Medium: 25-100 $EMBER</li>
+                                <li>Hard: 50-250 $EMBER</li>
+                                <li>Legendary: 100-500 $EMBER</li>
+                            </ul>
+                        </div>
+
+                        <div class="cycle-node channel-node lands">
+                            <div class="node-icon">🏰</div>
+                            <div class="node-title">LANDS</div>
+                            <div class="node-desc">Stake territories for passive income</div>
+                            <ul class="node-details">
+                                <li>Tier 1: +5% bonus</li>
+                                <li>Tier 2: +10% bonus</li>
+                                <li>Tier 3: +15% bonus</li>
+                                <li>Tier 4: +20% bonus</li>
+                            </ul>
+                        </div>
+
+                        <div class="cycle-node channel-node events">
+                            <div class="node-icon">🎁</div>
+                            <div class="node-title">EVENTS</div>
+                            <div class="node-desc">Special airdrops & competitions</div>
+                            <ul class="node-details">
+                                <li>Weekly tournaments</li>
+                                <li>Seasonal events</li>
+                                <li>Guild competitions</li>
+                                <li>Community rewards</li>
+                            </ul>
+                        </div>
+
+                    </div>
+
+                    <!-- Flecha hacia Players -->
+                    <div class="flow-section">
+                        <div class="flow-arrow">▼</div>
+                    </div>
+
+                    <!-- Players -->
+                    <div class="cycle-node player-node">
+                        <div class="node-icon">👤</div>
+                        <div class="node-title">PLAYERS</div>
+                        <div class="node-desc">Emissary Holders earn and decide</div>
+                    </div>
+
+                    <!-- Flecha hacia opciones -->
+                    <div class="flow-section">
+                        <div class="flow-arrow">▼</div>
+                    </div>
+
+                    <!-- 3 Opciones del jugador -->
+                    <div class="options-row">
+
+                        <div class="cycle-node option-node burn">
+                            <div class="node-icon">🔥</div>
+                            <div class="node-title">BURN</div>
+                            <div class="node-desc">Convert to $ASH</div>
+                            <div class="node-ratio">100 $EMBER → 1 $ASH</div>
+                            <div class="node-benefit">Gain governance power</div>
+                        </div>
+
+                        <div class="cycle-node option-node trade">
+                            <div class="node-icon">💱</div>
+                            <div class="node-title">TRADE</div>
+                            <div class="node-desc">Exchange P2P or DEX</div>
+                            <div class="node-benefit">Liquidity & price discovery</div>
+                        </div>
+
+                        <div class="cycle-node option-node hold">
+                            <div class="node-icon">💎</div>
+                            <div class="node-title">HOLD</div>
+                            <div class="node-desc">Accumulate for future</div>
+                            <div class="node-benefit">Unlock premium features</div>
+                        </div>
+
+                    </div>
+
+                    <!-- Resultado del Burn -->
+                    <div class="burn-result">
+                        <div class="flow-arrow">▼</div>
+                        <div class="cycle-node ash-node">
+                            <div class="node-icon">✨</div>
+                            <div class="node-title">$ASH</div>
+                            <div class="node-desc">Governance Token</div>
+                            <div style="font-size:9px; color:#888; margin-top:5px;">Vote on proposals • Shape Emberholm's future</div>
+                        </div>
+                    </div>
+
                 </div>
 
-                <div style="margin-top:20px; padding-top:15px; border-top:1px solid #333;">
-                    <div style="color:#888; font-size:11px; margin-bottom:10px;">FLOW SUMMARY:</div>
-                    <div style="font-size:11px; line-height:1.8; padding-left:12px;">
-                        <div><span style="color:#44ff44;">1.</span> Rewards Pool distributes $EMBER via missions, lands, and events</div>
-                        <div><span style="color:#44ff44;">2.</span> Players earn $EMBER by completing activities</div>
-                        <div><span style="color:#44ff44;">3.</span> $EMBER can be traded, held for staking, or burned</div>
-                        <div><span style="color:#44ff44;">4.</span> Burning $EMBER creates $ASH (governance token)</div>
-                        <div><span style="color:#44ff44;">5.</span> $ASH holders vote on the future of Emberholm</div>
+                <!-- Stats en tiempo real -->
+                <div class="cycle-stats">
+                    <div class="stat-box">
+                        <div class="stat-label">Distributed</div>
+                        <div class="stat-value" id="cycle-distributed">--</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-label">Burned</div>
+                        <div class="stat-value" id="cycle-burned">--</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-label">$ASH Minted</div>
+                        <div class="stat-value" id="cycle-ash-minted">--</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-label">Pool Left</div>
+                        <div class="stat-value" id="cycle-pool-left">--</div>
                     </div>
                 </div>
+
             </div>
         </div>
 
@@ -8497,6 +8584,220 @@ async function loadAchievements(heroes) {
 #achievements-list::-webkit-scrollbar-thumb:hover {
     background: #444;
 }
+
+/* ============================================
+   CYCLE OF EMBER - DIAGRAM STYLES
+   ============================================ */
+
+.cycle-container {
+    padding: 15px;
+    max-width: 100%;
+}
+
+.cycle-diagram {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+}
+
+.cycle-node {
+    border: 2px solid;
+    border-radius: 8px;
+    padding: 12px 16px;
+    text-align: center;
+    background: rgba(0, 0, 0, 0.5);
+    min-width: 140px;
+}
+
+.cycle-node .node-icon {
+    font-size: 1.8rem;
+    margin-bottom: 5px;
+}
+
+.cycle-node .node-title {
+    font-weight: bold;
+    font-size: 12px;
+    margin: 5px 0;
+    font-family: monospace;
+}
+
+.cycle-node .node-desc {
+    color: #aaa;
+    font-size: 10px;
+    margin-bottom: 8px;
+}
+
+.cycle-node .node-value {
+    color: #fff;
+    font-size: 1.1rem;
+    font-weight: bold;
+}
+
+.cycle-node .node-percent {
+    color: #888;
+    font-size: 10px;
+}
+
+.center-node {
+    border-color: #f59e0b;
+    box-shadow: 0 0 15px rgba(245, 158, 11, 0.2);
+}
+
+.center-node .node-title { color: #f59e0b; }
+
+.channels-row, .options-row {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    flex-wrap: wrap;
+    width: 100%;
+}
+
+.channel-node {
+    flex: 1;
+    max-width: 220px;
+    min-width: 160px;
+}
+
+.channel-node.missions { border-color: #22c55e; }
+.channel-node.lands { border-color: #3b82f6; }
+.channel-node.events { border-color: #a855f7; }
+
+.channel-node.missions .node-title { color: #22c55e; }
+.channel-node.lands .node-title { color: #3b82f6; }
+.channel-node.events .node-title { color: #a855f7; }
+
+.channel-node .node-details {
+    text-align: left;
+    list-style: none;
+    padding: 0;
+    margin: 8px 0 0 0;
+    font-size: 9px;
+    color: #777;
+}
+
+.channel-node .node-details li {
+    padding: 3px 0;
+    border-bottom: 1px solid #2a2a2a;
+}
+
+.channel-node .node-details li:last-child {
+    border-bottom: none;
+}
+
+.option-node {
+    min-width: 150px;
+    max-width: 180px;
+}
+
+.option-node.burn { border-color: #ef4444; }
+.option-node.trade { border-color: #06b6d4; }
+.option-node.hold { border-color: #eab308; }
+
+.option-node.burn .node-title { color: #ef4444; }
+.option-node.trade .node-title { color: #06b6d4; }
+.option-node.hold .node-title { color: #eab308; }
+
+.option-node .node-ratio {
+    background: rgba(239, 68, 68, 0.15);
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 10px;
+    margin: 8px 0;
+    color: #ef4444;
+    font-family: monospace;
+}
+
+.option-node .node-benefit {
+    color: #888;
+    font-size: 9px;
+}
+
+.player-node {
+    border-color: #22d3ee;
+    padding: 15px 30px;
+}
+
+.player-node .node-title { color: #22d3ee; }
+
+.ash-node {
+    border-color: #a855f7;
+    box-shadow: 0 0 12px rgba(168, 85, 247, 0.2);
+}
+
+.ash-node .node-title { color: #a855f7; }
+
+.flow-arrow {
+    color: #444;
+    font-size: 1.2rem;
+    margin: 3px 0;
+}
+
+.flow-label {
+    color: #666;
+    font-size: 10px;
+    font-style: italic;
+}
+
+.distribution-row, .flow-section, .burn-result {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+/* Cycle Stats */
+.cycle-stats {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+    justify-content: center;
+    padding-top: 15px;
+    border-top: 1px solid #333;
+}
+
+.cycle-stats .stat-box {
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid #333;
+    padding: 10px 15px;
+    border-radius: 6px;
+    text-align: center;
+    min-width: 120px;
+}
+
+.cycle-stats .stat-label {
+    color: #666;
+    font-size: 9px;
+    text-transform: uppercase;
+    font-family: monospace;
+}
+
+.cycle-stats .stat-value {
+    color: #f59e0b;
+    font-size: 13px;
+    font-weight: bold;
+    margin-top: 4px;
+    font-family: monospace;
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+    .channels-row, .options-row {
+        flex-direction: column;
+        align-items: center;
+    }
+    .channel-node, .option-node {
+        max-width: 100%;
+        width: 100%;
+    }
+    .cycle-stats {
+        flex-direction: column;
+    }
+    .cycle-stats .stat-box {
+        width: 100%;
+    }
+}
 </style>
 
 <!-- INVENTORY & VAULT SYSTEM -->
@@ -8837,6 +9138,16 @@ function applyTokenomicsData(data, source = 'live') {
         updateEl('runes-remaining', runes.remaining);
         updateEl('runes-progress', runes.progress);
         updateEl('ov-runes-minted', runes.minted);
+    }
+
+    // Update CYCLE OF EMBER stats
+    if (ember) {
+        updateEl('cycle-distributed', ember.distributed);
+        updateEl('cycle-burned', ember.burned);
+        updateEl('cycle-pool-left', ember.remaining);
+    }
+    if (ash) {
+        updateEl('cycle-ash-minted', ash.minted);
     }
 }
 
