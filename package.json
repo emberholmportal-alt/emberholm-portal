@@ -9,14 +9,20 @@
     "verify:base": "hardhat verify --network base",
     "test": "hardhat test"
   },
-  "keywords": ["NFT", "GameFi", "Base", "Ethereum"],
+  "keywords": [
+    "NFT",
+    "GameFi",
+    "Base",
+    "Ethereum"
+  ],
   "author": "Emberholm Team",
   "license": "MIT",
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox": "^4.0.0",
     "@nomicfoundation/hardhat-verify": "^2.0.0",
-    "hardhat": "^2.19.0",
-    "dotenv": "^16.3.1"
+    "dotenv": "^16.3.1",
+    "ethers": "^5.7.2",
+    "hardhat": "^2.19.0"
   },
   "dependencies": {
     "@openzeppelin/contracts": "^5.0.1"
