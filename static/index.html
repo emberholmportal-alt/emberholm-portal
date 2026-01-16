@@ -1444,6 +1444,66 @@ document.addEventListener('DOMContentLoaded', initPortalWarning);
                 </div>
             </div>
 
+            <!-- $EMBER TOKEN SECTION -->
+            <div class="vault-section ember-section" style="margin:20px 0; padding:20px; border:1px solid #f59e0b; background:rgba(245,158,11,0.05);">
+                <div class="section-title" style="color:#f59e0b; margin-bottom:15px;">
+                    <img src="/img/moneybag.png" class="pixel-icon" alt=""> $EMBER BALANCE
+                </div>
+
+                <div class="balance-grid" style="display:flex; gap:30px; margin:20px 0; flex-wrap:wrap;">
+                    <div class="balance-item" style="display:flex; flex-direction:column; gap:5px;">
+                        <span class="balance-label" style="color:#888; font-size:0.85rem; text-transform:uppercase;">Pending (off-chain)</span>
+                        <span class="balance-value" id="ember-pending" style="color:#f59e0b; font-size:1.5rem; font-weight:bold;">0</span>
+                        <span class="balance-unit" style="color:#666; font-size:0.8rem;">$EMBER</span>
+                    </div>
+
+                    <div class="balance-item" style="display:flex; flex-direction:column; gap:5px;">
+                        <span class="balance-label" style="color:#888; font-size:0.85rem; text-transform:uppercase;">In Wallet (on-chain)</span>
+                        <span class="balance-value" id="ember-onchain" style="color:#f59e0b; font-size:1.5rem; font-weight:bold;">0</span>
+                        <span class="balance-unit" style="color:#666; font-size:0.8rem;">$EMBER</span>
+                    </div>
+
+                    <div class="balance-item" style="display:flex; flex-direction:column; gap:5px;">
+                        <span class="balance-label" style="color:#888; font-size:0.85rem; text-transform:uppercase;">Total Earned</span>
+                        <span class="balance-value" id="ember-total" style="color:#f59e0b; font-size:1.5rem; font-weight:bold;">0</span>
+                        <span class="balance-unit" style="color:#666; font-size:0.8rem;">$EMBER</span>
+                    </div>
+                </div>
+
+                <div style="display:flex; align-items:center; gap:15px; flex-wrap:wrap;">
+                    <button id="claim-ember-btn" class="terminal-btn claim-btn" disabled style="border-color:#22c55e; color:#22c55e;">
+                        [CLAIM $EMBER]
+                    </button>
+                    <span id="claim-status" class="status-text" style="font-size:0.85rem;"></span>
+                </div>
+            </div>
+
+            <!-- $ASH TOKEN SECTION -->
+            <div class="vault-section ash-section" style="margin:20px 0; padding:20px; border:1px solid #a855f7; background:rgba(168,85,247,0.05);">
+                <div class="section-title" style="color:#a855f7; margin-bottom:15px;">
+                    <img src="/img/fire.png" class="pixel-icon" alt=""> $ASH BALANCE
+                </div>
+
+                <div class="balance-grid" style="display:flex; gap:30px; margin:20px 0; flex-wrap:wrap;">
+                    <div class="balance-item" style="display:flex; flex-direction:column; gap:5px;">
+                        <span class="balance-label" style="color:#888; font-size:0.85rem; text-transform:uppercase;">In Wallet</span>
+                        <span class="balance-value" id="ash-wallet-balance" style="color:#a855f7; font-size:1.5rem; font-weight:bold;">0</span>
+                        <span class="balance-unit" style="color:#666; font-size:0.8rem;">$ASH</span>
+                    </div>
+                </div>
+
+                <div class="convert-section" style="display:flex; align-items:center; gap:15px; margin:15px 0; flex-wrap:wrap;">
+                    <input type="number" id="ember-to-convert" placeholder="Amount of $EMBER" min="100" step="100"
+                           style="background:#111; border:1px solid #333; color:#fff; padding:10px; width:150px;">
+                    <span class="convert-arrow" style="color:#666; font-size:1.2rem;">→</span>
+                    <span id="ash-preview" style="color:#a855f7; font-weight:bold;">0 $ASH</span>
+                    <button id="convert-btn" class="terminal-btn convert-btn" style="border-color:#a855f7; color:#a855f7;">
+                        [CONVERT TO $ASH]
+                    </button>
+                </div>
+                <p class="convert-info" style="color:#666; font-size:0.85rem;">Rate: 100 $EMBER = 1 $ASH (requires on-chain $EMBER)</p>
+            </div>
+
             <!-- Stats Summary -->
             <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:10px; margin:20px 0;">
                 <div style="border:1px solid var(--border-primary); padding:10px; text-align:center;">
@@ -4430,6 +4490,11 @@ navButtons.forEach((btn, index) => {
                 if (connectedWallet && typeof loadVault === 'function') {
                     loadVault(connectedWallet, null);
                 }
+                // Load EMBER/ASH balances
+                if (connectedWallet) {
+                    if (window.loadEmberBalance) window.loadEmberBalance();
+                    if (window.loadAshBalance) window.loadAshBalance();
+                }
             }
 
             // 🔊 asegura música
@@ -4941,6 +5006,9 @@ async function connectWalletForVault() {
         updateVaultWalletUI();
         loadVault(address, null);
         loadPendingClaimsForVault();
+        // Load EMBER/ASH balances for vault
+        if (window.loadEmberBalance) window.loadEmberBalance();
+        if (window.loadAshBalance) window.loadAshBalance();
     }
 }
 

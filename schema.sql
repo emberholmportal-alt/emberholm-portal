@@ -239,6 +239,10 @@ CREATE TABLE IF NOT EXISTS user_balances (
 -- Índice
 CREATE INDEX IF NOT EXISTS idx_balances_wallet ON user_balances(wallet);
 
+-- Add EMBER claim tracking columns
+ALTER TABLE user_balances ADD COLUMN IF NOT EXISTS total_ember_claimed NUMERIC DEFAULT 0;
+ALTER TABLE user_balances ADD COLUMN IF NOT EXISTS last_ember_claim_at TIMESTAMP;
+
 -- -------------------------------------------------------------------------
 -- EXTENSIÓN DE TABLA NFTs: Añadir columnas de equipamiento
 -- -------------------------------------------------------------------------
