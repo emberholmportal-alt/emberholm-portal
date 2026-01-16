@@ -119,6 +119,73 @@
    ============================================ */
 
 /* ============================================
+   GLOW SYSTEM - BY ELEMENT TYPE
+   ============================================ */
+
+/* TÍTULOS - Glow visible pero sutil */
+h1, h2, h3, .section-title, .card-title, .subheading {
+    text-shadow: 0 0 3px rgba(245, 158, 11, 0.3);
+}
+
+/* DATOS/NÚMEROS - Glow muy mínimo */
+.stat-value, .data-value, .number,
+span[class*="value"], div[class*="value"],
+.metric-number, .token-stat-value,
+[id*="minted"], [id*="remaining"], [id*="burned"],
+[id*="circulating"], [id*="distributed"], [id*="price"] {
+    text-shadow: 0 0 1px rgba(255, 255, 255, 0.1) !important;
+}
+
+/* TEXTO NORMAL - Sin glow */
+p, label, .stat-label, .description,
+div[class*="label"], span[class*="label"],
+.mono-block, .mono-small-note {
+    text-shadow: none !important;
+}
+
+/* Progress bars - Sin glow */
+.progress-bar-ascii, [id*="bar"], [id*="progress"] {
+    text-shadow: none !important;
+}
+
+/* Por color específico - Verde */
+.text-green, [style*="color: #22c55e"], [style*="color:#22c55e"],
+[style*="color: #44ff44"], [style*="color:#44ff44"] {
+    text-shadow: 0 0 1px rgba(34, 197, 94, 0.2);
+}
+
+/* Por color específico - Cyan */
+.text-cyan, [style*="color: #22d3ee"], [style*="color:#22d3ee"],
+[style*="color: #00ffff"], [style*="color:#00ffff"] {
+    text-shadow: 0 0 1px rgba(34, 211, 238, 0.2);
+}
+
+/* Por color específico - Naranja (solo títulos) */
+.text-orange, [style*="color: #f59e0b"], [style*="color:#f59e0b"],
+[style*="color: #ff9500"], [style*="color:#ff9500"],
+[style*="color: #ffaa00"], [style*="color:#ffaa00"] {
+    text-shadow: 0 0 2px rgba(245, 158, 11, 0.25);
+}
+
+/* Por color específico - Púrpura */
+.text-purple, [style*="color: #a855f7"], [style*="color:#a855f7"] {
+    text-shadow: 0 0 1px rgba(168, 85, 247, 0.2);
+}
+
+/* Por color específico - Rojo */
+.text-red, [style*="color: #ef4444"], [style*="color:#ef4444"],
+[style*="color: #ff4444"], [style*="color:#ff4444"],
+[style*="color: #ff6b00"], [style*="color:#ff6b00"] {
+    text-shadow: 0 0 1px rgba(239, 68, 68, 0.2);
+}
+
+/* Por color específico - Amarillo */
+.text-yellow, [style*="color: #eab308"], [style*="color:#eab308"],
+[style*="color: #ffcc00"], [style*="color:#ffcc00"] {
+    text-shadow: 0 0 1px rgba(234, 179, 8, 0.2);
+}
+
+/* ============================================
    REALM DISPATCH LIVE FEED - HACKNET CLEAN
    ============================================ */
 
@@ -1088,10 +1155,10 @@ document.addEventListener('DOMContentLoaded', initPortalWarning);
             <button class="cmd-link" data-target="profile">[PROFILE]</button>
             <button class="cmd-link" data-target="vault">[VAULT]</button>
             <button class="cmd-link cmd-link-disabled" data-target="ember-roll">[EMBER ROLL]</button>
+            <button class="cmd-link cmd-link-disabled" data-target="marketplace">[MARKETPLACE]</button>
         </div>
         <!-- Navigation Row 2 -->
         <div class="top-command-bar" id="nav-bar-2">
-            <button class="cmd-link cmd-link-disabled" data-target="marketplace">[MARKETPLACE]</button>
             <button class="cmd-link" data-target="tutorial">[HELP/TUTORIAL]</button>
             <button class="cmd-link" data-target="lore">[LORE]</button>
             <button class="cmd-link" data-target="announcements">[ANNOUNCEMENTS]</button>
@@ -9039,8 +9106,9 @@ function switchTokenomicsTab(tabName) {
 
 // Helpers
 function formatTokenAmount(value, decimals = 18) {
-    if (value === null || value === undefined || value === '--') return '--';
+    if (value === null || value === undefined || value === '--' || value === '...') return '...';
     const num = Number(value) / Math.pow(10, decimals);
+    if (isNaN(num)) return '...';
     if (num >= 1000000000) return (num / 1000000000).toFixed(2) + 'B';
     if (num >= 1000000) return (num / 1000000).toFixed(2) + 'M';
     if (num >= 1000) return (num / 1000).toFixed(2) + 'K';
@@ -9049,23 +9117,50 @@ function formatTokenAmount(value, decimals = 18) {
 }
 
 function formatNumber(num) {
-    if (num === null || num === undefined || num === '--') return '--';
-    return Number(num).toLocaleString('en-US');
+    if (num === null || num === undefined || num === '--' || num === '...') return '...';
+    const parsed = Number(num);
+    if (isNaN(parsed)) return '...';
+    return parsed.toLocaleString('en-US');
 }
 
 function createProgressBar(value, total, width = 12) {
-    if (!value || !total || value === '--') return '░'.repeat(width) + ' 0%';
-    const percent = (Number(value) / Number(total)) * 100;
+    if (!value || !total || value === '--' || value === null || value === '...') {
+        return '░'.repeat(width) + ' ...';
+    }
+    const numValue = Number(value);
+    if (isNaN(numValue) || numValue === 0) {
+        return '░'.repeat(width) + ' ...';
+    }
+    const percent = (numValue / Number(total)) * 100;
     const filled = Math.round((percent / 100) * width);
     return '█'.repeat(filled) + '░'.repeat(width - filled) + ` ${percent.toFixed(1)}%`;
 }
 
 // Validation helper - check if value is valid (not empty/null/placeholder)
-function isValidValue(value) {
-    if (value === null || value === undefined) return false;
-    if (value === '--' || value === 'Loading...' || value === '0') return false;
-    if (typeof value === 'string' && value.trim() === '') return false;
+function isValidValue(val) {
+    if (val === null || val === undefined) return false;
+    if (val === '--' || val === '-') return false;
+    if (val === '0' || val === 0) return false;
+    if (val === '0.0000' || val === '0.00' || val === '0.0') return false;
+    if (val === 'Loading...' || val === 'Loading' || val === 'Updating...') return false;
+    if (typeof val === 'string' && val.trim() === '') return false;
+    // Check for "0 $EMBER" or "0 $ASH" patterns
+    if (typeof val === 'string' && /^0(\.\d+)?\s*\$/.test(val.trim())) return false;
     return true;
+}
+
+// Display value with fallback - never show "--", "0", or "Loading"
+function displayValue(newValue, cachedValue) {
+    // If the new value is valid, use it
+    if (isValidValue(newValue)) {
+        return newValue;
+    }
+    // If not valid, use the cached value
+    if (isValidValue(cachedValue)) {
+        return cachedValue;
+    }
+    // Last resort: show "..." (never "--" or "0")
+    return '...';
 }
 
 // Merge data keeping valid old values if new ones are invalid
@@ -9098,12 +9193,27 @@ function mergeTokenomicsData(oldData, newData) {
 
 function updateEl(id, value) {
     const el = document.getElementById(id);
-    if (el) el.textContent = value;
+    if (!el) return;
+
+    // Get current value
+    const currentValue = el.textContent;
+
+    // Use displayValue to determine what to show
+    const finalValue = displayValue(value, currentValue);
+    el.textContent = finalValue;
 }
 
 function updateElColor(id, value, color) {
     const el = document.getElementById(id);
-    if (el) { el.textContent = value; el.style.color = color; }
+    if (!el) return;
+
+    // Get current value
+    const currentValue = el.textContent;
+
+    // Use displayValue to determine what to show
+    const finalValue = displayValue(value, currentValue);
+    el.textContent = finalValue;
+    el.style.color = color;
 }
 
 // Get provider with fallback RPCs (ethers v5 syntax) + timeout
@@ -9226,7 +9336,7 @@ async function getNFTData(provider, address, maxSupply) {
     } catch (e) {}
 
     console.warn(`NFT ${address} all methods failed`);
-    return { minted: '--', remaining: '--' };
+    return { minted: null, remaining: null };
 }
 
 // Apply data to UI
@@ -9406,8 +9516,10 @@ async function refreshTokenomicsData(forceRefresh = false) {
 }
 
 function showTokenomicsFallback() {
+    // Note: updateEl uses displayValue which will preserve cached values
+    // Only elements without cached values will show "..."
     const els = ['ember-circulating','ember-vesting','ember-burned','ember-distributed','ember-remaining','ember-pool-bar','ember-burned-for-ash','ash-total-minted','ash-protocol-minted','ash-available','ash-pool-bar','ash-ember-burned','ash-from-burns','ash-pool-minted','portal-minted','portal-remaining','portal-progress','items-minted','items-remaining','items-progress','runes-minted','runes-remaining','runes-progress','ov-ember-burned','ov-rewards-left','ov-ash-minted','ov-portal-minted','ov-items-minted','ov-runes-minted'];
-    els.forEach(id => updateEl(id, '--'));
+    els.forEach(id => updateEl(id, '...'));
     updateEl('ov-ember-price', 'Not trading');
     updateEl('tokenomics-last-update', 'Ethers.js not loaded');
 }
