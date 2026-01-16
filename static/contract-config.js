@@ -10,7 +10,9 @@ const CONTRACT_CONFIG = {
     CONTRACTS: {
         EmberholmPortal: "0x7AB2cf80FbfB8c89868b3dFa053729ecC86E39b3",
         EmberRunes: "0xDa2D1085053c3700645a13498293D17c1cc3f595",
-        EmberItems: "0xCE71702CE99Bc927216e64d57e4BD19254Ac28bA"
+        EmberItems: "0xCE71702CE99Bc927216e64d57e4BD19254Ac28bA",
+        EmberToken: "0xbA7723fBfb44C7712C0B78108ad873DcFd5Dd73b",
+        AshToken: "0xD4eef3eadb1Cf1B2905AA4Cd1022b8cCCC739DAb"
     },
 
     // ========== NETWORK CONFIGURATION ==========
@@ -68,6 +70,19 @@ const CONTRACT_CONFIG = {
         "function tokensOfOwner(address owner) view returns (uint256[])",
         "function tokenURI(uint256 tokenId) view returns (string)",
         "event ItemClaimed(address indexed player, uint256 indexed tokenId, bytes32 claimId)"
+    ],
+
+    // ========== ABI - EmberToken (ERC20 with convertToAsh) ==========
+    EMBER_TOKEN_ABI: [
+        "function balanceOf(address account) view returns (uint256)",
+        "function approve(address spender, uint256 amount) returns (bool)",
+        "function allowance(address owner, address spender) view returns (uint256)",
+        "function convertToAsh(uint256 emberAmount) external"
+    ],
+
+    // ========== ABI - AshToken (ERC20) ==========
+    ASH_TOKEN_ABI: [
+        "function balanceOf(address account) view returns (uint256)"
     ],
 
     // ========== DROP PROBABILITIES BY DIFFICULTY ==========

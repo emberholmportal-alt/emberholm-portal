@@ -404,6 +404,51 @@ EMBER_ITEMS_CONTRACT = "0xCE71702CE99Bc927216e64d57e4BD19254Ac28bA"
 ITEMS_METADATA_CID = "bafybeibs6mm5rghbpld7twbj35dbpryrfimmqkbnkev6ufs4kpbp343wfm"
 RUNES_METADATA_CID = "bafybeiajq22kxgm764srr55wsiz4t65so5laxe2nmrryzgailzpmfes3nq"
 
+# 🔥 $EMBER TOKEN CONTRACT CONFIG (Base Mainnet)
+EMBER_TOKEN_ADDRESS = os.environ.get("EMBER_TOKEN_ADDRESS", "0xbA7723fBfb44C7712C0B78108ad873DcFd5Dd73b")
+ASH_TOKEN_ADDRESS = os.environ.get("ASH_TOKEN_ADDRESS", "0xD4eef3eadb1Cf1B2905AA4Cd1022b8cCCC739DAb")
+REWARDS_WALLET_ADDRESS = os.environ.get("REWARDS_WALLET_ADDRESS", "0xa84C45Eb435732FAe8A017861c07394c3aA7d815")
+CLAIMER_WALLET_ADDRESS = os.environ.get("CLAIMER_WALLET_ADDRESS")
+CLAIMER_PRIVATE_KEY = os.environ.get("CLAIMER_PRIVATE_KEY")
+
+# ABI for $EMBER token claim functions
+EMBER_TOKEN_ABI = [
+    {
+        "inputs": [
+            {"name": "to", "type": "address"},
+            {"name": "amount", "type": "uint256"}
+        ],
+        "name": "claimTransfer",
+        "outputs": [{"type": "bool"}],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {"name": "recipients", "type": "address[]"},
+            {"name": "amounts", "type": "uint256[]"}
+        ],
+        "name": "batchClaimTransfer",
+        "outputs": [{"type": "bool"}],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "rewardsRemaining",
+        "outputs": [{"type": "uint256"}],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [{"name": "account", "type": "address"}],
+        "name": "balanceOf",
+        "outputs": [{"type": "uint256"}],
+        "stateMutability": "view",
+        "type": "function"
+    }
+]
+
 # 🎮 EQUIPMENT BONUS TABLES (matches frontend inventory.js)
 ITEM_BONUSES = {
     'common':    {'ember': 3,  'xp': 2,  'energy': 0, 'death': 0, 'speed': 0},
@@ -6979,6 +7024,227 @@ def get_balance():
         import traceback
         traceback.print_exc()
         return jsonify({"error": str(e)}), 500
+
+# ---------------------------------
+# $EMBER CLAIM API (Gasless Claims)
+# ---------------------------------
+
+# Initialize Web3 for Base Mainnet (for $EMBER claims)
+ember_w3 = None
+ember_contract = None
+
+def init_ember_web3():
+    """Initialize Web3 connection for EMBER claims"""
+    global ember_w3, ember_contract
+    if not Web3Lib:
+        print("⚠️ Web3 not available for EMBER claims")
+        return False
+
+    try:
+        ember_w3 = Web3Lib(Web3Lib.HTTPProvider("https://mainnet.base.org"))
+        if ember_w3.is_connected():
+            ember_contract = ember_w3.eth.contract(
+                address=Web3Lib.to_checksum_address(EMBER_TOKEN_ADDRESS),
+                abi=EMBER_TOKEN_ABI
+            )
+            print("✅ Web3 connected for $EMBER claims (Base Mainnet)")
+            return True
+        else:
+            print("⚠️ Could not connect to Base Mainnet for EMBER claims")
+            return False
+    except Exception as e:
+        print(f"⚠️ Error initializing EMBER Web3: {e}")
+        return False
+
+# Try to initialize on startup
+init_ember_web3()
+
+@app.route('/api/ember/balance/<wallet>', methods=['GET'])
+@rate_limit(requests_per_minute=30)
+def get_ember_token_balance(wallet):
+    """
+    Get detailed $EMBER balance for a wallet.
+    Returns: pending (off-chain), on-chain, total_claimed, last_claim
+    """
+    try:
+        wallet_checksum = Web3Lib.to_checksum_address(wallet) if Web3Lib else wallet
+        wallet_lower = wallet.lower()
+
+        # Default response
+        response = {
+            "pending": 0,
+            "onchain": 0,
+            "total_claimed": 0,
+            "last_claim": None
+        }
+
+        # Get pending balance from database
+        if POSTGRESQL_AVAILABLE and db:
+            try:
+                conn = db.get_connection()
+                cursor = conn.cursor()
+
+                cursor.execute("""
+                    SELECT ember_balance, COALESCE(total_ember_claimed, 0) as total_claimed,
+                           last_ember_claim_at
+                    FROM user_balances
+                    WHERE wallet = %s
+                """, (wallet_lower,))
+
+                result = cursor.fetchone()
+                db.release_connection(conn)
+
+                if result:
+                    response["pending"] = float(result[0]) if result[0] else 0
+                    response["total_claimed"] = float(result[1]) if result[1] else 0
+                    response["last_claim"] = result[2].isoformat() if result[2] else None
+
+            except Exception as e:
+                print(f"⚠️ Error getting pending EMBER balance: {e}")
+
+        # Get on-chain balance
+        if ember_w3 and ember_contract:
+            try:
+                onchain_balance_wei = ember_contract.functions.balanceOf(wallet_checksum).call()
+                response["onchain"] = float(Web3Lib.from_wei(onchain_balance_wei, 'ether'))
+            except Exception as e:
+                print(f"⚠️ Error getting on-chain EMBER balance: {e}")
+
+        return jsonify(response)
+
+    except Exception as e:
+        print(f"❌ Error in get_ember_token_balance: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/ember/claim', methods=['POST'])
+@rate_limit(requests_per_minute=5)
+def claim_ember_tokens():
+    """
+    Claim pending $EMBER tokens (gasless - paid by claimer wallet).
+    The backend sends the transaction using the claimer wallet.
+    """
+    try:
+        data = request.get_json()
+        wallet = data.get('wallet')
+
+        if not wallet:
+            return jsonify({"error": "Wallet address required"}), 400
+
+        # Validate claimer configuration
+        if not CLAIMER_PRIVATE_KEY or not CLAIMER_WALLET_ADDRESS:
+            return jsonify({"error": "Claimer wallet not configured"}), 503
+
+        if not ember_w3 or not ember_contract:
+            # Try to reinitialize
+            if not init_ember_web3():
+                return jsonify({"error": "Blockchain connection not available"}), 503
+
+        wallet_checksum = Web3Lib.to_checksum_address(wallet)
+        wallet_lower = wallet.lower()
+
+        # 1. Get pending balance from database
+        if not POSTGRESQL_AVAILABLE:
+            return jsonify({"error": "Database not available"}), 503
+
+        conn = db.get_connection()
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            SELECT ember_balance FROM user_balances
+            WHERE wallet = %s
+        """, (wallet_lower,))
+
+        result = cursor.fetchone()
+
+        if not result or result[0] <= 0:
+            db.release_connection(conn)
+            return jsonify({"error": "No EMBER balance to claim", "balance": 0}), 400
+
+        pending_balance = float(result[0])
+
+        # 2. Convert to wei (18 decimals)
+        amount_wei = ember_w3.to_wei(pending_balance, 'ether')
+
+        # 3. Check rewards pool has enough
+        try:
+            rewards_remaining = ember_contract.functions.rewardsRemaining().call()
+            if amount_wei > rewards_remaining:
+                db.release_connection(conn)
+                return jsonify({"error": "Insufficient rewards in pool"}), 500
+        except Exception as e:
+            print(f"⚠️ Could not check rewards pool: {e}")
+            # Continue anyway - let the transaction fail if pool is empty
+
+        # 4. Build transaction
+        claimer_address = Web3Lib.to_checksum_address(CLAIMER_WALLET_ADDRESS)
+        nonce = ember_w3.eth.get_transaction_count(claimer_address)
+
+        txn = ember_contract.functions.claimTransfer(
+            wallet_checksum,
+            amount_wei
+        ).build_transaction({
+            'chainId': CHAIN_ID,  # Base Mainnet (8453)
+            'gas': 100000,
+            'gasPrice': ember_w3.eth.gas_price,
+            'nonce': nonce,
+        })
+
+        # 5. Sign and send transaction
+        signed_txn = ember_w3.eth.account.sign_transaction(txn, CLAIMER_PRIVATE_KEY)
+        tx_hash = ember_w3.eth.send_raw_transaction(signed_txn.raw_transaction)
+
+        # 6. Wait for confirmation (with timeout)
+        receipt = ember_w3.eth.wait_for_transaction_receipt(tx_hash, timeout=120)
+
+        if receipt['status'] == 1:
+            # 7. Update database - reset pending balance, increment total claimed
+            cursor.execute("""
+                UPDATE user_balances
+                SET ember_balance = 0,
+                    total_ember_claimed = COALESCE(total_ember_claimed, 0) + %s,
+                    last_ember_claim_at = NOW()
+                WHERE wallet = %s
+            """, (pending_balance, wallet_lower))
+
+            conn.commit()
+            db.release_connection(conn)
+
+            print(f"✅ EMBER claimed: {pending_balance} to {wallet[:10]}... TX: {tx_hash.hex()}")
+
+            return jsonify({
+                "success": True,
+                "amount": pending_balance,
+                "tx_hash": tx_hash.hex(),
+                "message": f"Successfully claimed {pending_balance} $EMBER"
+            })
+        else:
+            db.release_connection(conn)
+            return jsonify({"error": "Transaction failed on-chain"}), 500
+
+    except Exception as e:
+        print(f"❌ Error in claim_ember_tokens: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/ember/rewards-pool', methods=['GET'])
+def get_ember_rewards_pool():
+    """Get remaining $EMBER in the rewards pool"""
+    try:
+        if not ember_w3 or not ember_contract:
+            if not init_ember_web3():
+                return jsonify({"error": "Blockchain not available", "remaining": 0}), 503
+
+        rewards_remaining_wei = ember_contract.functions.rewardsRemaining().call()
+        rewards_remaining = float(Web3Lib.from_wei(rewards_remaining_wei, 'ether'))
+
+        return jsonify({
+            "remaining": rewards_remaining,
+            "contract": EMBER_TOKEN_ADDRESS
+        })
+    except Exception as e:
+        print(f"❌ Error getting rewards pool: {e}")
+        return jsonify({"error": str(e), "remaining": 0}), 500
 
 # ---------------------------------
 # VAULT API

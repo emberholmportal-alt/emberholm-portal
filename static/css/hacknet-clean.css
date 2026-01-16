@@ -3509,3 +3509,209 @@ button:disabled {
 #processing-modal .terminal-modal-body {
     padding: 0;
 }
+
+/* ===============================================================
+   $EMBER & $ASH TOKEN SECTIONS (VAULT)
+   =============================================================== */
+
+/* Token Section Base */
+.vault-section {
+    background: rgba(0, 0, 0, 0.5);
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+    transition: all 0.3s ease;
+}
+
+.vault-section:hover {
+    background: rgba(0, 0, 0, 0.6);
+}
+
+/* EMBER Section */
+.ember-section {
+    border: 1px solid #f59e0b;
+    box-shadow: 0 0 10px rgba(245, 158, 11, 0.1);
+}
+
+.ember-section:hover {
+    box-shadow: 0 0 20px rgba(245, 158, 11, 0.2);
+}
+
+.ember-section .section-title {
+    color: #f59e0b;
+    text-shadow: 0 0 10px rgba(245, 158, 11, 0.5);
+}
+
+/* ASH Section */
+.ash-section {
+    border: 1px solid #a855f7;
+    box-shadow: 0 0 10px rgba(168, 85, 247, 0.1);
+}
+
+.ash-section:hover {
+    box-shadow: 0 0 20px rgba(168, 85, 247, 0.2);
+}
+
+.ash-section .section-title {
+    color: #a855f7;
+    text-shadow: 0 0 10px rgba(168, 85, 247, 0.5);
+}
+
+/* Balance Grid */
+.balance-grid {
+    display: flex;
+    gap: 30px;
+    margin: 20px 0;
+    flex-wrap: wrap;
+}
+
+.balance-item {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.balance-label {
+    color: #888;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.balance-value {
+    font-size: 1.5rem;
+    font-weight: bold;
+    font-family: 'Share Tech Mono', monospace;
+}
+
+.ember-section .balance-value {
+    color: #f59e0b;
+    text-shadow: 0 0 5px rgba(245, 158, 11, 0.3);
+}
+
+.ash-section .balance-value {
+    color: #a855f7;
+    text-shadow: 0 0 5px rgba(168, 85, 247, 0.3);
+}
+
+.balance-unit {
+    color: #666;
+    font-size: 0.8rem;
+}
+
+/* Claim Button */
+.claim-btn {
+    background: transparent;
+    border: 1px solid #22c55e;
+    color: #22c55e;
+    padding: 10px 20px;
+    cursor: pointer;
+    font-family: 'Share Tech Mono', monospace;
+    transition: all 0.2s;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.claim-btn:hover:not(:disabled) {
+    background: rgba(34, 197, 94, 0.2);
+    box-shadow: 0 0 15px rgba(34, 197, 94, 0.3);
+}
+
+.claim-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    border-color: #555;
+    color: #555;
+}
+
+/* Convert Button */
+.convert-btn {
+    background: transparent;
+    border: 1px solid #a855f7;
+    color: #a855f7;
+    padding: 10px 20px;
+    cursor: pointer;
+    font-family: 'Share Tech Mono', monospace;
+    transition: all 0.2s;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.convert-btn:hover:not(:disabled) {
+    background: rgba(168, 85, 247, 0.2);
+    box-shadow: 0 0 15px rgba(168, 85, 247, 0.3);
+}
+
+.convert-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Convert Section */
+.convert-section {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin: 15px 0;
+    flex-wrap: wrap;
+}
+
+.convert-section input {
+    background: #111;
+    border: 1px solid #333;
+    color: #fff;
+    padding: 10px;
+    width: 150px;
+    font-family: 'Share Tech Mono', monospace;
+    transition: border-color 0.2s;
+}
+
+.convert-section input:focus {
+    outline: none;
+    border-color: #a855f7;
+}
+
+.convert-arrow {
+    color: #666;
+    font-size: 1.2rem;
+}
+
+.convert-info {
+    color: #666;
+    font-size: 0.85rem;
+}
+
+/* Status Text */
+.status-text {
+    font-size: 0.85rem;
+    transition: color 0.2s;
+}
+
+.status-text.success {
+    color: #22c55e;
+}
+
+.status-text.error {
+    color: #ef4444;
+}
+
+/* Responsive adjustments for token sections */
+@media (max-width: 768px) {
+    .balance-grid {
+        gap: 20px;
+    }
+
+    .balance-value {
+        font-size: 1.2rem;
+    }
+
+    .convert-section {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .convert-section input {
+        width: 100%;
+        max-width: 200px;
+    }
+}

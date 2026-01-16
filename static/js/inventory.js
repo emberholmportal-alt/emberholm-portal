@@ -121,6 +121,15 @@
     };
     let vaultItems = [];
 
+    // Local formatNumber helper (fallback if global not available)
+    function formatNumber(num) {
+        if (typeof window.formatNumber === 'function') return window.formatNumber(num);
+        if (num === null || num === undefined) return '0';
+        const parsed = Number(num);
+        if (isNaN(parsed)) return '0';
+        return parsed.toLocaleString('en-US');
+    }
+
     // Reference to global currentEmissaries (populated by index.html)
     // This getter ensures we always access the latest data
     const getCurrentEmissaries = () => window.currentEmissaries || [];
@@ -2453,6 +2462,254 @@ window.performEmberRoll = async function(emissaryId) {
     };
 
     // ===============================================================
+    // $EMBER CLAIM & $ASH CONVERSION SYSTEM
+    // ===============================================================
+
+    // Load EMBER token balance (pending + on-chain)
+    async function loadEmberBalance() {
+        if (!currentWallet) return;
+
+        try {
+            const response = await fetch(`/api/ember/balance/${currentWallet}`);
+            const data = await response.json();
+
+            const pendingEl = document.getElementById('ember-pending');
+            const onchainEl = document.getElementById('ember-onchain');
+            const totalEl = document.getElementById('ember-total');
+
+            if (pendingEl) pendingEl.textContent = formatNumber(data.pending || 0);
+            if (onchainEl) onchainEl.textContent = formatNumber(data.onchain || 0);
+
+            // Total = pending + onchain + total_claimed
+            const total = (data.pending || 0) + (data.onchain || 0) + (data.total_claimed || 0);
+            if (totalEl) totalEl.textContent = formatNumber(total);
+
+            // Enable/disable claim button
+            const claimBtn = document.getElementById('claim-ember-btn');
+            if (claimBtn) {
+                if (data.pending > 0) {
+                    claimBtn.disabled = false;
+                    claimBtn.textContent = `[CLAIM ${formatNumber(data.pending)} $EMBER]`;
+                } else {
+                    claimBtn.disabled = true;
+                    claimBtn.textContent = '[NO $EMBER TO CLAIM]';
+                }
+            }
+
+            console.log(`📊 EMBER Balance loaded: pending=${data.pending}, onchain=${data.onchain}`);
+
+        } catch (error) {
+            console.error('Error loading EMBER balance:', error);
+        }
+    }
+
+    // Load ASH token balance (on-chain only)
+    async function loadAshBalance() {
+        if (!currentWallet || !window.ethereum) return;
+
+        try {
+            const provider = new ethers.providers.Web3Provider(window.ethereum);
+            const ashContract = new ethers.Contract(
+                CONTRACT_CONFIG.CONTRACTS.AshToken,
+                CONTRACT_CONFIG.ASH_TOKEN_ABI,
+                provider
+            );
+
+            const balanceWei = await ashContract.balanceOf(currentWallet);
+            const balance = parseFloat(ethers.utils.formatEther(balanceWei));
+
+            const ashBalanceEl = document.getElementById('ash-wallet-balance');
+            if (ashBalanceEl) ashBalanceEl.textContent = formatNumber(balance);
+
+            console.log(`📊 ASH Balance: ${balance}`);
+
+        } catch (error) {
+            console.error('Error loading ASH balance:', error);
+        }
+    }
+
+    // Claim pending $EMBER (gasless)
+    async function claimEmber() {
+        if (!currentWallet) {
+            showGameAlert('Connect wallet first', 'error');
+            return;
+        }
+
+        const claimBtn = document.getElementById('claim-ember-btn');
+        const statusEl = document.getElementById('claim-status');
+
+        if (!claimBtn) return;
+
+        claimBtn.disabled = true;
+        claimBtn.textContent = '[CLAIMING...]';
+        if (statusEl) {
+            statusEl.textContent = 'Processing claim...';
+            statusEl.className = 'status-text';
+        }
+
+        try {
+            const response = await fetch('/api/ember/claim', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ wallet: currentWallet })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                if (statusEl) {
+                    statusEl.textContent = `Claimed ${data.amount} $EMBER! TX: ${data.tx_hash.slice(0, 10)}...`;
+                    statusEl.className = 'status-text success';
+                }
+
+                showGameAlert(
+                    `Successfully claimed ${data.amount} $EMBER!\n\nTransaction: ${data.tx_hash.slice(0, 20)}...`,
+                    'success'
+                );
+
+                // Reload balances
+                await loadEmberBalance();
+
+            } else {
+                if (statusEl) {
+                    statusEl.textContent = `Error: ${data.error}`;
+                    statusEl.className = 'status-text error';
+                }
+                claimBtn.disabled = false;
+                claimBtn.textContent = '[CLAIM $EMBER]';
+                showGameAlert(`Error: ${data.error}`, 'error');
+            }
+
+        } catch (error) {
+            console.error('Claim error:', error);
+            if (statusEl) {
+                statusEl.textContent = `Error: ${error.message}`;
+                statusEl.className = 'status-text error';
+            }
+            claimBtn.disabled = false;
+            claimBtn.textContent = '[CLAIM $EMBER]';
+            showGameAlert(`Error: ${error.message}`, 'error');
+        }
+    }
+
+    // Convert EMBER to ASH (on-chain)
+    async function convertEmberToAsh() {
+        if (!currentWallet) {
+            showGameAlert('Connect wallet first', 'error');
+            return;
+        }
+
+        if (!window.ethereum) {
+            showGameAlert('MetaMask not detected', 'error');
+            return;
+        }
+
+        const amountInput = document.getElementById('ember-to-convert');
+        const amount = parseInt(amountInput?.value || 0);
+
+        if (!amount || amount < 100) {
+            showGameAlert('Minimum 100 $EMBER to convert', 'error');
+            return;
+        }
+
+        if (amount % 100 !== 0) {
+            showGameAlert('Amount must be multiple of 100', 'error');
+            return;
+        }
+
+        const convertBtn = document.getElementById('convert-btn');
+        if (!convertBtn) return;
+
+        convertBtn.disabled = true;
+        convertBtn.textContent = '[CONVERTING...]';
+
+        try {
+            const provider = new ethers.providers.Web3Provider(window.ethereum);
+            const signer = provider.getSigner();
+
+            const emberContract = new ethers.Contract(
+                CONTRACT_CONFIG.CONTRACTS.EmberToken,
+                CONTRACT_CONFIG.EMBER_TOKEN_ABI,
+                signer
+            );
+
+            const amountWei = ethers.utils.parseEther(amount.toString());
+
+            // Call convertToAsh (contract burns EMBER and mints ASH)
+            const tx = await emberContract.convertToAsh(amountWei);
+
+            convertBtn.textContent = '[WAITING FOR CONFIRMATION...]';
+
+            await tx.wait();
+
+            const ashAmount = Math.floor(amount / 100);
+            showGameAlert(
+                `Successfully converted ${amount} $EMBER to ${ashAmount} $ASH!`,
+                'success'
+            );
+
+            // Clear input
+            if (amountInput) amountInput.value = '';
+            document.getElementById('ash-preview').textContent = '0 $ASH';
+
+            // Reload balances
+            await loadEmberBalance();
+            await loadAshBalance();
+
+        } catch (error) {
+            console.error('Conversion error:', error);
+            showGameAlert(`Error: ${error.message || 'Transaction failed'}`, 'error');
+        } finally {
+            convertBtn.disabled = false;
+            convertBtn.textContent = '[CONVERT TO $ASH]';
+        }
+    }
+
+    // Preview ASH conversion amount
+    function updateAshPreview() {
+        const amountInput = document.getElementById('ember-to-convert');
+        const previewEl = document.getElementById('ash-preview');
+
+        if (amountInput && previewEl) {
+            const amount = parseInt(amountInput.value) || 0;
+            const ashAmount = Math.floor(amount / 100);
+            previewEl.textContent = `${ashAmount} $ASH`;
+        }
+    }
+
+    // Setup EMBER/ASH event listeners
+    function setupEmberAshListeners() {
+        const claimBtn = document.getElementById('claim-ember-btn');
+        const convertBtn = document.getElementById('convert-btn');
+        const amountInput = document.getElementById('ember-to-convert');
+
+        if (claimBtn) {
+            claimBtn.addEventListener('click', claimEmber);
+        }
+
+        if (convertBtn) {
+            convertBtn.addEventListener('click', convertEmberToAsh);
+        }
+
+        if (amountInput) {
+            amountInput.addEventListener('input', updateAshPreview);
+        }
+    }
+
+    // Export functions globally
+    window.loadEmberBalance = loadEmberBalance;
+    window.loadAshBalance = loadAshBalance;
+    window.claimEmber = claimEmber;
+    window.convertEmberToAsh = convertEmberToAsh;
+
+    // Setup listeners when DOM is ready
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', setupEmberAshListeners);
+    } else {
+        setupEmberAshListeners();
+    }
+
+    // ===============================================================
     // INITIALIZATION
     // ===============================================================
 
@@ -2464,6 +2721,9 @@ window.performEmberRoll = async function(emissaryId) {
 
         if (wallet) {
             loadBalance(wallet);
+            // Also load EMBER/ASH balances
+            loadEmberBalance();
+            loadAshBalance();
         }
 
         console.log('✅ Inventory system initialized');
@@ -2472,6 +2732,9 @@ window.performEmberRoll = async function(emissaryId) {
     window.switchToVault = function() {
         if (currentWallet) {
             loadVault(currentWallet);
+            // Load EMBER/ASH balances when switching to vault
+            loadEmberBalance();
+            loadAshBalance();
         }
     };
 
