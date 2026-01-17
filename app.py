@@ -7076,6 +7076,7 @@ def get_ember_token_balance(wallet):
             "onchain": 0,
             "total_claimed": 0,
             "total_burned": 0,
+            "total_earned": 0,
             "last_claim": None
         }
 
@@ -7087,7 +7088,8 @@ def get_ember_token_balance(wallet):
 
                 cursor.execute("""
                     SELECT ember_balance, COALESCE(total_ember_claimed, 0) as total_claimed,
-                           last_ember_claim_at, COALESCE(total_ember_burned, 0) as total_burned
+                           last_ember_claim_at, COALESCE(total_ember_burned, 0) as total_burned,
+                           COALESCE(total_ember_earned, 0) as total_earned
                     FROM user_balances
                     WHERE wallet = %s
                 """, (wallet_lower,))
@@ -7100,6 +7102,7 @@ def get_ember_token_balance(wallet):
                     response["total_claimed"] = float(result[1]) if result[1] else 0
                     response["last_claim"] = result[2].isoformat() if result[2] else None
                     response["total_burned"] = float(result[3]) if result[3] else 0
+                    response["total_earned"] = float(result[4]) if result[4] else 0
 
             except Exception as e:
                 print(f"⚠️ Error getting pending EMBER balance: {e}")
@@ -8279,12 +8282,22 @@ def ember_roll_perform():
         reward = EMBER_ROLL_REWARDS[roll]
 
         # Apply EMBER change
-        cursor.execute("""
-            UPDATE user_balances
-            SET ember_balance = ember_balance + %s
-            WHERE wallet = %s
-            RETURNING ember_balance
-        """, (reward["ember"], wallet))
+        # If gaining EMBER, also track in total_ember_earned
+        if reward["ember"] > 0:
+            cursor.execute("""
+                UPDATE user_balances
+                SET ember_balance = ember_balance + %s,
+                    total_ember_earned = COALESCE(total_ember_earned, 0) + %s
+                WHERE wallet = %s
+                RETURNING ember_balance
+            """, (reward["ember"], reward["ember"], wallet))
+        else:
+            cursor.execute("""
+                UPDATE user_balances
+                SET ember_balance = ember_balance + %s
+                WHERE wallet = %s
+                RETURNING ember_balance
+            """, (reward["ember"], wallet))
 
         new_balance = cursor.fetchone()[0]
         conn.commit()
