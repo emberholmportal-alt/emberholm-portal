@@ -9105,7 +9105,7 @@ const RPC_URLS = [
 // Cache configuration
 const TOKENOMICS_CACHE_KEY = 'emberholm_tokenomics_cache';
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
-const RPC_TIMEOUT = 5000; // 5 seconds
+const RPC_TIMEOUT = 8000; // 8 seconds for better reliability
 
 let tokenomicsRefreshTimer = null;
 let lastTokenomicsUpdate = null;
@@ -9445,29 +9445,37 @@ async function getAshData(provider) {
 async function getNFTData(provider, address, maxSupply) {
     const contract = new ethers.Contract(address, NFT_ABI, provider);
 
-    // Try supplyInfo first
-    try {
-        const info = await contract.supplyInfo();
-        const minted = Number(info[1] || info.minted || 0);
-        console.log(`NFT ${address} supplyInfo:`, minted);
-        return { minted, remaining: maxSupply - minted };
-    } catch (e) {}
+    // Try each method with retries
+    const methods = [
+        { name: 'supplyInfo', fn: async () => {
+            const info = await contract.supplyInfo();
+            return Number(info[1] || info.minted || 0);
+        }},
+        { name: 'totalMinted', fn: async () => Number(await contract.totalMinted()) },
+        { name: 'totalSupply', fn: async () => Number(await contract.totalSupply()) }
+    ];
 
-    // Try totalMinted
-    try {
-        const minted = Number(await contract.totalMinted());
-        console.log(`NFT ${address} totalMinted:`, minted);
-        return { minted, remaining: maxSupply - minted };
-    } catch (e) {}
+    for (const method of methods) {
+        // Try up to 2 times per method
+        for (let attempt = 0; attempt < 2; attempt++) {
+            try {
+                const minted = await method.fn();
+                console.log(`NFT ${address.slice(0,10)} ${method.name}: ${minted}`);
+                return { minted, remaining: maxSupply - minted };
+            } catch (e) {
+                if (attempt === 0) {
+                    await new Promise(r => setTimeout(r, 500)); // Wait before retry
+                }
+            }
+        }
+    }
 
-    // Try totalSupply (ERC721 standard)
-    try {
-        const minted = Number(await contract.totalSupply());
-        console.log(`NFT ${address} totalSupply:`, minted);
-        return { minted, remaining: maxSupply - minted };
-    } catch (e) {}
-
-    console.warn(`NFT ${address} all methods failed`);
+    console.warn(`NFT ${address.slice(0,10)} all methods failed, using fallback`);
+    // Return fallback data based on known contracts
+    if (address.toLowerCase() === CONTRACTS.PORTAL.toLowerCase()) {
+        return { minted: 35000, remaining: 0 }; // Portal is sold out
+    }
+    return null;
     return { minted: null, remaining: null };
 }
 
@@ -9576,7 +9584,12 @@ async function fetchTokenomicsFromRPC() {
             minted: formatNumber(portal.minted),
             remaining: formatNumber(portal.remaining),
             progress: createProgressBar(portal.minted, 35000)
-        } : null,
+        } : {
+            // Fallback: Portal is sold out (35,000 minted)
+            minted: '35,000',
+            remaining: '0',
+            progress: createProgressBar(35000, 35000)
+        },
         items: items ? {
             minted: formatNumber(items.minted),
             remaining: formatNumber(items.remaining),
@@ -9652,8 +9665,15 @@ async function refreshTokenomicsData(forceRefresh = false) {
 function showTokenomicsFallback() {
     // Note: updateEl uses displayValue which will preserve cached values
     // Only elements without cached values will show "..."
-    const els = ['ember-circulating','ember-vesting','ember-burned','ember-distributed','ember-remaining','ember-pool-bar','ember-burned-for-ash','ash-total-minted','ash-protocol-minted','ash-available','ash-pool-bar','ash-ember-burned','ash-from-burns','ash-pool-minted','portal-minted','portal-remaining','portal-progress','items-minted','items-remaining','items-progress','runes-minted','runes-remaining','runes-progress','ov-ember-burned','ov-rewards-left','ov-ash-minted','ov-portal-minted','ov-items-minted','ov-runes-minted'];
+    const els = ['ember-circulating','ember-vesting','ember-burned','ember-distributed','ember-remaining','ember-pool-bar','ember-burned-for-ash','ash-total-minted','ash-protocol-minted','ash-available','ash-pool-bar','ash-ember-burned','ash-from-burns','ash-pool-minted','items-minted','items-remaining','items-progress','runes-minted','runes-remaining','runes-progress','ov-ember-burned','ov-rewards-left','ov-ash-minted','ov-items-minted','ov-runes-minted'];
     els.forEach(id => updateEl(id, '...'));
+
+    // Show known values for Portal (sold out)
+    updateEl('portal-minted', '35,000');
+    updateEl('portal-remaining', '0');
+    updateEl('portal-progress', createProgressBar(35000, 35000));
+    updateEl('ov-portal-minted', '35,000');
+
     updateEl('ov-ember-price', 'Not trading');
     updateEl('tokenomics-last-update', 'Ethers.js not loaded');
 }
