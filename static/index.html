@@ -9203,13 +9203,31 @@ function formatTokenAmount(value, decimals = 18) {
 
     if (isNaN(num) || num < 0) return '...';
 
-    // Format based on magnitude
-    if (num >= 1000000000) return (num / 1000000000).toFixed(2) + 'B';
-    if (num >= 1000000) return (num / 1000000).toFixed(2) + 'M';
-    if (num >= 1000) return (num / 1000).toFixed(2) + 'K';
+    // Format based on magnitude with smart precision
+    // Show more decimals when not a round number
+    if (num >= 1000000000) {
+        const billions = num / 1000000000;
+        return formatWithPrecision(billions) + 'B';
+    }
+    if (num >= 1000000) {
+        const millions = num / 1000000;
+        return formatWithPrecision(millions) + 'M';
+    }
+    if (num >= 1000) {
+        const thousands = num / 1000;
+        return formatWithPrecision(thousands) + 'K';
+    }
     if (num >= 1) return num.toFixed(2);
     if (num > 0) return num.toFixed(4);
     return '0';
+}
+
+// Helper to show appropriate precision (removes trailing zeros)
+function formatWithPrecision(num) {
+    // If it's a whole number, show no decimals
+    if (num === Math.floor(num)) return num.toString();
+    // Otherwise show up to 4 decimals, removing trailing zeros
+    return parseFloat(num.toFixed(4)).toString();
 }
 
 function formatNumber(num) {
