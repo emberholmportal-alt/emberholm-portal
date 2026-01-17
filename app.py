@@ -7075,6 +7075,7 @@ def get_ember_token_balance(wallet):
             "pending": 0,
             "onchain": 0,
             "total_claimed": 0,
+            "total_burned": 0,
             "last_claim": None
         }
 
@@ -7086,7 +7087,7 @@ def get_ember_token_balance(wallet):
 
                 cursor.execute("""
                     SELECT ember_balance, COALESCE(total_ember_claimed, 0) as total_claimed,
-                           last_ember_claim_at
+                           last_ember_claim_at, COALESCE(total_ember_burned, 0) as total_burned
                     FROM user_balances
                     WHERE wallet = %s
                 """, (wallet_lower,))
@@ -7098,6 +7099,7 @@ def get_ember_token_balance(wallet):
                     response["pending"] = float(result[0]) if result[0] else 0
                     response["total_claimed"] = float(result[1]) if result[1] else 0
                     response["last_claim"] = result[2].isoformat() if result[2] else None
+                    response["total_burned"] = float(result[3]) if result[3] else 0
 
             except Exception as e:
                 print(f"⚠️ Error getting pending EMBER balance: {e}")
@@ -7286,6 +7288,75 @@ def get_ember_rewards_pool():
     except Exception as e:
         print(f"❌ Error getting rewards pool: {e}")
         return jsonify({"error": str(e), "remaining": 0}), 500
+
+@app.route('/api/ember/register-burn', methods=['POST'])
+@rate_limit(requests_per_minute=10)
+def register_ember_burn():
+    """
+    Register $EMBER burned when user converts to $ASH.
+    Called by frontend after successful conversion transaction.
+    """
+    conn = None
+    try:
+        data = request.get_json()
+        wallet = data.get('wallet')
+        amount = data.get('amount')
+        tx_hash = data.get('tx_hash')
+
+        if not wallet or not amount:
+            return jsonify({"error": "Wallet and amount required"}), 400
+
+        wallet_lower = wallet.lower()
+        amount = float(amount)
+
+        if amount <= 0:
+            return jsonify({"error": "Amount must be positive"}), 400
+
+        if not POSTGRESQL_AVAILABLE or not db:
+            return jsonify({"error": "Database not available"}), 503
+
+        conn = db.get_connection()
+        cursor = conn.cursor()
+
+        # Update total_ember_burned for the user
+        cursor.execute("""
+            UPDATE user_balances
+            SET total_ember_burned = COALESCE(total_ember_burned, 0) + %s,
+                last_update = NOW()
+            WHERE wallet = %s
+        """, (amount, wallet_lower))
+
+        # If no row was updated, create one
+        if cursor.rowcount == 0:
+            cursor.execute("""
+                INSERT INTO user_balances (wallet, total_ember_burned, created_at, last_update)
+                VALUES (%s, %s, NOW(), NOW())
+                ON CONFLICT (wallet) DO UPDATE SET
+                    total_ember_burned = COALESCE(user_balances.total_ember_burned, 0) + %s,
+                    last_update = NOW()
+            """, (wallet_lower, amount, amount))
+
+        conn.commit()
+        db.release_connection(conn)
+
+        print(f"🔥 Registered EMBER burn: {amount} for {wallet_lower} (tx: {tx_hash})")
+
+        return jsonify({
+            "success": True,
+            "amount": amount,
+            "wallet": wallet_lower,
+            "tx_hash": tx_hash
+        })
+
+    except Exception as e:
+        if conn:
+            try:
+                conn.rollback()
+                db.release_connection(conn)
+            except Exception:
+                pass
+        print(f"❌ Error registering EMBER burn: {e}")
+        return jsonify({"error": str(e)}), 500
 
 # ---------------------------------
 # VAULT API

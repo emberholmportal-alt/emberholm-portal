@@ -2476,6 +2476,7 @@ window.performEmberRoll = async function(emissaryId) {
             const pendingEl = document.getElementById('ember-pending');
             const onchainEl = document.getElementById('ember-onchain');
             const totalEl = document.getElementById('ember-total');
+            const burnedEl = document.getElementById('vault-ember-burned');
 
             if (pendingEl) pendingEl.textContent = formatNumber(data.pending || 0);
             if (onchainEl) onchainEl.textContent = formatNumber(data.onchain || 0);
@@ -2483,6 +2484,9 @@ window.performEmberRoll = async function(emissaryId) {
             // Total = pending + onchain + total_claimed
             const total = (data.pending || 0) + (data.onchain || 0) + (data.total_claimed || 0);
             if (totalEl) totalEl.textContent = formatNumber(total);
+
+            // Show total burned
+            if (burnedEl) burnedEl.textContent = formatNumber(data.total_burned || 0);
 
             // Enable/disable claim button
             const claimBtn = document.getElementById('claim-ember-btn');
@@ -2647,6 +2651,21 @@ window.performEmberRoll = async function(emissaryId) {
                 `Successfully converted ${amount} $EMBER to ${ashAmount} $ASH!`,
                 'success'
             );
+
+            // Register burn in database
+            try {
+                await fetch('/api/ember/register-burn', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        wallet: currentWallet,
+                        amount: amount,
+                        tx_hash: tx.hash
+                    })
+                });
+            } catch (registerError) {
+                console.warn('Failed to register burn:', registerError);
+            }
 
             // Clear input
             if (amountInput) amountInput.value = '';

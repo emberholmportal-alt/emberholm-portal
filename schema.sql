@@ -243,6 +243,9 @@ CREATE INDEX IF NOT EXISTS idx_balances_wallet ON user_balances(wallet);
 ALTER TABLE user_balances ADD COLUMN IF NOT EXISTS total_ember_claimed NUMERIC DEFAULT 0;
 ALTER TABLE user_balances ADD COLUMN IF NOT EXISTS last_ember_claim_at TIMESTAMP;
 
+-- Add EMBER burn tracking column
+ALTER TABLE user_balances ADD COLUMN IF NOT EXISTS total_ember_burned BIGINT DEFAULT 0;
+
 -- -------------------------------------------------------------------------
 -- EXTENSIÓN DE TABLA NFTs: Añadir columnas de equipamiento
 -- -------------------------------------------------------------------------
