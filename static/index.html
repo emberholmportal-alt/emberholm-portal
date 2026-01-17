@@ -9181,13 +9181,34 @@ function switchTokenomicsTab(tabName) {
 // Helpers
 function formatTokenAmount(value, decimals = 18) {
     if (value === null || value === undefined || value === '--' || value === '...') return '...';
-    const num = Number(value) / Math.pow(10, decimals);
-    if (isNaN(num)) return '...';
+
+    // Handle ethers BigNumber properly
+    let num;
+    try {
+        if (value._isBigNumber || (value._hex !== undefined)) {
+            // It's an ethers BigNumber - use formatEther for proper conversion
+            num = parseFloat(ethers.utils.formatEther(value));
+        } else if (typeof value === 'string' && value.startsWith('0x')) {
+            // Hex string - convert via BigNumber
+            num = parseFloat(ethers.utils.formatEther(ethers.BigNumber.from(value)));
+        } else {
+            // Regular number or string number
+            num = Number(value) / Math.pow(10, decimals);
+        }
+    } catch (e) {
+        console.warn('formatTokenAmount conversion error:', e, value);
+        num = Number(value) / Math.pow(10, decimals);
+    }
+
+    if (isNaN(num) || num < 0) return '...';
+
+    // Format based on magnitude
     if (num >= 1000000000) return (num / 1000000000).toFixed(2) + 'B';
     if (num >= 1000000) return (num / 1000000).toFixed(2) + 'M';
     if (num >= 1000) return (num / 1000).toFixed(2) + 'K';
     if (num >= 1) return num.toFixed(2);
-    return num.toFixed(4);
+    if (num > 0) return num.toFixed(4);
+    return '0';
 }
 
 function formatNumber(num) {
