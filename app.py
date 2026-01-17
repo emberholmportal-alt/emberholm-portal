@@ -7123,6 +7123,12 @@ def claim_ember_tokens():
     Claim pending $EMBER tokens (gasless - paid by claimer wallet).
     The backend sends the transaction using the claimer wallet.
     """
+    conn = None
+    cursor = None
+    tx_hash = None
+    pending_balance = None
+    wallet_lower = None
+
     try:
         data = request.get_json()
         wallet = data.get('wallet')
@@ -7157,7 +7163,6 @@ def claim_ember_tokens():
         result = cursor.fetchone()
 
         if not result or result[0] <= 0:
-            db.release_connection(conn)
             return jsonify({"error": "No EMBER balance to claim", "balance": 0}), 400
 
         pending_balance = float(result[0])
@@ -7169,7 +7174,6 @@ def claim_ember_tokens():
         try:
             rewards_remaining = ember_contract.functions.rewardsRemaining().call()
             if amount_wei > rewards_remaining:
-                db.release_connection(conn)
                 return jsonify({"error": "Insufficient rewards in pool"}), 500
         except Exception as e:
             print(f"⚠️ Could not check rewards pool: {e}")
@@ -7198,34 +7202,71 @@ def claim_ember_tokens():
 
         if receipt['status'] == 1:
             # 7. Update database - reset pending balance, increment total claimed
-            cursor.execute("""
-                UPDATE user_balances
-                SET ember_balance = 0,
-                    total_ember_claimed = COALESCE(total_ember_claimed, 0) + %s,
-                    last_ember_claim_at = NOW()
-                WHERE wallet = %s
-            """, (pending_balance, wallet_lower))
+            try:
+                cursor.execute("""
+                    UPDATE user_balances
+                    SET ember_balance = 0,
+                        total_ember_claimed = COALESCE(total_ember_claimed, 0) + %s,
+                        last_ember_claim_at = NOW()
+                    WHERE wallet = %s
+                """, (pending_balance, wallet_lower))
 
-            conn.commit()
-            db.release_connection(conn)
+                conn.commit()
 
-            print(f"✅ EMBER claimed: {pending_balance} to {wallet[:10]}... TX: {tx_hash.hex()}")
+                print(f"✅ EMBER claimed: {pending_balance} to {wallet[:10]}... TX: {tx_hash.hex()}")
 
-            return jsonify({
-                "success": True,
-                "amount": pending_balance,
-                "tx_hash": tx_hash.hex(),
-                "message": f"Successfully claimed {pending_balance} $EMBER"
-            })
+                return jsonify({
+                    "success": True,
+                    "amount": pending_balance,
+                    "tx_hash": tx_hash.hex(),
+                    "message": f"Successfully claimed {pending_balance} $EMBER"
+                })
+
+            except Exception as db_error:
+                # CRITICAL: TX on-chain succeeded but DB update failed
+                # Log for manual recovery - tokens were sent successfully
+                print(f"⚠️ CRITICAL: TX success but DB update failed!")
+                print(f"   TX Hash: {tx_hash.hex()}")
+                print(f"   Wallet: {wallet_lower}")
+                print(f"   Amount: {pending_balance}")
+                print(f"   DB Error: {db_error}")
+
+                # Still return success because tokens were sent
+                return jsonify({
+                    "success": True,
+                    "amount": pending_balance,
+                    "tx_hash": tx_hash.hex(),
+                    "message": f"Successfully claimed {pending_balance} $EMBER",
+                    "warning": "Balance update may be delayed - tokens were sent"
+                })
         else:
-            db.release_connection(conn)
             return jsonify({"error": "Transaction failed on-chain"}), 500
 
     except Exception as e:
         print(f"❌ Error in claim_ember_tokens: {e}")
         import traceback
         traceback.print_exc()
+
+        # If TX was sent but we got an error, log for recovery
+        if tx_hash:
+            print(f"⚠️ TX may have been sent: {tx_hash.hex() if hasattr(tx_hash, 'hex') else tx_hash}")
+            print(f"   Wallet: {wallet_lower}")
+            print(f"   Amount: {pending_balance}")
+
         return jsonify({"error": str(e)}), 500
+
+    finally:
+        # ALWAYS release database connection
+        if cursor:
+            try:
+                cursor.close()
+            except Exception:
+                pass
+        if conn:
+            try:
+                db.release_connection(conn)
+            except Exception:
+                pass
 
 @app.route('/api/ember/rewards-pool', methods=['GET'])
 def get_ember_rewards_pool():
