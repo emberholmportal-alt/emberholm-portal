@@ -8799,26 +8799,42 @@ def burn_ember():
         print(f"Error burning EMBER: {e}")
         return jsonify({"error": str(e)}), 500
 
+# Treasury wallet for revive payments
+TREASURY_WALLET = '0x31d6E19aAE43B5E2fbeDb01b6FF82AD1e8B576DC'
+
 @app.route('/api/revive', methods=['POST'])
 def revive_emissary():
-    """Revive a fallen emissary using $EMBER"""
+    """
+    Revive a fallen emissary after on-chain $EMBER payment to Treasury.
+
+    Expects:
+    {
+        "wallet": "0x...",
+        "emissary_id": "00001",
+        "tx_hash": "0x...",  // Transaction hash of EMBER transfer to Treasury
+        "amount": 200        // Amount of EMBER sent
+    }
+    """
     data = request.get_json()
     emissary_id = data.get('emissary_id')
     wallet = data.get('wallet', '').lower()
+    tx_hash = data.get('tx_hash', '')
+    amount = data.get('amount', 0)
 
-    if not all([emissary_id, wallet]):
-        return jsonify({"error": "Missing required fields"}), 400
+    if not all([emissary_id, wallet, tx_hash]):
+        return jsonify({"success": False, "error": "Missing required fields (emissary_id, wallet, tx_hash)"}), 400
 
     if not POSTGRESQL_AVAILABLE:
-        return jsonify({"success": False, "message": "Database not available"}), 503
+        return jsonify({"success": False, "error": "Database not available"}), 503
 
+    conn = None
     try:
         conn = db.get_connection()
         cursor = conn.cursor()
 
-        # Get emissary state and death count
+        # Get emissary state, death count, and name
         cursor.execute("""
-            SELECT dynamic_state->>'death_count', dynamic_state->>'state'
+            SELECT dynamic_state->>'death_count', dynamic_state->>'state', name
             FROM nfts
             WHERE token_id = %s
         """, (emissary_id,))
@@ -8826,37 +8842,33 @@ def revive_emissary():
         nft_row = cursor.fetchone()
         if not nft_row:
             db.release_connection(conn)
-            return jsonify({"error": "Emissary not found"}), 404
+            return jsonify({"success": False, "error": "Emissary not found"}), 404
 
         death_count = int(nft_row[0] or 1)
         state = nft_row[1]
+        emissary_name = nft_row[2] or f"Emissary #{emissary_id}"
 
-        # 🔥 CRITICAL FIX: Check for 'FALLEN' state (not 'dead')
+        # Check for 'FALLEN' state
         if state != 'FALLEN':
             db.release_connection(conn)
-            return jsonify({"error": "Emissary is not fallen"}), 400
+            return jsonify({"success": False, "error": "Emissary is not fallen"}), 400
 
-        # Get revive cost in $EMBER based on death count
-        cost = get_revive_cost_ember(death_count)
-
-        # Check $EMBER balance (pending balance in user_balances)
-        cursor.execute("SELECT ember_balance FROM user_balances WHERE wallet = %s", (wallet,))
-        balance_row = cursor.fetchone()
-
-        if not balance_row or balance_row[0] < cost:
+        # Verify expected cost
+        expected_cost = get_revive_cost_ember(death_count)
+        if int(amount) < expected_cost:
             db.release_connection(conn)
             return jsonify({
-                "error": "Insufficient $EMBER",
-                "required": cost,
-                "available": balance_row[0] if balance_row else 0
+                "success": False,
+                "error": f"Insufficient payment. Required: {expected_cost} $EMBER, Received: {amount}"
             }), 400
 
-        # Deduct $EMBER
+        # Check if this TX hash was already used (prevent double-revive)
         cursor.execute("""
-            UPDATE user_balances
-            SET ember_balance = ember_balance - %s
-            WHERE wallet = %s
-        """, (cost, wallet))
+            SELECT id FROM revive_log WHERE tx_hash = %s
+        """, (tx_hash,))
+        if cursor.fetchone():
+            db.release_connection(conn)
+            return jsonify({"success": False, "error": "This transaction has already been used for a revive"}), 400
 
         # 🔥 Revive emissary with stats at 0 (except energy at 100)
         cursor.execute("""
@@ -8871,22 +8883,38 @@ def revive_emissary():
             WHERE token_id = %s
         """, (emissary_id,))
 
+        # Log the revive transaction
+        cursor.execute("""
+            INSERT INTO revive_log (wallet, emissary_id, amount, tx_hash, death_count, created_at)
+            VALUES (%s, %s, %s, %s, %s, NOW())
+            ON CONFLICT (tx_hash) DO NOTHING
+        """, (wallet, emissary_id, amount, tx_hash, death_count))
+
         conn.commit()
-        db.release_connection(conn)
+
+        print(f"✨ REVIVE SUCCESS: {emissary_name} (#{emissary_id}) revived by {wallet[:10]}... TX: {tx_hash[:16]}...")
 
         return jsonify({
             "success": True,
-            "message": "Emissary revived! Starting fresh with 0 XP and 0 Aura.",
-            "ember_spent": cost,
+            "emissary_id": emissary_id,
+            "emissary_name": emissary_name,
+            "tx_hash": tx_hash,
+            "ember_spent": amount,
             "death_count": death_count,
-            "next_revive_cost": get_revive_cost_ember(death_count + 1)
+            "message": f"{emissary_name} has been revived!"
         })
 
     except Exception as e:
+        if conn:
+            conn.rollback()
         print(f"Error reviving emissary: {e}")
         import traceback
         traceback.print_exc()
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"success": False, "error": str(e)}), 500
+
+    finally:
+        if conn:
+            db.release_connection(conn)
 
 # ---------------------------------
 # 🔒 DATABASE LOCK HELPERS (Prevent Race Conditions)

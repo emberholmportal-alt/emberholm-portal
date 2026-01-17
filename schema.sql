@@ -309,6 +309,29 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+-- -------------------------------------------------------------------------
+-- TABLA: REVIVE LOG (Death/Revival System)
+-- -------------------------------------------------------------------------
+-- Tracks all emissary revives with on-chain transaction hashes
+-- Prevents double-spending by enforcing unique tx_hash
+CREATE TABLE IF NOT EXISTS revive_log (
+    id SERIAL PRIMARY KEY,
+    wallet VARCHAR(42) NOT NULL,                         -- Wallet address
+    emissary_id VARCHAR(10) NOT NULL,                    -- Token ID of the emissary
+    amount INTEGER NOT NULL,                             -- $EMBER amount spent
+    tx_hash VARCHAR(66) NOT NULL UNIQUE,                 -- On-chain transaction hash
+    death_count INTEGER NOT NULL,                        -- Death count at time of revive
+    created_at TIMESTAMP DEFAULT NOW(),
+
+    CONSTRAINT fk_revive_log_nft FOREIGN KEY (emissary_id)
+        REFERENCES nfts(token_id) ON DELETE CASCADE
+);
+
+-- Índices para revive_log
+CREATE INDEX IF NOT EXISTS idx_revive_log_wallet ON revive_log(wallet);
+CREATE INDEX IF NOT EXISTS idx_revive_log_emissary ON revive_log(emissary_id);
+CREATE INDEX IF NOT EXISTS idx_revive_log_tx ON revive_log(tx_hash);
+
 -- =========================================================================
 -- SCHEMA COMPLETO
 -- =========================================================================
