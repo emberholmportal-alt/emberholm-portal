@@ -7195,7 +7195,9 @@ def claim_ember_tokens():
 
         # 5. Sign and send transaction
         signed_txn = ember_w3.eth.account.sign_transaction(txn, CLAIMER_PRIVATE_KEY)
-        tx_hash = ember_w3.eth.send_raw_transaction(signed_txn.raw_transaction)
+        # Compatible with both old (raw_transaction) and new (rawTransaction) Web3.py versions
+        raw_tx = getattr(signed_txn, 'rawTransaction', None) or getattr(signed_txn, 'raw_transaction', None)
+        tx_hash = ember_w3.eth.send_raw_transaction(raw_tx)
 
         # 6. Wait for confirmation (with timeout)
         receipt = ember_w3.eth.wait_for_transaction_receipt(tx_hash, timeout=120)
