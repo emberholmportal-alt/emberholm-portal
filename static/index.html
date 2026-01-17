@@ -1378,11 +1378,30 @@ document.addEventListener('DOMContentLoaded', initPortalWarning);
                         <div class="subheading" style="margin-bottom:8px;">ECONOMY BALANCE</div>
                         <div style="font-size:13px; line-height:1.8;">
                             <div class="balance-ember">
-                                <img src="/img/moneybag.png" class="pixel-icon" alt=""> $EMBER: <span id="ember-balance" style="color:var(--gold); font-weight:600;">0</span>
+                                <img src="/img/moneybag.png" class="pixel-icon" alt=""> $EMBER: <span id="profile-ember-balance" style="color:var(--gold); font-weight:600;">--</span>
                             </div>
-                            <div id="ash-balance-display" class="balance-ash" style="display:none; margin-top:5px;">
-                                <img src="/img/fire.png" class="pixel-icon" alt=""> $ASH: <span id="ash-balance" style="color:#ff6b6b; font-weight:600;">0</span>
+                            <div class="balance-ash" style="margin-top:5px;">
+                                <img src="/img/fire.png" class="pixel-icon" alt=""> $ASH: <span id="profile-ash-balance" style="color:#ff6b6b; font-weight:600;">--</span>
                             </div>
+                        </div>
+
+                        <!-- Pending Claim Section -->
+                        <div id="profile-pending-section" style="margin-top:12px; padding:10px; border:1px dashed var(--gold); background:rgba(255,215,0,0.05); display:none;">
+                            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+                                <span style="color:var(--gold); font-size:12px;">
+                                    <img src="/img/chest.png" class="pixel-icon" alt="" style="width:14px; height:14px;">
+                                    PENDING: <span id="profile-ember-pending" style="font-weight:600;">0</span> $EMBER
+                                </span>
+                                <button class="terminal-btn small-btn" id="profile-claim-btn" onclick="claimEmberFromProfile()" style="font-size:11px; padding:4px 10px;">[CLAIM]</button>
+                            </div>
+                        </div>
+
+                        <!-- Vault Navigation -->
+                        <div style="margin-top:15px; padding-top:12px; border-top:1px solid var(--border-primary);">
+                            <div style="font-size:11px; color:#888; font-style:italic; margin-bottom:8px;">
+                                "The VAULT holds the true measure of a warrior's conquest..."
+                            </div>
+                            <button class="terminal-btn small-btn" onclick="showScreen('vault')" style="width:100%;">[ENTER VAULT]</button>
                         </div>
                     </div>
 
@@ -4935,6 +4954,9 @@ async function connectWallet() {
             updateVaultWalletUI();
         }
 
+        // 🔥 Load Profile balances (EMBER + ASH)
+        loadProfileBalances();
+
         // 🔥 Hide glitch overlay on success
         hideGlitchOverlay();
 
@@ -4975,6 +4997,11 @@ function disconnectWallet() {
     document.getElementById("prime-emissary-card").innerHTML = `<div class="character-sheet-empty">NO DATA</div>`;
     document.getElementById("roster-table-wrap").innerHTML = "";
 
+    // 🔥 Reset profile balances
+    document.getElementById('profile-ember-balance').textContent = '--';
+    document.getElementById('profile-ash-balance').textContent = '--';
+    document.getElementById('profile-pending-section').style.display = 'none';
+
     // 🔥 Update Vault UI
     if (typeof updateVaultWalletUI === 'function') {
         updateVaultWalletUI();
@@ -5002,6 +5029,77 @@ function updateWalletButtonsVisibility() {
         // Vault buttons
         document.getElementById("vault-connect-btn").style.display = "inline-block";
         document.getElementById("vault-disconnect-btn").style.display = "none";
+    }
+}
+
+// 🔥 PROFILE BALANCE FUNCTIONS
+async function loadProfileBalances() {
+    if (!connectedWallet) {
+        // Reset display if no wallet
+        document.getElementById('profile-ember-balance').textContent = '--';
+        document.getElementById('profile-ash-balance').textContent = '--';
+        document.getElementById('profile-pending-section').style.display = 'none';
+        return;
+    }
+
+    try {
+        // Fetch EMBER balance from backend
+        const emberResponse = await fetch(`/api/ember/balance/${encodeURIComponent(connectedWallet)}`);
+        if (emberResponse.ok) {
+            const data = await emberResponse.json();
+            const pendingEmber = data.pending || 0;
+            const onchainEmber = data.onchain || 0;
+            const totalEmber = pendingEmber + onchainEmber;
+
+            // Update total EMBER display
+            document.getElementById('profile-ember-balance').textContent = formatNumber(totalEmber);
+
+            // Show/hide pending section
+            const pendingSection = document.getElementById('profile-pending-section');
+            if (pendingEmber > 0) {
+                pendingSection.style.display = 'block';
+                document.getElementById('profile-ember-pending').textContent = formatNumber(pendingEmber);
+            } else {
+                pendingSection.style.display = 'none';
+            }
+        }
+
+        // Fetch ASH balance on-chain
+        if (window.ethereum) {
+            const provider = new ethers.providers.Web3Provider(window.ethereum);
+            const ashContract = new ethers.Contract(
+                CONTRACT_CONFIG.CONTRACTS.AshToken,
+                CONTRACT_CONFIG.ASH_TOKEN_ABI,
+                provider
+            );
+            const ashBalanceWei = await ashContract.balanceOf(connectedWallet);
+            const ashBalance = parseFloat(ethers.utils.formatEther(ashBalanceWei));
+            document.getElementById('profile-ash-balance').textContent = formatNumber(ashBalance);
+        }
+
+        console.log('📊 Profile balances loaded');
+    } catch (error) {
+        console.error('Error loading profile balances:', error);
+        document.getElementById('profile-ember-balance').textContent = 'Error';
+        document.getElementById('profile-ash-balance').textContent = 'Error';
+    }
+}
+
+// Claim EMBER directly from Profile section
+async function claimEmberFromProfile() {
+    if (!connectedWallet) {
+        showInfoModal('WALLET REQUIRED', 'Please connect your wallet first.');
+        return;
+    }
+
+    // Check if inventory.js claimEmber is available
+    if (window.claimEmber && typeof window.claimEmber === 'function') {
+        await window.claimEmber();
+        // Refresh profile balances after claim
+        await loadProfileBalances();
+    } else {
+        // Fallback: redirect to vault
+        showInfoModal('CLAIM EMBER', 'Please go to the VAULT to claim your $EMBER rewards.\n\nClick [ENTER VAULT] below.');
     }
 }
 
