@@ -3724,7 +3724,7 @@ def handle_party_mission_start(wallet, hero_ids, mission_id):
 
             # Validations
             if ds.get("state") == "FALLEN":
-                abort(400, f"Hero {hero_id} is fallen. Perform reinvocation ritual first.")
+                abort(400, f"Hero {hero_id} is fallen. Use the [REVIVE] button to resurrect with $EMBER first.")
 
             if ds.get("state") == "ON_MISSION":
                 abort(400, f"Hero {hero_id} is already on a mission")
@@ -3908,7 +3908,7 @@ def api_mission_start():
 
         # Check if hero is fallen
         if ds.get("state") == "FALLEN":
-            abort(400, "Hero is fallen. Perform reinvocation ritual first.")
+            abort(400, "Hero is fallen. Use the [REVIVE] button to resurrect with $EMBER first.")
 
         # Check if hero is already on a mission
         if ds.get("state") == "ON_MISSION":
@@ -4345,9 +4345,13 @@ def handle_party_mission_complete(wallet, party_mission):
             stats_obj["missions_failed"] = stats_obj.get("missions_failed", 0) + 1
 
         elif outcome == "DEATH":
-            ds["xp_total"] = max(0, ds.get("xp_total", 0) - xp_loss)
+            # 🔥 DEATH: Reset ALL stats to 0
             ds["state"] = "FALLEN"
+            ds["fallen_time"] = now_utc_str()
             ds["death_count"] = ds.get("death_count", 0) + 1
+            ds["xp_total"] = 0           # Reset to 0
+            ds["aura_level"] = 0         # Reset to 0
+            ds["energy_current"] = 0     # Reset to 0
             ds["total_missions_failed"] = ds.get("total_missions_failed", 0) + 1
 
             # Update mission history (even on death, still cooldown)
@@ -4356,6 +4360,7 @@ def handle_party_mission_complete(wallet, party_mission):
             ds["mission_history"][mission_id] = now_utc_str()
 
             stats_obj["missions_failed"] = stats_obj.get("missions_failed", 0) + 1
+            stats_obj["total_deaths"] = stats_obj.get("total_deaths", 0) + 1
 
         # Clear mission state
         ds["mission_start_time"] = None
@@ -4886,7 +4891,7 @@ def api_mission_complete():
 
         elif outcome == "DEATH":
             print("   Processing DEATH...")
-            # Hero died
+            # 🔥 DEATH: Reset ALL stats to 0
             ds["state"] = "FALLEN"
             ds["fallen_time"] = now_utc_str()
             ds["current_mission_id"] = None
@@ -4894,13 +4899,16 @@ def api_mission_complete():
             ds["last_mission"] = f"{mission['name']} (Fallen)"
 
             # Increment death count
-            death_count = ds.get("death_count", 0)
-            ds["death_count"] = death_count + 1
+            death_count = ds.get("death_count", 0) + 1
+            ds["death_count"] = death_count
+            ds["xp_total"] = 0           # Reset to 0
+            ds["aura_level"] = 0         # Reset to 0
+            ds["energy_current"] = 0     # Reset to 0
             print(f"   Death count now: {ds['death_count']}")
 
-            # Calculate reinvocation cost
-            xp_cost, aura_cost = get_death_cost(death_count)
-            print(f"   Reinvocation cost: XP={xp_cost}, Aura={aura_cost}")
+            # Calculate revival cost in $EMBER
+            revive_cost = get_revive_cost_ember(death_count)
+            print(f"   Revival cost: {revive_cost} $EMBER")
 
             # Update stats
             stats_obj["missions_failed"] = stats_obj.get("missions_failed", 0) + 1
@@ -4931,11 +4939,8 @@ def api_mission_complete():
                 "hero_id": hero_id,
                 "mission_name": mission["name"],
                 "death_count": ds["death_count"],
-                "reinvocation_cost": {
-                    "xp": xp_cost,
-                    "aura": aura_cost
-                },
-                "message": f"💀 FALLEN: {hero.get('name', 'Emissary')} has fallen in {mission['name']}. Reinvocation ritual required."
+                "revive_cost_ember": revive_cost,
+                "message": f"💀 FALLEN: {hero.get('name', 'Emissary')} has fallen in {mission['name']}. Revival costs {revive_cost} $EMBER."
             })
 
         else:
@@ -4964,7 +4969,19 @@ def api_mission_complete():
 @app.route("/api/ritual/reinvoke", methods=["POST"])
 def api_ritual_reinvoke():
     """
-    Perform reinvocation ritual for a fallen hero.
+    🔥 DEPRECATED: Reinvoke ritual has been replaced by $EMBER revival.
+    Use /api/revive instead.
+    """
+    return jsonify({
+        "error": "Reinvoke ritual has been deprecated",
+        "message": "Use /api/revive with $EMBER instead. The XP/Aura sacrifice system has been removed.",
+        "new_endpoint": "/api/revive"
+    }), 410  # 410 Gone
+
+# 🔥 LEGACY CODE - Kept for reference but not executed
+def _legacy_api_ritual_reinvoke():
+    """
+    [DEPRECATED] Perform reinvocation ritual for a fallen hero.
     POST: {
         "wallet": "0x...",
         "fallen_hero_id": "00001",
@@ -6932,12 +6949,21 @@ ENERGY_RESTORE_COSTS = {
     100: 150
 }
 
-REVIVE_COSTS = {
-    1: 25,
-    2: 50,
-    3: 100,
-    4: 200  # Max cost for 4+ deaths
+# 🔥 REVIVE COSTS in $EMBER (progressive by death count)
+REVIVE_COSTS_EMBER = {
+    1: 200,      # 1st death
+    2: 500,      # 2nd death
+    3: 1000,     # 3rd death
+    4: 2500,     # 4th death
+    5: 5000,     # 5th death
+    6: 10000     # 6th+ death (maximum)
 }
+
+def get_revive_cost_ember(death_count):
+    """Get revival cost in $EMBER based on death count"""
+    if death_count >= 6:
+        return 10000
+    return REVIVE_COSTS_EMBER.get(death_count, 10000)
 
 BURN_RATE = 1000  # 1000 EMBER = 1 ASH
 
@@ -8775,10 +8801,7 @@ def burn_ember():
 
 @app.route('/api/revive', methods=['POST'])
 def revive_emissary():
-    """Revive a dead emissary using ASH"""
-    if not FEATURES["ASH_PROTOCOL_ENABLED"]:
-        return jsonify({"error": "ASH Protocol not enabled"}), 403
-
+    """Revive a fallen emissary using $EMBER"""
     data = request.get_json()
     emissary_id = data.get('emissary_id')
     wallet = data.get('wallet', '').lower()
@@ -8793,49 +8816,58 @@ def revive_emissary():
         conn = db.get_connection()
         cursor = conn.cursor()
 
-        # Get emissary death count
+        # Get emissary state and death count
         cursor.execute("""
-            SELECT dynamic_state->>'deaths', dynamic_state->>'state'
+            SELECT dynamic_state->>'death_count', dynamic_state->>'state'
             FROM nfts
             WHERE token_id = %s
         """, (emissary_id,))
 
         nft_row = cursor.fetchone()
         if not nft_row:
+            db.release_connection(conn)
             return jsonify({"error": "Emissary not found"}), 404
 
-        deaths = int(nft_row[0] or 0)
+        death_count = int(nft_row[0] or 1)
         state = nft_row[1]
 
-        if state != 'dead':
-            return jsonify({"error": "Emissary is not dead"}), 400
+        # 🔥 CRITICAL FIX: Check for 'FALLEN' state (not 'dead')
+        if state != 'FALLEN':
+            db.release_connection(conn)
+            return jsonify({"error": "Emissary is not fallen"}), 400
 
-        # Get revive cost based on deaths
-        death_count = min(deaths, 4)
-        cost = REVIVE_COSTS.get(death_count, REVIVE_COSTS[4])
+        # Get revive cost in $EMBER based on death count
+        cost = get_revive_cost_ember(death_count)
 
-        # Check ASH balance
-        cursor.execute("SELECT ash_balance FROM user_balances WHERE wallet = %s", (wallet,))
+        # Check $EMBER balance (pending balance in user_balances)
+        cursor.execute("SELECT ember_balance FROM user_balances WHERE wallet = %s", (wallet,))
         balance_row = cursor.fetchone()
 
         if not balance_row or balance_row[0] < cost:
-            return jsonify({"error": "Insufficient ASH"}), 400
+            db.release_connection(conn)
+            return jsonify({
+                "error": "Insufficient $EMBER",
+                "required": cost,
+                "available": balance_row[0] if balance_row else 0
+            }), 400
 
-        # Deduct ASH
+        # Deduct $EMBER
         cursor.execute("""
             UPDATE user_balances
-            SET ash_balance = ash_balance - %s
+            SET ember_balance = ember_balance - %s
             WHERE wallet = %s
         """, (cost, wallet))
 
-        # Revive emissary
+        # 🔥 Revive emissary with stats at 0 (except energy at 100)
         cursor.execute("""
             UPDATE nfts
-            SET dynamic_state = jsonb_set(
-                jsonb_set(dynamic_state, '{state}', '"ready"'),
-                '{energy_current}',
-                '100'
-            )
+            SET dynamic_state = dynamic_state
+                || '{"state": "READY"}'::jsonb
+                || '{"xp_total": 0}'::jsonb
+                || '{"aura_level": 0}'::jsonb
+                || '{"energy_current": 100}'::jsonb
+                || '{"fallen_time": null}'::jsonb,
+            last_update = NOW()
             WHERE token_id = %s
         """, (emissary_id,))
 
@@ -8844,12 +8876,16 @@ def revive_emissary():
 
         return jsonify({
             "success": True,
-            "message": "Emissary revived",
-            "ash_spent": cost
+            "message": "Emissary revived! Starting fresh with 0 XP and 0 Aura.",
+            "ember_spent": cost,
+            "death_count": death_count,
+            "next_revive_cost": get_revive_cost_ember(death_count + 1)
         })
 
     except Exception as e:
         print(f"Error reviving emissary: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({"error": str(e)}), 500
 
 # ---------------------------------
@@ -9092,9 +9128,13 @@ def complete_mission_with_lock(wallet, hero_id):
                     ds['state'] = 'READY'
 
                 elif outcome == 'DEATH':
+                    # 🔥 DEATH: Reset ALL stats to 0
                     ds['state'] = 'FALLEN'
                     ds['fallen_time'] = now_utc_str()
                     ds['death_count'] = ds.get('death_count', 0) + 1
+                    ds['xp_total'] = 0           # Reset to 0
+                    ds['aura_level'] = 0         # Reset to 0
+                    ds['energy_current'] = 0     # Reset to 0
 
                 # Common updates
                 ds['current_mission_id'] = None
@@ -9274,7 +9314,7 @@ def start_mission_with_lock(wallet, hero_id, mission_id, equipment_bonuses=None)
                 # Step 2: Verify hero state
                 state = ds.get('state', 'READY')
                 if state == 'FALLEN':
-                    return {'error': 'Hero is fallen. Perform reinvocation ritual first.'}, 400
+                    return {'error': 'Hero is fallen. Use the [REVIVE] button to resurrect with $EMBER first.'}, 400
                 if state == 'ON_MISSION':
                     return {'error': 'Hero is already on a mission'}, 400
 

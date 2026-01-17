@@ -3799,30 +3799,42 @@ document.addEventListener('DOMContentLoaded', initPortalWarning);
 <div class="modal-overlay" id="revive-modal" style="display:none;">
     <div class="terminal-modal">
         <div class="terminal-modal-header">
-            ASH PROTOCOL // REVIVE EMISSARY
+            ☠ REVIVE FALLEN EMISSARY
             <button class="terminal-modal-close" onclick="closeReviveModal()">×</button>
         </div>
         <div class="terminal-modal-body">
-            <div class="subheading">REVIVE DEAD EMISSARY WITH $ASH</div>
+            <div class="subheading">RESURRECT YOUR FALLEN EMISSARY</div>
 
-            <p>Bring your fallen emissary back to life using $ASH.</p>
+            <p style="color:#ff6666;">Your emissary has fallen in battle. Use $EMBER to bring them back.</p>
 
             <div class="mono-block" style="margin:20px 0;">
-                <div class="subheading">REVIVE COSTS</div>
+                <div class="subheading">REVIVE COSTS (Progressive)</div>
                 <div style="font-size:12px; line-height:1.8;">
-                    1st Death: 25 $ASH<br/>
-                    2nd Death: 50 $ASH<br/>
-                    3rd Death: 100 $ASH<br/>
-                    4th+ Death: 200 $ASH (max)
+                    <span style="color:#44ff44;">1st Death:</span> 200 $EMBER<br/>
+                    <span style="color:#88ff88;">2nd Death:</span> 500 $EMBER<br/>
+                    <span style="color:#ffaa00;">3rd Death:</span> 1,000 $EMBER<br/>
+                    <span style="color:#ff8800;">4th Death:</span> 2,500 $EMBER<br/>
+                    <span style="color:#ff4444;">5th Death:</span> 5,000 $EMBER<br/>
+                    <span style="color:#ff0000;">6th+ Death:</span> 10,000 $EMBER (max)
                 </div>
             </div>
 
-            <p style="margin-top:20px;">Emissary: <span id="revive-emissary-name">--</span></p>
-            <p>Cost: <span id="revive-cost">-- $ASH</span></p>
-            <p>Your Balance: <span id="revive-balance">[A] 0 $ASH</span></p>
+            <div class="revive-warning">
+                ⚠ Warning: Emissary will revive with <b>0 XP</b> and <b>0 Aura</b>.<br/>
+                All progress will be lost. Equipment will be preserved.
+            </div>
 
-            <div class="modal-buttons">
-                <button class="modal-btn btn-revive" id="revive-confirm-btn">[REVIVE]</button>
+            <div style="margin-top:20px; padding:10px; background:rgba(0,0,0,0.3); border:1px solid var(--border-primary);">
+                <p>Emissary: <span id="revive-emissary-name" style="color:var(--gold); font-weight:bold;">--</span></p>
+                <p>Death Count: <span id="revive-death-count" style="color:#ff6666;">--</span></p>
+                <p style="font-size:16px; margin-top:10px;">
+                    Revival Cost: <span id="revive-cost" style="color:var(--gold); font-weight:bold; font-size:18px;">-- $EMBER</span>
+                </p>
+                <p>Your $EMBER: <span id="revive-balance" style="color:#44ff44;">0</span></p>
+            </div>
+
+            <div class="modal-buttons" style="margin-top:20px;">
+                <button class="modal-btn revive-btn" id="revive-confirm-btn">[REVIVE WITH $EMBER]</button>
                 <button class="modal-btn" onclick="closeReviveModal()">[CANCEL]</button>
             </div>
         </div>
@@ -5979,20 +5991,26 @@ async function loadPlayerAndRender(){
                     </div>`;
             }
 
+            // 🔥 Add fallen class for dead emissaries
+            const fallenClass = state === "FALLEN" ? "fallen" : "";
+            const nameClass = state === "FALLEN" ? "hero-name fallen" : "hero-name";
+
             tbodyRows += `
             <tr>
                 <td>
                     <div style="display:flex; align-items:center; gap:8px;">
-                        <div style="display:flex; flex-direction:column; align-items:center; gap:2px;">
+                        <div style="display:flex; flex-direction:column; align-items:center; gap:2px; position:relative;">
                             <img src="${h.image_url || '/img/emissary-placeholder.png'}"
                                  alt="${h.name}"
                                  loading="lazy"
+                                 class="hero-image ${fallenClass}"
                                  style="width:40px; height:40px; border:1px solid var(--line); object-fit:cover;"
                                  onerror="this.src='/img/emissary-placeholder.png'"/>
+                            ${state === "FALLEN" ? '<div class="fallen-overlay">☠</div>' : ''}
                             <div style="font-size:0.8em; color:#888;">ID: ${h.token_id}</div>
                         </div>
                         <div>
-                            <div>${h.name || h.token_id}</div>
+                            <div class="${nameClass}">${h.name || h.token_id}</div>
                             ${window.renderEquipmentIndicators ? window.renderEquipmentIndicators(h) : ''}
                             <div style="display:flex; gap:4px; margin-top:2px;">
                                 <button class="terminal-btn" style="font-size:0.6rem; padding:2px 6px;"
@@ -6540,7 +6558,26 @@ async function startMission(heroId, missionId, missionName) {
     );
 }
 
-// Open reinvocation modal
+// 🔥 REVIVE COSTS in $EMBER (must match backend)
+const REVIVE_COSTS_EMBER = {
+    1: 200,      // 1st death
+    2: 500,      // 2nd death
+    3: 1000,     // 3rd death
+    4: 2500,     // 4th death
+    5: 5000,     // 5th death
+    6: 10000     // 6th+ death (maximum)
+};
+
+function getReviveCostEmber(deathCount) {
+    if (deathCount >= 6) return 10000;
+    return REVIVE_COSTS_EMBER[deathCount] || 10000;
+}
+
+// Current revive modal state
+let currentReviveHeroId = null;
+let currentReviveCost = 0;
+
+// Open revive modal (replaces old reinvoke modal)
 async function openReinvokeModal(fallenHeroId) {
     if (!connectedWallet) {
         showInfoModal("WALLET REQUIRED", "Please connect your wallet first!");
@@ -6562,133 +6599,132 @@ async function openReinvokeModal(fallenHeroId) {
             return;
         }
 
-        // Get death count and calculate cost
+        // Get death count and calculate $EMBER cost
         const deathCount = ds.death_count || 1;
-        let xpCost, auraCost;
-        if (deathCount === 1) {
-            xpCost = 500;
-            auraCost = 100;
-        } else if (deathCount === 2) {
-            xpCost = 1500;
-            auraCost = 300;
-        } else if (deathCount === 3) {
-            xpCost = 5000;
-            auraCost = 1000;
+        const emberCost = getReviveCostEmber(deathCount);
+
+        // Store for confirm button
+        currentReviveHeroId = fallenHeroId;
+        currentReviveCost = emberCost;
+
+        // Get $EMBER balance
+        let emberBalance = 0;
+        try {
+            const balanceRes = await fetch(`/api/ember/balance/${encodeURIComponent(connectedWallet)}`);
+            if (balanceRes.ok) {
+                const balanceData = await balanceRes.json();
+                emberBalance = balanceData.pending || 0;
+            }
+        } catch (e) {
+            console.error("Error fetching EMBER balance:", e);
+        }
+
+        // Update modal UI
+        document.getElementById('revive-emissary-name').textContent = fallenHero.name || `Emissary #${fallenHeroId}`;
+        document.getElementById('revive-death-count').textContent = deathCount;
+        document.getElementById('revive-cost').textContent = `${emberCost.toLocaleString()} $EMBER`;
+        document.getElementById('revive-balance').textContent = emberBalance.toLocaleString();
+        document.getElementById('revive-balance').style.color = emberBalance >= emberCost ? '#44ff44' : '#ff4444';
+
+        // Enable/disable confirm button
+        const confirmBtn = document.getElementById('revive-confirm-btn');
+        if (emberBalance < emberCost) {
+            confirmBtn.disabled = true;
+            confirmBtn.style.opacity = '0.5';
+            confirmBtn.title = 'Insufficient $EMBER';
         } else {
-            xpCost = 10000;
-            auraCost = 2500;
+            confirmBtn.disabled = false;
+            confirmBtn.style.opacity = '1';
+            confirmBtn.title = '';
         }
 
-        // Get available heroes for sacrifice
-        const availableHeroes = (player.heroes || []).filter(h =>
-            h.token_id !== fallenHeroId && h.dynamic_state?.state !== "FALLEN"
-        );
-
-        if (availableHeroes.length === 0) {
-            showInfoModal("NO HEROES", "No heroes available for sacrifice! You need at least one other hero with XP/Aura.");
-            return;
-        }
-
-        let sacrificeMsg = `💀 REINVOCATION RITUAL\n\n`;
-        sacrificeMsg += `Fallen Hero: ${fallenHero.name || fallenHeroId}\n`;
-        sacrificeMsg += `Death Count: ${deathCount}\n\n`;
-        sacrificeMsg += `Required:\n`;
-        sacrificeMsg += `XP: ${xpCost}\n`;
-        sacrificeMsg += `Aura: ${auraCost}\n\n`;
-        sacrificeMsg += `SELECT HEROES TO SACRIFICE FROM:\n\n`;
-
-        availableHeroes.forEach((h, idx) => {
-            const hds = h.dynamic_state || {};
-            sacrificeMsg += `${idx + 1}. ${h.name || h.token_id}\n`;
-            sacrificeMsg += `   XP: ${hds.xp_total || 0} | Aura: ${hds.aura_level || 0}\n\n`;
-        });
-
-        sacrificeMsg += `\nThis is a simple implementation. You'll need to manually calculate donations.\n\n`;
-        sacrificeMsg += `Proceed with automatic sacrifice?`;
-
-        showConfirmModal("REINVOCATION RITUAL", sacrificeMsg, async () => {
-            // Simple automatic sacrifice algorithm
-            const sacrifices = [];
-            let totalXpDonated = 0;
-            let totalAuraDonated = 0;
-
-            for (const hero of availableHeroes) {
-                if (totalXpDonated >= xpCost && totalAuraDonated >= auraCost) {
-                    break;
-                }
-
-                const hds = hero.dynamic_state || {};
-                const availableXp = hds.xp_total || 0;
-                const availableAura = hds.aura_level || 0;
-
-                const xpNeeded = xpCost - totalXpDonated;
-                const auraNeeded = auraCost - totalAuraDonated;
-
-                const xpDonate = Math.min(availableXp, xpNeeded);
-                const auraDonate = Math.min(availableAura, auraNeeded);
-
-                if (xpDonate > 0 || auraDonate > 0) {
-                    sacrifices.push({
-                        hero_id: hero.token_id,
-                        xp_donate: xpDonate,
-                        aura_donate: auraDonate
-                    });
-
-                    totalXpDonated += xpDonate;
-                    totalAuraDonated += auraDonate;
-                }
-            }
-
-            if (totalXpDonated < xpCost || totalAuraDonated < auraCost) {
-                showInfoModal("INSUFFICIENT RESOURCES",
-                    `Not enough resources!\n\nYou have:\nXP: ${totalXpDonated}/${xpCost}\nAura: ${totalAuraDonated}/${auraCost}`);
-                return;
-            }
-
-            try {
-                // Call reinvoke API
-                const res = await fetch("/api/ritual/reinvoke", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        wallet: connectedWallet,
-                        fallen_hero_id: fallenHeroId,
-                        sacrifices: sacrifices
-                    })
-                });
-
-                if (!res.ok) {
-                    const errText = await res.text();
-                    showInfoModal("REINVOCATION FAILED", parseErrorMessage(errText));
-                    return;
-                }
-
-                const result = await res.json();
-
-                showInfoModal("REINVOCATION SUCCESSFUL",
-                    "✨ " + (fallenHero.name || fallenHeroId) + " has been brought back!\n\n" +
-                    `XP Donated: ${result.xp_donated}\n` +
-                    `Aura Donated: ${result.aura_donated}\n\n` +
-                    `Hero revived with:\n` +
-                    `XP: ${result.hero_xp_now}\n` +
-                    `Aura: ${result.hero_aura_now}\n` +
-                    `Energy: ${result.hero_energy_now}\n\n` +
-                    `Hero is now READY for missions.`
-                );
-
-                loadPlayerAndRender();
-                fetchStatsAndRender();
-            } catch(err) {
-                console.error(err);
-                showInfoModal("CONNECTION ERROR", "REINVOCATION ERROR: Connection issue.");
-            }
-        });
+        // Show modal
+        document.getElementById('revive-modal').style.display = 'flex';
 
     } catch(e) {
         console.error(e);
-        showInfoModal("CONNECTION ERROR", "REINVOCATION ERROR: Connection issue.");
+        showInfoModal("CONNECTION ERROR", "Error loading hero data.");
     }
 }
+
+// Close revive modal
+function closeReviveModal() {
+    document.getElementById('revive-modal').style.display = 'none';
+    currentReviveHeroId = null;
+    currentReviveCost = 0;
+}
+
+// Confirm revive with $EMBER
+async function confirmReviveWithEmber() {
+    if (!currentReviveHeroId || !connectedWallet) {
+        showInfoModal("ERROR", "Invalid state. Please try again.");
+        closeReviveModal();
+        return;
+    }
+
+    closeReviveModal();
+
+    // Show processing modal
+    showProcessingModal(
+        "REVIVING EMISSARY",
+        "RESURRECTION IN PROGRESS",
+        "Consuming $EMBER to restore your fallen warrior...",
+        '<img src="/img/skull.png" class="pixel-icon" alt="">'
+    );
+
+    try {
+        const res = await fetch("/api/revive", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                wallet: connectedWallet,
+                emissary_id: currentReviveHeroId
+            })
+        });
+
+        hideProcessingModal();
+
+        if (!res.ok) {
+            const errData = await res.json().catch(() => ({ error: "Unknown error" }));
+            showInfoModal("REVIVAL FAILED",
+                `${errData.error || "Failed to revive emissary"}\n\n` +
+                (errData.required ? `Required: ${errData.required} $EMBER\nAvailable: ${errData.available} $EMBER` : "")
+            );
+            return;
+        }
+
+        const result = await res.json();
+
+        showInfoModal("EMISSARY REVIVED! ✨",
+            `Your emissary has been brought back from the void!\n\n` +
+            `$EMBER Spent: ${result.ember_spent.toLocaleString()}\n` +
+            `Death Count: ${result.death_count}\n\n` +
+            `⚠ Emissary starts fresh with:\n` +
+            `• 0 XP\n` +
+            `• 0 Aura\n` +
+            `• 100 Energy\n\n` +
+            `Next revival will cost: ${result.next_revive_cost.toLocaleString()} $EMBER`
+        );
+
+        // Refresh UI
+        loadPlayerAndRender();
+        fetchStatsAndRender();
+        if (window.loadEmberBalance) window.loadEmberBalance();
+
+    } catch(err) {
+        hideProcessingModal();
+        console.error(err);
+        showInfoModal("CONNECTION ERROR", "Revival failed due to connection issue. Please try again.");
+    }
+}
+
+// Attach confirm button handler
+document.addEventListener('DOMContentLoaded', function() {
+    const reviveBtn = document.getElementById('revive-confirm-btn');
+    if (reviveBtn) {
+        reviveBtn.addEventListener('click', confirmReviveWithEmber);
+    }
+});
 
 /* --------- AMBIENT MUSIC SYSTEM (EMBERHOLM CONSOLE) ---------
    Sirve pistas desde /static/music/*.wav que Flask expone como /music/*.wav
@@ -9141,6 +9177,174 @@ async function loadAchievements(heroes) {
     font-size: 9px;
     line-height: 1;
     letter-spacing: -1px;
+}
+
+/* ============================================
+   FALLEN EMISSARY STYLES - Grayscale + Glitch
+   ============================================ */
+
+/* Filtro para NFT muerto */
+.emissary-image.fallen,
+.hero-image.fallen,
+.nft-image.fallen,
+.character-portrait.fallen,
+.hero-portrait.fallen {
+    filter: grayscale(100%);
+    animation: glitch-effect 2s infinite;
+    opacity: 0.8;
+    position: relative;
+}
+
+/* Animación glitch */
+@keyframes glitch-effect {
+    0% {
+        transform: translate(0);
+        filter: grayscale(100%);
+    }
+    20% {
+        transform: translate(-2px, 2px);
+        filter: grayscale(100%) hue-rotate(90deg);
+    }
+    40% {
+        transform: translate(-2px, -2px);
+        filter: grayscale(100%);
+    }
+    60% {
+        transform: translate(2px, 2px);
+        filter: grayscale(100%) hue-rotate(-90deg);
+    }
+    80% {
+        transform: translate(2px, -2px);
+        filter: grayscale(100%);
+    }
+    100% {
+        transform: translate(0);
+        filter: grayscale(100%);
+    }
+}
+
+/* Nombre de emissary muerto */
+.emissary-name.fallen,
+.hero-name.fallen,
+.nft-name.fallen {
+    color: #666 !important;
+    text-shadow: none;
+}
+
+/* Stats de emissary muerto */
+.emissary-stats.fallen,
+.hero-stats.fallen {
+    opacity: 0.5;
+}
+
+/* Efecto glitch con pseudo-elementos para más intensidad */
+.character-portrait.fallen::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: inherit;
+    opacity: 0.3;
+    animation: glitch-color 3s infinite;
+    clip-path: polygon(0 0, 100% 0, 100% 45%, 0 45%);
+    pointer-events: none;
+}
+
+.character-portrait.fallen::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: inherit;
+    opacity: 0.3;
+    animation: glitch-color 2s infinite reverse;
+    clip-path: polygon(0 55%, 100% 55%, 100% 100%, 0 100%);
+    pointer-events: none;
+}
+
+@keyframes glitch-color {
+    0%, 100% {
+        transform: translateX(0);
+    }
+    25% {
+        transform: translateX(-3px);
+        filter: hue-rotate(90deg);
+    }
+    50% {
+        transform: translateX(3px);
+    }
+    75% {
+        transform: translateX(-3px);
+        filter: hue-rotate(-90deg);
+    }
+}
+
+/* Death overlay badge */
+.fallen-overlay {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(0,0,0,0.8);
+    color: #ff4444;
+    padding: 4px 8px;
+    font-size: 10px;
+    font-weight: bold;
+    text-transform: uppercase;
+    border: 1px solid #ff4444;
+    z-index: 10;
+}
+
+/* Revive button styling */
+.revive-btn {
+    background: linear-gradient(180deg, #ff6600 0%, #cc3300 100%);
+    color: #fff;
+    border: 1px solid #ff9900;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+}
+
+.revive-btn:hover {
+    background: linear-gradient(180deg, #ff8833 0%, #ff4400 100%);
+    box-shadow: 0 0 10px rgba(255, 102, 0, 0.5);
+}
+
+/* Death count warning */
+.death-warning {
+    color: #ff6666;
+    font-size: 11px;
+    padding: 4px 8px;
+    background: rgba(255, 0, 0, 0.1);
+    border: 1px dashed #ff4444;
+    margin-top: 8px;
+}
+
+/* Revive modal styling */
+#revive-modal .modal-content {
+    border-color: #ff6600;
+}
+
+#revive-modal .revive-cost {
+    font-size: 18px;
+    color: var(--gold);
+    font-weight: bold;
+    padding: 10px;
+    background: rgba(255, 215, 0, 0.1);
+    border: 1px solid var(--gold);
+    margin: 10px 0;
+    text-align: center;
+}
+
+#revive-modal .revive-warning {
+    color: #ff6666;
+    font-size: 12px;
+    padding: 8px;
+    background: rgba(255, 0, 0, 0.1);
+    border: 1px dashed #ff4444;
+    margin: 10px 0;
 }
 </style>
 
