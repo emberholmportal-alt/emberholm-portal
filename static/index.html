@@ -1507,7 +1507,7 @@ document.addEventListener('DOMContentLoaded', initPortalWarning);
                         [CONVERT TO $ASH]
                     </button>
                 </div>
-                <p class="convert-info" style="color:#666; font-size:0.85rem;">Rate: 100 $EMBER = 1 $ASH (requires on-chain $EMBER)</p>
+                <p class="convert-info" style="color:#666; font-size:0.85rem;">Rate: 1000 $EMBER = 1 $ASH (requires on-chain $EMBER)</p>
             </div>
 
             <!-- Stats Summary -->
@@ -3200,6 +3200,7 @@ document.addEventListener('DOMContentLoaded', initPortalWarning);
                     <div style="color:#44ff44; font-size:11px; font-weight:bold; margin-bottom:6px;">REWARDS POOL</div>
                     <div style="padding-left:12px; font-size:11px; line-height:1.8;">
                         <div>├─ Initial: <span style="color:#ffcc00;">500,000,000 $EMBER</span></div>
+                        <div>├─ Available: <span id="ember-available" style="color:#44ff44;">Loading...</span></div>
                         <div>├─ Distributed: <span id="ember-distributed" style="color:#ffcc00;">Loading...</span></div>
                         <div>├─ Remaining: <span id="ember-remaining" style="color:#ffcc00;">Loading...</span></div>
                         <div>└─ Progress: <span id="ember-pool-bar" class="progress-bar-ascii" style="color:#44ff44;">Loading...</span></div>
@@ -3226,7 +3227,7 @@ document.addEventListener('DOMContentLoaded', initPortalWarning);
                     <div style="color:#44ff44; font-size:11px; font-weight:bold; margin-bottom:6px;">ASH CONVERSION</div>
                     <div style="padding-left:12px; font-size:11px; line-height:1.8;">
                         <div>├─ $EMBER Burned for $ASH: <span id="ember-burned-for-ash" style="color:#ff6b00;">Loading...</span></div>
-                        <div>└─ Rate: <span style="color:#ffcc00;">100 $EMBER = 1 $ASH</span></div>
+                        <div>└─ Rate: <span style="color:#ffcc00;">1000 $EMBER = 1 $ASH</span></div>
                     </div>
                 </div>
             </div>
@@ -3753,7 +3754,7 @@ document.addEventListener('DOMContentLoaded', initPortalWarning);
             <div class="mono-block" style="margin:20px 0;">
                 <div class="subheading">CONVERSION RATE</div>
                 <div style="font-size:14px; line-height:1.8;">
-                    100 $EMBER = 1 $ASH
+                    1000 $EMBER = 1 $ASH
                 </div>
             </div>
 
@@ -9202,13 +9203,31 @@ function formatTokenAmount(value, decimals = 18) {
 
     if (isNaN(num) || num < 0) return '...';
 
-    // Format based on magnitude
-    if (num >= 1000000000) return (num / 1000000000).toFixed(2) + 'B';
-    if (num >= 1000000) return (num / 1000000).toFixed(2) + 'M';
-    if (num >= 1000) return (num / 1000).toFixed(2) + 'K';
+    // Format based on magnitude with smart precision
+    // Show more decimals when not a round number
+    if (num >= 1000000000) {
+        const billions = num / 1000000000;
+        return formatWithPrecision(billions) + 'B';
+    }
+    if (num >= 1000000) {
+        const millions = num / 1000000;
+        return formatWithPrecision(millions) + 'M';
+    }
+    if (num >= 1000) {
+        const thousands = num / 1000;
+        return formatWithPrecision(thousands) + 'K';
+    }
     if (num >= 1) return num.toFixed(2);
     if (num > 0) return num.toFixed(4);
     return '0';
+}
+
+// Helper to show appropriate precision (removes trailing zeros)
+function formatWithPrecision(num) {
+    // If it's a whole number, show no decimals
+    if (num === Math.floor(num)) return num.toString();
+    // Otherwise show up to 4 decimals, removing trailing zeros
+    return parseFloat(num.toFixed(4)).toString();
 }
 
 function formatNumber(num) {
@@ -9223,12 +9242,30 @@ function createProgressBar(value, total, width = 12) {
         return '░'.repeat(width) + ' ...';
     }
     const numValue = Number(value);
-    if (isNaN(numValue) || numValue === 0) {
+    if (isNaN(numValue)) {
         return '░'.repeat(width) + ' ...';
+    }
+    if (numValue === 0) {
+        return '░'.repeat(width) + ' 0%';
     }
     const percent = (numValue / Number(total)) * 100;
     const filled = Math.round((percent / 100) * width);
-    return '█'.repeat(filled) + '░'.repeat(width - filled) + ` ${percent.toFixed(1)}%`;
+
+    // Show actual percentage even if very small
+    let percentStr;
+    if (percent >= 1) {
+        percentStr = percent.toFixed(1) + '%';
+    } else if (percent >= 0.01) {
+        percentStr = percent.toFixed(2) + '%';
+    } else if (percent >= 0.0001) {
+        percentStr = percent.toFixed(4) + '%';
+    } else if (percent > 0) {
+        percentStr = percent.toExponential(2) + '%';
+    } else {
+        percentStr = '0%';
+    }
+
+    return '█'.repeat(filled) + '░'.repeat(width - filled) + ' ' + percentStr;
 }
 
 // Validation helper - check if value is valid (not empty/null/placeholder)
@@ -9444,6 +9481,7 @@ function applyTokenomicsData(data, source = 'live') {
         updateEl('ember-circulating', ember.circulating + ' $EMBER');
         updateEl('ember-vesting', ember.vesting + ' $EMBER');
         updateElColor('ember-burned', ember.burned + ' $EMBER 🔥', '#ff6b00');
+        updateEl('ember-available', ember.available + ' $EMBER');
         updateEl('ember-distributed', ember.distributed + ' $EMBER');
         updateEl('ember-remaining', ember.remaining + ' $EMBER');
         updateEl('ember-pool-bar', ember.poolBar);
@@ -9523,6 +9561,7 @@ async function fetchTokenomicsFromRPC() {
             vesting: formatTokenAmount(ember.vesting),
             distributed: formatTokenAmount(ember.rewardsDistributed),
             remaining: formatTokenAmount(ember.rewardsRemaining),
+            available: formatTokenAmount(ember.rewardsRemaining),
             converted: formatTokenAmount(ember.convertedToAsh),
             poolBar: createProgressBar(Number(ember.rewardsDistributed), 500000000 * 1e18)
         } : null,

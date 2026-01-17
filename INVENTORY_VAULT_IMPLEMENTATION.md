@@ -278,7 +278,7 @@ Update these in both `app.py` and `inventory.js`.
 **Limits:** 5 free rolls per day, resets at midnight UTC
 
 ### Burn Rate
-100 $EMBER = 1 $ASH (irreversible)
+1000 $EMBER = 1 $ASH (irreversible)
 
 ---
 

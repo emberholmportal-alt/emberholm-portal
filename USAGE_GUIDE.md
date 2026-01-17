@@ -106,7 +106,7 @@ Click **[D20 GAMBIT]** in the console bar to play:
 **Currently disabled** - Will be enabled in future updates.
 
 When enabled:
-- **Conversion Rate**: 100 $EMBER = 1 $ASH
+- **Conversion Rate**: 1000 $EMBER = 1 $ASH
 - **Warning**: This conversion is IRREVERSIBLE!
 
 ### Reviving Fallen Emissaries

@@ -2481,9 +2481,12 @@ window.performEmberRoll = async function(emissaryId) {
             if (pendingEl) pendingEl.textContent = formatNumber(data.pending || 0);
             if (onchainEl) onchainEl.textContent = formatNumber(data.onchain || 0);
 
-            // Total = pending + onchain + total_claimed
-            const total = (data.pending || 0) + (data.onchain || 0) + (data.total_claimed || 0);
-            if (totalEl) totalEl.textContent = formatNumber(total);
+            // Total Earned = historical total (everything ever earned)
+            // Use total_earned from backend if available, otherwise calculate:
+            // total_earned = total_claimed + total_burned + pending + onchain
+            const totalEarned = data.total_earned ||
+                ((data.total_claimed || 0) + (data.total_burned || 0) + (data.pending || 0) + (data.onchain || 0));
+            if (totalEl) totalEl.textContent = formatNumber(totalEarned);
 
             // Show total burned
             if (burnedEl) burnedEl.textContent = formatNumber(data.total_burned || 0);

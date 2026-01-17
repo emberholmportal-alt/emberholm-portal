@@ -6939,7 +6939,7 @@ REVIVE_COSTS = {
     4: 200  # Max cost for 4+ deaths
 }
 
-BURN_RATE = 100  # 100 EMBER = 1 ASH
+BURN_RATE = 1000  # 1000 EMBER = 1 ASH
 
 # ---------------------------------
 # BALANCE API
@@ -7033,6 +7033,149 @@ def get_balance():
 ember_w3 = None
 ember_contract = None
 
+# =========================================================================
+# 🔥 ON-CHAIN DATA CACHE (prevents RPC saturation)
+# =========================================================================
+import threading
+from collections import deque
+
+# Cache for on-chain data (same for all users)
+_onchain_cache = {
+    'rewards_remaining': {'value': None, 'expires': 0},
+    'total_burned': {'value': None, 'expires': 0},
+    'circulating_supply': {'value': None, 'expires': 0},
+}
+ONCHAIN_CACHE_TTL = 60  # 60 seconds
+
+# Cache for individual wallet balances (on-chain only)
+_wallet_onchain_cache = {}
+WALLET_ONCHAIN_CACHE_TTL = 30  # 30 seconds
+
+def get_cached_onchain_data(key):
+    """Get cached on-chain data if not expired"""
+    if key in _onchain_cache:
+        cached = _onchain_cache[key]
+        if time.time() < cached['expires'] and cached['value'] is not None:
+            return cached['value']
+    return None
+
+def set_cached_onchain_data(key, value):
+    """Cache on-chain data with TTL"""
+    _onchain_cache[key] = {
+        'value': value,
+        'expires': time.time() + ONCHAIN_CACHE_TTL
+    }
+
+def get_cached_wallet_balance(wallet):
+    """Get cached on-chain balance for a wallet"""
+    wallet_lower = wallet.lower()
+    if wallet_lower in _wallet_onchain_cache:
+        cached = _wallet_onchain_cache[wallet_lower]
+        if time.time() < cached['expires']:
+            return cached['value']
+    return None
+
+def set_cached_wallet_balance(wallet, balance):
+    """Cache on-chain balance for a wallet"""
+    _wallet_onchain_cache[wallet.lower()] = {
+        'value': balance,
+        'expires': time.time() + WALLET_ONCHAIN_CACHE_TTL
+    }
+
+def invalidate_wallet_onchain_cache(wallet):
+    """Invalidate on-chain cache for a wallet (after claim/transfer)"""
+    _wallet_onchain_cache.pop(wallet.lower(), None)
+
+# =========================================================================
+# 🔥 NONCE MANAGER (prevents nonce collisions)
+# =========================================================================
+
+_nonce_lock = threading.Lock()
+_pending_nonce = None  # Track the next nonce to use
+
+def get_next_nonce(web3_instance, address):
+    """
+    Get the next nonce for a transaction, thread-safe.
+    Tracks pending transactions to avoid nonce collisions.
+    """
+    global _pending_nonce
+
+    with _nonce_lock:
+        # Get current on-chain nonce
+        onchain_nonce = web3_instance.eth.get_transaction_count(address, 'pending')
+
+        # If we have a pending nonce that's higher, use it
+        if _pending_nonce is not None and _pending_nonce >= onchain_nonce:
+            nonce_to_use = _pending_nonce
+            _pending_nonce = _pending_nonce + 1
+        else:
+            # Use on-chain nonce
+            nonce_to_use = onchain_nonce
+            _pending_nonce = onchain_nonce + 1
+
+        return nonce_to_use
+
+def reset_nonce_tracker():
+    """Reset the nonce tracker (call after confirmed TX or on error)"""
+    global _pending_nonce
+    with _nonce_lock:
+        _pending_nonce = None
+
+# =========================================================================
+# 🔥 TRANSACTION QUEUE (for high-load claim processing)
+# =========================================================================
+
+_claim_queue = deque()
+_claim_queue_lock = threading.Lock()
+_claim_processing = False
+
+class ClaimRequest:
+    """Represents a pending claim request"""
+    def __init__(self, wallet, amount, callback_event):
+        self.wallet = wallet
+        self.amount = amount
+        self.callback_event = callback_event
+        self.result = None
+        self.error = None
+
+def queue_claim(wallet, amount):
+    """
+    Queue a claim request for processing.
+    Returns a ClaimRequest object that will be updated when processed.
+    """
+    event = threading.Event()
+    request = ClaimRequest(wallet, amount, event)
+
+    with _claim_queue_lock:
+        _claim_queue.append(request)
+
+    return request
+
+def process_claim_queue():
+    """Process claims from the queue (run in background thread)"""
+    global _claim_processing
+
+    while True:
+        request = None
+        with _claim_queue_lock:
+            if _claim_queue:
+                request = _claim_queue.popleft()
+            else:
+                _claim_processing = False
+                break
+
+        if request:
+            try:
+                # Process the claim
+                result = _execute_claim_transaction(request.wallet, request.amount)
+                request.result = result
+            except Exception as e:
+                request.error = str(e)
+            finally:
+                request.callback_event.set()
+
+        time.sleep(0.1)  # Small delay between claims
+
 def init_ember_web3():
     """Initialize Web3 connection for EMBER claims"""
     global ember_w3, ember_contract
@@ -7059,6 +7202,67 @@ def init_ember_web3():
 # Try to initialize on startup
 init_ember_web3()
 
+# =========================================================================
+# 🔥 BACKGROUND JOB: Update global on-chain data periodically
+# =========================================================================
+
+_background_update_running = False
+_background_update_interval = 120  # 2 minutes
+
+def update_global_onchain_data():
+    """
+    Background task to update global on-chain data.
+    Runs every 2 minutes to keep cache fresh.
+    This reduces RPC calls when many users are connected.
+    """
+    global _background_update_running
+
+    if not ember_w3 or not ember_contract:
+        return
+
+    while _background_update_running:
+        try:
+            # Update rewards remaining
+            rewards_remaining_wei = ember_contract.functions.rewardsRemaining().call()
+            rewards_remaining = float(Web3Lib.from_wei(rewards_remaining_wei, 'ether'))
+            set_cached_onchain_data('rewards_remaining', rewards_remaining)
+
+            # Update total burned (if contract has this function)
+            try:
+                total_burned_wei = ember_contract.functions.totalBurned().call()
+                total_burned = float(Web3Lib.from_wei(total_burned_wei, 'ether'))
+                set_cached_onchain_data('total_burned', total_burned)
+            except Exception:
+                pass  # Contract may not have totalBurned function
+
+            print(f"🔄 Background update: rewards_remaining={rewards_remaining:.2f}")
+
+        except Exception as e:
+            print(f"⚠️ Background update error: {e}")
+
+        time.sleep(_background_update_interval)
+
+def start_background_update():
+    """Start the background update thread"""
+    global _background_update_running
+
+    if _background_update_running:
+        return
+
+    _background_update_running = True
+    thread = threading.Thread(target=update_global_onchain_data, daemon=True)
+    thread.start()
+    print("🚀 Background on-chain data updater started (every 2 minutes)")
+
+def stop_background_update():
+    """Stop the background update thread"""
+    global _background_update_running
+    _background_update_running = False
+
+# Start background updater if web3 is available
+if ember_w3 and ember_contract:
+    start_background_update()
+
 @app.route('/api/ember/balance/<wallet>', methods=['GET'])
 @rate_limit(requests_per_minute=30)
 def get_ember_token_balance(wallet):
@@ -7076,6 +7280,7 @@ def get_ember_token_balance(wallet):
             "onchain": 0,
             "total_claimed": 0,
             "total_burned": 0,
+            "total_earned": 0,
             "last_claim": None
         }
 
@@ -7087,7 +7292,8 @@ def get_ember_token_balance(wallet):
 
                 cursor.execute("""
                     SELECT ember_balance, COALESCE(total_ember_claimed, 0) as total_claimed,
-                           last_ember_claim_at, COALESCE(total_ember_burned, 0) as total_burned
+                           last_ember_claim_at, COALESCE(total_ember_burned, 0) as total_burned,
+                           COALESCE(total_ember_earned, 0) as total_earned
                     FROM user_balances
                     WHERE wallet = %s
                 """, (wallet_lower,))
@@ -7100,15 +7306,24 @@ def get_ember_token_balance(wallet):
                     response["total_claimed"] = float(result[1]) if result[1] else 0
                     response["last_claim"] = result[2].isoformat() if result[2] else None
                     response["total_burned"] = float(result[3]) if result[3] else 0
+                    response["total_earned"] = float(result[4]) if result[4] else 0
 
             except Exception as e:
                 print(f"⚠️ Error getting pending EMBER balance: {e}")
 
-        # Get on-chain balance
+        # Get on-chain balance (with cache to prevent RPC saturation)
         if ember_w3 and ember_contract:
             try:
-                onchain_balance_wei = ember_contract.functions.balanceOf(wallet_checksum).call()
-                response["onchain"] = float(Web3Lib.from_wei(onchain_balance_wei, 'ether'))
+                # Check cache first
+                cached_balance = get_cached_wallet_balance(wallet_lower)
+                if cached_balance is not None:
+                    response["onchain"] = cached_balance
+                else:
+                    # Fetch from blockchain and cache
+                    onchain_balance_wei = ember_contract.functions.balanceOf(wallet_checksum).call()
+                    onchain_balance = float(Web3Lib.from_wei(onchain_balance_wei, 'ether'))
+                    response["onchain"] = onchain_balance
+                    set_cached_wallet_balance(wallet_lower, onchain_balance)
             except Exception as e:
                 print(f"⚠️ Error getting on-chain EMBER balance: {e}")
 
@@ -7157,33 +7372,67 @@ def claim_ember_tokens():
         conn = db.get_connection()
         cursor = conn.cursor()
 
-        cursor.execute("""
-            SELECT ember_balance FROM user_balances
-            WHERE wallet = %s
-        """, (wallet_lower,))
+        # 🔥 Use FOR UPDATE NOWAIT to prevent race conditions (double-claims)
+        try:
+            cursor.execute("""
+                SELECT ember_balance FROM user_balances
+                WHERE wallet = %s
+                FOR UPDATE NOWAIT
+            """, (wallet_lower,))
+        except Exception as lock_error:
+            # Another request is already processing this wallet's claim
+            error_str = str(lock_error).lower()
+            if 'could not obtain lock' in error_str or 'nowait' in error_str:
+                db.release_connection(conn)
+                return jsonify({"error": "Claim already in progress, please wait", "retry": True}), 409
+            raise lock_error
 
         result = cursor.fetchone()
 
         if not result or result[0] <= 0:
+            conn.rollback()
+            db.release_connection(conn)
             return jsonify({"error": "No EMBER balance to claim", "balance": 0}), 400
 
         pending_balance = float(result[0])
 
+        # 🔥 Immediately set balance to 0 to prevent double-claims
+        cursor.execute("""
+            UPDATE user_balances
+            SET ember_balance = 0
+            WHERE wallet = %s
+        """, (wallet_lower,))
+        conn.commit()
+
         # 2. Convert to wei (18 decimals)
         amount_wei = ember_w3.to_wei(pending_balance, 'ether')
 
-        # 3. Check rewards pool has enough
+        # 3. Check rewards pool has enough (use cache if available)
         try:
-            rewards_remaining = ember_contract.functions.rewardsRemaining().call()
-            if amount_wei > rewards_remaining:
+            cached_rewards = get_cached_onchain_data('rewards_remaining')
+            if cached_rewards is not None:
+                rewards_remaining_ether = cached_rewards
+            else:
+                rewards_remaining_wei = ember_contract.functions.rewardsRemaining().call()
+                rewards_remaining_ether = float(Web3Lib.from_wei(rewards_remaining_wei, 'ether'))
+                set_cached_onchain_data('rewards_remaining', rewards_remaining_ether)
+
+            if pending_balance > rewards_remaining_ether:
+                # Rollback - restore the balance
+                cursor.execute("""
+                    UPDATE user_balances
+                    SET ember_balance = %s
+                    WHERE wallet = %s
+                """, (pending_balance, wallet_lower))
+                conn.commit()
                 return jsonify({"error": "Insufficient rewards in pool"}), 500
         except Exception as e:
             print(f"⚠️ Could not check rewards pool: {e}")
             # Continue anyway - let the transaction fail if pool is empty
 
-        # 4. Build transaction
+        # 4. Build transaction with nonce manager (prevents nonce collisions)
         claimer_address = Web3Lib.to_checksum_address(CLAIMER_WALLET_ADDRESS)
-        nonce = ember_w3.eth.get_transaction_count(claimer_address)
+        nonce = get_next_nonce(ember_w3, claimer_address)
 
         txn = ember_contract.functions.claimTransfer(
             wallet_checksum,
@@ -7203,17 +7452,22 @@ def claim_ember_tokens():
         receipt = ember_w3.eth.wait_for_transaction_receipt(tx_hash, timeout=120)
 
         if receipt['status'] == 1:
-            # 7. Update database - reset pending balance, increment total claimed
+            # 7. Update database - increment total claimed (balance already 0)
             try:
                 cursor.execute("""
                     UPDATE user_balances
-                    SET ember_balance = 0,
-                        total_ember_claimed = COALESCE(total_ember_claimed, 0) + %s,
+                    SET total_ember_claimed = COALESCE(total_ember_claimed, 0) + %s,
                         last_ember_claim_at = NOW()
                     WHERE wallet = %s
                 """, (pending_balance, wallet_lower))
 
                 conn.commit()
+
+                # 🔥 Invalidate wallet cache after successful claim
+                invalidate_wallet_onchain_cache(wallet_lower)
+
+                # 🔥 Invalidate rewards pool cache (it changed)
+                _onchain_cache['rewards_remaining']['expires'] = 0
 
                 print(f"✅ EMBER claimed: {pending_balance} to {wallet[:10]}... TX: {tx_hash.hex()}")
 
@@ -7233,6 +7487,9 @@ def claim_ember_tokens():
                 print(f"   Amount: {pending_balance}")
                 print(f"   DB Error: {db_error}")
 
+                # Invalidate cache anyway
+                invalidate_wallet_onchain_cache(wallet_lower)
+
                 # Still return success because tokens were sent
                 return jsonify({
                     "success": True,
@@ -7242,6 +7499,18 @@ def claim_ember_tokens():
                     "warning": "Balance update may be delayed - tokens were sent"
                 })
         else:
+            # 🔥 Transaction failed - restore the balance
+            try:
+                cursor.execute("""
+                    UPDATE user_balances
+                    SET ember_balance = ember_balance + %s
+                    WHERE wallet = %s
+                """, (pending_balance, wallet_lower))
+                conn.commit()
+                print(f"⚠️ TX failed on-chain, restored balance {pending_balance} to {wallet_lower}")
+            except Exception as restore_error:
+                print(f"❌ CRITICAL: Could not restore balance after failed TX: {restore_error}")
+
             return jsonify({"error": "Transaction failed on-chain"}), 500
 
     except Exception as e:
@@ -7254,6 +7523,19 @@ def claim_ember_tokens():
             print(f"⚠️ TX may have been sent: {tx_hash.hex() if hasattr(tx_hash, 'hex') else tx_hash}")
             print(f"   Wallet: {wallet_lower}")
             print(f"   Amount: {pending_balance}")
+        elif pending_balance and wallet_lower and conn:
+            # 🔥 TX was NOT sent - restore the balance
+            try:
+                cursor = conn.cursor()
+                cursor.execute("""
+                    UPDATE user_balances
+                    SET ember_balance = ember_balance + %s
+                    WHERE wallet = %s
+                """, (pending_balance, wallet_lower))
+                conn.commit()
+                print(f"⚠️ Error before TX sent, restored balance {pending_balance} to {wallet_lower}")
+            except Exception as restore_error:
+                print(f"❌ CRITICAL: Could not restore balance after error: {restore_error}")
 
         return jsonify({"error": str(e)}), 500
 
@@ -7271,9 +7553,19 @@ def claim_ember_tokens():
                 pass
 
 @app.route('/api/ember/rewards-pool', methods=['GET'])
+@rate_limit(requests_per_minute=30)
 def get_ember_rewards_pool():
-    """Get remaining $EMBER in the rewards pool"""
+    """Get remaining $EMBER in the rewards pool (cached for 60s)"""
     try:
+        # Check cache first
+        cached_rewards = get_cached_onchain_data('rewards_remaining')
+        if cached_rewards is not None:
+            return jsonify({
+                "remaining": cached_rewards,
+                "contract": EMBER_TOKEN_ADDRESS,
+                "cached": True
+            })
+
         if not ember_w3 or not ember_contract:
             if not init_ember_web3():
                 return jsonify({"error": "Blockchain not available", "remaining": 0}), 503
@@ -7281,9 +7573,13 @@ def get_ember_rewards_pool():
         rewards_remaining_wei = ember_contract.functions.rewardsRemaining().call()
         rewards_remaining = float(Web3Lib.from_wei(rewards_remaining_wei, 'ether'))
 
+        # Cache the result
+        set_cached_onchain_data('rewards_remaining', rewards_remaining)
+
         return jsonify({
             "remaining": rewards_remaining,
-            "contract": EMBER_TOKEN_ADDRESS
+            "contract": EMBER_TOKEN_ADDRESS,
+            "cached": False
         })
     except Exception as e:
         print(f"❌ Error getting rewards pool: {e}")
@@ -8279,12 +8575,22 @@ def ember_roll_perform():
         reward = EMBER_ROLL_REWARDS[roll]
 
         # Apply EMBER change
-        cursor.execute("""
-            UPDATE user_balances
-            SET ember_balance = ember_balance + %s
-            WHERE wallet = %s
-            RETURNING ember_balance
-        """, (reward["ember"], wallet))
+        # If gaining EMBER, also track in total_ember_earned
+        if reward["ember"] > 0:
+            cursor.execute("""
+                UPDATE user_balances
+                SET ember_balance = ember_balance + %s,
+                    total_ember_earned = COALESCE(total_ember_earned, 0) + %s
+                WHERE wallet = %s
+                RETURNING ember_balance
+            """, (reward["ember"], reward["ember"], wallet))
+        else:
+            cursor.execute("""
+                UPDATE user_balances
+                SET ember_balance = ember_balance + %s
+                WHERE wallet = %s
+                RETURNING ember_balance
+            """, (reward["ember"], wallet))
 
         new_balance = cursor.fetchone()[0]
         conn.commit()

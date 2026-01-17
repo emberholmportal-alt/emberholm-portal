@@ -246,6 +246,9 @@ ALTER TABLE user_balances ADD COLUMN IF NOT EXISTS last_ember_claim_at TIMESTAMP
 -- Add EMBER burn tracking column
 ALTER TABLE user_balances ADD COLUMN IF NOT EXISTS total_ember_burned BIGINT DEFAULT 0;
 
+-- Add EMBER historical earned tracking column (never decreases, only sums)
+ALTER TABLE user_balances ADD COLUMN IF NOT EXISTS total_ember_earned BIGINT DEFAULT 0;
+
 -- -------------------------------------------------------------------------
 -- EXTENSIÓN DE TABLA NFTs: Añadir columnas de equipamiento
 -- -------------------------------------------------------------------------
