@@ -2480,8 +2480,8 @@ window.performEmberRoll = async function(emissaryId) {
             if (pendingEl) pendingEl.textContent = formatNumber(data.pending || 0);
             if (onchainEl) onchainEl.textContent = formatNumber(data.onchain || 0);
 
-            // Total = pending + onchain + total_claimed
-            const total = (data.pending || 0) + (data.onchain || 0) + (data.total_claimed || 0);
+            // Total Earned = pending + total_claimed (onchain is already counted in total_claimed)
+            const total = (data.pending || 0) + (data.total_claimed || 0);
             if (totalEl) totalEl.textContent = formatNumber(total);
 
             // Enable/disable claim button
@@ -2607,13 +2607,13 @@ window.performEmberRoll = async function(emissaryId) {
         const amountInput = document.getElementById('ember-to-convert');
         const amount = parseInt(amountInput?.value || 0);
 
-        if (!amount || amount < 100) {
-            showGameAlert('Minimum 100 $EMBER to convert', 'error');
+        if (!amount || amount < 1000) {
+            showGameAlert('Minimum 1000 $EMBER to convert', 'error');
             return;
         }
 
-        if (amount % 100 !== 0) {
-            showGameAlert('Amount must be multiple of 100', 'error');
+        if (amount % 1000 !== 0) {
+            showGameAlert('Amount must be multiple of 1000', 'error');
             return;
         }
 
@@ -2642,7 +2642,7 @@ window.performEmberRoll = async function(emissaryId) {
 
             await tx.wait();
 
-            const ashAmount = Math.floor(amount / 100);
+            const ashAmount = Math.floor(amount / 1000);
             showGameAlert(
                 `Successfully converted ${amount} $EMBER to ${ashAmount} $ASH!`,
                 'success'
@@ -2672,7 +2672,7 @@ window.performEmberRoll = async function(emissaryId) {
 
         if (amountInput && previewEl) {
             const amount = parseInt(amountInput.value) || 0;
-            const ashAmount = Math.floor(amount / 100);
+            const ashAmount = Math.floor(amount / 1000);
             previewEl.textContent = `${ashAmount} $ASH`;
         }
     }

@@ -6939,7 +6939,7 @@ REVIVE_COSTS = {
     4: 200  # Max cost for 4+ deaths
 }
 
-BURN_RATE = 100  # 100 EMBER = 1 ASH
+BURN_RATE = 1000  # 1000 EMBER = 1 ASH
 
 # ---------------------------------
 # BALANCE API
@@ -8375,7 +8375,7 @@ def burn_ember():
         ash_received = ember_amount // BURN_RATE
 
         if ash_received == 0:
-            return jsonify({"error": "Minimum 100 EMBER required"}), 400
+            return jsonify({"error": "Minimum 1000 EMBER required"}), 400
 
         # Update balances
         cursor.execute("""
