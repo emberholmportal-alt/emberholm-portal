@@ -1378,11 +1378,30 @@ document.addEventListener('DOMContentLoaded', initPortalWarning);
                         <div class="subheading" style="margin-bottom:8px;">ECONOMY BALANCE</div>
                         <div style="font-size:13px; line-height:1.8;">
                             <div class="balance-ember">
-                                <img src="/img/moneybag.png" class="pixel-icon" alt=""> $EMBER: <span id="ember-balance" style="color:var(--gold); font-weight:600;">0</span>
+                                <img src="/img/moneybag.png" class="pixel-icon" alt=""> $EMBER: <span id="profile-ember-balance" style="color:var(--gold); font-weight:600;">--</span>
                             </div>
-                            <div id="ash-balance-display" class="balance-ash" style="display:none; margin-top:5px;">
-                                <img src="/img/fire.png" class="pixel-icon" alt=""> $ASH: <span id="ash-balance" style="color:#ff6b6b; font-weight:600;">0</span>
+                            <div class="balance-ash" style="margin-top:5px;">
+                                <img src="/img/fire.png" class="pixel-icon" alt=""> $ASH: <span id="profile-ash-balance" style="color:#ff6b6b; font-weight:600;">--</span>
                             </div>
+                        </div>
+
+                        <!-- Pending Claim Section -->
+                        <div id="profile-pending-section" style="margin-top:12px; padding:10px; border:1px dashed var(--gold); background:rgba(255,215,0,0.05); display:none;">
+                            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+                                <span style="color:var(--gold); font-size:12px;">
+                                    <img src="/img/chest.png" class="pixel-icon" alt="" style="width:14px; height:14px;">
+                                    PENDING: <span id="profile-ember-pending" style="font-weight:600;">0</span> $EMBER
+                                </span>
+                                <button class="terminal-btn small-btn" id="profile-claim-btn" onclick="claimEmberFromProfile()" style="font-size:11px; padding:4px 10px;">[CLAIM]</button>
+                            </div>
+                        </div>
+
+                        <!-- Vault Navigation -->
+                        <div style="margin-top:15px; padding-top:12px; border-top:1px solid var(--border-primary);">
+                            <div style="font-size:11px; color:#888; font-style:italic; margin-bottom:8px;">
+                                "The VAULT holds the true measure of a warrior's conquest..."
+                            </div>
+                            <button class="terminal-btn small-btn" onclick="showScreen('vault')" style="width:100%;">[ENTER VAULT]</button>
                         </div>
                     </div>
 
@@ -3776,37 +3795,69 @@ document.addEventListener('DOMContentLoaded', initPortalWarning);
     </div>
 </div>
 
-<!-- REVIVE MODAL -->
-<div class="modal-overlay" id="revive-modal" style="display:none;">
-    <div class="terminal-modal">
-        <div class="terminal-modal-header">
-            ASH PROTOCOL // REVIVE EMISSARY
-            <button class="terminal-modal-close" onclick="closeReviveModal()">×</button>
-        </div>
-        <div class="terminal-modal-body">
-            <div class="subheading">REVIVE DEAD EMISSARY WITH $ASH</div>
+<!-- REVIVE MODAL - With Loading States and Lore -->
+<div id="revive-modal" style="display: none;">
+    <div class="revive-modal-content">
 
-            <p>Bring your fallen emissary back to life using $ASH.</p>
-
-            <div class="mono-block" style="margin:20px 0;">
-                <div class="subheading">REVIVE COSTS</div>
-                <div style="font-size:12px; line-height:1.8;">
-                    1st Death: 25 $ASH<br/>
-                    2nd Death: 50 $ASH<br/>
-                    3rd Death: 100 $ASH<br/>
-                    4th+ Death: 200 $ASH (max)
-                </div>
+        <!-- LOADING STATE -->
+        <div id="revive-loading" class="revive-loading-state">
+            <div class="loading-skull-container">
+                <span class="loading-skull">☠</span>
             </div>
-
-            <p style="margin-top:20px;">Emissary: <span id="revive-emissary-name">--</span></p>
-            <p>Cost: <span id="revive-cost">-- $ASH</span></p>
-            <p>Your Balance: <span id="revive-balance">[A] 0 $ASH</span></p>
-
-            <div class="modal-buttons">
-                <button class="modal-btn btn-revive" id="revive-confirm-btn">[REVIVE]</button>
-                <button class="modal-btn" onclick="closeReviveModal()">[CANCEL]</button>
+            <p class="loading-text">"The spirits deliberate your plea..."</p>
+            <p class="loading-subtext">Consulting the Ember Oracle</p>
+            <div class="loading-dots">
+                <span>.</span><span>.</span><span>.</span>
             </div>
         </div>
+
+        <!-- CONTENT STATE (hidden initially) -->
+        <div id="revive-content" style="display: none;">
+            <h2 class="revive-title">☠ REVIVE FALLEN EMISSARY</h2>
+
+            <div class="revive-emissary-info">
+                <p class="emissary-name-display">Emissary: <span id="revive-emissary-name">---</span></p>
+                <p class="death-count-display">Death Count: <span id="revive-death-count">0</span></p>
+            </div>
+
+            <div class="revive-cost-section">
+                <span class="cost-label">Revival Cost:</span>
+                <span class="cost-amount" id="revive-cost-amount">0</span>
+                <span class="cost-token">$EMBER</span>
+            </div>
+
+            <div class="revive-balance-section">
+                <span class="balance-label">Your $EMBER (on-chain):</span>
+                <span class="balance-amount" id="revive-ember-balance">0</span>
+            </div>
+
+            <div class="revive-treasury-info">
+                <p class="treasury-note">$EMBER will be sent to the Realm Treasury</p>
+            </div>
+
+            <div class="revive-warning">
+                <p>⚠ Emissary will revive with 0 XP and 0 Aura</p>
+                <p style="font-size:0.8em; margin-top:5px;">Equipment will be preserved.</p>
+            </div>
+
+            <div class="revive-buttons">
+                <button id="revive-confirm-btn" class="revive-btn">[REVIVE WITH $EMBER]</button>
+                <button id="cancel-revive-btn" class="cancel-btn" onclick="closeReviveModal()">[CANCEL]</button>
+            </div>
+
+            <div id="revive-error" class="revive-error-message" style="display: none;"></div>
+        </div>
+
+        <!-- PROCESSING STATE -->
+        <div id="revive-processing" class="revive-processing-state" style="display: none;">
+            <div class="processing-skull">☠</div>
+            <p class="processing-text">"The ancient flames rekindle..."</p>
+            <p class="processing-subtext">Awaiting blockchain confirmation</p>
+            <div class="loading-dots">
+                <span>.</span><span>.</span><span>.</span>
+            </div>
+        </div>
+
     </div>
 </div>
 
@@ -4935,6 +4986,9 @@ async function connectWallet() {
             updateVaultWalletUI();
         }
 
+        // 🔥 Load Profile balances (EMBER + ASH)
+        loadProfileBalances();
+
         // 🔥 Hide glitch overlay on success
         hideGlitchOverlay();
 
@@ -4975,6 +5029,11 @@ function disconnectWallet() {
     document.getElementById("prime-emissary-card").innerHTML = `<div class="character-sheet-empty">NO DATA</div>`;
     document.getElementById("roster-table-wrap").innerHTML = "";
 
+    // 🔥 Reset profile balances
+    document.getElementById('profile-ember-balance').textContent = '--';
+    document.getElementById('profile-ash-balance').textContent = '--';
+    document.getElementById('profile-pending-section').style.display = 'none';
+
     // 🔥 Update Vault UI
     if (typeof updateVaultWalletUI === 'function') {
         updateVaultWalletUI();
@@ -5002,6 +5061,77 @@ function updateWalletButtonsVisibility() {
         // Vault buttons
         document.getElementById("vault-connect-btn").style.display = "inline-block";
         document.getElementById("vault-disconnect-btn").style.display = "none";
+    }
+}
+
+// 🔥 PROFILE BALANCE FUNCTIONS
+async function loadProfileBalances() {
+    if (!connectedWallet) {
+        // Reset display if no wallet
+        document.getElementById('profile-ember-balance').textContent = '--';
+        document.getElementById('profile-ash-balance').textContent = '--';
+        document.getElementById('profile-pending-section').style.display = 'none';
+        return;
+    }
+
+    try {
+        // Fetch EMBER balance from backend
+        const emberResponse = await fetch(`/api/ember/balance/${encodeURIComponent(connectedWallet)}`);
+        if (emberResponse.ok) {
+            const data = await emberResponse.json();
+            const pendingEmber = data.pending || 0;
+            const onchainEmber = data.onchain || 0;
+            const totalEmber = pendingEmber + onchainEmber;
+
+            // Update total EMBER display
+            document.getElementById('profile-ember-balance').textContent = formatNumber(totalEmber);
+
+            // Show/hide pending section
+            const pendingSection = document.getElementById('profile-pending-section');
+            if (pendingEmber > 0) {
+                pendingSection.style.display = 'block';
+                document.getElementById('profile-ember-pending').textContent = formatNumber(pendingEmber);
+            } else {
+                pendingSection.style.display = 'none';
+            }
+        }
+
+        // Fetch ASH balance on-chain
+        if (window.ethereum) {
+            const provider = new ethers.providers.Web3Provider(window.ethereum);
+            const ashContract = new ethers.Contract(
+                CONTRACT_CONFIG.CONTRACTS.AshToken,
+                CONTRACT_CONFIG.ASH_TOKEN_ABI,
+                provider
+            );
+            const ashBalanceWei = await ashContract.balanceOf(connectedWallet);
+            const ashBalance = parseFloat(ethers.utils.formatEther(ashBalanceWei));
+            document.getElementById('profile-ash-balance').textContent = formatNumber(ashBalance);
+        }
+
+        console.log('📊 Profile balances loaded');
+    } catch (error) {
+        console.error('Error loading profile balances:', error);
+        document.getElementById('profile-ember-balance').textContent = 'Error';
+        document.getElementById('profile-ash-balance').textContent = 'Error';
+    }
+}
+
+// Claim EMBER directly from Profile section
+async function claimEmberFromProfile() {
+    if (!connectedWallet) {
+        showInfoModal('WALLET REQUIRED', 'Please connect your wallet first.');
+        return;
+    }
+
+    // Check if inventory.js claimEmber is available
+    if (window.claimEmber && typeof window.claimEmber === 'function') {
+        await window.claimEmber();
+        // Refresh profile balances after claim
+        await loadProfileBalances();
+    } else {
+        // Fallback: redirect to vault
+        showInfoModal('CLAIM EMBER', 'Please go to the VAULT to claim your $EMBER rewards.\n\nClick [ENTER VAULT] below.');
     }
 }
 
@@ -5881,20 +6011,26 @@ async function loadPlayerAndRender(){
                     </div>`;
             }
 
+            // 🔥 Add fallen class for dead emissaries
+            const fallenClass = state === "FALLEN" ? "fallen" : "";
+            const nameClass = state === "FALLEN" ? "hero-name fallen" : "hero-name";
+
             tbodyRows += `
             <tr>
                 <td>
                     <div style="display:flex; align-items:center; gap:8px;">
-                        <div style="display:flex; flex-direction:column; align-items:center; gap:2px;">
+                        <div style="display:flex; flex-direction:column; align-items:center; gap:2px; position:relative;">
                             <img src="${h.image_url || '/img/emissary-placeholder.png'}"
                                  alt="${h.name}"
                                  loading="lazy"
+                                 class="hero-image ${fallenClass}"
                                  style="width:40px; height:40px; border:1px solid var(--line); object-fit:cover;"
                                  onerror="this.src='/img/emissary-placeholder.png'"/>
+                            ${state === "FALLEN" ? '<div class="fallen-overlay">☠</div>' : ''}
                             <div style="font-size:0.8em; color:#888;">ID: ${h.token_id}</div>
                         </div>
                         <div>
-                            <div>${h.name || h.token_id}</div>
+                            <div class="${nameClass}">${h.name || h.token_id}</div>
                             ${window.renderEquipmentIndicators ? window.renderEquipmentIndicators(h) : ''}
                             <div style="display:flex; gap:4px; margin-top:2px;">
                                 <button class="terminal-btn" style="font-size:0.6rem; padding:2px 6px;"
@@ -6442,155 +6578,266 @@ async function startMission(heroId, missionId, missionName) {
     );
 }
 
-// Open reinvocation modal
+// ============================================
+// 🔥 REVIVE SYSTEM - On-Chain Payment to Treasury
+// ============================================
+
+// Treasury wallet for revive payments
+const TREASURY_WALLET = '0x31d6E19aAE43B5E2fbeDb01b6FF82AD1e8B576DC';
+
+// EMBER Token ABI for transfer
+const EMBER_TRANSFER_ABI = [
+    "function transfer(address to, uint256 amount) returns (bool)",
+    "function balanceOf(address account) view returns (uint256)"
+];
+
+// Revive costs in $EMBER (must match backend)
+const REVIVE_COSTS_EMBER = {
+    1: 200,      // 1st death
+    2: 500,      // 2nd death
+    3: 1000,     // 3rd death
+    4: 2500,     // 4th death
+    5: 5000,     // 5th death
+    6: 10000     // 6th+ death (maximum)
+};
+
+function getReviveCostEmber(deathCount) {
+    if (deathCount >= 6) return 10000;
+    return REVIVE_COSTS_EMBER[deathCount] || 10000;
+}
+
+// Current revive modal state
+let currentReviveHeroId = null;
+let currentReviveCost = 0;
+let currentReviveHeroName = '';
+
+// Get on-chain EMBER balance
+async function getOnChainEmberBalance(wallet) {
+    try {
+        if (!window.ethereum) {
+            throw new Error('No wallet connected');
+        }
+
+        const provider = new ethers.providers.Web3Provider(window.ethereum);
+        const emberContract = new ethers.Contract(
+            CONTRACT_CONFIG.CONTRACTS.EmberToken,
+            EMBER_TRANSFER_ABI,
+            provider
+        );
+
+        const balanceWei = await emberContract.balanceOf(wallet);
+        const balance = parseFloat(ethers.utils.formatEther(balanceWei));
+
+        return Math.floor(balance); // Return integer
+    } catch (error) {
+        console.error('Error getting on-chain EMBER balance:', error);
+        return 0;
+    }
+}
+
+// Open revive modal with loading state
 async function openReinvokeModal(fallenHeroId) {
     if (!connectedWallet) {
         showInfoModal("WALLET REQUIRED", "Please connect your wallet first!");
         return;
     }
 
+    // Store hero ID
+    currentReviveHeroId = fallenHeroId;
+
+    // Show modal with loading state
+    document.getElementById('revive-modal').style.display = 'flex';
+    document.getElementById('revive-loading').style.display = 'block';
+    document.getElementById('revive-content').style.display = 'none';
+    document.getElementById('revive-processing').style.display = 'none';
+    document.getElementById('revive-error').style.display = 'none';
+
     try {
+        // Fetch hero data
         const player = await fetchJSON(`/api/player/${encodeURIComponent(connectedWallet)}`);
 
         const fallenHero = (player.heroes || []).find(h => h.token_id === fallenHeroId);
         if (!fallenHero) {
-            showInfoModal("ERROR", "Fallen hero not found!");
+            showReviveError("Fallen hero not found!");
             return;
         }
 
         const ds = fallenHero.dynamic_state || {};
         if (ds.state !== "FALLEN") {
-            showInfoModal("ERROR", "This hero is not fallen!");
+            showReviveError("This hero is not fallen!");
             return;
         }
 
         // Get death count and calculate cost
         const deathCount = ds.death_count || 1;
-        let xpCost, auraCost;
-        if (deathCount === 1) {
-            xpCost = 500;
-            auraCost = 100;
-        } else if (deathCount === 2) {
-            xpCost = 1500;
-            auraCost = 300;
-        } else if (deathCount === 3) {
-            xpCost = 5000;
-            auraCost = 1000;
+        currentReviveCost = getReviveCostEmber(deathCount);
+        currentReviveHeroName = fallenHero.name || `Emissary #${fallenHeroId}`;
+
+        // Get on-chain EMBER balance
+        const emberBalance = await getOnChainEmberBalance(connectedWallet);
+
+        // Update modal UI
+        document.getElementById('revive-emissary-name').textContent = currentReviveHeroName;
+        document.getElementById('revive-death-count').textContent = deathCount;
+        document.getElementById('revive-cost-amount').textContent = currentReviveCost.toLocaleString();
+        document.getElementById('revive-ember-balance').textContent = emberBalance.toLocaleString();
+
+        // Check balance and update styling
+        const balanceEl = document.getElementById('revive-ember-balance');
+        const confirmBtn = document.getElementById('revive-confirm-btn');
+
+        if (emberBalance >= currentReviveCost) {
+            balanceEl.classList.remove('insufficient');
+            confirmBtn.disabled = false;
         } else {
-            xpCost = 10000;
-            auraCost = 2500;
+            balanceEl.classList.add('insufficient');
+            confirmBtn.disabled = true;
         }
 
-        // Get available heroes for sacrifice
-        const availableHeroes = (player.heroes || []).filter(h =>
-            h.token_id !== fallenHeroId && h.dynamic_state?.state !== "FALLEN"
+        // Hide loading, show content
+        document.getElementById('revive-loading').style.display = 'none';
+        document.getElementById('revive-content').style.display = 'block';
+
+    } catch (error) {
+        console.error('Error loading revive data:', error);
+        showReviveError('Failed to load emissary data. Please try again.');
+    }
+}
+
+// Show error in revive modal
+function showReviveError(message) {
+    document.getElementById('revive-loading').style.display = 'none';
+    document.getElementById('revive-content').style.display = 'block';
+    const errorDiv = document.getElementById('revive-error');
+    errorDiv.textContent = message;
+    errorDiv.style.display = 'block';
+}
+
+// Close revive modal and reset state
+function closeReviveModal() {
+    document.getElementById('revive-modal').style.display = 'none';
+    document.getElementById('revive-loading').style.display = 'block';
+    document.getElementById('revive-content').style.display = 'none';
+    document.getElementById('revive-processing').style.display = 'none';
+    document.getElementById('revive-error').style.display = 'none';
+    currentReviveHeroId = null;
+    currentReviveCost = 0;
+    currentReviveHeroName = '';
+}
+
+// Execute revive with on-chain transfer
+async function confirmReviveWithEmber() {
+    if (!currentReviveHeroId || !currentReviveCost || !connectedWallet) {
+        showReviveError('Invalid revive request. Please try again.');
+        return;
+    }
+
+    // Show processing state
+    document.getElementById('revive-content').style.display = 'none';
+    document.getElementById('revive-processing').style.display = 'block';
+
+    try {
+        // 1. Execute on-chain transfer to Treasury
+        const provider = new ethers.providers.Web3Provider(window.ethereum);
+        const signer = provider.getSigner();
+
+        const emberContract = new ethers.Contract(
+            CONTRACT_CONFIG.CONTRACTS.EmberToken,
+            EMBER_TRANSFER_ABI,
+            signer
         );
 
-        if (availableHeroes.length === 0) {
-            showInfoModal("NO HEROES", "No heroes available for sacrifice! You need at least one other hero with XP/Aura.");
+        const amountWei = ethers.utils.parseEther(currentReviveCost.toString());
+
+        console.log(`🔥 Sending ${currentReviveCost} $EMBER to Treasury: ${TREASURY_WALLET}`);
+
+        // Send EMBER to Treasury
+        const tx = await emberContract.transfer(TREASURY_WALLET, amountWei);
+
+        console.log(`📤 Transaction sent: ${tx.hash}`);
+
+        // Wait for confirmation
+        const receipt = await tx.wait();
+
+        if (receipt.status !== 1) {
+            throw new Error('Transaction failed on-chain');
+        }
+
+        console.log(`✅ Transaction confirmed: ${tx.hash}`);
+
+        // 2. Notify backend to revive the emissary
+        const reviveResponse = await fetch('/api/revive', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                wallet: connectedWallet,
+                emissary_id: currentReviveHeroId,
+                tx_hash: tx.hash,
+                amount: currentReviveCost
+            })
+        });
+
+        const reviveResult = await reviveResponse.json();
+
+        if (!reviveResult.success) {
+            // TX succeeded but backend failed - warn user
+            console.error('Backend revive failed after successful TX:', reviveResult.error);
+            closeReviveModal();
+            showInfoModal("PARTIAL SUCCESS",
+                `Transaction completed (${tx.hash.slice(0, 10)}...)\n\n` +
+                `However, the backend reported: ${reviveResult.error}\n\n` +
+                `Please contact support with your TX hash.`
+            );
             return;
         }
 
-        let sacrificeMsg = `💀 REINVOCATION RITUAL\n\n`;
-        sacrificeMsg += `Fallen Hero: ${fallenHero.name || fallenHeroId}\n`;
-        sacrificeMsg += `Death Count: ${deathCount}\n\n`;
-        sacrificeMsg += `Required:\n`;
-        sacrificeMsg += `XP: ${xpCost}\n`;
-        sacrificeMsg += `Aura: ${auraCost}\n\n`;
-        sacrificeMsg += `SELECT HEROES TO SACRIFICE FROM:\n\n`;
+        // 3. Success - close modal and show message
+        closeReviveModal();
+        showInfoModal("EMISSARY REVIVED! ✨",
+            `"${currentReviveHeroName}" has been brought back from the void!\n\n` +
+            `$EMBER Spent: ${currentReviveCost.toLocaleString()}\n` +
+            `TX: ${tx.hash.slice(0, 10)}...${tx.hash.slice(-8)}\n\n` +
+            `⚠ Emissary starts fresh with:\n` +
+            `• 0 XP\n` +
+            `• 0 Aura\n` +
+            `• 100 Energy\n\n` +
+            `The ancient flames burn once more.`
+        );
 
-        availableHeroes.forEach((h, idx) => {
-            const hds = h.dynamic_state || {};
-            sacrificeMsg += `${idx + 1}. ${h.name || h.token_id}\n`;
-            sacrificeMsg += `   XP: ${hds.xp_total || 0} | Aura: ${hds.aura_level || 0}\n\n`;
-        });
+        // 4. Refresh UI
+        loadPlayerAndRender();
+        fetchStatsAndRender();
+        if (window.loadEmberBalance) window.loadEmberBalance();
 
-        sacrificeMsg += `\nThis is a simple implementation. You'll need to manually calculate donations.\n\n`;
-        sacrificeMsg += `Proceed with automatic sacrifice?`;
+    } catch (error) {
+        console.error('Revive error:', error);
 
-        showConfirmModal("REINVOCATION RITUAL", sacrificeMsg, async () => {
-            // Simple automatic sacrifice algorithm
-            const sacrifices = [];
-            let totalXpDonated = 0;
-            let totalAuraDonated = 0;
+        // Show content again with error
+        document.getElementById('revive-processing').style.display = 'none';
+        document.getElementById('revive-content').style.display = 'block';
 
-            for (const hero of availableHeroes) {
-                if (totalXpDonated >= xpCost && totalAuraDonated >= auraCost) {
-                    break;
-                }
+        let errorMessage = 'Revive failed. ';
+        if (error.code === 4001 || error.code === 'ACTION_REJECTED') {
+            errorMessage = 'Transaction cancelled by user.';
+        } else if (error.message && error.message.includes('insufficient')) {
+            errorMessage = 'Insufficient $EMBER balance in wallet.';
+        } else if (error.message && error.message.includes('gas')) {
+            errorMessage = 'Insufficient ETH for gas fees.';
+        } else {
+            errorMessage += error.message || 'Please try again.';
+        }
 
-                const hds = hero.dynamic_state || {};
-                const availableXp = hds.xp_total || 0;
-                const availableAura = hds.aura_level || 0;
-
-                const xpNeeded = xpCost - totalXpDonated;
-                const auraNeeded = auraCost - totalAuraDonated;
-
-                const xpDonate = Math.min(availableXp, xpNeeded);
-                const auraDonate = Math.min(availableAura, auraNeeded);
-
-                if (xpDonate > 0 || auraDonate > 0) {
-                    sacrifices.push({
-                        hero_id: hero.token_id,
-                        xp_donate: xpDonate,
-                        aura_donate: auraDonate
-                    });
-
-                    totalXpDonated += xpDonate;
-                    totalAuraDonated += auraDonate;
-                }
-            }
-
-            if (totalXpDonated < xpCost || totalAuraDonated < auraCost) {
-                showInfoModal("INSUFFICIENT RESOURCES",
-                    `Not enough resources!\n\nYou have:\nXP: ${totalXpDonated}/${xpCost}\nAura: ${totalAuraDonated}/${auraCost}`);
-                return;
-            }
-
-            try {
-                // Call reinvoke API
-                const res = await fetch("/api/ritual/reinvoke", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        wallet: connectedWallet,
-                        fallen_hero_id: fallenHeroId,
-                        sacrifices: sacrifices
-                    })
-                });
-
-                if (!res.ok) {
-                    const errText = await res.text();
-                    showInfoModal("REINVOCATION FAILED", parseErrorMessage(errText));
-                    return;
-                }
-
-                const result = await res.json();
-
-                showInfoModal("REINVOCATION SUCCESSFUL",
-                    "✨ " + (fallenHero.name || fallenHeroId) + " has been brought back!\n\n" +
-                    `XP Donated: ${result.xp_donated}\n` +
-                    `Aura Donated: ${result.aura_donated}\n\n` +
-                    `Hero revived with:\n` +
-                    `XP: ${result.hero_xp_now}\n` +
-                    `Aura: ${result.hero_aura_now}\n` +
-                    `Energy: ${result.hero_energy_now}\n\n` +
-                    `Hero is now READY for missions.`
-                );
-
-                loadPlayerAndRender();
-                fetchStatsAndRender();
-            } catch(err) {
-                console.error(err);
-                showInfoModal("CONNECTION ERROR", "REINVOCATION ERROR: Connection issue.");
-            }
-        });
-
-    } catch(e) {
-        console.error(e);
-        showInfoModal("CONNECTION ERROR", "REINVOCATION ERROR: Connection issue.");
+        showReviveError(errorMessage);
     }
 }
+
+// Attach confirm button handler on DOM ready
+document.addEventListener('DOMContentLoaded', function() {
+    const reviveBtn = document.getElementById('revive-confirm-btn');
+    if (reviveBtn) {
+        reviveBtn.addEventListener('click', confirmReviveWithEmber);
+    }
+});
 
 /* --------- AMBIENT MUSIC SYSTEM (EMBERHOLM CONSOLE) ---------
    Sirve pistas desde /static/music/*.wav que Flask expone como /music/*.wav
@@ -9043,6 +9290,432 @@ async function loadAchievements(heroes) {
     font-size: 9px;
     line-height: 1;
     letter-spacing: -1px;
+}
+
+/* ============================================
+   FALLEN EMISSARY STYLES - Static Interference
+   ============================================ */
+
+/* Efecto de interferencia estática para NFT muerto */
+.emissary-image.fallen,
+.hero-image.fallen,
+.nft-image.fallen,
+.character-portrait.fallen,
+.hero-portrait.fallen,
+.emissary-card.fallen .emissary-image,
+.hero-card.fallen .hero-image,
+.inventory-item.fallen img,
+img.fallen {
+    filter: grayscale(100%) contrast(1.2);
+    animation: static-interference 0.3s infinite;
+    position: relative;
+}
+
+@keyframes static-interference {
+    0% {
+        filter: grayscale(100%) contrast(1.2) brightness(1);
+        transform: translateX(0);
+    }
+    10% {
+        filter: grayscale(100%) contrast(1.5) brightness(0.9);
+        transform: translateX(-1px);
+    }
+    20% {
+        filter: grayscale(100%) contrast(1.1) brightness(1.1);
+        transform: translateX(1px);
+    }
+    30% {
+        filter: grayscale(100%) contrast(1.3) brightness(0.95);
+        transform: translateX(0);
+    }
+    40% {
+        filter: grayscale(100%) contrast(1.2) brightness(1);
+        transform: translateX(1px);
+    }
+    50% {
+        filter: grayscale(100%) contrast(1.4) brightness(0.85);
+        transform: translateX(-1px);
+    }
+    60% {
+        filter: grayscale(100%) contrast(1.1) brightness(1.05);
+        transform: translateX(0);
+    }
+    70% {
+        filter: grayscale(100%) contrast(1.3) brightness(0.9);
+        transform: translateX(-1px);
+    }
+    80% {
+        filter: grayscale(100%) contrast(1.2) brightness(1);
+        transform: translateX(1px);
+    }
+    90% {
+        filter: grayscale(100%) contrast(1.5) brightness(0.88);
+        transform: translateX(0);
+    }
+    100% {
+        filter: grayscale(100%) contrast(1.2) brightness(1);
+        transform: translateX(0);
+    }
+}
+
+/* Líneas de escaneo sobre la imagen muerta */
+.emissary-card.fallen::after,
+.hero-card.fallen::after,
+.inventory-item.fallen::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: repeating-linear-gradient(
+        0deg,
+        rgba(0, 0, 0, 0.15) 0px,
+        rgba(0, 0, 0, 0.15) 1px,
+        transparent 1px,
+        transparent 3px
+    );
+    pointer-events: none;
+    animation: scanlines-move 4s linear infinite;
+    z-index: 2;
+}
+
+@keyframes scanlines-move {
+    0% { transform: translateY(0); }
+    100% { transform: translateY(10px); }
+}
+
+/* Asegurar position relative en el contenedor */
+.emissary-card.fallen,
+.hero-card.fallen,
+.inventory-item.fallen {
+    position: relative;
+    overflow: hidden;
+}
+
+/* Nombre de emissary muerto */
+.emissary-name.fallen,
+.hero-name.fallen,
+.nft-name.fallen {
+    color: #666 !important;
+    text-shadow: none;
+}
+
+/* Stats de emissary muerto */
+.emissary-stats.fallen,
+.hero-stats.fallen {
+    opacity: 0.5;
+}
+
+/* ============================================
+   SKULL ICON - Clean, no background, no glow
+   ============================================ */
+
+/* Calavera limpia - sin fondo, sin glow, sin efectos */
+.fallen-indicator,
+.skull-icon,
+.death-icon,
+.fallen-skull,
+.status-skull,
+.fallen-overlay {
+    background: none !important;
+    background-color: transparent !important;
+    box-shadow: none !important;
+    filter: none !important;
+    border: none !important;
+}
+
+/* Calavera como texto simple */
+.fallen-skull-text,
+.fallen-overlay {
+    color: #888;
+    font-size: 1.2em;
+    text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.8);
+    background: none !important;
+    border: none !important;
+    padding: 0;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 10;
+}
+
+/* Si la calavera es una imagen */
+img.skull-icon,
+img.death-icon {
+    background: transparent !important;
+    filter: grayscale(100%) opacity(0.7);
+    width: 16px;
+    height: 16px;
+}
+
+/* ============================================
+   REVIVE MODAL - Complete Styling
+   ============================================ */
+
+/* Modal overlay */
+#revive-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.85);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+}
+
+/* Modal content */
+.revive-modal-content {
+    background: #111;
+    border: 2px solid #f59e0b;
+    border-radius: 8px;
+    padding: 30px;
+    max-width: 450px;
+    width: 90%;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+/* Loading State */
+.revive-loading-state,
+.revive-processing-state {
+    text-align: center;
+    padding: 40px 20px;
+}
+
+.loading-skull-container {
+    margin-bottom: 20px;
+}
+
+.loading-skull,
+.processing-skull {
+    font-size: 4em;
+    animation: pulse-skull 1.5s ease-in-out infinite;
+    color: #666;
+    display: inline-block;
+}
+
+@keyframes pulse-skull {
+    0%, 100% {
+        opacity: 0.4;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 1;
+        transform: scale(1.15);
+    }
+}
+
+.loading-text,
+.processing-text {
+    color: #f59e0b;
+    font-style: italic;
+    margin: 15px 0 8px;
+    font-size: 1.1em;
+}
+
+.loading-subtext,
+.processing-subtext {
+    color: #666;
+    font-size: 0.9em;
+    margin-bottom: 15px;
+}
+
+.loading-dots {
+    display: flex;
+    justify-content: center;
+    gap: 5px;
+}
+
+.loading-dots span {
+    color: #f59e0b;
+    font-size: 2em;
+    animation: dot-pulse 1.4s infinite;
+    animation-fill-mode: both;
+}
+
+.loading-dots span:nth-child(2) { animation-delay: 0.2s; }
+.loading-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes dot-pulse {
+    0%, 80%, 100% {
+        opacity: 0.2;
+        transform: translateY(0);
+    }
+    40% {
+        opacity: 1;
+        transform: translateY(-5px);
+    }
+}
+
+/* Content State */
+.revive-title {
+    color: #ef4444;
+    text-align: center;
+    margin-bottom: 25px;
+    font-size: 1.4em;
+}
+
+.revive-emissary-info {
+    background: rgba(0, 0, 0, 0.3);
+    padding: 15px;
+    border-radius: 4px;
+    margin-bottom: 20px;
+}
+
+.emissary-name-display {
+    color: #888;
+    margin-bottom: 8px;
+}
+
+.emissary-name-display span {
+    color: #fff;
+}
+
+.death-count-display {
+    color: #888;
+}
+
+.death-count-display span {
+    color: #ef4444;
+}
+
+.revive-cost-section {
+    text-align: center;
+    padding: 20px;
+    background: rgba(245, 158, 11, 0.1);
+    border: 1px solid #f59e0b;
+    border-radius: 4px;
+    margin-bottom: 15px;
+}
+
+.cost-label {
+    color: #888;
+    display: block;
+    margin-bottom: 5px;
+}
+
+.cost-amount {
+    color: #f59e0b;
+    font-size: 2em;
+    font-weight: bold;
+}
+
+.cost-token {
+    color: #f59e0b;
+    font-size: 1.2em;
+}
+
+.revive-balance-section {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px 15px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 4px;
+    margin-bottom: 15px;
+}
+
+.balance-label {
+    color: #888;
+}
+
+.balance-amount {
+    color: #22c55e;
+    font-weight: bold;
+}
+
+.balance-amount.insufficient {
+    color: #ef4444;
+}
+
+.revive-treasury-info {
+    text-align: center;
+    margin-bottom: 15px;
+}
+
+.treasury-note {
+    color: #666;
+    font-size: 0.85em;
+    font-style: italic;
+}
+
+.revive-warning {
+    text-align: center;
+    padding: 10px;
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px dashed #ef4444;
+    border-radius: 4px;
+    margin-bottom: 20px;
+}
+
+.revive-warning p {
+    color: #ef4444;
+    font-size: 0.9em;
+    margin: 0;
+}
+
+.revive-buttons {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+}
+
+.revive-btn {
+    background: transparent;
+    border: 2px solid #f59e0b;
+    color: #f59e0b;
+    padding: 12px 25px;
+    cursor: pointer;
+    font-family: 'Courier New', monospace;
+    font-size: 1em;
+    transition: all 0.2s;
+}
+
+.revive-btn:hover:not(:disabled) {
+    background: rgba(245, 158, 11, 0.2);
+}
+
+.revive-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    border-color: #666;
+    color: #666;
+}
+
+.cancel-btn {
+    background: transparent;
+    border: 1px solid #666;
+    color: #888;
+    padding: 12px 25px;
+    cursor: pointer;
+    font-family: 'Courier New', monospace;
+}
+
+.cancel-btn:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.revive-error-message {
+    color: #ef4444;
+    text-align: center;
+    margin-top: 15px;
+    padding: 10px;
+    background: rgba(239, 68, 68, 0.1);
+    border-radius: 4px;
+}
+
+/* Death count warning */
+.death-warning {
+    color: #ff6666;
+    font-size: 11px;
+    padding: 4px 8px;
+    background: rgba(255, 0, 0, 0.1);
+    border: 1px dashed #ff4444;
+    margin-top: 8px;
 }
 </style>
 
