@@ -9530,16 +9530,83 @@ img.death-icon {
     background: rgba(245, 158, 11, 0.2) !important;
 }
 
-/* Botón INVENTORY en gris para fallen */
+/* Botón INVENTORY con color para fallen */
 .roster-table tr.fallen .action-btn.inventory {
-    border-color: #666 !important;
-    color: #888 !important;
+    border-color: #3b82f6 !important;
+    color: #3b82f6 !important;
 }
 
-/* Botones pequeños (IMG, VIEW) en gris */
+.roster-table tr.fallen .action-btn.inventory:hover {
+    background: rgba(59, 130, 246, 0.2) !important;
+}
+
+/* Botones pequeños (IMG, VIEW) CON COLOR */
 .roster-table tr.fallen .terminal-btn {
-    border-color: #555 !important;
+    border-color: #3b82f6 !important;
+    color: #3b82f6 !important;
+}
+
+.roster-table tr.fallen .terminal-btn:hover {
+    background: rgba(59, 130, 246, 0.2) !important;
+}
+
+/* Calavera sobre imagen - ROJO */
+.roster-table tr.fallen .fallen-overlay {
+    color: #ef4444 !important;
+    text-shadow: 0 0 5px rgba(239, 68, 68, 0.5);
+    font-size: 1.5em;
+}
+
+/* ============================================
+   INVENTORY MODAL - FALLEN EMISSARY STYLING
+   ============================================ */
+
+/* Modal con clase fallen */
+#inventory-modal.fallen .emissary-portrait,
+#inventory-modal.fallen img[alt]:not([src*="dagger"]):not([src*="armor"]):not([src*="helmet"]):not([src*="ring"]):not([src*="beads"]):not([src*="runes"]):not([src*="crossedswords"]):not([src*="pixel-icon"]) {
+    filter: grayscale(100%) contrast(1.2);
+    animation: static-interference 0.3s infinite;
+}
+
+/* Nombre en gris cuando está fallen */
+#inventory-modal.fallen .terminal-modal-body > div:first-child > div:nth-child(2) > div:first-child {
     color: #666 !important;
+}
+
+/* Stats labels y values en gris */
+#inventory-modal.fallen [style*="color:var(--primary-green)"][style*="font-weight:600"],
+#inventory-modal.fallen [style*="color:var(--gold)"][style*="font-weight:600"],
+#inventory-modal.fallen [style*="color:#22c55e"][style*="font-weight:600"] {
+    color: #666 !important;
+}
+
+/* Race, Class, Guild, Rank en gris */
+#inventory-modal.fallen [style*="border:1px solid var(--border-dim)"] {
+    color: #666 !important;
+}
+
+/* Death count mantiene color rojo */
+#inventory-modal.fallen [style*="color:#ef4444"] {
+    color: #ef4444 !important;
+}
+
+/* Calavera overlay en inventory modal */
+#inventory-modal.fallen .skull-overlay {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 2.5em;
+    color: #ef4444;
+    text-shadow: 0 0 10px rgba(0, 0, 0, 0.8);
+    z-index: 10;
+}
+
+/* Equipment slots mantienen color normal */
+#inventory-modal.fallen .equipment-slot,
+#inventory-modal.fallen .terminal-btn,
+#inventory-modal.fallen button {
+    opacity: 1 !important;
 }
 
 /* ============================================
