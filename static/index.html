@@ -1401,7 +1401,7 @@ document.addEventListener('DOMContentLoaded', initPortalWarning);
                             <div style="font-size:11px; color:#888; font-style:italic; margin-bottom:8px;">
                                 "The VAULT holds the true measure of a warrior's conquest..."
                             </div>
-                            <button class="terminal-btn small-btn" onclick="showScreen('vault')" style="width:100%;">[ENTER VAULT]</button>
+                            <button class="terminal-btn small-btn" onclick="switchScreen('vault')" style="width:100%;">[ENTER VAULT]</button>
                         </div>
                     </div>
 
@@ -1459,7 +1459,7 @@ document.addEventListener('DOMContentLoaded', initPortalWarning);
                 <!-- Pending Claims Alert -->
                 <div id="vault-pending-claims" style="margin-top:10px; display:none;">
                     <span style="color:var(--gold);">⚡ You have <span id="vault-claims-count">0</span> pending claim(s)!</span>
-                    <button class="terminal-btn small-btn" onclick="showScreen('profile')" style="margin-left:10px;">[GO TO PROFILE TO CLAIM]</button>
+                    <button class="terminal-btn small-btn" onclick="switchScreen('profile')" style="margin-left:10px;">[GO TO PROFILE TO CLAIM]</button>
                 </div>
             </div>
 
@@ -6012,11 +6012,18 @@ async function loadPlayerAndRender(){
             }
 
             // 🔥 Add fallen class for dead emissaries
-            const fallenClass = state === "FALLEN" ? "fallen" : "";
-            const nameClass = state === "FALLEN" ? "hero-name fallen" : "hero-name";
+            const isFallen = state === "FALLEN";
+            const fallenClass = isFallen ? "fallen" : "";
+            const nameClass = isFallen ? "hero-name fallen" : "hero-name";
+
+            // 🔥 Stats - Si está fallen, mostrar 0
+            const displayXp = isFallen ? 0 : (ds.xp_total || 0);
+            const displayAura = isFallen ? 0 : (ds.aura_level || 0);
+            const displayEnergy = isFallen ? 0 : (ds.energy_current || 0);
+            const maxEnergy = ds.energy_max || 100;
 
             tbodyRows += `
-            <tr>
+            <tr class="${fallenClass}">
                 <td>
                     <div style="display:flex; align-items:center; gap:8px;">
                         <div style="display:flex; flex-direction:column; align-items:center; gap:2px; position:relative;">
@@ -6107,9 +6114,9 @@ async function loadPlayerAndRender(){
                     </div>
                 </td>
                 <td>${h.race_class || ""}</td>
-                <td>${ds.xp_total || 0}</td>
-                <td>${ds.aura_level || 0}</td>
-                <td>${ds.energy_current || 0}/${ds.energy_max || 100}</td>
+                <td>${displayXp}</td>
+                <td>${displayAura}</td>
+                <td>${displayEnergy}/${maxEnergy}</td>
                 <td>${h.guild || ds.current_guild || ""}</td>
                 <td style="color:${stateColor};">${stateText}${timeRemainingHtml}</td>
                 <td>${actionButtons}</td>
@@ -9448,6 +9455,91 @@ img.death-icon {
     filter: grayscale(100%) opacity(0.7);
     width: 16px;
     height: 16px;
+}
+
+/* ============================================
+   ROSTER TABLE - FALLEN EMISSARY ROW STYLING
+   ============================================ */
+
+/* Fila de emissary fallen - todo en gris por defecto */
+.roster-table tr.fallen {
+    color: #666 !important;
+}
+
+/* Nombre en gris */
+.roster-table tr.fallen .hero-name,
+.roster-table tr.fallen .emissary-name {
+    color: #666 !important;
+}
+
+/* ID en gris */
+.roster-table tr.fallen div[style*="color:#888"] {
+    color: #555 !important;
+}
+
+/* Clase/Raza en gris */
+.roster-table tr.fallen td:nth-child(2) {
+    color: #666 !important;
+}
+
+/* Stats (XP, Aura, Energy) en gris */
+.roster-table tr.fallen td:nth-child(3),
+.roster-table tr.fallen td:nth-child(4),
+.roster-table tr.fallen td:nth-child(5) {
+    color: #666 !important;
+}
+
+/* Guild en gris */
+.roster-table tr.fallen td:nth-child(6) {
+    color: #666 !important;
+}
+
+/* Estado FALLEN mantiene color rojo */
+.roster-table tr.fallen td:nth-child(7) {
+    color: #ef4444 !important;
+}
+
+/* EXCEPCIONES - Mantienen color normal */
+
+/* Items/Equipment mantienen color */
+.roster-table tr.fallen .equipment-indicators,
+.roster-table tr.fallen .item-icons,
+.roster-table tr.fallen .equipment-icons {
+    filter: none !important;
+    opacity: 1 !important;
+}
+
+.roster-table tr.fallen .equipment-indicators img,
+.roster-table tr.fallen .item-icons img {
+    filter: none !important;
+    opacity: 1 !important;
+}
+
+/* Botones mantienen funcionalidad */
+.roster-table tr.fallen .actions-cell button {
+    opacity: 1 !important;
+}
+
+/* Botón REVIVE destacado en naranja */
+.roster-table tr.fallen .action-btn.revive {
+    border-color: #f59e0b !important;
+    color: #f59e0b !important;
+}
+
+.roster-table tr.fallen .action-btn.revive:hover {
+    background: rgba(245, 158, 11, 0.2) !important;
+}
+
+/* Botón INVENTORY en gris para fallen */
+.roster-table tr.fallen .action-btn.inventory {
+    border-color: #666 !important;
+    color: #888 !important;
+}
+
+/* Botones pequeños (IMG, VIEW) en gris */
+.roster-table tr.fallen .terminal-btn {
+    border-color: #555 !important;
+    color: #666 !important;
 }
 
 /* ============================================
