@@ -9520,35 +9520,37 @@ img.death-icon {
     opacity: 1 !important;
 }
 
-/* Botón REVIVE destacado en naranja */
+/* Botón REVIVE - ROJO */
 .roster-table tr.fallen .action-btn.revive {
+    border-color: #ef4444 !important;
+    color: #ef4444 !important;
+}
+
+.roster-table tr.fallen .action-btn.revive:hover {
+    background: rgba(239, 68, 68, 0.2) !important;
+}
+
+/* Botón INVENTORY - NARANJA */
+.roster-table tr.fallen .action-btn.inventory {
     border-color: #f59e0b !important;
     color: #f59e0b !important;
 }
 
-.roster-table tr.fallen .action-btn.revive:hover {
+.roster-table tr.fallen .action-btn.inventory:hover {
     background: rgba(245, 158, 11, 0.2) !important;
 }
 
-/* Botón INVENTORY con color para fallen */
-.roster-table tr.fallen .action-btn.inventory {
-    border-color: #3b82f6 !important;
-    color: #3b82f6 !important;
+/* Botón [↓ IMG] - NARANJA (terminal-btn sin inline styles) */
+.roster-table tr.fallen .terminal-btn:not([style*="color"]) {
+    border-color: #f59e0b !important;
+    color: #f59e0b !important;
 }
 
-.roster-table tr.fallen .action-btn.inventory:hover {
-    background: rgba(59, 130, 246, 0.2) !important;
+.roster-table tr.fallen .terminal-btn:not([style*="color"]):hover {
+    background: rgba(245, 158, 11, 0.2) !important;
 }
 
-/* Botones pequeños (IMG, VIEW) CON COLOR */
-.roster-table tr.fallen .terminal-btn {
-    border-color: #3b82f6 !important;
-    color: #3b82f6 !important;
-}
-
-.roster-table tr.fallen .terminal-btn:hover {
-    background: rgba(59, 130, 246, 0.2) !important;
-}
+/* Botón [VIEW] ya tiene inline styles azules, no necesita override */
 
 /* Calavera sobre imagen - ROJO */
 .roster-table tr.fallen .fallen-overlay {
