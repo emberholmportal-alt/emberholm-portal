@@ -550,6 +550,15 @@
             }
             console.log(`📦 Available items for inventory: ${availableItems.length}`);
 
+            // 🔥 Check if emissary is FALLEN and add class to modal
+            const ds = emissary.dynamic_state || {};
+            const isFallen = ds.state === 'FALLEN';
+            if (isFallen) {
+                modal.classList.add('fallen');
+            } else {
+                modal.classList.remove('fallen');
+            }
+
             // Build inventory HTML
             const content = buildInventoryContent(emissary, availableItems);
             modalBody.innerHTML = content;
@@ -795,31 +804,64 @@
         const state = ds.state || "READY";
         const totalBoosts = calculateTotalBoosts(emissary, availableItems);
 
+        // 🔥 Check if emissary is FALLEN
+        const isFallen = state === 'FALLEN';
+
+        // 🔥 Stats - Si está fallen, mostrar 0
+        const displayXp = isFallen ? 0 : (ds.xp_total || 0);
+        const displayAura = isFallen ? 0 : (ds.aura_level || 0);
+        const displayEnergy = isFallen ? 0 : (ds.energy_current || 0);
+        const maxEnergy = ds.energy_max || 100;
+
         // Determine state badge
         let stateBadge = '✓ READY';
-        if (state === 'ON_MISSION') stateBadge = '⏳ IN PROGRESS';
-        else if (state === 'FALLEN') stateBadge = '💀 FALLEN';
+        let stateBadgeStyle = 'background:rgba(68,170,255,0.2); color:var(--primary-green); border:1px solid var(--primary-green);';
+        if (state === 'ON_MISSION') {
+            stateBadge = '⏳ IN PROGRESS';
+        } else if (state === 'FALLEN') {
+            stateBadge = '💀 FALLEN';
+            stateBadgeStyle = 'background:rgba(239,68,68,0.2); color:#ef4444; border:1px solid #ef4444;';
+        }
+
+        // 🔥 Name color - gray if fallen
+        const nameColor = isFallen ? '#666' : 'var(--primary-green)';
+
+        // 🔥 Stats colors - gray if fallen
+        const xpColor = isFallen ? '#666' : 'var(--primary-green)';
+        const auraColor = isFallen ? '#666' : 'var(--gold)';
+        const energyColor = isFallen ? '#666' : '#22c55e';
+
+        // 🔥 Image with skull overlay if fallen
+        const imageHtml = emissary.image_url
+            ? `<div style="position:relative; display:inline-block;">
+                   <img src="${emissary.image_url}"
+                        class="${isFallen ? 'fallen-image' : ''}"
+                        style="max-width:100px; max-height:100px; image-rendering:pixelated; ${isFallen ? 'filter:grayscale(100%) contrast(1.2); animation:static-interference 0.3s infinite;' : ''}"
+                        alt="${emissary.name}"/>
+                   ${isFallen ? '<div class="skull-overlay" style="position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); font-size:2.5em; color:#ef4444; text-shadow:0 0 10px rgba(0,0,0,0.8); z-index:10;">☠</div>' : ''}
+               </div>`
+            : '<div style="width:100px; height:100px; background:#222; display:flex; align-items:center; justify-content:center; color:#666;">NO IMG</div>';
 
         return `
             ${missionWarning}
             <!-- Emissary Header -->
             <div style="display:grid; grid-template-columns: 120px 1fr; gap:20px; margin-bottom:20px; padding:15px; border:1px solid var(--border-primary); background:rgba(0,0,0,0.3);">
                 <div style="text-align:center;">
-                    ${emissary.image_url ? `<img src="${emissary.image_url}" style="max-width:100px; max-height:100px; image-rendering:pixelated;" alt="${emissary.name}"/>` : '<div style="width:100px; height:100px; background:#222; display:flex; align-items:center; justify-content:center; color:#666;">NO IMG</div>'}
+                    ${imageHtml}
                 </div>
                 <div>
-                    <div style="font-size:16px; font-weight:600; color:var(--primary-green); margin-bottom:5px;">
+                    <div style="font-size:16px; font-weight:600; color:${nameColor}; margin-bottom:5px;">
                         ${emissary.name || emissary.token_id}
                     </div>
                     <div style="font-size:11px; color:#888; margin-bottom:10px;">
-                        ID: #${emissary.token_id}  <span style="padding:2px 8px; background:rgba(68,170,255,0.2); color:var(--primary-green); border:1px solid var(--primary-green);">${stateBadge}</span>
+                        ID: #${emissary.token_id}  <span style="padding:2px 8px; ${stateBadgeStyle}">${stateBadge}</span>
                     </div>
                     <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:10px;">
-                        <div style="border:1px solid var(--border-dim); padding:8px; font-size:11px;">
+                        <div style="border:1px solid var(--border-dim); padding:8px; font-size:11px; ${isFallen ? 'color:#666;' : ''}">
                             <strong>RACE:</strong> ${emissary.race || 'Unknown'}<br/>
                             <strong>GUILD:</strong> ${emissary.guild || ds.current_guild || 'None'}
                         </div>
-                        <div style="border:1px solid var(--border-dim); padding:8px; font-size:11px;">
+                        <div style="border:1px solid var(--border-dim); padding:8px; font-size:11px; ${isFallen ? 'color:#666;' : ''}">
                             <strong>CLASS:</strong> ${emissary.class || 'Unknown'}<br/>
                             <strong>RANK:</strong> ${emissary.rank || 'Tier 1'}
                         </div>
@@ -831,15 +873,15 @@
             <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:10px; margin-bottom:20px;">
                 <div style="border:1px solid var(--border-primary); padding:10px; text-align:center;">
                     <div style="font-size:10px; color:#888;">XP</div>
-                    <div style="font-size:16px; color:var(--primary-green); font-weight:600;">${(ds.xp_total || 0).toLocaleString()}</div>
+                    <div style="font-size:16px; color:${xpColor}; font-weight:600;">${displayXp.toLocaleString()}</div>
                 </div>
                 <div style="border:1px solid var(--border-primary); padding:10px; text-align:center;">
                     <div style="font-size:10px; color:#888;">AURA</div>
-                    <div style="font-size:16px; color:var(--gold); font-weight:600;">${ds.aura_level || 0}</div>
+                    <div style="font-size:16px; color:${auraColor}; font-weight:600;">${displayAura}</div>
                 </div>
                 <div style="border:1px solid var(--border-primary); padding:10px; text-align:center;">
                     <div style="font-size:10px; color:#888;">ENERGY</div>
-                    <div style="font-size:16px; color:#22c55e; font-weight:600;">${ds.energy_current || 0}/${ds.energy_max || 100}</div>
+                    <div style="font-size:16px; color:${energyColor}; font-weight:600;">${displayEnergy}/${maxEnergy}</div>
                 </div>
                 <div style="border:1px solid var(--border-primary); padding:10px; text-align:center;">
                     <div style="font-size:10px; color:#888;">DEATHS</div>
