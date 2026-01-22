@@ -3737,25 +3737,25 @@ button:disabled {
     pointer-events: auto;
 }
 
-/* Backdrop oscuro */
+/* Dark backdrop - semi-transparent to see portal behind */
 .tutorial-backdrop {
     position: absolute;
     top: 0;
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0, 0, 0, 0.85);
+    background: rgba(0, 0, 0, 0.55);
     pointer-events: auto;
 }
 
-/* Spotlight que resalta el elemento */
+/* Spotlight that highlights the element */
 .tutorial-spotlight {
     position: absolute;
     border: 3px solid var(--gold);
     border-radius: 8px;
     background: transparent;
     box-shadow:
-        0 0 0 9999px rgba(0, 0, 0, 0.85),
+        0 0 0 9999px rgba(0, 0, 0, 0.55),
         0 0 30px var(--gold),
         0 0 60px rgba(255, 204, 0, 0.3),
         inset 0 0 20px rgba(255, 204, 0, 0.1);

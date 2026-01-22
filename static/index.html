@@ -10895,17 +10895,17 @@ function renderTutorialContent(content, stepIndex, isNoEmissaries = false) {
         nextBtn.style.display = 'block';
         finishBtn.style.display = 'none';
 
-        // Cambiar texto si requiere click
+        // Change text if requires click
         if (step && step.requireClick) {
-            nextBtn.textContent = '[HECHO]';
+            nextBtn.textContent = '[DONE]';
         } else {
-            nextBtn.textContent = '[SIGUIENTE]';
+            nextBtn.textContent = '[NEXT]';
         }
     }
 
-    // Si no hay emissaries, cambiar texto del boton next
+    // If no emissaries, change next button text
     if (isNoEmissaries) {
-        nextBtn.textContent = '[CONTINUAR SIN MINT]';
+        nextBtn.textContent = '[CONTINUE WITHOUT MINT]';
     }
 }
 
