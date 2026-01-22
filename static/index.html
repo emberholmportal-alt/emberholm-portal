@@ -7701,6 +7701,47 @@ async function openMissionListModal(heroId) {
     showModal('mission-select-modal');
 }
 
+// Open Mission Modal for Tutorial (no heroId required, just display)
+async function openTutorialMissionModal() {
+    const missions = await loadMissionsData();
+    if (!missions || missions.length === 0) {
+        return;
+    }
+
+    // Build modal content (display only, no click handlers for tutorial)
+    let modalHTML = '';
+    missions.forEach((mission, idx) => {
+        const diffColor = mission.difficulty === 'Easy' ? '#44ff44' :
+                         mission.difficulty === 'Medium' ? '#ffaa00' : '#ff4444';
+
+        const deathRisk = mission.death_chance > 0 ?
+            `<span style="color:#ff4444;">⚠️ Death Risk: ${mission.death_chance}%</span>` :
+            `<span style="color:#44ff44;">✓ No Death Risk</span>`;
+
+        const isPartyMission = mission.party_size && mission.party_size === 5;
+        const partyLabel = isPartyMission ? ' <span style="color:#ffaa00;">[PARTY]</span>' : '';
+
+        modalHTML += `
+            <div class="modal-list-item">
+                <div class="modal-item-header">
+                    ${mission.name}${partyLabel}
+                </div>
+                <div class="modal-item-details">
+                    <div>Difficulty: <span style="color:${diffColor};">${mission.difficulty}</span> |
+                         Duration: ${mission.duration_hours}h |
+                         Energy: ${mission.energy_cost}</div>
+                    <div>Rewards: ${mission.reward_xp} XP, ${mission.reward_aura} Aura</div>
+                    <div>${deathRisk}</div>
+                    ${isPartyMission ? '<div style="color:#ffaa00;">⚠️ Requires 5 Emissaries</div>' : ''}
+                </div>
+            </div>
+        `;
+    });
+
+    document.getElementById('mission-select-body').innerHTML = modalHTML;
+    showModal('mission-select-modal');
+}
+
 // Select Mission and Start
 async function selectMission(missionId, heroId, missionName) {
     hideModal('mission-select-modal');
@@ -8277,9 +8318,14 @@ async function startPartyMission(missionId, missionName) {
             <span class="tutorial-step-badge">
                 STEP <span id="tut-step-num">1</span> OF <span id="tut-step-total">8</span>
             </span>
-            <button class="tutorial-exit-btn" onclick="exitTutorial()" title="Exit tutorial">
-                [EXIT]
-            </button>
+            <div class="tutorial-header-buttons">
+                <button class="tutorial-minimize-btn" id="tut-minimize-btn" onclick="minimizeTutorial()" title="Minimize tutorial">
+                    [_]
+                </button>
+                <button class="tutorial-exit-btn" onclick="exitTutorial()" title="Exit tutorial">
+                    [X]
+                </button>
+            </div>
         </div>
 
         <div class="tutorial-title" id="tut-title">CONNECT WALLET</div>
@@ -8304,6 +8350,17 @@ async function startPartyMission(missionId, missionName) {
                 [FINISH TUTORIAL]
             </button>
         </div>
+    </div>
+
+    <!-- Minimized tutorial indicator -->
+    <div class="tutorial-minimized-bar" id="tutorial-minimized-bar" style="display:none;">
+        <span class="minimized-text">TUTORIAL PAUSED - STEP <span id="tut-minimized-step">1</span>/<span id="tut-minimized-total">8</span></span>
+        <button class="tutorial-maximize-btn" onclick="maximizeTutorial()" title="Resume tutorial">
+            [RESUME]
+        </button>
+        <button class="tutorial-exit-btn-small" onclick="exitTutorial()" title="Exit tutorial">
+            [X]
+        </button>
     </div>
 </div>
 
@@ -10587,6 +10644,7 @@ document.addEventListener('DOMContentLoaded', () => {
 // Tutorial state
 let currentTutorialStep = 0;
 let tutorialActive = false;
+let tutorialMinimized = false;
 
 // Tutorial steps configuration
 const TUTORIAL_STEPS = [
@@ -10647,7 +10705,7 @@ const TUTORIAL_STEPS = [
     },
     {
         id: 'send-mission',
-        target: '.action-btn.send',
+        target: '.roster-table tbody tr:first-child .action-btn.send',
         screen: 'profile',
         title: 'STEP 4: SEND ON MISSION',
         body: `
@@ -10659,7 +10717,7 @@ const TUTORIAL_STEPS = [
     },
     {
         id: 'mission-select',
-        target: null,
+        target: '#mission-select-body .modal-list-item:first-child',
         screen: 'profile',
         title: 'STEP 5: MISSION TYPES',
         body: `
@@ -10673,7 +10731,8 @@ const TUTORIAL_STEPS = [
             <br>Click on a mission to select it and start the deployment.
         `,
         tip: 'Recommendation: Start with EASY missions until your Emissary levels up.',
-        position: 'center'
+        position: 'left',
+        openMissionModal: true
     },
     {
         id: 'mission-bonuses',
@@ -10775,6 +10834,14 @@ function showTutorialStep(stepIndex) {
     // Cambiar de pantalla si es necesario
     if (step.screen && typeof switchScreen === 'function') {
         switchScreen(step.screen);
+    }
+
+    // Abrir modal de misiones si es necesario (para tutorial)
+    if (step.openMissionModal) {
+        openTutorialMissionModal();
+        // Dar tiempo para que el modal se renderice
+        setTimeout(() => renderTutorialStep(step, stepIndex), 400);
+    } else if (step.screen) {
         // Dar tiempo para que la pantalla se renderice
         setTimeout(() => renderTutorialStep(step, stepIndex), 300);
     } else {
@@ -10991,10 +11058,16 @@ function exitTutorial() {
     console.log('👋 Exiting tutorial...');
 
     tutorialActive = false;
+    tutorialMinimized = false;
 
     // Ocultar overlay
     const overlay = document.getElementById('interactive-tutorial-overlay');
     overlay.classList.remove('active');
+    overlay.classList.remove('minimized');
+
+    // Ocultar minimized bar
+    const minimizedBar = document.getElementById('tutorial-minimized-bar');
+    if (minimizedBar) minimizedBar.style.display = 'none';
 
     // Resetear posicion del tooltip
     const tooltip = document.getElementById('tutorial-tooltip');
@@ -11007,9 +11080,68 @@ function exitTutorial() {
     document.removeEventListener('keydown', handleTutorialKeyboard);
 }
 
-// Manejar teclado durante tutorial
+// Manejar resize de ventana
+window.addEventListener('resize', () => {
+    if (tutorialActive && TUTORIAL_STEPS[currentTutorialStep]) {
+        const step = TUTORIAL_STEPS[currentTutorialStep];
+        if (step.target) {
+            positionSpotlight(step.target, step.position);
+        }
+    }
+});
+
+// Minimizar tutorial
+function minimizeTutorial() {
+    console.log('📥 Minimizing tutorial...');
+    tutorialMinimized = true;
+
+    const overlay = document.getElementById('interactive-tutorial-overlay');
+    const minimizedBar = document.getElementById('tutorial-minimized-bar');
+
+    // Add minimized class to hide tooltip and backdrop
+    overlay.classList.add('minimized');
+
+    // Update minimized bar step info
+    document.getElementById('tut-minimized-step').textContent = currentTutorialStep + 1;
+    document.getElementById('tut-minimized-total').textContent = TUTORIAL_STEPS.length;
+
+    // Show minimized bar
+    minimizedBar.style.display = 'flex';
+}
+
+function maximizeTutorial() {
+    console.log('📤 Maximizing tutorial...');
+    tutorialMinimized = false;
+
+    const overlay = document.getElementById('interactive-tutorial-overlay');
+    const minimizedBar = document.getElementById('tutorial-minimized-bar');
+
+    // Remove minimized class
+    overlay.classList.remove('minimized');
+
+    // Hide minimized bar
+    minimizedBar.style.display = 'none';
+
+    // Re-render current step to reposition spotlight
+    const step = TUTORIAL_STEPS[currentTutorialStep];
+    if (step) {
+        renderTutorialStep(step, currentTutorialStep);
+    }
+}
+
+// Update keyboard handler for minimize
 function handleTutorialKeyboard(e) {
     if (!tutorialActive) return;
+
+    // If minimized, only allow M to maximize or Escape to exit
+    if (tutorialMinimized) {
+        if (e.key === 'm' || e.key === 'M') {
+            maximizeTutorial();
+        } else if (e.key === 'Escape') {
+            exitTutorial();
+        }
+        return;
+    }
 
     switch (e.key) {
         case 'Escape':
@@ -11022,18 +11154,12 @@ function handleTutorialKeyboard(e) {
         case 'ArrowLeft':
             prevTutorialStep();
             break;
+        case 'm':
+        case 'M':
+            minimizeTutorial();
+            break;
     }
 }
-
-// Manejar resize de ventana
-window.addEventListener('resize', () => {
-    if (tutorialActive && TUTORIAL_STEPS[currentTutorialStep]) {
-        const step = TUTORIAL_STEPS[currentTutorialStep];
-        if (step.target) {
-            positionSpotlight(step.target, step.position);
-        }
-    }
-});
 
 console.log('✅ Interactive Tutorial System loaded');
 </script>

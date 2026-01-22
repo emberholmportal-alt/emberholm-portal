@@ -3734,7 +3734,7 @@ button:disabled {
 
 .tutorial-overlay.active {
     display: block;
-    pointer-events: auto;
+    pointer-events: none;
 }
 
 /* Dark backdrop - semi-transparent to see portal behind */
@@ -3745,7 +3745,7 @@ button:disabled {
     right: 0;
     bottom: 0;
     background: rgba(0, 0, 0, 0.35);
-    pointer-events: auto;
+    pointer-events: none;
 }
 
 /* Spotlight that highlights the element */
@@ -3828,13 +3828,35 @@ button:disabled {
     text-transform: uppercase;
 }
 
+/* Header buttons container */
+.tutorial-header-buttons {
+    display: flex;
+    gap: 8px;
+}
+
+.tutorial-minimize-btn {
+    background: transparent;
+    border: 1px solid var(--gold);
+    color: var(--gold);
+    font-family: 'Pixelify Sans', monospace;
+    font-size: 11px;
+    padding: 5px 10px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.tutorial-minimize-btn:hover {
+    background: var(--gold);
+    color: #000;
+}
+
 .tutorial-exit-btn {
     background: transparent;
     border: 1px solid var(--error-red);
     color: var(--error-red);
     font-family: 'Pixelify Sans', monospace;
     font-size: 11px;
-    padding: 5px 12px;
+    padding: 5px 10px;
     cursor: pointer;
     transition: all 0.2s;
 }
@@ -3842,6 +3864,75 @@ button:disabled {
 .tutorial-exit-btn:hover {
     background: var(--error-red);
     color: #000;
+}
+
+/* Minimized tutorial bar */
+.tutorial-minimized-bar {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: var(--bg-panel);
+    border: 2px solid var(--gold);
+    padding: 10px 15px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    z-index: 100001;
+    box-shadow: 0 0 20px rgba(255, 204, 0, 0.3);
+    animation: tutorial-tooltip-appear 0.3s ease;
+    pointer-events: auto;
+}
+
+.tutorial-minimized-bar .minimized-text {
+    color: var(--gold);
+    font-family: 'Pixelify Sans', monospace;
+    font-size: 12px;
+    letter-spacing: 1px;
+}
+
+.tutorial-maximize-btn {
+    background: rgba(255, 204, 0, 0.15);
+    border: 1px solid var(--gold);
+    color: var(--gold);
+    font-family: 'Pixelify Sans', monospace;
+    font-size: 11px;
+    padding: 5px 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.tutorial-maximize-btn:hover {
+    background: var(--gold);
+    color: #000;
+}
+
+.tutorial-exit-btn-small {
+    background: transparent;
+    border: 1px solid var(--error-red);
+    color: var(--error-red);
+    font-family: 'Pixelify Sans', monospace;
+    font-size: 11px;
+    padding: 5px 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.tutorial-exit-btn-small:hover {
+    background: var(--error-red);
+    color: #000;
+}
+
+/* Tutorial minimized state - allow interaction */
+.tutorial-overlay.minimized .tutorial-backdrop {
+    display: none;
+}
+
+.tutorial-overlay.minimized .tutorial-spotlight {
+    display: none;
+}
+
+.tutorial-overlay.minimized .tutorial-tooltip {
+    display: none;
 }
 
 /* Titulo del paso */
