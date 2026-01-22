@@ -1572,6 +1572,22 @@ document.addEventListener('DOMContentLoaded', initPortalWarning);
         <!-- INDEX -->
         <div class="section-block">
             <div class="section-title"><img src="/img/clipboard.png" class="pixel-icon" alt=""> TABLE OF CONTENTS // QUICK ACCESS</div>
+
+            <!-- INTERACTIVE TUTORIAL BUTTON -->
+            <div class="tutorial-banner-inline" style="margin: 15px 0; padding: 12px 16px; background: linear-gradient(135deg, rgba(255,204,0,0.1) 0%, rgba(255,136,0,0.05) 100%); border: 1px solid var(--gold); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+                <div>
+                    <div style="font-family: 'Alagard', serif; font-size: 15px; color: var(--gold); margin-bottom: 3px;">
+                        INTERACTIVE TUTORIAL
+                    </div>
+                    <div style="color: var(--bright-green); font-size: 12px;">
+                        Learn to play with a step-by-step guide. Perfect for new players.
+                    </div>
+                </div>
+                <button class="cmd tutorial-start-btn" onclick="startInteractiveTutorial()" style="font-size: 13px; padding: 10px 20px; background: rgba(255,204,0,0.15); border-color: var(--gold); color: var(--gold);">
+                    [START STEP-BY-STEP TUTORIAL]
+                </button>
+            </div>
+
             <div class="mono-block">
                 <div class="toc-grid" style="grid-template-columns: repeat(6, 1fr); gap: 10px;">
                     <div class="toc-section">
@@ -1618,23 +1634,6 @@ document.addEventListener('DOMContentLoaded', initPortalWarning);
                         <a href="#items-lands">→ LANDS</a>
                     </div>
                 </div>
-            </div>
-        </div>
-
-        <!-- INTERACTIVE TUTORIAL BANNER -->
-        <div class="section-block tutorial-banner-block" style="background: linear-gradient(135deg, rgba(255,204,0,0.1) 0%, rgba(255,136,0,0.05) 100%); border-color: var(--gold);">
-            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 15px;">
-                <div>
-                    <div style="font-family: 'Alagard', serif; font-size: 16px; color: var(--gold); margin-bottom: 5px;">
-                        TUTORIAL INTERACTIVO
-                    </div>
-                    <div style="color: var(--bright-green); font-size: 13px;">
-                        Aprende a jugar con una guia paso a paso. Ideal para nuevos jugadores.
-                    </div>
-                </div>
-                <button class="cmd tutorial-start-btn" onclick="startInteractiveTutorial()" style="font-size: 14px; padding: 12px 24px; background: rgba(255,204,0,0.15); border-color: var(--gold); color: var(--gold);">
-                    [INICIAR TUTORIAL PASO A PASO]
-                </button>
             </div>
         </div>
 
@@ -8318,27 +8317,27 @@ async function startPartyMission(missionId, missionName) {
      INTERACTIVE TUTORIAL OVERLAY
      ============================================ -->
 <div id="interactive-tutorial-overlay" class="tutorial-overlay">
-    <!-- Backdrop oscuro -->
+    <!-- Dark backdrop -->
     <div class="tutorial-backdrop"></div>
 
-    <!-- Spotlight (se posiciona dinamicamente via JS) -->
+    <!-- Spotlight (dynamically positioned via JS) -->
     <div class="tutorial-spotlight" id="tutorial-spotlight"></div>
 
-    <!-- Tooltip con contenido del paso -->
+    <!-- Tooltip with step content -->
     <div class="tutorial-tooltip" id="tutorial-tooltip">
         <div class="tutorial-header">
             <span class="tutorial-step-badge">
-                PASO <span id="tut-step-num">1</span> DE <span id="tut-step-total">8</span>
+                STEP <span id="tut-step-num">1</span> OF <span id="tut-step-total">8</span>
             </span>
-            <button class="tutorial-exit-btn" onclick="exitTutorial()" title="Salir del tutorial">
-                [SALIR]
+            <button class="tutorial-exit-btn" onclick="exitTutorial()" title="Exit tutorial">
+                [EXIT]
             </button>
         </div>
 
-        <div class="tutorial-title" id="tut-title">CONECTAR WALLET</div>
+        <div class="tutorial-title" id="tut-title">CONNECT WALLET</div>
 
         <div class="tutorial-body" id="tut-body">
-            Contenido del paso...
+            Step content...
         </div>
 
         <div class="tutorial-tip" id="tut-tip" style="display:none;">
@@ -8348,13 +8347,13 @@ async function startPartyMission(missionId, missionName) {
 
         <div class="tutorial-footer">
             <button class="cmd tutorial-btn" id="tut-prev-btn" onclick="prevTutorialStep()" style="display:none;">
-                [ANTERIOR]
+                [PREVIOUS]
             </button>
             <button class="cmd tutorial-btn tutorial-btn-primary" id="tut-next-btn" onclick="nextTutorialStep()">
-                [SIGUIENTE]
+                [NEXT]
             </button>
             <button class="cmd tutorial-btn tutorial-btn-finish" id="tut-finish-btn" onclick="exitTutorial()" style="display:none;">
-                [FINALIZAR TUTORIAL]
+                [FINISH TUTORIAL]
             </button>
         </div>
     </div>
@@ -10637,22 +10636,22 @@ document.addEventListener('DOMContentLoaded', () => {
      INTERACTIVE TUTORIAL SYSTEM
      ============================================ -->
 <script>
-// Estado del tutorial
+// Tutorial state
 let currentTutorialStep = 0;
 let tutorialActive = false;
 
-// Configuracion de pasos del tutorial
+// Tutorial steps configuration
 const TUTORIAL_STEPS = [
     {
         id: 'connect-wallet',
         target: '#connect-wallet-btn',
         screen: 'profile',
-        title: 'PASO 1: CONECTAR WALLET',
+        title: 'STEP 1: CONNECT WALLET',
         body: `
-            Para comenzar a jugar, primero necesitas conectar tu wallet.<br><br>
-            <b>Haz click en el boton [CONNECT WALLET]</b> para vincular tu direccion de Base.
+            To start playing, you first need to connect your wallet.<br><br>
+            <b>Click the [CONNECT WALLET] button</b> to link your Base address.
         `,
-        tip: 'Usa MetaMask, Coinbase Wallet, o cualquier wallet compatible con la red Base.',
+        tip: 'Use MetaMask, Coinbase Wallet, or any wallet compatible with Base network.',
         position: 'right',
         skipIf: () => typeof connectedWallet !== 'undefined' && connectedWallet !== null
     },
@@ -10660,54 +10659,54 @@ const TUTORIAL_STEPS = [
         id: 'view-emissaries',
         target: '#roster-table-wrap',
         screen: 'profile',
-        title: 'PASO 2: TUS EMISSARIES',
+        title: 'STEP 2: YOUR EMISSARIES',
         body: `
-            Aqui aparecen todos tus <b>NFT Emissaries</b>.<br><br>
-            Cada Emissary es un personaje unico que puedes enviar a misiones para ganar recompensas.
+            Here you can see all your <b>NFT Emissaries</b>.<br><br>
+            Each Emissary is a unique character you can send on missions to earn rewards.
         `,
-        tip: 'Si no ves ningun Emissary, necesitas hacer MINT primero.',
+        tip: 'If you do not see any Emissary, you need to MINT first.',
         position: 'top',
         checkEmissaries: true,
         noEmissariesContent: {
-            title: 'NECESITAS EMISSARIES',
+            title: 'YOU NEED EMISSARIES',
             body: `
                 <div style="text-align:center; padding: 10px 0;">
                     <div style="font-size: 40px; margin-bottom: 15px;">⚔️</div>
-                    <b>No tienes ningun Emissary en tu wallet.</b><br><br>
-                    Para jugar necesitas al menos <b>1 NFT</b> de la coleccion Emberholm Portal.<br><br>
-                    <a href="/mint" class="tutorial-mint-btn">[IR A MINT]</a>
+                    <b>You do not have any Emissary in your wallet.</b><br><br>
+                    To play you need at least <b>1 NFT</b> from the Emberholm Portal collection.<br><br>
+                    <a href="/mint" class="tutorial-mint-btn">[GO TO MINT]</a>
                 </div>
             `,
-            tip: 'Precio: 0.005 ETH por Emissary en red Base. Puedes mintear hasta 50 por transaccion.'
+            tip: 'Price: 0.005 ETH per Emissary on Base network. You can mint up to 50 per transaction.'
         }
     },
     {
         id: 'understand-stats',
         target: '#prime-emissary-card',
         screen: 'profile',
-        title: 'PASO 3: ENTENDER LOS STATS',
+        title: 'STEP 3: UNDERSTAND STATS',
         body: `
-            Cada Emissary tiene estadisticas importantes:<br><br>
+            Each Emissary has important stats:<br><br>
             <ul class="tutorial-stats-list">
-                <li><span class="stat-icon">⚡</span><span class="stat-name">ENERGY</span><span class="stat-desc">Se gasta en misiones (regenera con el tiempo)</span></li>
-                <li><span class="stat-icon">✨</span><span class="stat-name">XP</span><span class="stat-desc">Experiencia ganada. 100 XP = 1 Nivel</span></li>
-                <li><span class="stat-icon">🔮</span><span class="stat-name">AURA</span><span class="stat-desc">Recurso magico acumulado</span></li>
-                <li><span class="stat-icon">🏛️</span><span class="stat-name">GUILD</span><span class="stat-desc">Faccion del Emissary (da bonos en misiones)</span></li>
+                <li><span class="stat-icon">⚡</span><span class="stat-name">ENERGY</span><span class="stat-desc">Spent on missions (regenerates over time)</span></li>
+                <li><span class="stat-icon">✨</span><span class="stat-name">XP</span><span class="stat-desc">Experience gained. 100 XP = 1 Level</span></li>
+                <li><span class="stat-icon">🔮</span><span class="stat-name">AURA</span><span class="stat-desc">Accumulated magical resource</span></li>
+                <li><span class="stat-icon">🏛️</span><span class="stat-name">GUILD</span><span class="stat-desc">Emissary faction (grants mission bonuses)</span></li>
             </ul>
         `,
-        tip: 'El nivel aumenta la probabilidad de exito y reduce el riesgo de muerte.',
+        tip: 'Higher level increases success rate and reduces death risk.',
         position: 'left'
     },
     {
         id: 'go-to-missions',
         target: '[data-target="missions"]',
         screen: 'profile',
-        title: 'PASO 4: IR A MISIONES',
+        title: 'STEP 4: GO TO MISSIONS',
         body: `
-            Ahora vamos a la seccion de <b>MISIONES</b>.<br><br>
-            Haz click en el boton <b>[MISSIONS]</b> en la barra de navegacion superior.
+            Now let us go to the <b>MISSIONS</b> section.<br><br>
+            Click the <b>[MISSIONS]</b> button in the top navigation bar.
         `,
-        tip: 'Las misiones rotan cada 72 horas. Cada Emissary solo puede hacer cada mision una vez por rotacion.',
+        tip: 'Missions rotate every 72 hours. Each Emissary can only do each mission once per rotation.',
         position: 'bottom',
         requireClick: true,
         clickTarget: '[data-target="missions"]'
@@ -10716,83 +10715,83 @@ const TUTORIAL_STEPS = [
         id: 'mission-board',
         target: '#mission-list',
         screen: 'missions',
-        title: 'PASO 5: TABLERO DE MISIONES',
+        title: 'STEP 5: MISSION BOARD',
         body: `
-            Este es el <b>Mission Board</b>. Hay 3 niveles de dificultad:<br><br>
+            This is the <b>Mission Board</b>. There are 3 difficulty levels:<br><br>
             <table class="tutorial-difficulty-table">
-                <tr><th>Dificultad</th><th>Duracion</th><th>Energia</th><th>Riesgo</th></tr>
-                <tr><td class="diff-easy">EASY</td><td>3 horas</td><td>10</td><td>Sin muerte</td></tr>
-                <tr><td class="diff-medium">MEDIUM</td><td>6 horas</td><td>18</td><td>0.5% muerte</td></tr>
-                <tr><td class="diff-hard">HARD</td><td>12 horas</td><td>25</td><td>2% muerte</td></tr>
+                <tr><th>Difficulty</th><th>Duration</th><th>Energy</th><th>Risk</th></tr>
+                <tr><td class="diff-easy">EASY</td><td>3 hours</td><td>10</td><td>No death</td></tr>
+                <tr><td class="diff-medium">MEDIUM</td><td>6 hours</td><td>18</td><td>0.5% death</td></tr>
+                <tr><td class="diff-hard">HARD</td><td>12 hours</td><td>25</td><td>2% death</td></tr>
             </table>
         `,
-        tip: 'Recomendacion: Empieza con misiones EASY hasta que tu Emissary suba de nivel.',
+        tip: 'Recommendation: Start with EASY missions until your Emissary levels up.',
         position: 'top'
     },
     {
         id: 'select-mission',
         target: '.mission-card',
         screen: 'missions',
-        title: 'PASO 6: SELECCIONAR MISION',
+        title: 'STEP 6: SELECT MISSION',
         body: `
-            Para enviar un Emissary a una mision:<br><br>
-            <b>1.</b> Haz click en <b>[SELECT]</b> en cualquier mision<br>
-            <b>2.</b> Elige el Emissary que quieres enviar<br>
-            <b>3.</b> Confirma el envio<br><br>
-            La mision comenzara automaticamente y tu Emissary quedara ocupado hasta que termine.
+            To send an Emissary on a mission:<br><br>
+            <b>1.</b> Click <b>[SELECT]</b> on any mission<br>
+            <b>2.</b> Choose the Emissary you want to send<br>
+            <b>3.</b> Confirm the deployment<br><br>
+            The mission will start automatically and your Emissary will be busy until it finishes.
         `,
-        tip: 'Si la Guild de tu Emissary coincide con la mision favorecida, obtendras +12% de probabilidad de exito.',
+        tip: 'If your Emissary Guild matches the favored mission, you get +12% success rate.',
         position: 'right'
     },
     {
         id: 'claim-rewards',
         target: null,
         screen: 'missions',
-        title: 'PASO 7: RECLAMAR RECOMPENSAS',
+        title: 'STEP 7: CLAIM REWARDS',
         body: `
-            Cuando una mision termine, veras el boton <b>[CLAIM]</b>.<br><br>
-            <b>Si la mision fue exitosa:</b><br>
-            • Ganas <span style="color:#44ff44;">XP</span> y <span style="color:#ffaa00;">AURA</span><br>
-            • Posibilidad de obtener <span style="color:var(--gold);">Items o Runes</span><br><br>
-            <b>Si la mision falla:</b><br>
-            • Pierdes algo de XP<br>
-            • En misiones MEDIUM/HARD hay riesgo de muerte
+            When a mission ends, you will see the <b>[CLAIM]</b> button.<br><br>
+            <b>If the mission was successful:</b><br>
+            • You earn <span style="color:#44ff44;">XP</span> and <span style="color:#ffaa00;">AURA</span><br>
+            • Chance to obtain <span style="color:var(--gold);">Items or Runes</span><br><br>
+            <b>If the mission fails:</b><br>
+            • You lose some XP<br>
+            • In MEDIUM/HARD missions there is death risk
         `,
-        tip: 'Los Emissaries con mas nivel tienen mayor proteccion contra la muerte.',
+        tip: 'Higher level Emissaries have better protection against death.',
         position: 'center'
     },
     {
         id: 'tutorial-complete',
         target: null,
         screen: null,
-        title: 'TUTORIAL COMPLETADO',
+        title: 'TUTORIAL COMPLETED',
         body: `
             <div style="text-align:center; padding: 10px 0;">
                 <div style="font-size: 50px; margin-bottom: 15px;">🎉</div>
-                <b>¡Felicidades! Ya conoces lo basico.</b><br><br>
+                <b>Congratulations! You now know the basics.</b><br><br>
                 <div style="text-align:left; padding: 0 20px;">
-                    <b>Consejos adicionales:</b><br>
-                    • Visita el <b>[VAULT]</b> para equipar items a tus Emissaries<br>
-                    • Las <b>Party Missions</b> requieren 5 heroes pero dan +20% bonus<br>
-                    • Reclama tus <b>$EMBER</b> tokens en el perfil<br>
-                    • Lee la seccion <b>[HELP/TUTORIAL]</b> para mas detalles
+                    <b>Additional tips:</b><br>
+                    • Visit the <b>[VAULT]</b> to equip items to your Emissaries<br>
+                    • <b>Party Missions</b> require 5 heroes but give +20% bonus<br>
+                    • Claim your <b>$EMBER</b> tokens in your profile<br>
+                    • Read the <b>[HELP/TUTORIAL]</b> section for more details
                 </div>
             </div>
         `,
-        tip: 'Puedes volver a ver este tutorial en cualquier momento desde la seccion HELP.',
+        tip: 'You can view this tutorial again anytime from the HELP section.',
         position: 'center',
         isLast: true
     }
 ];
 
-// Iniciar tutorial
+// Start tutorial
 function startInteractiveTutorial() {
     console.log('🎮 Starting interactive tutorial...');
 
     tutorialActive = true;
     currentTutorialStep = 0;
 
-    // Guardar que el tutorial fue iniciado
+    // Save that tutorial was started
     localStorage.setItem('emberholm_tutorial_started', 'true');
 
     // Mostrar overlay
