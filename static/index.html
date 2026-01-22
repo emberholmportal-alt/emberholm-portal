@@ -10663,15 +10663,16 @@ const TUTORIAL_STEPS = [
     },
     {
         id: 'view-emissaries',
-        target: '#roster-table-wrap',
+        target: '.roster-table',
         screen: 'profile',
         title: 'STEP 2: YOUR EMISSARIES',
         body: `
             Here you can see all your <b>NFT Emissaries</b>.<br><br>
-            Each Emissary is a unique character you can send on missions to earn rewards.
+            Each Emissary is a unique character you can send on missions to earn rewards.<br><br>
+            Click on any row to select an Emissary and see their details.
         `,
         tip: 'If you do not see any Emissary, you need to MINT first.',
-        position: 'top',
+        position: 'right',
         checkEmissaries: true,
         noEmissariesContent: {
             title: 'YOU NEED EMISSARIES',
@@ -10701,7 +10702,7 @@ const TUTORIAL_STEPS = [
             </ul>
         `,
         tip: 'Higher level increases success rate and reduces death risk.',
-        position: 'left'
+        position: 'right'
     },
     {
         id: 'send-mission',
@@ -10713,7 +10714,7 @@ const TUTORIAL_STEPS = [
             This opens the <b>Mission Selection</b> modal where you can choose from available missions.
         `,
         tip: 'Missions rotate every 72 hours. Each Emissary can only do each mission once per rotation.',
-        position: 'top'
+        position: 'left'
     },
     {
         id: 'mission-select',
@@ -10937,6 +10938,15 @@ function positionSpotlight(selector, position = 'right') {
         return;
     }
 
+    // Check if element is visible (has dimensions)
+    const initialRect = target.getBoundingClientRect();
+    if (initialRect.width === 0 || initialRect.height === 0) {
+        console.warn(`Tutorial target not visible: ${selector}`);
+        hideSpotlight();
+        positionTooltipCenter();
+        return;
+    }
+
     // Hacer scroll al elemento
     target.scrollIntoView({ behavior: 'smooth', block: 'center' });
 
@@ -10945,9 +10955,9 @@ function positionSpotlight(selector, position = 'right') {
         const rect = target.getBoundingClientRect();
         const padding = 10;
 
-        // Posicionar spotlight
+        // Posicionar spotlight (sin scrollY porque overlay es fixed)
         spotlight.style.display = 'block';
-        spotlight.style.top = (rect.top - padding + window.scrollY) + 'px';
+        spotlight.style.top = (rect.top - padding) + 'px';
         spotlight.style.left = (rect.left - padding) + 'px';
         spotlight.style.width = (rect.width + padding * 2) + 'px';
         spotlight.style.height = (rect.height + padding * 2) + 'px';
@@ -10960,6 +10970,10 @@ function positionSpotlight(selector, position = 'right') {
 // Posicionar tooltip relativo al elemento
 function positionTooltip(targetRect, position) {
     const tooltip = document.getElementById('tutorial-tooltip');
+
+    // Reset transform from centered positioning
+    tooltip.style.transform = '';
+
     const tooltipWidth = 420;
     const tooltipHeight = tooltip.offsetHeight || 300;
     const margin = 20;
@@ -10970,7 +10984,7 @@ function positionTooltip(targetRect, position) {
 
     switch (position) {
         case 'right':
-            top = targetRect.top + window.scrollY;
+            top = targetRect.top;
             left = targetRect.right + margin;
             // Si se sale de la pantalla, ponerlo a la izquierda
             if (left + tooltipWidth > viewportWidth - margin) {
@@ -10979,7 +10993,7 @@ function positionTooltip(targetRect, position) {
             break;
 
         case 'left':
-            top = targetRect.top + window.scrollY;
+            top = targetRect.top;
             left = targetRect.left - tooltipWidth - margin;
             if (left < margin) {
                 left = targetRect.right + margin;
@@ -10987,18 +11001,18 @@ function positionTooltip(targetRect, position) {
             break;
 
         case 'bottom':
-            top = targetRect.bottom + window.scrollY + margin;
+            top = targetRect.bottom + margin;
             left = targetRect.left;
             // Centrar si es posible
             left = Math.max(margin, Math.min(left, viewportWidth - tooltipWidth - margin));
             break;
 
         case 'top':
-            top = targetRect.top + window.scrollY - tooltipHeight - margin;
+            top = targetRect.top - tooltipHeight - margin;
             left = targetRect.left;
             left = Math.max(margin, Math.min(left, viewportWidth - tooltipWidth - margin));
             if (top < margin) {
-                top = targetRect.bottom + window.scrollY + margin;
+                top = targetRect.bottom + margin;
             }
             break;
 
@@ -11008,8 +11022,12 @@ function positionTooltip(targetRect, position) {
             return;
     }
 
-    tooltip.style.top = Math.max(margin, top) + 'px';
-    tooltip.style.left = Math.max(margin, left) + 'px';
+    // Ensure tooltip stays within viewport
+    top = Math.max(margin, Math.min(top, viewportHeight - tooltipHeight - margin));
+    left = Math.max(margin, Math.min(left, viewportWidth - tooltipWidth - margin));
+
+    tooltip.style.top = top + 'px';
+    tooltip.style.left = left + 'px';
 }
 
 // Centrar tooltip en pantalla
