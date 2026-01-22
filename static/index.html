@@ -8277,9 +8277,14 @@ async function startPartyMission(missionId, missionName) {
             <span class="tutorial-step-badge">
                 STEP <span id="tut-step-num">1</span> OF <span id="tut-step-total">8</span>
             </span>
-            <button class="tutorial-exit-btn" onclick="exitTutorial()" title="Exit tutorial">
-                [EXIT]
-            </button>
+            <div class="tutorial-header-buttons">
+                <button class="tutorial-minimize-btn" id="tut-minimize-btn" onclick="minimizeTutorial()" title="Minimize tutorial">
+                    [_]
+                </button>
+                <button class="tutorial-exit-btn" onclick="exitTutorial()" title="Exit tutorial">
+                    [X]
+                </button>
+            </div>
         </div>
 
         <div class="tutorial-title" id="tut-title">CONNECT WALLET</div>
@@ -8304,6 +8309,17 @@ async function startPartyMission(missionId, missionName) {
                 [FINISH TUTORIAL]
             </button>
         </div>
+    </div>
+
+    <!-- Minimized tutorial indicator -->
+    <div class="tutorial-minimized-bar" id="tutorial-minimized-bar" style="display:none;">
+        <span class="minimized-text">TUTORIAL PAUSED - STEP <span id="tut-minimized-step">1</span>/<span id="tut-minimized-total">8</span></span>
+        <button class="tutorial-maximize-btn" onclick="maximizeTutorial()" title="Resume tutorial">
+            [RESUME]
+        </button>
+        <button class="tutorial-exit-btn-small" onclick="exitTutorial()" title="Exit tutorial">
+            [X]
+        </button>
     </div>
 </div>
 
@@ -10587,6 +10603,7 @@ document.addEventListener('DOMContentLoaded', () => {
 // Tutorial state
 let currentTutorialStep = 0;
 let tutorialActive = false;
+let tutorialMinimized = false;
 
 // Tutorial steps configuration
 const TUTORIAL_STEPS = [
@@ -10991,10 +11008,16 @@ function exitTutorial() {
     console.log('👋 Exiting tutorial...');
 
     tutorialActive = false;
+    tutorialMinimized = false;
 
     // Ocultar overlay
     const overlay = document.getElementById('interactive-tutorial-overlay');
     overlay.classList.remove('active');
+    overlay.classList.remove('minimized');
+
+    // Ocultar minimized bar
+    const minimizedBar = document.getElementById('tutorial-minimized-bar');
+    if (minimizedBar) minimizedBar.style.display = 'none';
 
     // Resetear posicion del tooltip
     const tooltip = document.getElementById('tutorial-tooltip');
@@ -11007,9 +11030,68 @@ function exitTutorial() {
     document.removeEventListener('keydown', handleTutorialKeyboard);
 }
 
-// Manejar teclado durante tutorial
+// Manejar resize de ventana
+window.addEventListener('resize', () => {
+    if (tutorialActive && TUTORIAL_STEPS[currentTutorialStep]) {
+        const step = TUTORIAL_STEPS[currentTutorialStep];
+        if (step.target) {
+            positionSpotlight(step.target, step.position);
+        }
+    }
+});
+
+// Minimizar tutorial
+function minimizeTutorial() {
+    console.log('📥 Minimizing tutorial...');
+    tutorialMinimized = true;
+
+    const overlay = document.getElementById('interactive-tutorial-overlay');
+    const minimizedBar = document.getElementById('tutorial-minimized-bar');
+
+    // Add minimized class to hide tooltip and backdrop
+    overlay.classList.add('minimized');
+
+    // Update minimized bar step info
+    document.getElementById('tut-minimized-step').textContent = currentTutorialStep + 1;
+    document.getElementById('tut-minimized-total').textContent = TUTORIAL_STEPS.length;
+
+    // Show minimized bar
+    minimizedBar.style.display = 'flex';
+}
+
+function maximizeTutorial() {
+    console.log('📤 Maximizing tutorial...');
+    tutorialMinimized = false;
+
+    const overlay = document.getElementById('interactive-tutorial-overlay');
+    const minimizedBar = document.getElementById('tutorial-minimized-bar');
+
+    // Remove minimized class
+    overlay.classList.remove('minimized');
+
+    // Hide minimized bar
+    minimizedBar.style.display = 'none';
+
+    // Re-render current step to reposition spotlight
+    const step = TUTORIAL_STEPS[currentTutorialStep];
+    if (step) {
+        renderTutorialStep(step, currentTutorialStep);
+    }
+}
+
+// Update keyboard handler for minimize
 function handleTutorialKeyboard(e) {
     if (!tutorialActive) return;
+
+    // If minimized, only allow M to maximize or Escape to exit
+    if (tutorialMinimized) {
+        if (e.key === 'm' || e.key === 'M') {
+            maximizeTutorial();
+        } else if (e.key === 'Escape') {
+            exitTutorial();
+        }
+        return;
+    }
 
     switch (e.key) {
         case 'Escape':
@@ -11022,18 +11104,12 @@ function handleTutorialKeyboard(e) {
         case 'ArrowLeft':
             prevTutorialStep();
             break;
+        case 'm':
+        case 'M':
+            minimizeTutorial();
+            break;
     }
 }
-
-// Manejar resize de ventana
-window.addEventListener('resize', () => {
-    if (tutorialActive && TUTORIAL_STEPS[currentTutorialStep]) {
-        const step = TUTORIAL_STEPS[currentTutorialStep];
-        if (step.target) {
-            positionSpotlight(step.target, step.position);
-        }
-    }
-});
 
 console.log('✅ Interactive Tutorial System loaded');
 </script>
