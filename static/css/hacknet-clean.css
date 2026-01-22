@@ -3734,7 +3734,7 @@ button:disabled {
 
 .tutorial-overlay.active {
     display: block;
-    pointer-events: auto;
+    pointer-events: none;
 }
 
 /* Dark backdrop - semi-transparent to see portal behind */
@@ -3745,7 +3745,7 @@ button:disabled {
     right: 0;
     bottom: 0;
     background: rgba(0, 0, 0, 0.35);
-    pointer-events: auto;
+    pointer-events: none;
 }
 
 /* Spotlight that highlights the element */
@@ -3932,16 +3932,6 @@ button:disabled {
 
 .tutorial-overlay.minimized .tutorial-tooltip {
     display: none;
-}
-
-/* Allow clicking through backdrop to interact with portal elements */
-.tutorial-backdrop {
-    pointer-events: none;
-}
-
-/* Spotlight allows clicks to pass through to highlighted element */
-.tutorial-spotlight {
-    pointer-events: none;
 }
 
 /* Titulo del paso */
