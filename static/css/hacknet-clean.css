@@ -1362,6 +1362,23 @@ table th {
     display: flex;
 }
 
+/* Allow portal buttons to be clicked during tutorial */
+body.tutorial-active .modal-overlay {
+    pointer-events: none;
+}
+
+/* Keep modal content interactive during tutorial */
+body.tutorial-active .modal-overlay .terminal-modal,
+body.tutorial-active .modal-overlay .modal-content {
+    pointer-events: auto;
+}
+
+/* Raise portal header above modals during tutorial so buttons are clickable */
+body.tutorial-active .console-header,
+body.tutorial-active .menu-bar {
+    z-index: 10000;
+}
+
 .terminal-modal {
     background: var(--bg-panel);
     border: 2px solid var(--border-primary);
