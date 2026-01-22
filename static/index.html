@@ -10802,6 +10802,9 @@ function startInteractiveTutorial() {
     // Save that tutorial was started
     localStorage.setItem('emberholm_tutorial_started', 'true');
 
+    // Add tutorial-active class to body for CSS selectors
+    document.body.classList.add('tutorial-active');
+
     // Mostrar overlay
     const overlay = document.getElementById('interactive-tutorial-overlay');
     overlay.classList.add('active');
@@ -11077,6 +11080,9 @@ function exitTutorial() {
 
     tutorialActive = false;
     tutorialMinimized = false;
+
+    // Remove tutorial-active class from body
+    document.body.classList.remove('tutorial-active');
 
     // Ocultar overlay
     const overlay = document.getElementById('interactive-tutorial-overlay');
