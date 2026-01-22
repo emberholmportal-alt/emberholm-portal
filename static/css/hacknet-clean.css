@@ -3715,3 +3715,329 @@ button:disabled {
         max-width: 200px;
     }
 }
+
+/* ============================================
+   INTERACTIVE TUTORIAL SYSTEM
+   ============================================ */
+
+/* Overlay principal */
+.tutorial-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 99998;
+    pointer-events: none;
+}
+
+.tutorial-overlay.active {
+    display: block;
+    pointer-events: auto;
+}
+
+/* Backdrop oscuro */
+.tutorial-backdrop {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.85);
+    pointer-events: auto;
+}
+
+/* Spotlight que resalta el elemento */
+.tutorial-spotlight {
+    position: absolute;
+    border: 3px solid var(--gold);
+    border-radius: 8px;
+    background: transparent;
+    box-shadow:
+        0 0 0 9999px rgba(0, 0, 0, 0.85),
+        0 0 30px var(--gold),
+        0 0 60px rgba(255, 204, 0, 0.3),
+        inset 0 0 20px rgba(255, 204, 0, 0.1);
+    animation: tutorial-spotlight-pulse 2s ease-in-out infinite;
+    transition: all 0.4s ease;
+    z-index: 99999;
+    pointer-events: none;
+}
+
+@keyframes tutorial-spotlight-pulse {
+    0%, 100% {
+        box-shadow:
+            0 0 0 9999px rgba(0, 0, 0, 0.85),
+            0 0 30px var(--gold),
+            0 0 60px rgba(255, 204, 0, 0.3),
+            inset 0 0 20px rgba(255, 204, 0, 0.1);
+    }
+    50% {
+        box-shadow:
+            0 0 0 9999px rgba(0, 0, 0, 0.85),
+            0 0 50px var(--gold),
+            0 0 80px rgba(255, 204, 0, 0.5),
+            inset 0 0 30px rgba(255, 204, 0, 0.2);
+    }
+}
+
+/* Tooltip del tutorial */
+.tutorial-tooltip {
+    position: absolute;
+    background: var(--bg-panel);
+    border: 2px solid var(--gold);
+    border-left: 5px solid var(--gold);
+    padding: 0;
+    width: 420px;
+    max-width: 90vw;
+    box-shadow:
+        0 0 40px rgba(255, 204, 0, 0.4),
+        0 10px 40px rgba(0, 0, 0, 0.8);
+    animation: tutorial-tooltip-appear 0.4s ease;
+    z-index: 100000;
+    pointer-events: auto;
+}
+
+@keyframes tutorial-tooltip-appear {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Header del tooltip */
+.tutorial-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 15px;
+    background: rgba(255, 204, 0, 0.1);
+    border-bottom: 1px solid var(--border-gold);
+}
+
+.tutorial-step-badge {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--gold);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+}
+
+.tutorial-exit-btn {
+    background: transparent;
+    border: 1px solid var(--error-red);
+    color: var(--error-red);
+    font-family: 'Pixelify Sans', monospace;
+    font-size: 11px;
+    padding: 5px 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.tutorial-exit-btn:hover {
+    background: var(--error-red);
+    color: #000;
+}
+
+/* Titulo del paso */
+.tutorial-title {
+    font-family: 'Alagard', serif;
+    font-size: 20px;
+    color: var(--gold);
+    padding: 15px 20px 10px;
+    text-shadow: 0 0 10px var(--gold);
+    letter-spacing: 1px;
+}
+
+/* Cuerpo del contenido */
+.tutorial-body {
+    padding: 0 20px 15px;
+    color: var(--bright-green);
+    font-size: 14px;
+    line-height: 1.7;
+}
+
+.tutorial-body b {
+    color: var(--gold);
+}
+
+.tutorial-body .highlight {
+    background: rgba(255, 204, 0, 0.2);
+    padding: 2px 6px;
+    border-radius: 3px;
+    color: var(--gold);
+}
+
+/* Tip/consejo */
+.tutorial-tip {
+    margin: 0 20px 15px;
+    padding: 12px 15px;
+    background: rgba(255, 204, 0, 0.08);
+    border-left: 3px solid var(--gold);
+    font-size: 12px;
+    color: var(--gold);
+}
+
+.tutorial-tip .tip-icon {
+    font-weight: 700;
+    margin-right: 8px;
+}
+
+/* Footer con botones */
+.tutorial-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 20px;
+    background: rgba(0, 0, 0, 0.3);
+    border-top: 1px solid var(--border-primary);
+    gap: 10px;
+}
+
+.tutorial-btn {
+    flex: 1;
+    padding: 10px 15px !important;
+    font-size: 12px !important;
+}
+
+.tutorial-btn-primary {
+    background: rgba(255, 204, 0, 0.15) !important;
+    border-color: var(--gold) !important;
+    color: var(--gold) !important;
+}
+
+.tutorial-btn-primary:hover {
+    background: rgba(255, 204, 0, 0.3) !important;
+}
+
+.tutorial-btn-finish {
+    background: rgba(68, 255, 136, 0.15) !important;
+    border-color: var(--success-green) !important;
+    color: var(--success-green) !important;
+}
+
+.tutorial-btn-finish:hover {
+    background: rgba(68, 255, 136, 0.3) !important;
+}
+
+/* Boton especial de MINT */
+.tutorial-mint-btn {
+    display: inline-block;
+    margin-top: 15px;
+    padding: 12px 24px;
+    background: linear-gradient(135deg, rgba(255, 204, 0, 0.2) 0%, rgba(255, 136, 0, 0.2) 100%);
+    border: 2px solid var(--gold);
+    color: var(--gold);
+    font-family: 'Pixelify Sans', monospace;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+    text-decoration: none;
+}
+
+.tutorial-mint-btn:hover {
+    background: linear-gradient(135deg, rgba(255, 204, 0, 0.4) 0%, rgba(255, 136, 0, 0.4) 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 5px 20px rgba(255, 204, 0, 0.4);
+}
+
+/* Lista de stats en tutorial */
+.tutorial-stats-list {
+    margin: 10px 0;
+    padding-left: 0;
+    list-style: none;
+}
+
+.tutorial-stats-list li {
+    padding: 6px 0;
+    border-bottom: 1px solid rgba(255, 153, 0, 0.2);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.tutorial-stats-list li:last-child {
+    border-bottom: none;
+}
+
+.tutorial-stats-list .stat-icon {
+    width: 20px;
+    text-align: center;
+}
+
+.tutorial-stats-list .stat-name {
+    color: var(--gold);
+    font-weight: 600;
+    min-width: 80px;
+}
+
+.tutorial-stats-list .stat-desc {
+    color: var(--bright-green);
+    font-size: 12px;
+}
+
+/* Tabla de dificultades en tutorial */
+.tutorial-difficulty-table {
+    width: 100%;
+    margin: 10px 0;
+    font-size: 12px;
+    border-collapse: collapse;
+}
+
+.tutorial-difficulty-table th,
+.tutorial-difficulty-table td {
+    padding: 8px;
+    text-align: left;
+    border-bottom: 1px solid rgba(255, 153, 0, 0.2);
+}
+
+.tutorial-difficulty-table th {
+    color: var(--gold);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.tutorial-difficulty-table .diff-easy {
+    color: #44ff44;
+}
+
+.tutorial-difficulty-table .diff-medium {
+    color: #ffaa00;
+}
+
+.tutorial-difficulty-table .diff-hard {
+    color: #ff4444;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .tutorial-tooltip {
+        width: 95vw;
+        max-width: none;
+        left: 2.5vw !important;
+        right: 2.5vw !important;
+    }
+
+    .tutorial-title {
+        font-size: 16px;
+    }
+
+    .tutorial-body {
+        font-size: 13px;
+    }
+
+    .tutorial-footer {
+        flex-wrap: wrap;
+    }
+
+    .tutorial-btn {
+        min-width: 45%;
+    }
+}

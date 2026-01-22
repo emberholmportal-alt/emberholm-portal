@@ -1621,6 +1621,23 @@ document.addEventListener('DOMContentLoaded', initPortalWarning);
             </div>
         </div>
 
+        <!-- INTERACTIVE TUTORIAL BANNER -->
+        <div class="section-block tutorial-banner-block" style="background: linear-gradient(135deg, rgba(255,204,0,0.1) 0%, rgba(255,136,0,0.05) 100%); border-color: var(--gold);">
+            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 15px;">
+                <div>
+                    <div style="font-family: 'Alagard', serif; font-size: 16px; color: var(--gold); margin-bottom: 5px;">
+                        TUTORIAL INTERACTIVO
+                    </div>
+                    <div style="color: var(--bright-green); font-size: 13px;">
+                        Aprende a jugar con una guia paso a paso. Ideal para nuevos jugadores.
+                    </div>
+                </div>
+                <button class="cmd tutorial-start-btn" onclick="startInteractiveTutorial()" style="font-size: 14px; padding: 12px 24px; background: rgba(255,204,0,0.15); border-color: var(--gold); color: var(--gold);">
+                    [INICIAR TUTORIAL PASO A PASO]
+                </button>
+            </div>
+        </div>
+
         <!-- HELP // BASIC PRINCIPLES -->
         <div class="section-block" id="help-basics">
             <div class="section-title">HELP // BASIC PRINCIPLES</div>
@@ -8298,6 +8315,52 @@ async function startPartyMission(missionId, missionName) {
 </div>
 
 <!-- ============================================
+     INTERACTIVE TUTORIAL OVERLAY
+     ============================================ -->
+<div id="interactive-tutorial-overlay" class="tutorial-overlay">
+    <!-- Backdrop oscuro -->
+    <div class="tutorial-backdrop"></div>
+
+    <!-- Spotlight (se posiciona dinamicamente via JS) -->
+    <div class="tutorial-spotlight" id="tutorial-spotlight"></div>
+
+    <!-- Tooltip con contenido del paso -->
+    <div class="tutorial-tooltip" id="tutorial-tooltip">
+        <div class="tutorial-header">
+            <span class="tutorial-step-badge">
+                PASO <span id="tut-step-num">1</span> DE <span id="tut-step-total">8</span>
+            </span>
+            <button class="tutorial-exit-btn" onclick="exitTutorial()" title="Salir del tutorial">
+                [SALIR]
+            </button>
+        </div>
+
+        <div class="tutorial-title" id="tut-title">CONECTAR WALLET</div>
+
+        <div class="tutorial-body" id="tut-body">
+            Contenido del paso...
+        </div>
+
+        <div class="tutorial-tip" id="tut-tip" style="display:none;">
+            <span class="tip-icon">TIP:</span>
+            <span id="tut-tip-text"></span>
+        </div>
+
+        <div class="tutorial-footer">
+            <button class="cmd tutorial-btn" id="tut-prev-btn" onclick="prevTutorialStep()" style="display:none;">
+                [ANTERIOR]
+            </button>
+            <button class="cmd tutorial-btn tutorial-btn-primary" id="tut-next-btn" onclick="nextTutorialStep()">
+                [SIGUIENTE]
+            </button>
+            <button class="cmd tutorial-btn tutorial-btn-finish" id="tut-finish-btn" onclick="exitTutorial()" style="display:none;">
+                [FINALIZAR TUTORIAL]
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- ============================================
      REALM DISPATCH LIVE FEED SYSTEM
      ============================================ -->
 <script>
@@ -10568,6 +10631,464 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     document.querySelectorAll('.screen').forEach(s => observer.observe(s, { attributes: true }));
 });
+</script>
+
+<!-- ============================================
+     INTERACTIVE TUTORIAL SYSTEM
+     ============================================ -->
+<script>
+// Estado del tutorial
+let currentTutorialStep = 0;
+let tutorialActive = false;
+
+// Configuracion de pasos del tutorial
+const TUTORIAL_STEPS = [
+    {
+        id: 'connect-wallet',
+        target: '#connect-wallet-btn',
+        screen: 'profile',
+        title: 'PASO 1: CONECTAR WALLET',
+        body: `
+            Para comenzar a jugar, primero necesitas conectar tu wallet.<br><br>
+            <b>Haz click en el boton [CONNECT WALLET]</b> para vincular tu direccion de Base.
+        `,
+        tip: 'Usa MetaMask, Coinbase Wallet, o cualquier wallet compatible con la red Base.',
+        position: 'right',
+        skipIf: () => typeof connectedWallet !== 'undefined' && connectedWallet !== null
+    },
+    {
+        id: 'view-emissaries',
+        target: '#roster-table-wrap',
+        screen: 'profile',
+        title: 'PASO 2: TUS EMISSARIES',
+        body: `
+            Aqui aparecen todos tus <b>NFT Emissaries</b>.<br><br>
+            Cada Emissary es un personaje unico que puedes enviar a misiones para ganar recompensas.
+        `,
+        tip: 'Si no ves ningun Emissary, necesitas hacer MINT primero.',
+        position: 'top',
+        checkEmissaries: true,
+        noEmissariesContent: {
+            title: 'NECESITAS EMISSARIES',
+            body: `
+                <div style="text-align:center; padding: 10px 0;">
+                    <div style="font-size: 40px; margin-bottom: 15px;">⚔️</div>
+                    <b>No tienes ningun Emissary en tu wallet.</b><br><br>
+                    Para jugar necesitas al menos <b>1 NFT</b> de la coleccion Emberholm Portal.<br><br>
+                    <a href="/mint" class="tutorial-mint-btn">[IR A MINT]</a>
+                </div>
+            `,
+            tip: 'Precio: 0.005 ETH por Emissary en red Base. Puedes mintear hasta 50 por transaccion.'
+        }
+    },
+    {
+        id: 'understand-stats',
+        target: '#prime-emissary-card',
+        screen: 'profile',
+        title: 'PASO 3: ENTENDER LOS STATS',
+        body: `
+            Cada Emissary tiene estadisticas importantes:<br><br>
+            <ul class="tutorial-stats-list">
+                <li><span class="stat-icon">⚡</span><span class="stat-name">ENERGY</span><span class="stat-desc">Se gasta en misiones (regenera con el tiempo)</span></li>
+                <li><span class="stat-icon">✨</span><span class="stat-name">XP</span><span class="stat-desc">Experiencia ganada. 100 XP = 1 Nivel</span></li>
+                <li><span class="stat-icon">🔮</span><span class="stat-name">AURA</span><span class="stat-desc">Recurso magico acumulado</span></li>
+                <li><span class="stat-icon">🏛️</span><span class="stat-name">GUILD</span><span class="stat-desc">Faccion del Emissary (da bonos en misiones)</span></li>
+            </ul>
+        `,
+        tip: 'El nivel aumenta la probabilidad de exito y reduce el riesgo de muerte.',
+        position: 'left'
+    },
+    {
+        id: 'go-to-missions',
+        target: '[data-target="missions"]',
+        screen: 'profile',
+        title: 'PASO 4: IR A MISIONES',
+        body: `
+            Ahora vamos a la seccion de <b>MISIONES</b>.<br><br>
+            Haz click en el boton <b>[MISSIONS]</b> en la barra de navegacion superior.
+        `,
+        tip: 'Las misiones rotan cada 72 horas. Cada Emissary solo puede hacer cada mision una vez por rotacion.',
+        position: 'bottom',
+        requireClick: true,
+        clickTarget: '[data-target="missions"]'
+    },
+    {
+        id: 'mission-board',
+        target: '#mission-list',
+        screen: 'missions',
+        title: 'PASO 5: TABLERO DE MISIONES',
+        body: `
+            Este es el <b>Mission Board</b>. Hay 3 niveles de dificultad:<br><br>
+            <table class="tutorial-difficulty-table">
+                <tr><th>Dificultad</th><th>Duracion</th><th>Energia</th><th>Riesgo</th></tr>
+                <tr><td class="diff-easy">EASY</td><td>3 horas</td><td>10</td><td>Sin muerte</td></tr>
+                <tr><td class="diff-medium">MEDIUM</td><td>6 horas</td><td>18</td><td>0.5% muerte</td></tr>
+                <tr><td class="diff-hard">HARD</td><td>12 horas</td><td>25</td><td>2% muerte</td></tr>
+            </table>
+        `,
+        tip: 'Recomendacion: Empieza con misiones EASY hasta que tu Emissary suba de nivel.',
+        position: 'top'
+    },
+    {
+        id: 'select-mission',
+        target: '.mission-card',
+        screen: 'missions',
+        title: 'PASO 6: SELECCIONAR MISION',
+        body: `
+            Para enviar un Emissary a una mision:<br><br>
+            <b>1.</b> Haz click en <b>[SELECT]</b> en cualquier mision<br>
+            <b>2.</b> Elige el Emissary que quieres enviar<br>
+            <b>3.</b> Confirma el envio<br><br>
+            La mision comenzara automaticamente y tu Emissary quedara ocupado hasta que termine.
+        `,
+        tip: 'Si la Guild de tu Emissary coincide con la mision favorecida, obtendras +12% de probabilidad de exito.',
+        position: 'right'
+    },
+    {
+        id: 'claim-rewards',
+        target: null,
+        screen: 'missions',
+        title: 'PASO 7: RECLAMAR RECOMPENSAS',
+        body: `
+            Cuando una mision termine, veras el boton <b>[CLAIM]</b>.<br><br>
+            <b>Si la mision fue exitosa:</b><br>
+            • Ganas <span style="color:#44ff44;">XP</span> y <span style="color:#ffaa00;">AURA</span><br>
+            • Posibilidad de obtener <span style="color:var(--gold);">Items o Runes</span><br><br>
+            <b>Si la mision falla:</b><br>
+            • Pierdes algo de XP<br>
+            • En misiones MEDIUM/HARD hay riesgo de muerte
+        `,
+        tip: 'Los Emissaries con mas nivel tienen mayor proteccion contra la muerte.',
+        position: 'center'
+    },
+    {
+        id: 'tutorial-complete',
+        target: null,
+        screen: null,
+        title: 'TUTORIAL COMPLETADO',
+        body: `
+            <div style="text-align:center; padding: 10px 0;">
+                <div style="font-size: 50px; margin-bottom: 15px;">🎉</div>
+                <b>¡Felicidades! Ya conoces lo basico.</b><br><br>
+                <div style="text-align:left; padding: 0 20px;">
+                    <b>Consejos adicionales:</b><br>
+                    • Visita el <b>[VAULT]</b> para equipar items a tus Emissaries<br>
+                    • Las <b>Party Missions</b> requieren 5 heroes pero dan +20% bonus<br>
+                    • Reclama tus <b>$EMBER</b> tokens en el perfil<br>
+                    • Lee la seccion <b>[HELP/TUTORIAL]</b> para mas detalles
+                </div>
+            </div>
+        `,
+        tip: 'Puedes volver a ver este tutorial en cualquier momento desde la seccion HELP.',
+        position: 'center',
+        isLast: true
+    }
+];
+
+// Iniciar tutorial
+function startInteractiveTutorial() {
+    console.log('🎮 Starting interactive tutorial...');
+
+    tutorialActive = true;
+    currentTutorialStep = 0;
+
+    // Guardar que el tutorial fue iniciado
+    localStorage.setItem('emberholm_tutorial_started', 'true');
+
+    // Mostrar overlay
+    const overlay = document.getElementById('interactive-tutorial-overlay');
+    overlay.classList.add('active');
+
+    // Actualizar total de pasos
+    document.getElementById('tut-step-total').textContent = TUTORIAL_STEPS.length;
+
+    // Mostrar primer paso
+    showTutorialStep(0);
+
+    // Agregar listener de teclado
+    document.addEventListener('keydown', handleTutorialKeyboard);
+}
+
+// Mostrar paso especifico
+function showTutorialStep(stepIndex) {
+    if (stepIndex < 0 || stepIndex >= TUTORIAL_STEPS.length) return;
+
+    const step = TUTORIAL_STEPS[stepIndex];
+    currentTutorialStep = stepIndex;
+
+    console.log(`📍 Tutorial step ${stepIndex + 1}: ${step.id}`);
+
+    // Verificar si hay que saltar este paso
+    if (step.skipIf && step.skipIf()) {
+        console.log(`⏭️ Skipping step ${step.id} (condition met)`);
+        nextTutorialStep();
+        return;
+    }
+
+    // Cambiar de pantalla si es necesario
+    if (step.screen && typeof switchScreen === 'function') {
+        switchScreen(step.screen);
+        // Dar tiempo para que la pantalla se renderice
+        setTimeout(() => renderTutorialStep(step, stepIndex), 300);
+    } else {
+        renderTutorialStep(step, stepIndex);
+    }
+}
+
+// Renderizar contenido del paso
+function renderTutorialStep(step, stepIndex) {
+    // Verificar si es el paso de emissaries y no hay ninguno
+    if (step.checkEmissaries) {
+        const hasEmissaries = typeof currentEmissaries !== 'undefined' &&
+                            Array.isArray(currentEmissaries) &&
+                            currentEmissaries.length > 0;
+
+        if (!hasEmissaries && step.noEmissariesContent) {
+            renderTutorialContent(step.noEmissariesContent, stepIndex, true);
+            positionSpotlightForNoEmissaries();
+            return;
+        }
+    }
+
+    renderTutorialContent(step, stepIndex, false);
+
+    // Posicionar spotlight
+    if (step.target) {
+        positionSpotlight(step.target, step.position);
+    } else {
+        hideSpotlight();
+        positionTooltipCenter();
+    }
+}
+
+// Renderizar contenido en el tooltip
+function renderTutorialContent(content, stepIndex, isNoEmissaries = false) {
+    document.getElementById('tut-step-num').textContent = stepIndex + 1;
+    document.getElementById('tut-title').textContent = content.title;
+    document.getElementById('tut-body').innerHTML = content.body;
+
+    // Tip
+    const tipEl = document.getElementById('tut-tip');
+    const tipTextEl = document.getElementById('tut-tip-text');
+    if (content.tip) {
+        tipTextEl.textContent = content.tip;
+        tipEl.style.display = 'block';
+    } else {
+        tipEl.style.display = 'none';
+    }
+
+    // Botones de navegacion
+    const prevBtn = document.getElementById('tut-prev-btn');
+    const nextBtn = document.getElementById('tut-next-btn');
+    const finishBtn = document.getElementById('tut-finish-btn');
+
+    // Mostrar/ocultar boton anterior
+    prevBtn.style.display = stepIndex > 0 ? 'block' : 'none';
+
+    // Determinar si es el ultimo paso
+    const step = TUTORIAL_STEPS[stepIndex];
+    const isLastStep = step && step.isLast;
+
+    if (isLastStep) {
+        nextBtn.style.display = 'none';
+        finishBtn.style.display = 'block';
+    } else {
+        nextBtn.style.display = 'block';
+        finishBtn.style.display = 'none';
+
+        // Cambiar texto si requiere click
+        if (step && step.requireClick) {
+            nextBtn.textContent = '[HECHO]';
+        } else {
+            nextBtn.textContent = '[SIGUIENTE]';
+        }
+    }
+
+    // Si no hay emissaries, cambiar texto del boton next
+    if (isNoEmissaries) {
+        nextBtn.textContent = '[CONTINUAR SIN MINT]';
+    }
+}
+
+// Posicionar spotlight sobre un elemento
+function positionSpotlight(selector, position = 'right') {
+    const spotlight = document.getElementById('tutorial-spotlight');
+    const tooltip = document.getElementById('tutorial-tooltip');
+    const target = document.querySelector(selector);
+
+    if (!target) {
+        console.warn(`Tutorial target not found: ${selector}`);
+        hideSpotlight();
+        positionTooltipCenter();
+        return;
+    }
+
+    // Hacer scroll al elemento
+    target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+    // Esperar un poco para el scroll
+    setTimeout(() => {
+        const rect = target.getBoundingClientRect();
+        const padding = 10;
+
+        // Posicionar spotlight
+        spotlight.style.display = 'block';
+        spotlight.style.top = (rect.top - padding + window.scrollY) + 'px';
+        spotlight.style.left = (rect.left - padding) + 'px';
+        spotlight.style.width = (rect.width + padding * 2) + 'px';
+        spotlight.style.height = (rect.height + padding * 2) + 'px';
+
+        // Posicionar tooltip
+        positionTooltip(rect, position);
+    }, 400);
+}
+
+// Posicionar tooltip relativo al elemento
+function positionTooltip(targetRect, position) {
+    const tooltip = document.getElementById('tutorial-tooltip');
+    const tooltipWidth = 420;
+    const tooltipHeight = tooltip.offsetHeight || 300;
+    const margin = 20;
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+
+    let top, left;
+
+    switch (position) {
+        case 'right':
+            top = targetRect.top + window.scrollY;
+            left = targetRect.right + margin;
+            // Si se sale de la pantalla, ponerlo a la izquierda
+            if (left + tooltipWidth > viewportWidth - margin) {
+                left = targetRect.left - tooltipWidth - margin;
+            }
+            break;
+
+        case 'left':
+            top = targetRect.top + window.scrollY;
+            left = targetRect.left - tooltipWidth - margin;
+            if (left < margin) {
+                left = targetRect.right + margin;
+            }
+            break;
+
+        case 'bottom':
+            top = targetRect.bottom + window.scrollY + margin;
+            left = targetRect.left;
+            // Centrar si es posible
+            left = Math.max(margin, Math.min(left, viewportWidth - tooltipWidth - margin));
+            break;
+
+        case 'top':
+            top = targetRect.top + window.scrollY - tooltipHeight - margin;
+            left = targetRect.left;
+            left = Math.max(margin, Math.min(left, viewportWidth - tooltipWidth - margin));
+            if (top < margin) {
+                top = targetRect.bottom + window.scrollY + margin;
+            }
+            break;
+
+        case 'center':
+        default:
+            positionTooltipCenter();
+            return;
+    }
+
+    tooltip.style.top = Math.max(margin, top) + 'px';
+    tooltip.style.left = Math.max(margin, left) + 'px';
+}
+
+// Centrar tooltip en pantalla
+function positionTooltipCenter() {
+    const tooltip = document.getElementById('tutorial-tooltip');
+    tooltip.style.top = '50%';
+    tooltip.style.left = '50%';
+    tooltip.style.transform = 'translate(-50%, -50%)';
+}
+
+// Ocultar spotlight
+function hideSpotlight() {
+    const spotlight = document.getElementById('tutorial-spotlight');
+    spotlight.style.display = 'none';
+}
+
+// Posicionar para caso sin emissaries
+function positionSpotlightForNoEmissaries() {
+    hideSpotlight();
+    positionTooltipCenter();
+}
+
+// Siguiente paso
+function nextTutorialStep() {
+    const nextIndex = currentTutorialStep + 1;
+
+    if (nextIndex >= TUTORIAL_STEPS.length) {
+        exitTutorial();
+        return;
+    }
+
+    showTutorialStep(nextIndex);
+}
+
+// Paso anterior
+function prevTutorialStep() {
+    const prevIndex = currentTutorialStep - 1;
+
+    if (prevIndex < 0) return;
+
+    showTutorialStep(prevIndex);
+}
+
+// Salir del tutorial
+function exitTutorial() {
+    console.log('👋 Exiting tutorial...');
+
+    tutorialActive = false;
+
+    // Ocultar overlay
+    const overlay = document.getElementById('interactive-tutorial-overlay');
+    overlay.classList.remove('active');
+
+    // Resetear posicion del tooltip
+    const tooltip = document.getElementById('tutorial-tooltip');
+    tooltip.style.transform = '';
+
+    // Guardar que el tutorial fue completado
+    localStorage.setItem('emberholm_tutorial_completed', 'true');
+
+    // Remover listener de teclado
+    document.removeEventListener('keydown', handleTutorialKeyboard);
+}
+
+// Manejar teclado durante tutorial
+function handleTutorialKeyboard(e) {
+    if (!tutorialActive) return;
+
+    switch (e.key) {
+        case 'Escape':
+            exitTutorial();
+            break;
+        case 'ArrowRight':
+        case 'Enter':
+            nextTutorialStep();
+            break;
+        case 'ArrowLeft':
+            prevTutorialStep();
+            break;
+    }
+}
+
+// Manejar resize de ventana
+window.addEventListener('resize', () => {
+    if (tutorialActive && TUTORIAL_STEPS[currentTutorialStep]) {
+        const step = TUTORIAL_STEPS[currentTutorialStep];
+        if (step.target) {
+            positionSpotlight(step.target, step.position);
+        }
+    }
+});
+
+console.log('✅ Interactive Tutorial System loaded');
 </script>
 
 </body>
