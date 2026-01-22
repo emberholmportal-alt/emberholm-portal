@@ -7701,6 +7701,47 @@ async function openMissionListModal(heroId) {
     showModal('mission-select-modal');
 }
 
+// Open Mission Modal for Tutorial (no heroId required, just display)
+async function openTutorialMissionModal() {
+    const missions = await loadMissionsData();
+    if (!missions || missions.length === 0) {
+        return;
+    }
+
+    // Build modal content (display only, no click handlers for tutorial)
+    let modalHTML = '';
+    missions.forEach((mission, idx) => {
+        const diffColor = mission.difficulty === 'Easy' ? '#44ff44' :
+                         mission.difficulty === 'Medium' ? '#ffaa00' : '#ff4444';
+
+        const deathRisk = mission.death_chance > 0 ?
+            `<span style="color:#ff4444;">⚠️ Death Risk: ${mission.death_chance}%</span>` :
+            `<span style="color:#44ff44;">✓ No Death Risk</span>`;
+
+        const isPartyMission = mission.party_size && mission.party_size === 5;
+        const partyLabel = isPartyMission ? ' <span style="color:#ffaa00;">[PARTY]</span>' : '';
+
+        modalHTML += `
+            <div class="modal-list-item">
+                <div class="modal-item-header">
+                    ${mission.name}${partyLabel}
+                </div>
+                <div class="modal-item-details">
+                    <div>Difficulty: <span style="color:${diffColor};">${mission.difficulty}</span> |
+                         Duration: ${mission.duration_hours}h |
+                         Energy: ${mission.energy_cost}</div>
+                    <div>Rewards: ${mission.reward_xp} XP, ${mission.reward_aura} Aura</div>
+                    <div>${deathRisk}</div>
+                    ${isPartyMission ? '<div style="color:#ffaa00;">⚠️ Requires 5 Emissaries</div>' : ''}
+                </div>
+            </div>
+        `;
+    });
+
+    document.getElementById('mission-select-body').innerHTML = modalHTML;
+    showModal('mission-select-modal');
+}
+
 // Select Mission and Start
 async function selectMission(missionId, heroId, missionName) {
     hideModal('mission-select-modal');
@@ -10664,7 +10705,7 @@ const TUTORIAL_STEPS = [
     },
     {
         id: 'send-mission',
-        target: '.action-btn.send',
+        target: '.roster-table tbody tr:first-child .action-btn.send',
         screen: 'profile',
         title: 'STEP 4: SEND ON MISSION',
         body: `
@@ -10676,7 +10717,7 @@ const TUTORIAL_STEPS = [
     },
     {
         id: 'mission-select',
-        target: null,
+        target: '#mission-select-body .modal-list-item:first-child',
         screen: 'profile',
         title: 'STEP 5: MISSION TYPES',
         body: `
@@ -10690,7 +10731,8 @@ const TUTORIAL_STEPS = [
             <br>Click on a mission to select it and start the deployment.
         `,
         tip: 'Recommendation: Start with EASY missions until your Emissary levels up.',
-        position: 'center'
+        position: 'left',
+        openMissionModal: true
     },
     {
         id: 'mission-bonuses',
@@ -10792,6 +10834,14 @@ function showTutorialStep(stepIndex) {
     // Cambiar de pantalla si es necesario
     if (step.screen && typeof switchScreen === 'function') {
         switchScreen(step.screen);
+    }
+
+    // Abrir modal de misiones si es necesario (para tutorial)
+    if (step.openMissionModal) {
+        openTutorialMissionModal();
+        // Dar tiempo para que el modal se renderice
+        setTimeout(() => renderTutorialStep(step, stepIndex), 400);
+    } else if (step.screen) {
         // Dar tiempo para que la pantalla se renderice
         setTimeout(() => renderTutorialStep(step, stepIndex), 300);
     } else {
