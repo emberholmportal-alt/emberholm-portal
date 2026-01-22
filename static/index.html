@@ -2356,58 +2356,6 @@ document.addEventListener('DOMContentLoaded', initPortalWarning);
                     <span style="color:#ffaa00;">Final: 184 XP, 12 Aura</span>
                 </div>
 
-                <p style="color:#ff4444;"><b>EXAMPLE 3: Perfect Alignment (MAXIMUM REWARDS)</b></p>
-                <div style="background-color:#111; padding:10px; margin:10px 0; border-left:3px solid #ff4444;">
-                    Mission: "Dragon's Crucible" (HARD)<br/>
-                    Favored: Forge Legion, Warrior class, Orc race<br/>
-                    Emissary: Forge Legion Warrior Orc, Level 35, 600 Aura<br/><br/>
-
-                    <b>Success Rate:</b><br/>
-                    Base: 60%<br/>
-                    Guild match: +12%<br/>
-                    Class match: +8%<br/>
-                    Race match: +5%<br/>
-                    Level bonus: +3% (35 levels = 3 bonus)<br/>
-                    Aura bonus: +6% (600 Aura = 6 bonus)<br/>
-                    <span style="color:#ff4444;">Final: 60 + 12 + 8 + 5 + 3 + 6 = 94%</span><br/><br/>
-
-                    <b>Rewards (on success):</b><br/>
-                    Base XP: 350<br/>
-                    Base Aura: 25<br/>
-                    Multiplier: (1.0 + 0.12 + 0.08 + 0.05 + 0.03 + 0.06) = 1.34<br/>
-                    <span style="color:#ffaa00;">Perfect Alignment Multiplier: 1.34 × 1.5 = 2.01</span><br/>
-                    <span style="color:#44ff44; font-size:1.2em;">Final: 703 XP, 50 Aura 🔥</span><br/><br/>
-
-                    <b>Analysis:</b><br/>
-                    Perfect alignment DOUBLED the rewards! This single mission gives more XP than
-                    11 EASY missions (which would take 33 hours vs 12 hours). This is the power of
-                    strategic Emissary deployment!
-                </div>
-
-                <p style="color:#ff4444;"><b>EXAMPLE 4: Death and Reinvocation</b></p>
-                <div style="background-color:#111; padding:10px; margin:10px 0; border-left:3px solid #ff0000;">
-                    Scenario: HARD mission fails, death occurs (2% chance on failure)<br/>
-                    Emissary: Level 20, 450 XP, 150 Aura, Death Count = 1 (died once before)<br/><br/>
-
-                    <b>Consequences:</b><br/>
-                    State: <span style="color:#ff4444;">FALLEN</span><br/>
-                    XP Loss: -140 (mission failure penalty)<br/>
-                    Remaining XP: 450 - 140 = 310 XP<br/><br/>
-
-                    <b>Reinvocation Cost (2nd Death):</b><br/>
-                    Cost: 1,500 XP + 300 Aura<br/><br/>
-
-                    <b>Problem:</b><br/>
-                    You only have 310 XP but need 1,500!<br/>
-                    You only have 150 Aura but need 300!<br/><br/>
-
-                    <b>Solution:</b><br/>
-                    Must use OTHER Emissaries to grind missions and accumulate enough XP/Aura
-                    to revive the fallen one. Or wait and accumulate via passive 24h gains.<br/><br/>
-
-                    <span style="color:#ff4444;">This is why death is SERIOUS! Protect your Emissaries!</span>
-                </div>
-
                 <p style="color:#44ff44;"><b>💡 KEY TAKEAWAY FROM EXAMPLES:</b></p>
                 Strategic deployment with attribute matching can give you 2-3x more rewards for the same
                 time investment. Always check mission details and match your Emissaries optimally!
@@ -10698,58 +10646,58 @@ const TUTORIAL_STEPS = [
         position: 'left'
     },
     {
-        id: 'go-to-missions',
-        target: '[data-target="missions"]',
+        id: 'send-mission',
+        target: '.action-btn.send',
         screen: 'profile',
-        title: 'STEP 4: GO TO MISSIONS',
+        title: 'STEP 4: SEND ON MISSION',
         body: `
-            Now let us go to the <b>MISSIONS</b> section.<br><br>
-            Click the <b>[MISSIONS]</b> button in the top navigation bar.
+            To send an Emissary on a mission, click the <b>[SEND MISSION]</b> button next to any READY Emissary.<br><br>
+            This opens the <b>Mission Selection</b> modal where you can choose from available missions.
         `,
         tip: 'Missions rotate every 72 hours. Each Emissary can only do each mission once per rotation.',
-        position: 'bottom',
-        requireClick: true,
-        clickTarget: '[data-target="missions"]'
+        position: 'top'
     },
     {
-        id: 'mission-board',
-        target: '#mission-list',
-        screen: 'missions',
-        title: 'STEP 5: MISSION BOARD',
+        id: 'mission-select',
+        target: null,
+        screen: 'profile',
+        title: 'STEP 5: MISSION TYPES',
         body: `
-            This is the <b>Mission Board</b>. There are 3 difficulty levels:<br><br>
+            There are <b>3 difficulty levels</b> to choose from:<br><br>
             <table class="tutorial-difficulty-table">
                 <tr><th>Difficulty</th><th>Duration</th><th>Energy</th><th>Risk</th></tr>
                 <tr><td class="diff-easy">EASY</td><td>3 hours</td><td>10</td><td>No death</td></tr>
                 <tr><td class="diff-medium">MEDIUM</td><td>6 hours</td><td>18</td><td>0.5% death</td></tr>
                 <tr><td class="diff-hard">HARD</td><td>12 hours</td><td>25</td><td>2% death</td></tr>
             </table>
+            <br>Click on a mission to select it and start the deployment.
         `,
         tip: 'Recommendation: Start with EASY missions until your Emissary levels up.',
-        position: 'top'
+        position: 'center'
     },
     {
-        id: 'select-mission',
-        target: '.mission-card',
-        screen: 'missions',
-        title: 'STEP 6: SELECT MISSION',
+        id: 'mission-bonuses',
+        target: null,
+        screen: 'profile',
+        title: 'STEP 6: MISSION BONUSES',
         body: `
-            To send an Emissary on a mission:<br><br>
-            <b>1.</b> Click <b>[SELECT]</b> on any mission<br>
-            <b>2.</b> Choose the Emissary you want to send<br>
-            <b>3.</b> Confirm the deployment<br><br>
-            The mission will start automatically and your Emissary will be busy until it finishes.
+            Each mission favors certain <b>Guild</b>, <b>Class</b>, and <b>Race</b> attributes.<br><br>
+            <b>Matching bonuses:</b><br>
+            • Guild match: <span style="color:#44ff44;">+12% success rate</span><br>
+            • Class match: <span style="color:#44ff44;">+8% success rate</span><br>
+            • Race match: <span style="color:#44ff44;">+5% success rate</span><br><br>
+            Matching all three grants <b>Perfect Alignment</b> with 1.5x reward multiplier!
         `,
-        tip: 'If your Emissary Guild matches the favored mission, you get +12% success rate.',
-        position: 'right'
+        tip: 'Check mission details to see which attributes are favored before deploying.',
+        position: 'center'
     },
     {
         id: 'claim-rewards',
         target: null,
-        screen: 'missions',
+        screen: 'profile',
         title: 'STEP 7: CLAIM REWARDS',
         body: `
-            When a mission ends, you will see the <b>[CLAIM]</b> button.<br><br>
+            When a mission ends, you will see the <b>[CLAIM]</b> button in the roster.<br><br>
             <b>If the mission was successful:</b><br>
             • You earn <span style="color:#44ff44;">XP</span> and <span style="color:#ffaa00;">AURA</span><br>
             • Chance to obtain <span style="color:var(--gold);">Items or Runes</span><br><br>
