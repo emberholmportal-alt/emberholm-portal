@@ -394,7 +394,8 @@
           <label for="qty">Amount to invoke:</label>
           <input id="qty" type="number" min="1" max="20" value="3" />
           <button class="invoke-btn" id="invokeBtn">[INVOKE]</button>
-          <span id="walletBadge" class="tag wallet-badge" onclick="toggleWalletDropdown()" style="border-color:#a66; color:#a66;">WALLET: DISCONNECTED
+          <span id="walletBadge" class="tag wallet-badge" onclick="toggleWalletDropdown()">
+            <span id="walletBadgeText">WALLET: DISCONNECTED</span>
             <div class="wallet-dropdown">
               <div class="wallet-dropdown-item" onclick="event.stopPropagation(); ensureContract();">Reconnect</div>
               <div class="wallet-dropdown-item disconnect" onclick="event.stopPropagation(); disconnectWallet();">Disconnect</div>
@@ -493,18 +494,24 @@
 
     function setWalletBadge(status, details = "") {
       const el = document.getElementById('walletBadge');
+      const textEl = document.getElementById('walletBadgeText');
       if (!el) return;
       el.classList.remove('wallet-badge-ok', 'wallet-badge-warn', 'wallet-badge-err');
 
+      let text = '';
       if (status === 'ok') {
-        el.textContent = details || 'WALLET: CONNECTED (BASE) ✅';
+        text = details || 'WALLET: CONNECTED (BASE) ✓';
         el.classList.add('wallet-badge-ok');
       } else if (status === 'warn') {
-        el.textContent = details || 'WALLET: WRONG NETWORK';
+        text = details || 'WALLET: WRONG NETWORK';
         el.classList.add('wallet-badge-warn');
       } else {
-        el.textContent = details || 'WALLET: DISCONNECTED';
+        text = details || 'WALLET: DISCONNECTED';
         el.classList.add('wallet-badge-err');
+      }
+
+      if (textEl) {
+        textEl.textContent = text;
       }
     }
 
