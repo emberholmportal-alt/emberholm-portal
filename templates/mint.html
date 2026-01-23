@@ -305,17 +305,29 @@
     .wallet-badge:hover {
       background: rgba(68, 170, 255, 0.1);
     }
-    .wallet-badge-ok {
-      border-color: var(--primary-green) !important;
-      color: var(--primary-green) !important;
+    /* CONNECT WALLET = Verde */
+    .wallet-badge-connect {
+      border-color: #22c55e !important;
+      color: #22c55e !important;
+    }
+    /* DISCONNECT = Rojo */
+    .wallet-badge-disconnect {
+      border-color: #ef4444 !important;
+      color: #ef4444 !important;
     }
     .wallet-badge-warn {
       border-color: #f59e0b !important;
       color: #f59e0b !important;
     }
-    .wallet-badge-err {
-      border-color: #a66 !important;
-      color: #a66 !important;
+    /* Network indicator */
+    .network-badge {
+      display: inline-block;
+      padding: 3px 8px;
+      margin: 3px;
+      border: 1px solid var(--primary-green);
+      color: var(--primary-green);
+      font-size: 10px;
+      background: rgba(34, 197, 94, 0.1);
     }
   </style>
 </head>
@@ -361,7 +373,8 @@
           <label for="qty">Amount to invoke:</label>
           <input id="qty" type="number" min="1" max="20" value="3" />
           <button class="invoke-btn" id="invokeBtn">[INVOKE]</button>
-          <span id="walletBadge" class="tag wallet-badge" onclick="handleWalletClick()" style="border-color:#a66; color:#a66;">CONNECT WALLET</span>
+          <span id="walletBadge" class="tag wallet-badge wallet-badge-connect" onclick="handleWalletClick()">CONNECT WALLET</span>
+          <span id="networkBadge" class="network-badge" style="display: none;">Base Mainnet ✅</span>
           <span style="font-size:0.6rem;">*Requires wallet on Base Mainnet.</span>
         </div>
       </div>
@@ -455,18 +468,24 @@
 
     function setWalletBadge(status, details = "") {
       const el = document.getElementById('walletBadge');
+      const networkEl = document.getElementById('networkBadge');
       if (!el) return;
-      el.classList.remove('wallet-badge-ok', 'wallet-badge-warn', 'wallet-badge-err');
+      el.classList.remove('wallet-badge-connect', 'wallet-badge-disconnect', 'wallet-badge-warn');
 
       if (status === 'ok') {
+        // Conectado = DISCONNECT en rojo + Base Mainnet al lado
         el.textContent = details || 'DISCONNECT';
-        el.classList.add('wallet-badge-ok');
+        el.classList.add('wallet-badge-disconnect');
+        if (networkEl) networkEl.style.display = 'inline-block';
       } else if (status === 'warn') {
         el.textContent = details || 'SWITCH NETWORK';
         el.classList.add('wallet-badge-warn');
+        if (networkEl) networkEl.style.display = 'none';
       } else {
+        // Desconectado = CONNECT WALLET en verde
         el.textContent = details || 'CONNECT WALLET';
-        el.classList.add('wallet-badge-err');
+        el.classList.add('wallet-badge-connect');
+        if (networkEl) networkEl.style.display = 'none';
       }
     }
 
@@ -1126,7 +1145,7 @@
       if (!el) return;
 
       // Check current state based on class
-      if (el.classList.contains('wallet-badge-ok')) {
+      if (el.classList.contains('wallet-badge-disconnect')) {
         // Connected -> Disconnect
         disconnectWallet();
       } else if (el.classList.contains('wallet-badge-warn')) {
