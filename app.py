@@ -817,6 +817,191 @@ def check_and_grant_mission_achievements(token_id, total_missions):
     return achievements
 
 # ---------------------------------
+# Emissary Rank System
+# ---------------------------------
+
+EMISSARY_RANKS = [
+    {
+        "tier": 1,
+        "name": "Novice",
+        "xp_required": 0,
+        "aura_required": 0,
+        "missions_required": 0,
+        "bonuses": {
+            "ember_bonus": 2,      # +2%
+            "xp_bonus": 0,         # +0%
+            "success_bonus": 0,    # +0%
+            "death_reduction": 0   # -0%
+        },
+        "description": "Recién llegado al reino"
+    },
+    {
+        "tier": 2,
+        "name": "Apprentice",
+        "xp_required": 1000,
+        "aura_required": 50,
+        "missions_required": 5,
+        "bonuses": {
+            "ember_bonus": 5,
+            "xp_bonus": 2,
+            "success_bonus": 1,
+            "death_reduction": 1
+        },
+        "description": "Aprendiendo los caminos"
+    },
+    {
+        "tier": 3,
+        "name": "Journeyman",
+        "xp_required": 5000,
+        "aura_required": 150,
+        "missions_required": 15,
+        "bonuses": {
+            "ember_bonus": 10,
+            "xp_bonus": 5,
+            "success_bonus": 2,
+            "death_reduction": 2
+        },
+        "description": "Viajero experimentado"
+    },
+    {
+        "tier": 4,
+        "name": "Adept",
+        "xp_required": 15000,
+        "aura_required": 400,
+        "missions_required": 35,
+        "bonuses": {
+            "ember_bonus": 15,
+            "xp_bonus": 8,
+            "success_bonus": 4,
+            "death_reduction": 3
+        },
+        "description": "Domina las artes básicas"
+    },
+    {
+        "tier": 5,
+        "name": "Expert",
+        "xp_required": 35000,
+        "aura_required": 800,
+        "missions_required": 60,
+        "bonuses": {
+            "ember_bonus": 22,
+            "xp_bonus": 12,
+            "success_bonus": 6,
+            "death_reduction": 5
+        },
+        "description": "Reconocido en el reino"
+    },
+    {
+        "tier": 6,
+        "name": "Master",
+        "xp_required": 70000,
+        "aura_required": 1500,
+        "missions_required": 100,
+        "bonuses": {
+            "ember_bonus": 30,
+            "xp_bonus": 18,
+            "success_bonus": 8,
+            "death_reduction": 8
+        },
+        "description": "Maestro de su oficio"
+    },
+    {
+        "tier": 7,
+        "name": "Grandmaster",
+        "xp_required": 120000,
+        "aura_required": 3000,
+        "missions_required": 150,
+        "bonuses": {
+            "ember_bonus": 40,
+            "xp_bonus": 25,
+            "success_bonus": 10,
+            "death_reduction": 12
+        },
+        "description": "Leyenda viviente"
+    },
+    {
+        "tier": 8,
+        "name": "Legendary",
+        "xp_required": 200000,
+        "aura_required": 5000,
+        "missions_required": 250,
+        "bonuses": {
+            "ember_bonus": 50,
+            "xp_bonus": 35,
+            "success_bonus": 12,
+            "death_reduction": 15
+        },
+        "description": "Inmortalizado en la historia"
+    }
+]
+
+def calculate_emissary_rank(xp_total: int, aura_level: int, missions_completed: int) -> dict:
+    """
+    Calculate the Emissary Rank based on XP, Aura, and missions completed.
+    All three requirements must be met to achieve a rank.
+
+    Returns:
+        dict with tier, name, bonuses, and next_rank info
+    """
+    current_rank = EMISSARY_RANKS[0]  # Default to Novice
+
+    # Check ranks from highest to lowest
+    for rank in reversed(EMISSARY_RANKS):
+        if (xp_total >= rank["xp_required"] and
+            aura_level >= rank["aura_required"] and
+            missions_completed >= rank["missions_required"]):
+            current_rank = rank
+            break
+
+    # Find next rank (if not already Legendary)
+    next_rank = None
+    if current_rank["tier"] < 8:
+        next_rank = EMISSARY_RANKS[current_rank["tier"]]  # tier is 1-indexed, list is 0-indexed
+
+    # Calculate progress to next rank
+    progress = {}
+    if next_rank:
+        xp_progress = min(100, (xp_total / next_rank["xp_required"]) * 100) if next_rank["xp_required"] > 0 else 100
+        aura_progress = min(100, (aura_level / next_rank["aura_required"]) * 100) if next_rank["aura_required"] > 0 else 100
+        missions_progress = min(100, (missions_completed / next_rank["missions_required"]) * 100) if next_rank["missions_required"] > 0 else 100
+
+        progress = {
+            "xp": {
+                "current": xp_total,
+                "required": next_rank["xp_required"],
+                "percent": round(xp_progress, 1)
+            },
+            "aura": {
+                "current": aura_level,
+                "required": next_rank["aura_required"],
+                "percent": round(aura_progress, 1)
+            },
+            "missions": {
+                "current": missions_completed,
+                "required": next_rank["missions_required"],
+                "percent": round(missions_progress, 1)
+            }
+        }
+
+    return {
+        "tier": current_rank["tier"],
+        "name": current_rank["name"],
+        "full_name": f"{current_rank['name']} (Tier {current_rank['tier']})",
+        "description": current_rank["description"],
+        "bonuses": current_rank["bonuses"],
+        "next_rank": next_rank["name"] if next_rank else None,
+        "progress_to_next": progress if progress else None,
+        "is_max_rank": current_rank["tier"] == 8
+    }
+
+def get_rank_bonuses(xp_total: int, aura_level: int, missions_completed: int) -> dict:
+    """
+    Get just the bonuses for a given rank (for mission calculations).
+    """
+    rank_info = calculate_emissary_rank(xp_total, aura_level, missions_completed)
+    return rank_info["bonuses"]
+
+# ---------------------------------
 # Mission System - Probability & Outcome Calculation
 # ---------------------------------
 
@@ -5763,6 +5948,12 @@ def api_metadata(token_id):
     # Get achievements for this token
     achievements = get_token_achievements(token_id)
 
+    # Calculate Emissary Rank
+    xp_total = dyn.get("xp_total", 0)
+    aura_level = dyn.get("aura_level", 0)
+    missions_completed = dyn.get("total_missions_completed", 0)
+    rank_info = calculate_emissary_rank(xp_total, aura_level, missions_completed)
+
     traits = [
         {"trait_type": "Token ID",      "value": base_meta.get("token_id")},
         {"trait_type": "Race",          "value": base_meta.get("race")},
@@ -5782,6 +5973,9 @@ def api_metadata(token_id):
         {"trait_type": "Aura",          "value": dyn.get("aura_level", 0)},
         {"trait_type": "Energy",        "value": energy_str},
         {"trait_type": "Power",         "value": base_meta.get("power", 0)},  # 🔥 Static from IPFS, not PostgreSQL
+        {"trait_type": "Emissary Rank", "value": rank_info["name"]},
+        {"display_type": "number", "trait_type": "Rank Tier", "value": rank_info["tier"]},
+        {"trait_type": "Missions Completed", "value": missions_completed},
         {"trait_type": "Last Mission",  "value": dyn.get("last_mission", "None")},
         {"trait_type": "Last Update",   "value": dyn.get("last_update", now_utc_str())}
     ]

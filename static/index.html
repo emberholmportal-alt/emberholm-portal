@@ -4257,7 +4257,7 @@ async function fetchNFTMetadataFromIPFS(tokenId) {
             class: getAttr('Class') || 'Unknown',
             race_class: `${getAttr('Race') || 'Unknown'} ${getAttr('Class') || 'Unknown'}`,
             guild: getAttr('Guild') || getAttr('Starting Guild') || 'Unassigned',
-            rank: 'Tier 1',
+            rank: 'Novice (Tier 1)',
             // Dynamic state (defaults for new NFTs)
             dynamic_state: {
                 xp_total: 0,
@@ -4267,7 +4267,8 @@ async function fetchNFTMetadataFromIPFS(tokenId) {
                 state: 'READY',
                 current_guild: getAttr('Guild') || getAttr('Starting Guild') || 'Unassigned',
                 power_current: 10,
-                xp_level: 1
+                xp_level: 1,
+                total_missions_completed: 0
             },
             // Raw attributes from IPFS
             attributes: attributes
@@ -4284,7 +4285,7 @@ async function fetchNFTMetadataFromIPFS(tokenId) {
             class: 'Unknown',
             race_class: 'Unknown Unknown',
             guild: 'Unassigned',
-            rank: 'Tier 1',
+            rank: 'Novice (Tier 1)',
             dynamic_state: {
                 xp_total: 0,
                 aura_level: 0,
@@ -4293,7 +4294,8 @@ async function fetchNFTMetadataFromIPFS(tokenId) {
                 state: 'READY',
                 current_guild: 'Unassigned',
                 power_current: 10,
-                xp_level: 1
+                xp_level: 1,
+                total_missions_completed: 0
             },
             attributes: []
         };
@@ -5704,7 +5706,7 @@ async function loadPlayerAndRender(){
                     </div>
                     <div class="cs-identity">
                         <div class="cs-name">${prime.name || prime.token_id}</div>
-                        <div class="cs-subtitle">ID: #${prime.token_id} | RANK: ${prime.rank || "Tier 1"}</div>
+                        <div class="cs-subtitle">ID: #${prime.token_id} | RANK: ${getEmissaryRankDisplay(prime)}</div>
                         <div class="cs-guild">⚔ ${prime.guild || ds.current_guild || "UNKNOWN GUILD"}</div>
                     </div>
                 </div>
@@ -8671,6 +8673,64 @@ function getAchievementIconHtml(icon, isImage) {
         return `<img src="${icon}" class="pixel-icon" alt="achievement">`;
     }
     return icon;
+}
+
+// ---------------------------------
+// Emissary Rank System
+// ---------------------------------
+
+const EMISSARY_RANKS = [
+    { tier: 1, name: "Novice", xp: 0, aura: 0, missions: 0, emberBonus: 2 },
+    { tier: 2, name: "Apprentice", xp: 1000, aura: 50, missions: 5, emberBonus: 5 },
+    { tier: 3, name: "Journeyman", xp: 5000, aura: 150, missions: 15, emberBonus: 10 },
+    { tier: 4, name: "Adept", xp: 15000, aura: 400, missions: 35, emberBonus: 15 },
+    { tier: 5, name: "Expert", xp: 35000, aura: 800, missions: 60, emberBonus: 22 },
+    { tier: 6, name: "Master", xp: 70000, aura: 1500, missions: 100, emberBonus: 30 },
+    { tier: 7, name: "Grandmaster", xp: 120000, aura: 3000, missions: 150, emberBonus: 40 },
+    { tier: 8, name: "Legendary", xp: 200000, aura: 5000, missions: 250, emberBonus: 50 }
+];
+
+function calculateEmissaryRank(xpTotal, auraLevel, missionsCompleted) {
+    let currentRank = EMISSARY_RANKS[0];
+
+    for (let i = EMISSARY_RANKS.length - 1; i >= 0; i--) {
+        const rank = EMISSARY_RANKS[i];
+        if (xpTotal >= rank.xp && auraLevel >= rank.aura && missionsCompleted >= rank.missions) {
+            currentRank = rank;
+            break;
+        }
+    }
+
+    const nextRank = currentRank.tier < 8 ? EMISSARY_RANKS[currentRank.tier] : null;
+
+    return {
+        tier: currentRank.tier,
+        name: currentRank.name,
+        fullName: `${currentRank.name} (Tier ${currentRank.tier})`,
+        emberBonus: currentRank.emberBonus,
+        nextRank: nextRank ? nextRank.name : null,
+        isMaxRank: currentRank.tier === 8
+    };
+}
+
+function getEmissaryRankDisplay(heroData) {
+    const ds = heroData.dynamic_state || {};
+    const xp = ds.xp_total || 0;
+    const aura = ds.aura_level || 0;
+    const missions = ds.total_missions_completed || 0;
+
+    const rank = calculateEmissaryRank(xp, aura, missions);
+    return rank.fullName;
+}
+
+function getEmissaryRankName(heroData) {
+    const ds = heroData.dynamic_state || {};
+    const xp = ds.xp_total || 0;
+    const aura = ds.aura_level || 0;
+    const missions = ds.total_missions_completed || 0;
+
+    const rank = calculateEmissaryRank(xp, aura, missions);
+    return rank.name;
 }
 
 const ACHIEVEMENTS_CONFIG = {
