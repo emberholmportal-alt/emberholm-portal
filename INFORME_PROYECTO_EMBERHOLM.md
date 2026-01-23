@@ -1,7 +1,7 @@
 # INFORME COMPLETO: EMBERHOLM PORTAL
 
 > **Documento de Presentación del Proyecto**
-> Versión 2.0 | Enero 2026
+> Versión 2.1 | Enero 2026
 
 ---
 
@@ -596,6 +596,81 @@ Nivel = 1 + (XP Total ÷ 1,000)
 | 10,000-10,999 | 11 |
 | 50,000-50,999 | 51 |
 
+### 8.4 Sistema de Rangos por NFT (Emissary Rank)
+
+Cada NFT individual tiene un **rango** que determina bonificaciones de recompensas.
+
+#### Rangos y Requisitos
+
+| Rango | Tier | XP Requerido | Aura Req. | Misiones | Bonus $EMBER |
+|-------|------|--------------|-----------|----------|--------------|
+| **Novice** | Tier 1 | 0 | 0 | 0 | +2% |
+| **Apprentice** | Tier 2 | 1,000 | 50 | 5 | +5% |
+| **Journeyman** | Tier 3 | 5,000 | 150 | 15 | +10% |
+| **Adept** | Tier 4 | 15,000 | 400 | 35 | +15% |
+| **Expert** | Tier 5 | 35,000 | 800 | 60 | +22% |
+| **Master** | Tier 6 | 70,000 | 1,500 | 100 | +30% |
+| **Grandmaster** | Tier 7 | 120,000 | 3,000 | 150 | +40% |
+| **Legendary** | Tier 8 | 200,000 | 5,000 | 250 | +50% |
+
+> Para subir de rango se requiere cumplir **TODOS** los requisitos (XP + Aura + Misiones).
+
+#### Beneficios por Rango
+
+| Rango | $EMBER% | XP% | Éxito% | Muerte% | Descripción |
+|-------|---------|-----|--------|---------|-------------|
+| Novice | +2% | +0% | +0% | 0% | "Recién llegado al reino" |
+| Apprentice | +5% | +2% | +1% | -1% | "Aprendiendo los caminos" |
+| Journeyman | +10% | +5% | +2% | -2% | "Viajero experimentado" |
+| Adept | +15% | +8% | +4% | -3% | "Domina las artes básicas" |
+| Expert | +22% | +12% | +6% | -5% | "Reconocido en el reino" |
+| Master | +30% | +18% | +8% | -8% | "Maestro de su oficio" |
+| Grandmaster | +40% | +25% | +10% | -12% | "Leyenda viviente" |
+| Legendary | +50% | +35% | +12% | -15% | "Inmortalizado en la historia" |
+
+#### Visualización del Rango
+
+El rango aparece en:
+- **Metadata del NFT**: Visible en OpenSea como trait
+- **Interfaz del juego**: Junto al nombre del héroe
+- **Leaderboards**: Como indicador de progreso
+
+#### Fórmula de Cálculo
+
+```
+function getEmissaryRank(xp, aura, missions):
+    if xp >= 200000 AND aura >= 5000 AND missions >= 250:
+        return "Legendary (Tier 8)"
+    elif xp >= 120000 AND aura >= 3000 AND missions >= 150:
+        return "Grandmaster (Tier 7)"
+    elif xp >= 70000 AND aura >= 1500 AND missions >= 100:
+        return "Master (Tier 6)"
+    elif xp >= 35000 AND aura >= 800 AND missions >= 60:
+        return "Expert (Tier 5)"
+    elif xp >= 15000 AND aura >= 400 AND missions >= 35:
+        return "Adept (Tier 4)"
+    elif xp >= 5000 AND aura >= 150 AND missions >= 15:
+        return "Journeyman (Tier 3)"
+    elif xp >= 1000 AND aura >= 50 AND missions >= 5:
+        return "Apprentice (Tier 2)"
+    else:
+        return "Novice (Tier 1)"
+```
+
+#### Tiempo Estimado para Alcanzar Rangos
+
+| Rango | Tiempo Estimado | Misiones Aprox. |
+|-------|-----------------|-----------------|
+| Novice → Apprentice | ~1 semana | 5-10 |
+| Apprentice → Journeyman | ~3 semanas | 15-25 |
+| Journeyman → Adept | ~2 meses | 35-50 |
+| Adept → Expert | ~4 meses | 60-80 |
+| Expert → Master | ~8 meses | 100-120 |
+| Master → Grandmaster | ~1 año | 150-180 |
+| Grandmaster → Legendary | ~2 años | 250+ |
+
+> Los tiempos asumen juego activo diario con misiones de dificultad media-alta.
+
 ---
 
 ## 9. SISTEMA DE ACHIEVEMENTS
@@ -870,6 +945,23 @@ CREATE TABLE global_stats (
 **Q: ¿Qué beneficios dan los logros?**
 > A: Los achievements aparecen en la metadata del NFT y representan hitos. Son marcadores de prestigio visibles en marketplaces.
 
+### Preguntas de Rangos de NFT
+
+**Q: ¿Qué es el Emissary Rank?**
+> A: Cada NFT tiene un rango individual (Tier 1-8) basado en su XP, Aura y misiones completadas. A mayor rango, mayores bonificaciones.
+
+**Q: ¿Cuántos rangos existen?**
+> A: 8 rangos: Novice (Tier 1), Apprentice (Tier 2), Journeyman (Tier 3), Adept (Tier 4), Expert (Tier 5), Master (Tier 6), Grandmaster (Tier 7), Legendary (Tier 8).
+
+**Q: ¿Qué bonus da el rango máximo?**
+> A: Legendary (Tier 8) da: +50% $EMBER, +35% XP, +12% éxito, -15% muerte. Requiere 200,000 XP, 5,000 Aura y 250 misiones.
+
+**Q: ¿Cuánto tiempo toma llegar a Legendary?**
+> A: Aproximadamente 2+ años de juego activo. Es el máximo prestigio alcanzable.
+
+**Q: ¿El rango afecta el valor del NFT?**
+> A: Sí. Un NFT con rango alto tiene más valor porque produce más $EMBER y tiene mejor desempeño en misiones. El rango es visible en la metadata.
+
 ---
 
 ## ANEXO: FÓRMULAS CLAVE
@@ -914,6 +1006,26 @@ ASH = EMBER_quemado ÷ 1,000
 ```
 EV = +200 $EMBER por tirada gratuita
 EV_neto = +125 $EMBER por tirada pagada (200 - 75 costo)
+```
+
+### Cálculo de Rango de NFT (Emissary Rank)
+```
+Rango = max_tier donde:
+  - XP >= xp_requerido[tier]
+  - Aura >= aura_requerido[tier]
+  - Misiones >= misiones_requerido[tier]
+
+Bonus Total = ember_bonus[tier] + xp_bonus[tier] + exito_bonus[tier] - muerte_reduccion[tier]
+```
+
+### Bonus Acumulativo Total
+```
+Bonus_Final = (1 + Rango%) × (1 + Equipo%) × (1 + Runas%) × (1 + Alineamiento%)
+
+Ejemplo Máximo:
+= (1 + 0.50) × (1 + 0.90) × (1 + 0.30) × (1 + 0.50)
+= 1.50 × 1.90 × 1.30 × 1.50
+= 5.56x (456% bonus sobre base)
 ```
 
 ---
