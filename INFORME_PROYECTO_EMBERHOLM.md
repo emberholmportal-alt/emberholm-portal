@@ -1,7 +1,7 @@
 # INFORME COMPLETO: EMBERHOLM PORTAL
 
 > **Documento de Presentación del Proyecto**
-> Versión 1.0 | Enero 2026
+> Versión 2.0 | Enero 2026
 
 ---
 
@@ -9,11 +9,15 @@
 
 1. [Introducción y Lore](#1-introducción-y-lore)
 2. [Funcionamiento del Juego](#2-funcionamiento-del-juego)
-3. [Sistema de Items y Runas](#3-sistema-de-items-y-runas)
-4. [Sistema de Dropeo](#4-sistema-de-dropeo)
-5. [Economía: Obtención de $EMBER](#5-economía-obtención-de-ember)
-6. [Infraestructura Técnica](#6-infraestructura-técnica)
-7. [Resumen Ejecutivo Q&A](#7-resumen-ejecutivo-qa)
+3. [NFTs con Metadata Dinámica](#3-nfts-con-metadata-dinámica)
+4. [Sistema de Items y Runas](#4-sistema-de-items-y-runas)
+5. [Sistema de Dropeo](#5-sistema-de-dropeo)
+6. [Economía: Token $EMBER](#6-economía-token-ember)
+7. [Token $ASH - Gobernanza](#7-token-ash---gobernanza)
+8. [Sistema de Rankings](#8-sistema-de-rankings)
+9. [Sistema de Achievements](#9-sistema-de-achievements)
+10. [Infraestructura Técnica](#10-infraestructura-técnica)
+11. [Resumen Ejecutivo Q&A](#11-resumen-ejecutivo-qa)
 
 ---
 
@@ -59,16 +63,24 @@ Los héroes completan **misiones** que consumen tiempo y energía a cambio de re
 
 #### Tipos de Misión por Dificultad
 
-| Dificultad | Duración | XP | Aura | Tasa Éxito | Riesgo Muerte | Energía |
-|------------|----------|----|----- |------------|---------------|---------|
-| **EASY** | 3 horas | 60 | 4 | 92% | 0% | 10 |
-| **MEDIUM** | 6 horas | 150 | 10 | 78% | 0.5% | 18 |
-| **HARD** | 12 horas | 350 | 25 | 60% | 2.0% | 25 |
-| **PARTY** | Variable | +20% | +20% | Variable | Variable | Variable |
+| Dificultad | Duración | XP | Aura | $EMBER | Tasa Éxito | Muerte | Energía |
+|------------|----------|----|----- |--------|------------|--------|---------|
+| **EASY** | 3 horas | 60 | 4 | 10-25 | 92% | 0% | 10 |
+| **MEDIUM** | 6 horas | 150 | 10 | 30-75 | 78% | 0.5% | 18 |
+| **HARD** | 12 horas | 350 | 25 | 80-200 | 60% | 2.0% | 25 |
+| **PARTY** | Variable | +20% | +20% | +20% | Variable | Variable | Variable |
 
-> **Misiones Party**: Requieren 5 héroes y otorgan un **multiplicador de 1.2x** en las recompensas.
+> **Misiones Party**: Requieren 5 héroes y otorgan un **multiplicador de 1.2x** en TODAS las recompensas.
 
-### 2.2 Cálculo de Éxito
+### 2.2 Resultados de Misión
+
+| Resultado | XP | Aura | $EMBER | Consecuencia |
+|-----------|----|----- |--------|--------------|
+| **ÉXITO** | 100% | 100% | 100% | Recompensas completas + chance de drop |
+| **FALLO** | -25 a -60 | 0 | 0 | Pierde XP según dificultad |
+| **MUERTE** | -100% | -100% | -100% | Héroe en estado FALLEN |
+
+### 2.3 Cálculo de Éxito
 
 La tasa de éxito base se modifica por varios factores:
 
@@ -90,14 +102,14 @@ Tasa Final = min(98%, Tasa Base + Bonificaciones)
 
 > **Alineamiento Perfecto**: Si guild, clase Y raza coinciden = **multiplicador 1.5x** en recompensas.
 
-### 2.3 Sistema de Progresión
+### 2.4 Sistema de Progresión
 
 #### Atributos del Héroe
 
 | Atributo | Descripción | Rango |
 |----------|-------------|-------|
 | `xp_total` | XP total acumulado | 0 - ∞ |
-| `level` | Nivel = XP / 100 | 0 - ∞ |
+| `level` | Nivel = 1 + (XP / 1000) | 1 - ∞ |
 | `aura_level` | Aura total acumulada | 0 - ∞ |
 | `energy_current` | Energía disponible | 0 - 100 |
 | `state` | Estado actual | READY / ON_MISSION / FALLEN |
@@ -112,7 +124,7 @@ Tasa Final = min(98%, Tasa Base + Bonificaciones)
 - Recuperación completa cada **48 horas**
 - Energía inicial: **100 puntos**
 
-### 2.4 Sistema de Muerte
+### 2.5 Sistema de Muerte y Resurrección
 
 #### Protección contra la Muerte
 
@@ -136,20 +148,116 @@ Los héroes ganan protección según su progreso:
 - **Equipo puede agregar**: hasta 30%
 - **Protección total máxima**: 80%
 
-#### Costos de Resurrección (Reinvocación)
+#### Costos de Resurrección con $EMBER
 
-| Muerte # | Costo XP | Costo Aura | Narrativa |
-|----------|----------|------------|-----------|
-| 1ra | 500 | 100 | "Es misericordiosa. El ritual es simple." |
-| 2da | 1,500 | 300 | "Cobra su precio. Los espíritus demandan más." |
-| 3ra | 5,000 | 1,000 | "Es severa. Tu alma se debilita con cada retorno." |
-| 4ta+ | 10,000 | 2,500 | "Más allá de la tercera muerte, el precio es astronómico." |
+| Muerte # | Costo $EMBER | Descripción |
+|----------|--------------|-------------|
+| 1ra | **200 EMBER** | "La muerte es misericordiosa. El ritual es simple." |
+| 2da | **500 EMBER** | "Cobra su precio. Los espíritus demandan más." |
+| 3ra | **1,000 EMBER** | "Es severa. Tu alma se debilita con cada retorno." |
+| 4ta | **2,500 EMBER** | "El velo se resiste a liberarte." |
+| 5ta | **5,000 EMBER** | "Las fuerzas del más allá te reclaman." |
+| 6ta+ | **10,000 EMBER** | "Precio máximo. Tu existencia pende de un hilo." |
+
+**Estado post-resurrección:**
+- XP reinicia a **100**
+- Aura reinicia a **20**
+- Energía al **50%**
 
 ---
 
-## 3. SISTEMA DE ITEMS Y RUNAS
+## 3. NFTs CON METADATA DINÁMICA
 
-### 3.1 Tipos de Equipamiento
+### 3.1 Arquitectura de Metadata
+
+Los NFTs de Emberholm son **dinámicos**: su metadata cambia en tiempo real según las acciones del jugador.
+
+#### Perfil Fijo (Inmutable)
+
+Estos datos se establecen al mintear y **NUNCA cambian**:
+
+```json
+{
+  "token_id": "00001",
+  "name": "Entara, Bearer of Economy",
+  "race": "Gith",
+  "class": "Druid",
+  "rarity": "Rare",
+  "age": 127,
+  "starting_guild": "Circle of Mist",
+  "base_stats": {
+    "str": 11, "dex": 12, "con": 12,
+    "int": 15, "wis": 15, "cha": 11
+  }
+}
+```
+
+#### Estado Dinámico (Actualizado en Tiempo Real)
+
+Estos datos cambian con cada acción:
+
+```json
+{
+  "dynamic_state": {
+    "current_guild": "Circle of Mist",
+    "xp_total": 2500,
+    "xp_level": 3,
+    "aura_level": 150,
+    "energy_current": 80,
+    "energy_max": 100,
+    "power_current": 18,
+    "state": "READY",
+    "death_count": 0,
+    "total_missions_completed": 25,
+    "last_mission": "Echoes of the Deep",
+    "mission_history": {
+      "forest_patrol": "2026-01-20T10:00:00Z"
+    },
+    "ember_roll_buff": {
+      "success_bonus": 15,
+      "xp_bonus": 10,
+      "expires": "2026-01-24T12:00:00Z"
+    },
+    "equipped_items": {
+      "weapon_id": "W-0042",
+      "armor_id": "A-0015",
+      "helmet_id": null,
+      "accessory_id": "AC-0003",
+      "amulet_id": null,
+      "rune_ids": ["R-0001", "R-0008"]
+    },
+    "achievements": ["first_mission", "10_missions", "reach_level_10"]
+  }
+}
+```
+
+### 3.2 Cuándo se Actualiza la Metadata
+
+| Evento | Cambios en Metadata |
+|--------|---------------------|
+| Completar misión | XP, Aura, missions_completed, last_mission |
+| Morir | state → FALLEN, death_count++ |
+| Resucitar | state → READY, XP/Aura reset, energy 50% |
+| Equipar item | equipped_items actualizado |
+| Ember Roll | ember_roll_buff con expiración |
+| Cambiar guild | current_guild actualizado |
+| Obtener logro | achievements[] actualizado |
+
+### 3.3 Visualización en Marketplaces
+
+La metadata dinámica se refleja automáticamente en OpenSea y otros marketplaces vía el endpoint `/api/metadata/<token_id>`, mostrando:
+
+- Nivel actual del héroe
+- Aura acumulada
+- Misiones completadas
+- Logros desbloqueados
+- Estado (READY/ON_MISSION/FALLEN)
+
+---
+
+## 4. SISTEMA DE ITEMS Y RUNAS
+
+### 4.1 Tipos de Equipamiento
 
 | Tipo | Stats Base | Efecto Principal |
 |------|------------|------------------|
@@ -160,17 +268,17 @@ Los héroes ganan protección según su progreso:
 | **AMULET** | +10 aura_boost, +5 xp_boost | Doble boost |
 | **RUNE** | +5 all_boost | Afecta TODOS los stats |
 
-### 3.2 Rarezas y Multiplicadores
+### 4.2 Rarezas y Multiplicadores
 
-| Rareza | Multiplicador Base |
-|--------|-------------------|
-| Common | 1x |
-| Uncommon | 1.5x |
-| Rare | 2x |
-| Epic | 4x |
-| Legendary | 8x |
+| Rareza | Multiplicador Base | Color |
+|--------|-------------------|-------|
+| Common | 1x | Gris |
+| Uncommon | 1.5x | Verde |
+| Rare | 2x | Azul |
+| Epic | 4x | Púrpura |
+| Legendary | 8x | Dorado |
 
-### 3.3 Bonificaciones por Rareza
+### 4.3 Bonificaciones por Rareza
 
 #### Items
 
@@ -192,7 +300,7 @@ Los héroes ganan protección según su progreso:
 | Epic | +12% | +12% | -8% | -8% | +8% |
 | Legendary | +18% | +18% | -12% | -12% | +12% |
 
-### 3.4 Items Legendarios (Ejemplos)
+### 4.4 Items Legendarios (Ejemplos)
 
 **Armas:**
 - Ashbringer, Staff of the Void, Soulreaver, Bow of the Phoenix
@@ -206,7 +314,7 @@ Los héroes ganan protección según su progreso:
 **Runas:**
 - Rune of the Last Ember, Rune of Eternity, Rune of the Phoenix
 
-### 3.5 Cómo Afecta el Equipo
+### 4.5 Cómo Afecta el Equipo
 
 | Stat | Efecto en Gameplay |
 |------|-------------------|
@@ -219,9 +327,9 @@ Los héroes ganan protección según su progreso:
 
 ---
 
-## 4. SISTEMA DE DROPEO
+## 5. SISTEMA DE DROPEO
 
-### 4.1 Probabilidades de Drop por Dificultad
+### 5.1 Probabilidades de Drop por Dificultad
 
 | Dificultad | Drop Item | Drop Runa |
 |------------|-----------|-----------|
@@ -230,7 +338,7 @@ Los héroes ganan protección según su progreso:
 | **HARD** | 20% | 8% |
 | **PARTY** | 25% | 12% |
 
-### 4.2 Distribución de Rareza por Dificultad
+### 5.2 Distribución de Rareza por Dificultad
 
 #### Al Obtener un Item/Runa:
 
@@ -241,7 +349,7 @@ Los héroes ganan protección según su progreso:
 | **HARD** | 30% | 40% | 23% | 7% |
 | **PARTY** | 20% | 40% | 30% | 10% |
 
-### 4.3 Probabilidad Combinada (Drop × Rareza)
+### 5.3 Probabilidad Combinada (Drop × Rareza)
 
 **Ejemplo: Obtener un Item Legendary**
 
@@ -256,9 +364,22 @@ Los héroes ganan protección según su progreso:
 
 ---
 
-## 5. ECONOMÍA: OBTENCIÓN DE $EMBER
+## 6. ECONOMÍA: TOKEN $EMBER
 
-### 5.1 Método Principal: Ember Roll (D20)
+### 6.1 Formas de Obtener $EMBER
+
+#### Método 1: Recompensas de Misiones
+
+| Dificultad | $EMBER Mínimo | $EMBER Máximo | Promedio |
+|------------|---------------|---------------|----------|
+| EASY | 10 | 25 | ~17 |
+| MEDIUM | 30 | 75 | ~52 |
+| HARD | 80 | 200 | ~140 |
+| PARTY | +20% sobre base | +20% sobre base | Variable |
+
+> Con equipo Legendary (+18% EMBER): multiplicar recompensas × 1.18
+
+#### Método 2: Ember Roll (D20)
 
 Sistema de dados que permite ganar $EMBER con riesgo/recompensa.
 
@@ -278,52 +399,243 @@ Sistema de dados que permite ganar $EMBER con riesgo/recompensa.
 - Máximo **5 tiradas por día**
 - **1ra tirada**: GRATIS
 - **2da-5ta tiradas**: 75 $EMBER cada una
-- Reset diario
+- Reset diario a las 00:00 UTC
 
-### 5.2 Valor Esperado del Ember Roll
+#### Método 3: Staking de NFTs (Planificado Q3 2025)
+
+| Modo | $EMBER/día por NFT |
+|------|-------------------|
+| Sin stake (en wallet) | 10 EMBER |
+| Staked (bloqueado) | 25 EMBER |
+| Lock 30 días | 20 EMBER |
+| Lock 90 días | 30 EMBER (+50%) |
+| Lock 180 días | 45 EMBER (+125%) |
+| Lock 365 días | 70 EMBER (+250%) |
+
+### 6.2 Valor Esperado del Ember Roll
 
 **Probabilidades (D20):**
-- P(1) = 5% → -100 $EMBER
-- P(2-5) = 20% → 0 $EMBER
-- P(6-8) = 15% → +50 $EMBER
-- P(9-11) = 15% → +100 $EMBER
-- P(12-14) = 15% → +200 $EMBER
-- P(15-17) = 15% → +350 $EMBER
-- P(18) = 5% → +500 $EMBER
-- P(19) = 5% → +500 $EMBER
-- P(20) = 5% → +1,000 $EMBER
-
-**Valor Esperado por Tirada:**
 ```
-EV = (0.05 × -100) + (0.20 × 0) + (0.15 × 50) + (0.15 × 100) +
-     (0.15 × 200) + (0.15 × 350) + (0.05 × 500) + (0.05 × 500) + (0.05 × 1000)
-   = -5 + 0 + 7.5 + 15 + 30 + 52.5 + 25 + 25 + 50
-   = +200 $EMBER por tirada
+P(1)     = 5%  → -100 $EMBER
+P(2-5)   = 20% → 0 $EMBER
+P(6-8)   = 15% → +50 $EMBER
+P(9-11)  = 15% → +100 $EMBER
+P(12-14) = 15% → +200 $EMBER
+P(15-17) = 15% → +350 $EMBER
+P(18)    = 5%  → +500 $EMBER
+P(19)    = 5%  → +500 $EMBER
+P(20)    = 5%  → +1,000 $EMBER
+
+EV = +200 $EMBER por tirada
 ```
 
 > El sistema tiene **valor esperado positivo** de +200 $EMBER por tirada.
 
-### 5.3 Costos de Energía (Sink de $EMBER)
+### 6.3 Usos de $EMBER
 
-| Recarga | Costo $EMBER |
-|---------|-------------|
-| +25 Energía | 30 $EMBER |
-| +50 Energía | 75 $EMBER |
-| +100 Energía (Full) | 150 $EMBER |
+| Uso | Costo $EMBER |
+|-----|-------------|
+| **Recarga +25 Energía** | 30 |
+| **Recarga +50 Energía** | 75 |
+| **Recarga +100 Energía** | 150 |
+| **Ember Roll adicional** | 75 |
+| **Resurrección (1ra muerte)** | 200 |
+| **Resurrección (6ta+ muerte)** | 10,000 |
+| **Conversión a $ASH** | 1,000 = 1 ASH |
 
-### 5.4 Conversión a $ASH
+### 6.4 Distribución del Token $EMBER
+
+**Supply Total: 100,000,000 EMBER**
+
+| Asignación | Cantidad | Porcentaje | Vesting |
+|------------|----------|------------|---------|
+| **Staking Rewards** | 40,000,000 | 40% | 4 años |
+| **Team & Development** | 20,000,000 | 20% | 2 años (lineal) |
+| **Liquidity Pools** | 15,000,000 | 15% | Inmediato |
+| **Marketing & Partnerships** | 10,000,000 | 10% | Según necesidad |
+| **Treasury/DAO Reserve** | 10,000,000 | 10% | Gobernanza |
+| **Initial Airdrop** | 5,000,000 | 5% | Al lanzamiento |
+
+### 6.5 Emisiones Anuales (Staking)
 
 ```
-1,000 $EMBER = 1 $ASH
+Año 1: 15,000,000 EMBER (~41,000/día)
+Año 2: 12,000,000 EMBER (~33,000/día)
+Año 3:  8,000,000 EMBER (~22,000/día)
+Año 4:  5,000,000 EMBER (~14,000/día)
+─────────────────────────────────────
+Total:  40,000,000 EMBER (4 años)
 ```
 
-$ASH es el token de valor premium del ecosistema.
+### 6.6 Mecanismos Deflacionarios
+
+| Mecanismo | Descripción | % Quemado |
+|-----------|-------------|-----------|
+| Crafting Burns | Cada craft quema EMBER | 100% |
+| Upgrade Burns | Mejoras de guild/items | 100% |
+| Marketplace Fees | Fee de cada trade | 2% |
+| Resurrecciones | EMBER gastado en revivir | 100% |
+
+> **Proyección 5 años**: Supply podría reducirse a 80-85M EMBER.
+
+### 6.7 Vesting del Team
+
+| Hito | Porcentaje Liberado |
+|------|---------------------|
+| TGE (lanzamiento) | 0% |
+| 6 meses | 25% |
+| 12 meses | 50% |
+| 18 meses | 75% |
+| 24 meses | 100% |
 
 ---
 
-## 6. INFRAESTRUCTURA TÉCNICA
+## 7. TOKEN $ASH - GOBERNANZA
 
-### 6.1 Arquitectura General
+### 7.1 Concepto
+
+**$ASH** es el token de gobernanza premium de Emberholm, obtenido quemando $EMBER.
+
+### 7.2 Obtención
+
+```
+1,000 $EMBER = 1 $ASH (quema permanente)
+```
+
+- Mínimo para convertir: 100 EMBER (produce 0.1 ASH)
+- Sin límite máximo de conversión
+- Proceso irreversible (EMBER se quema)
+
+### 7.3 Utilidades de $ASH
+
+| Utilidad | Descripción |
+|----------|-------------|
+| **Gobernanza DAO** | 1 ASH stakeado = 1 voto |
+| **Propuestas** | Crear propuestas de cambio |
+| **Decisiones comunitarias** | Votar en: nuevas misiones, balance de recompensas, distribución de treasury, partnerships |
+| **Acceso Premium** | Features exclusivos (futuro) |
+| **Treasury Management** | Participación en decisiones de tesorería |
+
+### 7.4 Poder de Voto
+
+```
+Poder de Voto = ASH stakeado × multiplicador de tiempo
+
+Multiplicadores:
+- 1 mes stake:   1.0x
+- 3 meses stake: 1.25x
+- 6 meses stake: 1.5x
+- 12 meses stake: 2.0x
+```
+
+### 7.5 Estado Actual
+
+> **NOTA**: El protocolo ASH está actualmente **DESHABILITADO** (ASH_PROTOCOL_ENABLED = False) durante la fase beta. Se activará en una actualización futura.
+
+---
+
+## 8. SISTEMA DE RANKINGS
+
+### 8.1 Ranking de Guilds
+
+Las 6 guilds compiten por la supremacía basada en el desempeño colectivo de sus miembros.
+
+**Métricas de Ranking:**
+
+| Métrica | Descripción | Peso |
+|---------|-------------|------|
+| **XP Total** | Suma de XP de todos los miembros activos | Principal |
+| **Aura Total** | Suma de Aura de todos los miembros | Secundario |
+| **Success Rate** | % de misiones exitosas | Terciario |
+| **Miembros Activos** | Jugadores con actividad reciente | Bonus |
+
+**Clasificación Actual:**
+
+| Posición | Guild | Miembros | Filosofía |
+|----------|-------|----------|-----------|
+| 1 | Circle of Mist | 10,599 | Conocimiento arcano |
+| 2 | Order of Dawn | 6,341 | Protección sagrada |
+| 3 | Shadow Guild | 6,234 | Información y sigilo |
+| 4 | Forge Legion | 4,538 | Fuerza militar |
+| 5 | Void Echoes | 4,302 | Artes oscuras |
+| 6 | Horizon Watch | 2,986 | Exploración |
+
+### 8.2 Leaderboard de Jugadores
+
+**Métricas individuales:**
+
+| Métrica | Descripción |
+|---------|-------------|
+| XP Total (All Heroes) | Suma de XP de todos los héroes del jugador |
+| Aura Total (All Heroes) | Suma de Aura de todos los héroes |
+| Heroes Count | Cantidad de NFTs que posee |
+| Missions Completed | Total de misiones completadas |
+
+**Títulos por Rango:**
+
+| XP Total | Título |
+|----------|--------|
+| 0 - 999 | Initiate |
+| 1,000 - 4,999 | Apprentice |
+| 5,000 - 14,999 | Journeyman |
+| 15,000 - 49,999 | Expert |
+| 50,000 - 149,999 | Master |
+| 150,000+ | Grandmaster |
+
+### 8.3 Cálculo de Nivel Individual
+
+```
+Nivel = 1 + (XP Total ÷ 1,000)
+```
+
+| XP | Nivel |
+|----|-------|
+| 0-999 | 1 |
+| 1,000-1,999 | 2 |
+| 2,000-2,999 | 3 |
+| 10,000-10,999 | 11 |
+| 50,000-50,999 | 51 |
+
+---
+
+## 9. SISTEMA DE ACHIEVEMENTS
+
+### 9.1 Logros Disponibles
+
+| ID | Nombre | Requisito | Icono |
+|----|--------|-----------|-------|
+| `first_mission` | First Mission | Completar 1ra misión | 🎯 |
+| `10_missions` | Veteran Explorer | Completar 10 misiones | ⚔️ |
+| `50_missions` | Seasoned Warrior | Completar 50 misiones | 🏆 |
+| `100_missions` | Legendary Hero | Completar 100 misiones | 👑 |
+| `reach_level_10` | Level 10 Achieved | Alcanzar nivel 10 | ⭐ |
+| `reach_level_50` | Level 50 Achieved | Alcanzar nivel 50 | 💫 |
+| `guild_master` | Guild Master | Convertirse en líder de guild | 🏅 |
+| `dragon_slayer` | Dragon Slayer | Derrotar dragón legendario | 🐉 |
+| `void_walker` | Void Walker | Completar todas las misiones Void Echoes | 🌌 |
+| `forge_master` | Forge Master | Completar todas las misiones Forge Legion | ⚒️ |
+
+### 9.2 Mecánicas de Achievements
+
+- **Auto-otorgados**: Se desbloquean automáticamente al cumplir requisitos
+- **Almacenamiento**: Guardados en `achievements.json` por token_id
+- **Visibilidad**: Aparecen en la metadata del NFT en OpenSea
+- **Progresión**: Representan hitos importantes del héroe
+
+### 9.3 Achievements Especiales
+
+| Achievement | Dificultad | Requisito Especial |
+|-------------|------------|---------------------|
+| Dragon Slayer | Muy Alta | Completar "Dragons Crucible" en HARD |
+| Void Walker | Alta | 5+ misiones de Void Echoes |
+| Guild Master | Épica | Top 1 en ranking de tu guild |
+| Legendary Hero | Épica | 100 misiones = ~1,200 horas de gameplay |
+
+---
+
+## 10. INFRAESTRUCTURA TÉCNICA
+
+### 10.1 Arquitectura General
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -353,7 +665,7 @@ $ASH es el token de valor premium del ecosistema.
 └─────────────────────────────────────────────────────────────┘
 ```
 
-### 6.2 Smart Contracts (Base Mainnet)
+### 10.2 Smart Contracts (Base Mainnet)
 
 | Contrato | Dirección | Función |
 |----------|-----------|---------|
@@ -363,18 +675,18 @@ $ASH es el token de valor premium del ecosistema.
 | **EmberRunes** | `0xDa2D1085053c3700645a13498293D17c1cc3f595` | NFTs de Runas |
 | **EmberItems** | `0xCE71702CE99Bc927216e64d57e4BD19254Ac28bA` | NFTs de Items |
 
-### 6.3 Costos para el Usuario
+### 10.3 Costos para el Usuario
 
 #### Costo de Minteo
 
 | Concepto | Valor |
 |----------|-------|
-| Precio por NFT | 0.0011 ETH |
+| Precio por NFT | 0.0011 ETH (~$2-3 USD) |
 | Gas estimado | ~0.0002-0.0005 ETH |
 | Máx. por transacción | 10 NFTs |
 | Supply total | 35,000 NFTs |
 
-#### Costos de Transacción (Estimados en Base)
+#### Costos de Transacción (Estimados en Base L2)
 
 | Operación | Gas Estimado | Costo ~USD |
 |-----------|--------------|------------|
@@ -382,20 +694,21 @@ $ASH es el token de valor premium del ecosistema.
 | Stake Token | ~50,000 gas | ~$0.01-0.02 |
 | Claim Item/Rune | ~80,000 gas | ~$0.02-0.03 |
 | Equipar Item | ~60,000 gas | ~$0.01-0.02 |
+| Revivir héroe | ~70,000 gas | ~$0.01-0.03 |
 
 > Base L2 ofrece costos **~100x menores** que Ethereum mainnet.
 
-### 6.4 Base de Datos PostgreSQL
+### 10.4 Base de Datos PostgreSQL
 
 #### Esquema de Tablas
 
 **Tabla `nfts`** (35,000+ registros)
 ```sql
 CREATE TABLE nfts (
-    token_id VARCHAR(5) PRIMARY KEY,  -- "00001", "00002"...
+    token_id VARCHAR(5) PRIMARY KEY,
     owner_address VARCHAR(42),
     guild VARCHAR(50),
-    dynamic_state JSONB,               -- XP, Aura, Energy, State
+    dynamic_state JSONB,
     created_at TIMESTAMP,
     updated_at TIMESTAMP
 );
@@ -418,7 +731,7 @@ CREATE TABLE active_missions (
 ```sql
 CREATE TABLE players (
     wallet_address VARCHAR(42) PRIMARY KEY,
-    player_data JSONB,  -- Cache completo, puede limpiarse
+    player_data JSONB,
     last_sync TIMESTAMP
 );
 ```
@@ -435,54 +748,19 @@ CREATE TABLE global_stats (
 );
 ```
 
-### 6.5 Estructura de Datos del Héroe
-
-```json
-{
-  "fixed_profile": {
-    "token_id": "00001",
-    "name": "Entara, Bearer of Economy",
-    "race": "Gith",
-    "class": "Druid",
-    "guild": "Circle of Mist",
-    "rarity": "Rare",
-    "str": 11, "dex": 12, "con": 12,
-    "int": 15, "wis": 15, "cha": 11
-  },
-  "dynamic_state": {
-    "xp_total": 250,
-    "xp_level": 2,
-    "aura_level": 15,
-    "energy_current": 80,
-    "energy_max": 100,
-    "power_current": 18,
-    "state": "READY",
-    "total_missions_completed": 3,
-    "death_count": 0,
-    "ember_roll_buff": null,
-    "equipped_items": {
-      "weapon": null,
-      "armor": null,
-      "boots": null,
-      "accessory": null
-    }
-  }
-}
-```
-
-### 6.6 Flujo de Persistencia de Datos
+### 10.5 Flujo de Persistencia de Datos
 
 ```
 1. Usuario conecta wallet → Frontend llama tokensOfOwner()
-2. Frontend envía POST /api/player/{wallet} con token IDs
-3. Backend sincroniza con PostgreSQL (tabla nfts)
-4. Backend recalcula stats globales y rankings de guild
-5. Frontend carga datos de /api/player/{wallet}
-6. Usuario juega misiones → Backend actualiza dynamic_state
-7. Todos los cambios persisten entre sesiones
+2. Frontend envía POST /api/player/{wallet}
+3. Backend sincroniza con PostgreSQL
+4. Backend recalcula stats y rankings
+5. Usuario juega → dynamic_state se actualiza
+6. Metadata dinámica disponible via /api/metadata/{id}
+7. OpenSea y marketplaces ven cambios en tiempo real
 ```
 
-### 6.7 Almacenamiento IPFS
+### 10.6 Almacenamiento IPFS
 
 | Contenido | CID |
 |-----------|-----|
@@ -491,7 +769,7 @@ CREATE TABLE global_stats (
 | Runes Metadata | `bafybeiajq22kxgm764srr55wsiz4t65so5laxe2nmrryzgailzpmfes3nq` |
 | Runes Images | `bafybeibmivzieas7beofrxspoqo5iughrzyvg3wgjibe626eqt37zg3sae` |
 
-### 6.8 Stack Tecnológico Completo
+### 10.7 Stack Tecnológico Completo
 
 | Capa | Tecnología |
 |------|------------|
@@ -508,12 +786,12 @@ CREATE TABLE global_stats (
 
 ---
 
-## 7. RESUMEN EJECUTIVO Q&A
+## 11. RESUMEN EJECUTIVO Q&A
 
 ### Preguntas Generales
 
 **Q: ¿Qué es Emberholm Portal?**
-> A: Un RPG medieval de fantasía play-to-earn donde 35,000 NFTs únicos (Emissaries) completan misiones para ganar tokens $EMBER y progresar en un mundo amenazado por el Vacío.
+> A: Un RPG medieval de fantasía play-to-earn donde 35,000 NFTs únicos (Emissaries) completan misiones para ganar tokens $EMBER, progresar y determinar el destino de un reino amenazado por el Vacío.
 
 **Q: ¿Cuánto cuesta empezar a jugar?**
 > A: El minteo de un Emissary cuesta 0.0011 ETH (~$2-3 USD) + gas fees mínimos en Base (~$0.02-0.05).
@@ -521,58 +799,76 @@ CREATE TABLE global_stats (
 **Q: ¿Cuántos NFTs existen?**
 > A: 35,000 Emissaries únicos con diferentes razas, clases, guilds y estadísticas.
 
+**Q: ¿Los NFTs cambian con el tiempo?**
+> A: Sí, tienen **metadata dinámica**. XP, Aura, nivel, equipamiento y logros se actualizan en tiempo real y se reflejan en marketplaces como OpenSea.
+
 ### Preguntas de Gameplay
 
 **Q: ¿Cómo funcionan las misiones?**
-> A: Los héroes se envían a misiones que duran 3-12 horas. Al completarse, se calcula éxito/fallo y se otorgan recompensas (XP, Aura, posibles drops de items/runas).
+> A: Los héroes se envían a misiones de 3-12 horas. Al completarse, ganan XP, Aura, $EMBER, y tienen chance de dropear items/runas.
 
 **Q: ¿Qué pasa si mi héroe muere?**
-> A: El héroe queda en estado FALLEN. Puedes resucitarlo pagando XP y Aura. El costo aumenta con cada muerte (500 XP primera vez, hasta 10,000 XP la cuarta+).
+> A: El héroe queda en estado FALLEN. Puedes resucitarlo pagando $EMBER. El costo aumenta con cada muerte (200 EMBER primera vez, hasta 10,000 EMBER la sexta+).
 
 **Q: ¿Cuál es la mejor dificultad para farmear?**
 > A: Depende de tu objetivo:
 > - **Items Legendary**: PARTY (2.5% probabilidad)
 > - **Seguridad**: EASY (0% muerte, 92% éxito)
-> - **Balance XP/Riesgo**: MEDIUM (150 XP, 0.5% muerte)
+> - **Balance XP/$EMBER**: MEDIUM (150 XP, 30-75 EMBER)
+> - **Máximo $EMBER**: HARD (80-200 EMBER, 2% muerte)
 
 **Q: ¿Cómo maximizo las recompensas?**
-> A: Alinea guild, clase y raza con la misión (1.5x multiplicador), equipa items de alta rareza (+18% $EMBER legendary), y usa Party missions (1.2x bonus).
+> A: Alinea guild/clase/raza con la misión (1.5x multiplicador), equipa items Legendary (+18% EMBER), usa Party missions (1.2x bonus), y haz Ember Rolls (EV +200).
 
 ### Preguntas Económicas
 
 **Q: ¿Cómo gano $EMBER?**
-> A: Principalmente a través del Ember Roll (D20). La primera tirada es gratis, las siguientes cuestan 75 $EMBER. Valor esperado: +200 $EMBER por tirada.
+> A: Tres formas principales:
+> 1. **Misiones**: 10-200 EMBER por misión según dificultad
+> 2. **Ember Roll**: Sistema D20 con EV +200 EMBER/tirada
+> 3. **Staking** (futuro): 10-70 EMBER/día por NFT según lock
 
 **Q: ¿Qué puedo hacer con $EMBER?**
-> A: Comprar energía para más misiones, hacer más Ember Rolls, y convertir 1,000 $EMBER en 1 $ASH (token premium).
+> A: Comprar energía, hacer Ember Rolls, resucitar héroes caídos, y convertir 1,000 EMBER en 1 $ASH.
+
+**Q: ¿Qué es $ASH?**
+> A: El token de gobernanza. Se obtiene quemando $EMBER (1,000:1). Permite votar en decisiones del DAO.
 
 **Q: ¿Hay inflación de tokens?**
-> A: El sistema tiene sinks (costos de energía, rolls adicionales, resurrecciones) que equilibran la generación de tokens.
+> A: Controlada. Supply de 100M con emisiones decrecientes (40M en 4 años). Mecanismos de quema en crafting, resurrecciones y marketplace fees.
 
 ### Preguntas Técnicas
 
 **Q: ¿Dónde se guardan mis datos?**
-> A: Los datos de propiedad están on-chain (Base). El progreso del juego (XP, Aura, misiones) se almacena en PostgreSQL con backup. Los metadatos e imágenes están en IPFS.
+> A: Propiedad on-chain (Base). Progreso (XP, Aura) en PostgreSQL. Metadatos e imágenes en IPFS.
 
-**Q: ¿Es seguro?**
-> A: Sí. Los NFTs usan el estándar ERC721. Durante misiones, los tokens se "stakean" para prevenir transferencias fraudulentas. El contrato tiene 5% royalty.
+**Q: ¿Los NFTs son realmente dinámicos?**
+> A: Sí. La metadata se actualiza en tiempo real. Los cambios son visibles en OpenSea y otros marketplaces.
 
 **Q: ¿Qué blockchain usa?**
-> A: Base Mainnet (L2 de Ethereum), ofreciendo transacciones rápidas y económicas (~$0.01-0.05 por operación).
+> A: Base Mainnet (L2 de Ethereum). Transacciones rápidas y económicas (~$0.01-0.05).
 
-**Q: ¿Necesito MetaMask?**
-> A: Sí, MetaMask es necesario para conectar tu wallet y firmar transacciones.
+**Q: ¿Es seguro?**
+> A: Sí. NFTs ERC721 estándar. Durante misiones los tokens se stakean para prevenir transferencias. Contrato auditado con 5% royalty.
 
 ### Preguntas de Items/Runas
 
 **Q: ¿Cuál es la diferencia entre Items y Runas?**
-> A: Los items dan bonuses específicos por tipo (arma = ataque, armadura = defensa). Las runas dan bonus balanceado a TODOS los stats.
+> A: Items dan bonuses específicos por tipo (arma = ataque). Runas dan bonus balanceado a TODOS los stats.
 
 **Q: ¿Qué tan raro es obtener un Legendary?**
-> A: En misiones HARD: 1.4% (20% drop × 7% legendary). En PARTY: 2.5%. En EASY: solo 0.05%.
+> A: EASY: 0.05% | MEDIUM: 0.30% | HARD: 1.40% | PARTY: 2.50%
 
 **Q: ¿Los items están on-chain?**
-> A: Sí, existe un contrato EmberItems y EmberRunes. Los claims se firman criptográficamente en el backend y se reclaman on-chain.
+> A: Sí. Contratos EmberItems y EmberRunes. Claims firmados criptográficamente.
+
+### Preguntas de Rankings
+
+**Q: ¿Cómo funcionan los rankings?**
+> A: Hay ranking de guilds (por XP total de miembros) y leaderboard de jugadores (por XP de todos sus héroes).
+
+**Q: ¿Qué beneficios dan los logros?**
+> A: Los achievements aparecen en la metadata del NFT y representan hitos. Son marcadores de prestigio visibles en marketplaces.
 
 ---
 
@@ -580,7 +876,7 @@ CREATE TABLE global_stats (
 
 ### Nivel
 ```
-nivel = xp_total ÷ 100
+nivel = 1 + (xp_total ÷ 1,000)
 ```
 
 ### Tasa de Éxito
@@ -606,10 +902,21 @@ protección_total = min(80%, nivel + aura + equipo)
 
 ### Bonus de Party
 ```
-recompensa_party = recompensa_base × 1.2x (solo en éxito)
+recompensa_party = recompensa_base × 1.2 (solo en éxito)
+```
+
+### Conversión ASH
+```
+ASH = EMBER_quemado ÷ 1,000
+```
+
+### Valor Esperado Ember Roll
+```
+EV = +200 $EMBER por tirada gratuita
+EV_neto = +125 $EMBER por tirada pagada (200 - 75 costo)
 ```
 
 ---
 
 *Documento generado para presentación del proyecto Emberholm Portal*
-*Enero 2026*
+*Versión 2.0 | Enero 2026*
