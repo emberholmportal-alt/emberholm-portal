@@ -10684,7 +10684,7 @@ const TUTORIAL_STEPS = [
                     <a href="/mint" class="tutorial-mint-btn">[GO TO MINT]</a>
                 </div>
             `,
-            tip: 'Price: 0.005 ETH per Emissary on Base network. You can mint up to 50 per transaction.'
+            tip: 'Price: 0.0011 ETH per Emissary on Base network. You can mint up to 50 per transaction.'
         }
     },
     {
@@ -10760,7 +10760,8 @@ const TUTORIAL_STEPS = [
             When a mission ends, you will see the <b>[CLAIM]</b> button in the roster.<br><br>
             <b>If the mission was successful:</b><br>
             • You earn <span style="color:#44ff44;">XP</span> and <span style="color:#ffaa00;">AURA</span><br>
-            • Chance to obtain <span style="color:var(--gold);">Items or Runes</span><br><br>
+            • Chance to obtain <span style="color:var(--gold);">Items or Runes</span><br>
+            • You can also claim <span style="color:#22c55e;">$EMBER</span> tokens from completed missions<br><br>
             <b>If the mission fails:</b><br>
             • You lose some XP<br>
             • In MEDIUM/HARD missions there is death risk
@@ -11186,6 +11187,80 @@ function handleTutorialKeyboard(e) {
 }
 
 console.log('✅ Interactive Tutorial System loaded');
+
+// Tutorial tooltip drag functionality
+(function initTutorialDrag() {
+    let isDragging = false;
+    let dragOffsetX = 0;
+    let dragOffsetY = 0;
+    let tooltipWasDragged = false;
+
+    function onMouseDown(e) {
+        const tooltip = document.getElementById('tutorial-tooltip');
+        const header = tooltip.querySelector('.tutorial-header');
+
+        // Only start drag if clicking on the header
+        if (!header.contains(e.target) || e.target.closest('button')) return;
+
+        isDragging = true;
+        tooltipWasDragged = true;
+
+        const rect = tooltip.getBoundingClientRect();
+        dragOffsetX = e.clientX - rect.left;
+        dragOffsetY = e.clientY - rect.top;
+
+        // Reset transform to use absolute positioning
+        tooltip.style.transform = 'none';
+        tooltip.classList.add('dragging');
+
+        e.preventDefault();
+    }
+
+    function onMouseMove(e) {
+        if (!isDragging) return;
+
+        const tooltip = document.getElementById('tutorial-tooltip');
+        const newX = e.clientX - dragOffsetX;
+        const newY = e.clientY - dragOffsetY;
+
+        // Keep tooltip within viewport bounds
+        const maxX = window.innerWidth - tooltip.offsetWidth - 10;
+        const maxY = window.innerHeight - tooltip.offsetHeight - 10;
+
+        tooltip.style.left = Math.max(10, Math.min(newX, maxX)) + 'px';
+        tooltip.style.top = Math.max(10, Math.min(newY, maxY)) + 'px';
+    }
+
+    function onMouseUp() {
+        if (isDragging) {
+            isDragging = false;
+            const tooltip = document.getElementById('tutorial-tooltip');
+            tooltip.classList.remove('dragging');
+        }
+    }
+
+    // Attach events to document for better drag experience
+    document.addEventListener('mousedown', function(e) {
+        const tooltip = document.getElementById('tutorial-tooltip');
+        if (tooltip && tooltip.contains(e.target)) {
+            onMouseDown(e);
+        }
+    });
+
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', onMouseUp);
+
+    // Reset drag state when tutorial step changes
+    const originalShowTutorialStep = window.showTutorialStep;
+    if (originalShowTutorialStep) {
+        window.showTutorialStep = function(index) {
+            tooltipWasDragged = false;
+            originalShowTutorialStep(index);
+        };
+    }
+
+    console.log('✅ Tutorial drag functionality initialized');
+})();
 </script>
 
 </body>

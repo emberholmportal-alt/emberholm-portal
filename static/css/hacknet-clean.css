@@ -3835,6 +3835,18 @@ button:disabled {
     padding: 12px 15px;
     background: rgba(255, 204, 0, 0.1);
     border-bottom: 1px solid var(--border-gold);
+    cursor: move;
+    user-select: none;
+}
+
+.tutorial-header:active {
+    cursor: grabbing;
+}
+
+/* Dragging state */
+.tutorial-tooltip.dragging {
+    opacity: 0.95;
+    box-shadow: 0 0 40px rgba(255, 204, 0, 0.5);
 }
 
 .tutorial-step-badge {
