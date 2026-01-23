@@ -4572,6 +4572,39 @@ navButtons.forEach((btn, index) => {
     });
 });
 
+// 📍 Handle direct URL navigation (e.g., /tutorial, /help)
+(function handleDirectURLNavigation() {
+    const path = window.location.pathname.toLowerCase();
+
+    // Map URL routes to screen names
+    const routeMap = {
+        '/tutorial': 'tutorial',
+        '/help': 'tutorial'
+    };
+
+    const targetScreen = routeMap[path];
+
+    if (targetScreen) {
+        // Switch to the corresponding section
+        switchScreen(targetScreen);
+
+        // Activate the correct navigation button
+        const targetBtn = document.querySelector(`.cmd-link[data-target="${targetScreen}"]`);
+        if (targetBtn) {
+            setActiveButton(targetBtn);
+        }
+
+        // Load section-specific data if needed
+        if (targetScreen === 'tutorial') {
+            if (typeof loadTutorialMissions === 'function') {
+                loadTutorialMissions();
+            }
+        }
+
+        console.log(`📍 Direct URL navigation: ${path} → ${targetScreen}`);
+    }
+})();
+
 /* --------- FETCH UTILS --------- */
 async function fetchJSON(url, opts={}){
     const res = await fetch(url, opts);

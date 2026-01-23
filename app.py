@@ -2570,6 +2570,12 @@ def mark_claim_as_claimed(claim_id: str, token_id: int = None, tx_hash: str = No
 def serve_index():
     return send_from_directory(app.static_folder, "index.html")
 
+@app.route("/tutorial")
+@app.route("/help")
+def serve_tutorial():
+    """Serve main app for /tutorial and /help routes - enables direct URL access"""
+    return send_from_directory(app.static_folder, "index.html")
+
 @app.route("/robots.txt")
 def serve_robots():
     return send_from_directory(app.static_folder, "robots.txt")
