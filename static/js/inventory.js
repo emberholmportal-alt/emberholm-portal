@@ -22,6 +22,44 @@
         GATEWAY: "https://ipfs.io/ipfs/"
     };
 
+    // ========== EMISSARY RANK SYSTEM ==========
+    const EMISSARY_RANKS = [
+        { tier: 1, name: "Novice", xp: 0, aura: 0, missions: 0, emberBonus: 2 },
+        { tier: 2, name: "Apprentice", xp: 1000, aura: 50, missions: 5, emberBonus: 5 },
+        { tier: 3, name: "Journeyman", xp: 5000, aura: 150, missions: 15, emberBonus: 10 },
+        { tier: 4, name: "Adept", xp: 15000, aura: 400, missions: 35, emberBonus: 15 },
+        { tier: 5, name: "Expert", xp: 35000, aura: 800, missions: 60, emberBonus: 22 },
+        { tier: 6, name: "Master", xp: 70000, aura: 1500, missions: 100, emberBonus: 30 },
+        { tier: 7, name: "Grandmaster", xp: 120000, aura: 3000, missions: 150, emberBonus: 40 },
+        { tier: 8, name: "Legendary", xp: 200000, aura: 5000, missions: 250, emberBonus: 50 }
+    ];
+
+    function calculateEmissaryRank(xpTotal, auraLevel, missionsCompleted) {
+        let currentRank = EMISSARY_RANKS[0];
+        for (let i = EMISSARY_RANKS.length - 1; i >= 0; i--) {
+            const rank = EMISSARY_RANKS[i];
+            if (xpTotal >= rank.xp && auraLevel >= rank.aura && missionsCompleted >= rank.missions) {
+                currentRank = rank;
+                break;
+            }
+        }
+        return {
+            tier: currentRank.tier,
+            name: currentRank.name,
+            fullName: `${currentRank.name} (Tier ${currentRank.tier})`,
+            emberBonus: currentRank.emberBonus
+        };
+    }
+
+    function getEmissaryRankDisplay(emissary) {
+        const ds = emissary.dynamic_state || {};
+        const xp = ds.xp_total || 0;
+        const aura = ds.aura_level || 0;
+        const missions = ds.total_missions_completed || 0;
+        const rank = calculateEmissaryRank(xp, aura, missions);
+        return rank.fullName;
+    }
+
     // ========== GAME-STYLED MODALS (replace browser alerts) ==========
 
     // Show a game-styled alert modal
@@ -863,7 +901,7 @@
                         </div>
                         <div style="border:1px solid var(--border-dim); padding:8px; font-size:11px; ${isFallen ? 'color:#666;' : ''}">
                             <strong>CLASS:</strong> ${emissary.class || 'Unknown'}<br/>
-                            <strong>RANK:</strong> ${emissary.rank || 'Tier 1'}
+                            <strong>RANK:</strong> ${getEmissaryRankDisplay(emissary)}
                         </div>
                     </div>
                 </div>
@@ -1830,7 +1868,7 @@
                                 ${emissary.race} ${emissary.guild ? `· ${emissary.guild}` : ''}
                             </div>
                             <div style="font-size: 11px; margin-top: 3px;">
-                                ${emissary.class_type || 'Unknown Class'} · Rank ${emissary.rank || '?'}
+                                ${emissary.class_type || 'Unknown Class'} · ${getEmissaryRankDisplay(emissary)}
                             </div>
                         </div>
                         <div style="text-align: right;">
