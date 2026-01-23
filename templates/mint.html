@@ -212,6 +212,144 @@
         grid-template-columns: 1fr;
       }
     }
+
+    /* Error Modal Styles */
+    .error-modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.85);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+      animation: fadeIn 0.2s ease;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    .error-modal {
+      background: var(--bg-panel);
+      border: 2px solid #ff4444;
+      border-left: 4px solid #ff4444;
+      max-width: 450px;
+      width: 90%;
+      padding: 0;
+      font-family: 'Share Tech Mono', monospace;
+    }
+    .error-modal-header {
+      background: rgba(255, 68, 68, 0.15);
+      padding: 12px 15px;
+      border-bottom: 1px solid #ff4444;
+      color: #ff6666;
+      font-weight: 600;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .error-modal-body {
+      padding: 20px;
+      color: var(--primary-green);
+      font-size: 13px;
+      line-height: 1.6;
+    }
+    .error-modal-body p {
+      margin: 0 0 15px 0;
+    }
+    .error-modal-body .error-detail {
+      background: rgba(0, 0, 0, 0.3);
+      padding: 10px;
+      border: 1px solid var(--border-primary);
+      font-size: 11px;
+      color: #888;
+      word-break: break-all;
+      max-height: 80px;
+      overflow-y: auto;
+    }
+    .error-modal-footer {
+      padding: 15px;
+      border-top: 1px solid var(--border-primary);
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+    }
+    .error-modal-btn {
+      background: transparent;
+      border: 1px solid var(--border-primary);
+      color: var(--primary-green);
+      padding: 8px 20px;
+      cursor: pointer;
+      font-family: 'Rajdhani', sans-serif;
+      font-weight: 600;
+      transition: all 0.2s;
+    }
+    .error-modal-btn:hover {
+      background: rgba(68, 170, 255, 0.1);
+      border-color: var(--bright-green);
+    }
+    .error-modal-btn.primary {
+      background: rgba(68, 170, 255, 0.1);
+      border-color: var(--primary-green);
+    }
+
+    /* Wallet Badge Styles */
+    .wallet-badge {
+      cursor: pointer;
+      position: relative;
+      user-select: none;
+    }
+    .wallet-badge:hover {
+      background: rgba(68, 170, 255, 0.1);
+    }
+    .wallet-badge-ok {
+      border-color: var(--primary-green) !important;
+      color: var(--primary-green) !important;
+    }
+    .wallet-badge-warn {
+      border-color: #f59e0b !important;
+      color: #f59e0b !important;
+    }
+    .wallet-badge-err {
+      border-color: #a66 !important;
+      color: #a66 !important;
+    }
+    .wallet-dropdown {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      background: var(--bg-panel);
+      border: 1px solid var(--border-primary);
+      min-width: 180px;
+      z-index: 100;
+      display: none;
+      margin-top: 5px;
+    }
+    .wallet-dropdown.show {
+      display: block;
+    }
+    .wallet-dropdown-item {
+      padding: 10px 15px;
+      cursor: pointer;
+      font-size: 11px;
+      color: var(--primary-green);
+      border-bottom: 1px solid var(--border-primary);
+    }
+    .wallet-dropdown-item:last-child {
+      border-bottom: none;
+    }
+    .wallet-dropdown-item:hover {
+      background: rgba(68, 170, 255, 0.1);
+    }
+    .wallet-dropdown-item.disconnect {
+      color: #ff6666;
+    }
+    .wallet-dropdown-item.disconnect:hover {
+      background: rgba(255, 68, 68, 0.1);
+    }
   </style>
 </head>
 <body>
@@ -256,7 +394,12 @@
           <label for="qty">Amount to invoke:</label>
           <input id="qty" type="number" min="1" max="20" value="3" />
           <button class="invoke-btn" id="invokeBtn">[INVOKE]</button>
-          <span id="walletBadge" class="tag" style="border-color:#a66; color:#a66;">WALLET: DISCONNECTED</span>
+          <span id="walletBadge" class="tag wallet-badge" onclick="toggleWalletDropdown()" style="border-color:#a66; color:#a66;">WALLET: DISCONNECTED
+            <div class="wallet-dropdown">
+              <div class="wallet-dropdown-item" onclick="event.stopPropagation(); ensureContract();">Reconnect</div>
+              <div class="wallet-dropdown-item disconnect" onclick="event.stopPropagation(); disconnectWallet();">Disconnect</div>
+            </div>
+          </span>
           <span style="font-size:0.6rem;">*Requires wallet on Base Mainnet.</span>
         </div>
       </div>
@@ -833,8 +976,10 @@
 
       } catch (err) {
         console.error(err);
-        mintStatus.textContent = "[ERROR] " + (err && err.message ? err.message : "Mint failed");
-        pushConsole("[ERROR] " + (err && err.message ? err.message : "Mint failed"));
+        const parsed = parseError(err);
+        mintStatus.textContent = "[ERROR] " + parsed.title;
+        pushConsole("[ERROR] " + parsed.title + ": " + parsed.message);
+        showErrorModal(err);
       } finally {
         invokeBtn.disabled = false;
       }
@@ -880,6 +1025,155 @@
 
       nextLine();
     }
+
+    // ================== ERROR MODAL FUNCTIONS ==================
+    function parseError(err) {
+      const errorStr = err?.message || err?.reason || String(err);
+
+      // Insufficient funds
+      if (errorStr.includes('INSUFFICIENT_FUNDS') ||
+          errorStr.includes('insufficient funds') ||
+          errorStr.includes('not enough') ||
+          errorStr.includes('balance too low')) {
+        return {
+          title: 'Insufficient Funds',
+          message: 'Your wallet does not have enough ETH to complete this transaction.',
+          suggestion: 'Please add more ETH to your wallet on Base network and try again.',
+          type: 'funds'
+        };
+      }
+
+      // User rejected
+      if (errorStr.includes('user rejected') ||
+          errorStr.includes('User denied') ||
+          errorStr.includes('ACTION_REJECTED') ||
+          err?.code === 4001) {
+        return {
+          title: 'Transaction Cancelled',
+          message: 'You cancelled the transaction in your wallet.',
+          suggestion: 'Click INVOKE again when you\'re ready to mint.',
+          type: 'cancelled'
+        };
+      }
+
+      // Network error
+      if (errorStr.includes('network') ||
+          errorStr.includes('timeout') ||
+          errorStr.includes('NETWORK_ERROR')) {
+        return {
+          title: 'Network Error',
+          message: 'There was a problem connecting to the network.',
+          suggestion: 'Check your internet connection and try again.',
+          type: 'network'
+        };
+      }
+
+      // Mint closed
+      if (errorStr.includes('mint is not open') ||
+          errorStr.includes('Mint not active')) {
+        return {
+          title: 'Mint Not Available',
+          message: 'The mint is currently closed.',
+          suggestion: 'Please check back later when minting is open.',
+          type: 'closed'
+        };
+      }
+
+      // Max supply reached
+      if (errorStr.includes('max supply') ||
+          errorStr.includes('sold out') ||
+          errorStr.includes('exceeds maximum')) {
+        return {
+          title: 'Sold Out',
+          message: 'All emissaries have been summoned!',
+          suggestion: 'Check secondary markets for available emissaries.',
+          type: 'soldout'
+        };
+      }
+
+      // Generic fallback
+      return {
+        title: 'Transaction Failed',
+        message: 'An error occurred while processing your transaction.',
+        suggestion: 'Please try again or contact support if the issue persists.',
+        detail: errorStr.substring(0, 200),
+        type: 'generic'
+      };
+    }
+
+    function showErrorModal(err) {
+      const parsed = parseError(err);
+
+      // Remove existing modal if any
+      const existing = document.querySelector('.error-modal-overlay');
+      if (existing) existing.remove();
+
+      const overlay = document.createElement('div');
+      overlay.className = 'error-modal-overlay';
+      overlay.innerHTML = `
+        <div class="error-modal">
+          <div class="error-modal-header">
+            <span>⚠</span> ${parsed.title}
+          </div>
+          <div class="error-modal-body">
+            <p>${parsed.message}</p>
+            <p style="color: var(--dim-green); font-size: 11px;">${parsed.suggestion}</p>
+            ${parsed.detail ? `<div class="error-detail">${parsed.detail}</div>` : ''}
+          </div>
+          <div class="error-modal-footer">
+            <button class="error-modal-btn primary" onclick="this.closest('.error-modal-overlay').remove()">OK</button>
+          </div>
+        </div>
+      `;
+
+      document.body.appendChild(overlay);
+
+      // Close on overlay click
+      overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) overlay.remove();
+      });
+
+      // Close on Escape
+      const escHandler = (e) => {
+        if (e.key === 'Escape') {
+          overlay.remove();
+          document.removeEventListener('keydown', escHandler);
+        }
+      };
+      document.addEventListener('keydown', escHandler);
+    }
+
+    // ================== WALLET DISCONNECT FUNCTION ==================
+    function disconnectWallet() {
+      // Clear provider state
+      provider = null;
+      signer = null;
+      contract = null;
+
+      // Update UI
+      setWalletBadge('err', 'WALLET: DISCONNECTED');
+      pushConsole('[INFO] Wallet disconnected.');
+
+      // Hide dropdown
+      const dropdown = document.querySelector('.wallet-dropdown');
+      if (dropdown) dropdown.classList.remove('show');
+    }
+
+    function toggleWalletDropdown() {
+      const dropdown = document.querySelector('.wallet-dropdown');
+      if (dropdown) {
+        dropdown.classList.toggle('show');
+      }
+    }
+
+    // Close dropdown when clicking outside
+    document.addEventListener('click', (e) => {
+      const walletBadge = document.getElementById('walletBadge');
+      const dropdown = document.querySelector('.wallet-dropdown');
+      if (dropdown && walletBadge && !walletBadge.contains(e.target)) {
+        dropdown.classList.remove('show');
+      }
+    });
 
     document.addEventListener("DOMContentLoaded", async () => {
       typeConsoleLines();
