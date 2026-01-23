@@ -10709,12 +10709,40 @@ let tutorialMinimized = false;
 // Tutorial steps configuration
 const TUTORIAL_STEPS = [
     {
+        id: 'check-emissaries',
+        target: null,
+        screen: 'profile',
+        title: 'STEP 1: YOU NEED EMISSARIES',
+        body: `
+            <div style="text-align:center; padding: 10px 0;">
+                <div style="font-size: 40px; margin-bottom: 15px;">⚔️</div>
+                <b>To play Emberholm Portal you need Emissaries.</b><br><br>
+                Emissaries are <b>NFTs</b> from the Emberholm Portal collection that you can send on missions to earn rewards.<br><br>
+                <a href="/mint" class="tutorial-mint-btn">[GO TO MINT]</a>
+            </div>
+        `,
+        tip: 'Price: 0.0011 ETH per Emissary on Base network. You can mint up to 50 per transaction.',
+        position: 'center',
+        checkEmissariesFirst: true,
+        hasEmissariesContent: {
+            title: 'STEP 1: YOUR EMISSARIES',
+            body: `
+                <div style="text-align:center; padding: 10px 0;">
+                    <div style="font-size: 40px; margin-bottom: 15px;">✅</div>
+                    <b>You already have Emissaries in your wallet!</b><br><br>
+                    You're ready to start playing. Let's continue with the tutorial to learn how to send them on missions.
+                </div>
+            `,
+            tip: 'Your Emissaries are ready to explore Emberholm.'
+        }
+    },
+    {
         id: 'connect-wallet',
         target: '#connect-wallet-btn',
         screen: 'profile',
-        title: 'STEP 1: CONNECT WALLET',
+        title: 'STEP 2: CONNECT WALLET',
         body: `
-            To start playing, you first need to connect your wallet.<br><br>
+            Now connect your wallet to access your Emissaries.<br><br>
             <b>Click the [CONNECT WALLET] button</b> to link your Base address.
         `,
         tip: 'Use MetaMask, Coinbase Wallet, or any wallet compatible with Base network.',
@@ -10725,7 +10753,7 @@ const TUTORIAL_STEPS = [
         id: 'view-emissaries',
         target: '.roster-table',
         screen: 'profile',
-        title: 'STEP 2: YOUR EMISSARIES',
+        title: 'STEP 3: YOUR EMISSARIES',
         body: `
             Here you can see all your <b>NFT Emissaries</b>.<br><br>
             Each Emissary is a unique character you can send on missions to earn rewards.<br><br>
@@ -10751,7 +10779,7 @@ const TUTORIAL_STEPS = [
         id: 'understand-stats',
         target: '#prime-emissary-card',
         screen: 'profile',
-        title: 'STEP 3: UNDERSTAND STATS',
+        title: 'STEP 4: UNDERSTAND STATS',
         body: `
             Each Emissary has important stats:<br><br>
             <ul class="tutorial-stats-list">
@@ -10768,7 +10796,7 @@ const TUTORIAL_STEPS = [
         id: 'send-mission',
         target: '.roster-table tbody tr:first-child .action-btn.send',
         screen: 'profile',
-        title: 'STEP 4: SEND ON MISSION',
+        title: 'STEP 5: SEND ON MISSION',
         body: `
             To send an Emissary on a mission, click the <b>[SEND MISSION]</b> button next to any READY Emissary.<br><br>
             This opens the <b>Mission Selection</b> modal where you can choose from available missions.
@@ -10780,7 +10808,7 @@ const TUTORIAL_STEPS = [
         id: 'mission-select',
         target: '#mission-select-body .modal-list-item:first-child',
         screen: 'profile',
-        title: 'STEP 5: MISSION TYPES',
+        title: 'STEP 6: MISSION TYPES',
         body: `
             There are <b>3 difficulty levels</b> to choose from:<br><br>
             <table class="tutorial-difficulty-table">
@@ -10799,7 +10827,7 @@ const TUTORIAL_STEPS = [
         id: 'mission-bonuses',
         target: null,
         screen: 'profile',
-        title: 'STEP 6: MISSION BONUSES',
+        title: 'STEP 7: MISSION BONUSES',
         body: `
             Each mission favors certain <b>Guild</b>, <b>Class</b>, and <b>Race</b> attributes.<br><br>
             <b>Matching bonuses:</b><br>
@@ -10815,7 +10843,7 @@ const TUTORIAL_STEPS = [
         id: 'claim-rewards',
         target: null,
         screen: 'profile',
-        title: 'STEP 7: CLAIM REWARDS',
+        title: 'STEP 8: CLAIM REWARDS',
         body: `
             When a mission ends, you will see the <b>[CLAIM]</b> button in the roster.<br><br>
             <b>If the mission was successful:</b><br>
@@ -10916,6 +10944,28 @@ function showTutorialStep(stepIndex) {
 
 // Renderizar contenido del paso
 function renderTutorialStep(step, stepIndex) {
+    // Verificar si es el primer paso (check emissaries first)
+    if (step.checkEmissariesFirst) {
+        const walletConnected = typeof connectedWallet !== 'undefined' && connectedWallet !== null;
+        const hasEmissaries = walletConnected &&
+                            typeof currentEmissaries !== 'undefined' &&
+                            Array.isArray(currentEmissaries) &&
+                            currentEmissaries.length > 0;
+
+        if (hasEmissaries && step.hasEmissariesContent) {
+            // User already has emissaries - show positive message
+            renderTutorialContent(step.hasEmissariesContent, stepIndex, false);
+            hideSpotlight();
+            positionTooltipCenter();
+            return;
+        }
+        // No emissaries or not connected - show default content (go to mint)
+        renderTutorialContent(step, stepIndex, false);
+        hideSpotlight();
+        positionTooltipCenter();
+        return;
+    }
+
     // Verificar si es el paso de emissaries y no hay ninguno
     if (step.checkEmissaries) {
         const hasEmissaries = typeof currentEmissaries !== 'undefined' &&
