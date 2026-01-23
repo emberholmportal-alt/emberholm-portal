@@ -10777,7 +10777,7 @@ const TUTORIAL_STEPS = [
     },
     {
         id: 'understand-stats',
-        target: '#prime-emissary-card',
+        target: '.profile-col-right',
         screen: 'profile',
         title: 'STEP 4: UNDERSTAND STATS',
         body: `
@@ -11158,6 +11158,34 @@ function hideSpotlight() {
     spotlight.style.display = 'none';
 }
 
+// Actualizar posición del spotlight sin hacer scroll (para uso en scroll listener)
+function updateSpotlightPosition(selector, position = 'right') {
+    const spotlight = document.getElementById('tutorial-spotlight');
+    const target = document.querySelector(selector);
+
+    if (!target) {
+        return;
+    }
+
+    const rect = target.getBoundingClientRect();
+
+    // Si el elemento no es visible, no actualizar
+    if (rect.width === 0 || rect.height === 0) {
+        return;
+    }
+
+    const padding = 10;
+
+    // Actualizar posición del spotlight
+    spotlight.style.top = (rect.top - padding) + 'px';
+    spotlight.style.left = (rect.left - padding) + 'px';
+    spotlight.style.width = (rect.width + padding * 2) + 'px';
+    spotlight.style.height = (rect.height + padding * 2) + 'px';
+
+    // También actualizar tooltip
+    positionTooltip(rect, position);
+}
+
 // Posicionar para caso sin emissaries
 function positionSpotlightForNoEmissaries() {
     hideSpotlight();
@@ -11221,6 +11249,16 @@ window.addEventListener('resize', () => {
         const step = TUTORIAL_STEPS[currentTutorialStep];
         if (step.target) {
             positionSpotlight(step.target, step.position);
+        }
+    }
+});
+
+// Manejar scroll manual del usuario - mantener spotlight sobre el elemento
+window.addEventListener('scroll', () => {
+    if (tutorialActive && !tutorialMinimized && TUTORIAL_STEPS[currentTutorialStep]) {
+        const step = TUTORIAL_STEPS[currentTutorialStep];
+        if (step.target) {
+            updateSpotlightPosition(step.target, step.position);
         }
     }
 });
