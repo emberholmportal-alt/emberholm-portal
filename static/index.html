@@ -12058,10 +12058,12 @@ function renderSiteTourStep(step, stepIndex) {
 
 // Position tooltip for site tour
 // hasSpotlight: true = position right, false = position center
+// Modal can overlay navbar EXCEPT the highlighted button (which has higher z-index)
 function positionTooltipForTour(hasSpotlight) {
     const tooltip = document.getElementById('tutorial-tooltip');
+    const highlightedBtn = document.querySelector('.cmd-link.site-tour-highlight');
 
-    const margin = 20;
+    const margin = 15;
     const tooltipWidth = tooltip.offsetWidth || 420;
     const tooltipHeight = tooltip.offsetHeight || 400;
     const viewportWidth = window.innerWidth;
@@ -12070,13 +12072,18 @@ function positionTooltipForTour(hasSpotlight) {
     // Reset transform
     tooltip.style.transform = '';
 
-    // Calculate vertical position - ensure modal fits completely
     let topPosition;
     let leftPosition;
 
-    // Vertical: position in upper-middle area, ensuring full visibility
-    const maxTop = viewportHeight - tooltipHeight - margin;
-    topPosition = Math.max(margin + 80, Math.min(100, maxTop));
+    // Get highlighted button position
+    let btnRect = null;
+    if (highlightedBtn) {
+        btnRect = highlightedBtn.getBoundingClientRect();
+    }
+
+    // Vertical position: ensure modal is fully visible
+    // Start from upper area to maximize space
+    topPosition = margin + 80;
 
     // Ensure modal fits vertically
     if (topPosition + tooltipHeight > viewportHeight - margin) {
@@ -12095,7 +12102,29 @@ function positionTooltipForTour(hasSpotlight) {
         leftPosition = (viewportWidth - tooltipWidth) / 2;
     }
 
-    // Ensure modal stays within viewport horizontally
+    // Adjust position to avoid covering highlighted button
+    // The button has z-index 100000 so it will show above, but we try to not overlap
+    if (btnRect) {
+        const modalRight = leftPosition + tooltipWidth;
+        const modalBottom = topPosition + tooltipHeight;
+
+        // Check if modal would overlap with highlighted button
+        const overlapsHorizontally = leftPosition < btnRect.right && modalRight > btnRect.left;
+        const overlapsVertically = topPosition < btnRect.bottom && modalBottom > btnRect.top;
+
+        if (overlapsHorizontally && overlapsVertically) {
+            // Try to shift modal to avoid button
+            if (btnRect.left > viewportWidth / 2) {
+                // Button is on right side, move modal left
+                leftPosition = Math.max(margin, btnRect.left - tooltipWidth - margin);
+            } else {
+                // Button is on left side, move modal right
+                leftPosition = Math.min(viewportWidth - tooltipWidth - margin, btnRect.right + margin);
+            }
+        }
+    }
+
+    // Final bounds check
     leftPosition = Math.max(margin, Math.min(leftPosition, viewportWidth - tooltipWidth - margin));
 
     tooltip.style.top = topPosition + 'px';
