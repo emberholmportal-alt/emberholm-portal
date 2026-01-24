@@ -1483,6 +1483,13 @@ document.addEventListener('DOMContentLoaded', initPortalWarning);
                 <div class="center-text-line mono-small-note" style="margin-top:6px;">
                     UNAUTHORIZED ACCESS WILL BE LOGGED BY EMBER PROTOCOL
                 </div>
+
+                <!-- ECOSYSTEM TOUR BUTTON -->
+                <div class="site-tour-btn-container" style="margin-top: 12px;">
+                    <button class="cmd site-tour-btn" onclick="startSiteTour()" title="Discover Emberholm Portal ecosystem">
+                        <span class="tour-icon">🌐</span> DISCOVER THE ECOSYSTEM
+                    </button>
+                </div>
             </div>
 
             <!-- REALM MAP -->
@@ -11724,6 +11731,404 @@ console.log('✅ Interactive Tutorial System loaded');
 
     console.log('✅ Tutorial drag functionality initialized');
 })();
+
+// ============================================
+//     SITE TOUR SYSTEM - ECOSYSTEM PRESENTATION
+// ============================================
+
+// Site Tour state
+let currentSiteTourStep = 0;
+let siteTourActive = false;
+let siteTourMinimized = false;
+
+// Site Tour steps configuration - Ecosystem Presentation
+const SITE_TOUR_STEPS = [
+    {
+        id: 'welcome',
+        target: null,
+        screen: 'home',
+        title: 'WELCOME TO EMBERHOLM PORTAL',
+        body: `
+            <div style="text-align:center; padding: 10px 0;">
+                <div style="font-size: 40px; margin-bottom: 15px;">⚔️🌐</div>
+                <b>EMBERHOLM PORTAL</b> is a complete blockchain-based gaming ecosystem deployed on <b>Base Network</b>.<br><br>
+                <div style="text-align:left; padding: 0 10px;">
+                    <b>Five smart contracts</b> work together to power:<br><br>
+                    • <span style="color:var(--gold);">35,000 unique Emissary NFTs</span><br>
+                    • <span style="color:#22c55e;">Dual token economy ($EMBER + $ASH)</span><br>
+                    • <span style="color:#8b5cf6;">Equipment system (Runes & Items)</span><br>
+                    • <span style="color:#f59e0b;">Mission-based gameplay with real rewards</span>
+                </div>
+            </div>
+        `,
+        tip: 'This tour will guide you through the main components of the ecosystem.',
+        position: 'center'
+    },
+    {
+        id: 'realm-home',
+        target: '.realm-map-container',
+        screen: 'home',
+        title: 'THE REALM // HOME',
+        body: `
+            <b>The Realm Map</b> shows the current state of Emberholm.<br><br>
+            • <span style="color:var(--gold);">Six territories</span> controlled by the Orders<br>
+            • <span class="glow-red">Red zones</span> indicate active Voidform incursions<br>
+            • <span class="glow-green">Green zones</span> are currently defended<br><br>
+            The <b>Live Feed</b> shows real-time activity from all Emissaries in the realm.
+        `,
+        tip: 'Mission availability changes every 72 hours based on realm conditions.',
+        position: 'right'
+    },
+    {
+        id: 'emissaries',
+        target: '.roster-table',
+        screen: 'profile',
+        title: 'THE EMISSARIES // PROFILE',
+        body: `
+            <b>Emissaries</b> are the core of Emberholm Portal.<br><br>
+            • <span style="color:var(--gold);">35,000 unique NFTs</span> (ERC-721)<br>
+            • Each has <b>Race, Class, Guild</b> and unique traits<br>
+            • Stats: <span style="color:#22c55e;">Energy</span>, <span style="color:#8b5cf6;">XP</span>, <span style="color:#f59e0b;">Aura</span>, <span style="color:#ef4444;">Level</span><br><br>
+            From here you can <b>manage your roster</b>, view stats, and deploy Emissaries on missions.
+        `,
+        tip: 'Connect your wallet to see your Emissaries and start playing.',
+        position: 'right'
+    },
+    {
+        id: 'orders',
+        target: '.orders-grid',
+        screen: 'guilds',
+        title: 'THE SIX ORDERS // GUILDS',
+        body: `
+            Emberholm is protected by <b>Six Orders</b>:<br><br>
+            • <span style="color:#ef4444;">🔥 Order of the Ember</span> - Fire warriors<br>
+            • <span style="color:#3b82f6;">❄️ Order of the Frost</span> - Ice guardians<br>
+            • <span style="color:#22c55e;">🌿 Order of the Verdant</span> - Nature protectors<br>
+            • <span style="color:#8b5cf6;">⚡ Order of the Storm</span> - Lightning wielders<br>
+            • <span style="color:#f59e0b;">☀️ Order of the Dawn</span> - Light bringers<br>
+            • <span style="color:#6b7280;">🌑 Order of the Void</span> - Shadow walkers<br><br>
+            Each Order provides <b>mission bonuses</b> when aligned.
+        `,
+        tip: 'Guild alignment affects success rates and rewards.',
+        position: 'left'
+    },
+    {
+        id: 'missions',
+        target: '.mission-board',
+        screen: 'missions',
+        title: 'THE MISSIONS // GAMEPLAY',
+        body: `
+            <b>Missions</b> are the main gameplay loop.<br><br>
+            • <span style="color:#22c55e;">EASY</span>: 3 hours, low risk, base rewards<br>
+            • <span style="color:#f59e0b;">MEDIUM</span>: 6 hours, 0.5% death risk, better rewards<br>
+            • <span style="color:#ef4444;">HARD</span>: 12 hours, 2% death risk, best rewards<br><br>
+            Completing missions earns <b>XP</b>, <b>Aura</b>, and <b>$EMBER tokens</b>.
+        `,
+        tip: 'Missions rotate every 72 hours. Plan your deployments wisely.',
+        position: 'right'
+    },
+    {
+        id: 'vault',
+        target: '.vault-section',
+        screen: 'vault',
+        title: 'THE VAULT // INVENTORY',
+        body: `
+            The <b>Vault</b> stores all your assets:<br><br>
+            <b>Tokens:</b><br>
+            • <span style="color:#22c55e;">$EMBER</span> - Utility token (pending & on-chain)<br>
+            • <span style="color:#8b5cf6;">$ASH</span> - Governance token<br><br>
+            <b>Equipment:</b><br>
+            • <span style="color:#f59e0b;">Weapons, Armor, Helmets</span> - Combat gear<br>
+            • <span style="color:#ec4899;">Runes & Amulets</span> - Magical enhancements<br><br>
+            Items are <b>NFTs</b> that can be equipped to boost Emissary stats.
+        `,
+        tip: 'Equipment is managed through EmberRunes and EmberItems contracts.',
+        position: 'right'
+    },
+    {
+        id: 'tokenomics',
+        target: '.tokenomics-overview',
+        screen: 'tokenomics',
+        title: 'TOKENOMICS // ECONOMY',
+        body: `
+            <b>Dual Token Economy:</b><br><br>
+            <div style="background:rgba(34,197,94,0.1); padding:8px; margin:5px 0; border-left:3px solid #22c55e;">
+                <b>$EMBER</b> - Utility Token<br>
+                • 100M total supply<br>
+                • Earned through missions<br>
+                • Used for crafting, upgrades, marketplace
+            </div>
+            <div style="background:rgba(139,92,246,0.1); padding:8px; margin:5px 0; border-left:3px solid #8b5cf6;">
+                <b>$ASH</b> - Governance Token<br>
+                • Converted from $EMBER (1000:1)<br>
+                • DAO voting power<br>
+                • Stake for multiplied governance
+            </div>
+            <br>
+            <b>Deflationary mechanisms</b> ensure long-term sustainability.
+        `,
+        tip: '40% of $EMBER is allocated to staking rewards over 4 years.',
+        position: 'right'
+    },
+    {
+        id: 'contracts',
+        target: '.contracts-section',
+        screen: 'whitepaper',
+        title: 'THE CONTRACTS // INFRASTRUCTURE',
+        body: `
+            <b>Five Smart Contracts on Base Network:</b><br><br>
+            <table style="width:100%; font-size:12px; border-collapse:collapse;">
+                <tr style="border-bottom:1px solid rgba(255,204,0,0.3);">
+                    <td style="padding:4px 0;"><b>EmberholmPortal</b></td>
+                    <td style="color:#888;">Emissary NFTs (ERC-721)</td>
+                </tr>
+                <tr style="border-bottom:1px solid rgba(255,204,0,0.3);">
+                    <td style="padding:4px 0;"><b>EmberToken</b></td>
+                    <td style="color:#888;">$EMBER (ERC-20)</td>
+                </tr>
+                <tr style="border-bottom:1px solid rgba(255,204,0,0.3);">
+                    <td style="padding:4px 0;"><b>AshToken</b></td>
+                    <td style="color:#888;">$ASH (ERC-20)</td>
+                </tr>
+                <tr style="border-bottom:1px solid rgba(255,204,0,0.3);">
+                    <td style="padding:4px 0;"><b>EmberRunes</b></td>
+                    <td style="color:#888;">Rune NFTs (ERC-1155)</td>
+                </tr>
+                <tr>
+                    <td style="padding:4px 0;"><b>EmberItems</b></td>
+                    <td style="color:#888;">Item NFTs (ERC-1155)</td>
+                </tr>
+            </table>
+            <br>
+            All contracts are <b>verified</b> and deployed on Base Mainnet.
+        `,
+        tip: 'View contract addresses in the Whitepaper section.',
+        position: 'right'
+    },
+    {
+        id: 'tour-complete',
+        target: null,
+        screen: null,
+        title: 'ECOSYSTEM TOUR COMPLETE',
+        body: `
+            <div style="text-align:center; padding: 10px 0;">
+                <div style="font-size: 50px; margin-bottom: 15px;">🏰</div>
+                <b>You've discovered Emberholm Portal!</b><br><br>
+                <div style="text-align:left; padding: 0 15px;">
+                    <b>Quick Links:</b><br>
+                    • <b>[HELP/TUTORIAL]</b> - Learn how to play<br>
+                    • <b>[MINT/INVOKE]</b> - Get your Emissaries<br>
+                    • <b>[LORE]</b> - Discover the story<br>
+                    • <b>[SOCIAL/CREDITS]</b> - Join the community
+                </div>
+            </div>
+        `,
+        tip: 'Ready to play? Start the gameplay tutorial from the HELP section.',
+        position: 'center',
+        isLast: true
+    }
+];
+
+// Start Site Tour
+function startSiteTour() {
+    console.log('🌐 Starting Site Tour...');
+
+    siteTourActive = true;
+    currentSiteTourStep = 0;
+
+    // Save that tour was started
+    localStorage.setItem('emberholm_site_tour_started', 'true');
+
+    // Add tour-active class to body
+    document.body.classList.add('tutorial-active');
+    document.body.classList.add('site-tour-active');
+
+    // Show overlay (reuse tutorial overlay)
+    const overlay = document.getElementById('interactive-tutorial-overlay');
+    overlay.classList.add('active');
+    overlay.classList.add('site-tour-mode');
+
+    // Update total steps
+    document.getElementById('tut-step-total').textContent = SITE_TOUR_STEPS.length;
+
+    // Show first step
+    showSiteTourStep(0);
+
+    // Add keyboard listener
+    document.addEventListener('keydown', handleSiteTourKeyboard);
+}
+
+// Show specific site tour step
+function showSiteTourStep(stepIndex) {
+    if (stepIndex < 0 || stepIndex >= SITE_TOUR_STEPS.length) return;
+
+    const step = SITE_TOUR_STEPS[stepIndex];
+    currentSiteTourStep = stepIndex;
+
+    console.log(`📍 Site Tour step ${stepIndex + 1}: ${step.id}`);
+
+    // Change screen if needed
+    if (step.screen && typeof switchScreen === 'function') {
+        switchScreen(step.screen);
+    }
+
+    // Give time for screen to render
+    if (step.screen) {
+        setTimeout(() => renderSiteTourStep(step, stepIndex), 400);
+    } else {
+        renderSiteTourStep(step, stepIndex);
+    }
+}
+
+// Render site tour step content
+function renderSiteTourStep(step, stepIndex) {
+    document.getElementById('tut-step-num').textContent = stepIndex + 1;
+    document.getElementById('tut-title').textContent = step.title;
+    document.getElementById('tut-body').innerHTML = step.body;
+
+    // Tip
+    const tipEl = document.getElementById('tut-tip');
+    const tipTextEl = document.getElementById('tut-tip-text');
+    if (step.tip) {
+        tipTextEl.textContent = step.tip;
+        tipEl.style.display = 'block';
+    } else {
+        tipEl.style.display = 'none';
+    }
+
+    // Navigation buttons
+    const prevBtn = document.getElementById('tut-prev-btn');
+    const nextBtn = document.getElementById('tut-next-btn');
+    const finishBtn = document.getElementById('tut-finish-btn');
+
+    // Show/hide prev button
+    prevBtn.style.display = stepIndex > 0 ? 'block' : 'none';
+
+    // Determine if last step
+    if (step.isLast) {
+        nextBtn.style.display = 'none';
+        finishBtn.style.display = 'block';
+    } else {
+        nextBtn.style.display = 'block';
+        finishBtn.style.display = 'none';
+        nextBtn.textContent = '[NEXT]';
+    }
+
+    // Position spotlight
+    if (step.target) {
+        positionSpotlight(step.target, step.position);
+    } else {
+        hideSpotlight();
+        positionTooltipCenter();
+    }
+}
+
+// Next site tour step
+function nextSiteTourStep() {
+    const nextIndex = currentSiteTourStep + 1;
+
+    if (nextIndex >= SITE_TOUR_STEPS.length) {
+        exitSiteTour();
+        return;
+    }
+
+    showSiteTourStep(nextIndex);
+}
+
+// Previous site tour step
+function prevSiteTourStep() {
+    const prevIndex = currentSiteTourStep - 1;
+
+    if (prevIndex < 0) return;
+
+    showSiteTourStep(prevIndex);
+}
+
+// Exit site tour
+function exitSiteTour() {
+    console.log('👋 Exiting Site Tour...');
+
+    siteTourActive = false;
+    siteTourMinimized = false;
+
+    // Remove classes from body
+    document.body.classList.remove('tutorial-active');
+    document.body.classList.remove('site-tour-active');
+
+    // Hide overlay
+    const overlay = document.getElementById('interactive-tutorial-overlay');
+    overlay.classList.remove('active');
+    overlay.classList.remove('minimized');
+    overlay.classList.remove('site-tour-mode');
+
+    // Hide minimized bar
+    const minimizedBar = document.getElementById('tutorial-minimized-bar');
+    if (minimizedBar) minimizedBar.style.display = 'none';
+
+    // Reset tooltip position
+    const tooltip = document.getElementById('tutorial-tooltip');
+    tooltip.style.transform = '';
+
+    // Save that tour was completed
+    localStorage.setItem('emberholm_site_tour_completed', 'true');
+
+    // Remove keyboard listener
+    document.removeEventListener('keydown', handleSiteTourKeyboard);
+
+    // Return to home
+    if (typeof switchScreen === 'function') {
+        switchScreen('home');
+    }
+}
+
+// Handle keyboard for site tour
+function handleSiteTourKeyboard(e) {
+    if (!siteTourActive) return;
+
+    switch (e.key) {
+        case 'Escape':
+            exitSiteTour();
+            break;
+        case 'ArrowRight':
+        case 'Enter':
+            nextSiteTourStep();
+            break;
+        case 'ArrowLeft':
+            prevSiteTourStep();
+            break;
+    }
+}
+
+// Override tutorial buttons when site tour is active
+const originalNextTutorialStep = window.nextTutorialStep;
+const originalPrevTutorialStep = window.prevTutorialStep;
+const originalExitTutorial = window.exitTutorial;
+
+window.nextTutorialStep = function() {
+    if (siteTourActive) {
+        nextSiteTourStep();
+    } else {
+        originalNextTutorialStep();
+    }
+};
+
+window.prevTutorialStep = function() {
+    if (siteTourActive) {
+        prevSiteTourStep();
+    } else {
+        originalPrevTutorialStep();
+    }
+};
+
+window.exitTutorial = function() {
+    if (siteTourActive) {
+        exitSiteTour();
+    } else {
+        originalExitTutorial();
+    }
+};
+
+console.log('✅ Site Tour System loaded');
 </script>
 
 </body>
