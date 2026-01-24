@@ -12058,18 +12058,9 @@ function renderSiteTourStep(step, stepIndex) {
 
 // Position tooltip for site tour
 // hasSpotlight: true = position right, false = position center
-// Modal positioned BELOW navbar, avoiding highlighted button
+// Modal CAN overlay navbar - highlighted button has z-index 100000 so always visible
 function positionTooltipForTour(hasSpotlight) {
     const tooltip = document.getElementById('tutorial-tooltip');
-    const highlightedBtn = document.querySelector('.cmd-link.site-tour-highlight');
-
-    // Get navbar bottom position
-    const navRows = document.querySelectorAll('.nav-row');
-    let navBottom = 160; // fallback
-    if (navRows.length > 0) {
-        const lastNavRow = navRows[navRows.length - 1];
-        navBottom = lastNavRow.getBoundingClientRect().bottom;
-    }
 
     const margin = 15;
     const tooltipWidth = tooltip.offsetWidth || 420;
@@ -12083,16 +12074,16 @@ function positionTooltipForTour(hasSpotlight) {
     let topPosition;
     let leftPosition;
 
-    // ALWAYS position modal BELOW navbar
-    topPosition = navBottom + margin;
+    // Vertical: position modal to be fully visible
+    // Can overlay navbar - highlighted button has high z-index
+    topPosition = margin + 50;
 
-    // Ensure modal fits vertically
+    // Ensure modal fits vertically within viewport
     if (topPosition + tooltipHeight > viewportHeight - margin) {
         topPosition = viewportHeight - tooltipHeight - margin;
     }
-    // Never go above navbar
-    if (topPosition < navBottom + margin) {
-        topPosition = navBottom + margin;
+    if (topPosition < margin) {
+        topPosition = margin;
     }
 
     // Horizontal position based on spotlight
