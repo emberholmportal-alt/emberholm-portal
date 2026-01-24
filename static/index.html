@@ -12044,46 +12044,56 @@ function renderSiteTourStep(step, stepIndex) {
     // Highlight navigation button for current step
     highlightNavButton(step.navButton);
 
-    // Position spotlight and tooltip (avoiding nav buttons)
+    // Position spotlight and tooltip
     if (step.target) {
         positionSpotlight(step.target, step.position);
-        // Reposition tooltip below navbar for site tour
-        positionTooltipBelowNav();
+        // Modal to the RIGHT when there's a spotlight
+        positionTooltipForTour(true);
     } else {
         hideSpotlight();
-        positionTooltipBelowNav();
+        // Modal CENTERED when no spotlight
+        positionTooltipForTour(false);
     }
 }
 
-// Position tooltip below navigation bar to avoid covering highlighted buttons
-function positionTooltipBelowNav() {
+// Position tooltip for site tour
+// hasSpotlight: true = position right, false = position center
+// Modal CAN overlay navbar - highlighted button has z-index 100000 so always visible
+function positionTooltipForTour(hasSpotlight) {
     const tooltip = document.getElementById('tutorial-tooltip');
-    const navRows = document.querySelectorAll('.nav-row');
 
-    // Get the bottom of the last nav row
-    let navBottom = 160;
-    if (navRows.length > 0) {
-        const lastNavRow = navRows[navRows.length - 1];
-        navBottom = lastNavRow.getBoundingClientRect().bottom;
-    }
-
-    const margin = 25;
+    const margin = 10;
     const tooltipWidth = tooltip.offsetWidth || 420;
-    const tooltipHeight = tooltip.offsetHeight || 350;
+    const tooltipHeight = tooltip.offsetHeight || 400;
     const viewportWidth = window.innerWidth;
     const viewportHeight = window.innerHeight;
 
     // Reset transform
     tooltip.style.transform = '';
 
-    // Calculate available space below navbar
-    const availableHeight = viewportHeight - navBottom - margin * 2;
+    let topPosition;
+    let leftPosition;
 
-    // Center tooltip vertically in the available space below navbar
-    const topPosition = navBottom + margin + Math.max(0, (availableHeight - tooltipHeight) / 2);
+    // Vertical: position modal near TOP to overlay navbar
+    // This ensures both navbar (with highlighted button) and modal are visible together
+    topPosition = 10; // Start very near the top
 
-    // Center horizontally
-    const leftPosition = Math.max(margin, (viewportWidth - tooltipWidth) / 2);
+    // Ensure modal fits vertically within viewport
+    if (topPosition + tooltipHeight > viewportHeight - margin) {
+        topPosition = viewportHeight - tooltipHeight - margin;
+    }
+
+    // Horizontal position based on spotlight
+    if (hasSpotlight) {
+        // Position modal on the RIGHT side when there's a spotlight
+        leftPosition = viewportWidth - tooltipWidth - margin - 10;
+    } else {
+        // Center modal when no spotlight (welcome, final step, etc.)
+        leftPosition = (viewportWidth - tooltipWidth) / 2;
+    }
+
+    // Final bounds check
+    leftPosition = Math.max(margin, Math.min(leftPosition, viewportWidth - tooltipWidth - margin));
 
     tooltip.style.top = topPosition + 'px';
     tooltip.style.left = leftPosition + 'px';

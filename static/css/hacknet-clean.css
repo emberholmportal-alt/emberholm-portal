@@ -4274,7 +4274,7 @@ button:disabled {
     transition: opacity 0.3s ease, filter 0.3s ease;
 }
 
-/* Highlighted button - MAXIMUM BRIGHTNESS, no shadows, no opacity reduction */
+/* Highlighted button - MAXIMUM BRIGHTNESS, always visible above modal */
 .cmd-link.site-tour-highlight {
     position: relative;
     background: linear-gradient(135deg, rgba(96, 165, 250, 0.4) 0%, rgba(167, 139, 250, 0.3) 100%) !important;
@@ -4286,7 +4286,7 @@ button:disabled {
         0 0 30px rgba(96, 165, 250, 0.5),
         0 0 45px rgba(139, 92, 246, 0.3);
     animation: navButtonGlow 1.5s ease-in-out infinite;
-    z-index: 10001;
+    z-index: 100000 !important;
     opacity: 1 !important;
     filter: brightness(1.1) !important;
     transform: scale(1.05);
