@@ -12044,21 +12044,22 @@ function renderSiteTourStep(step, stepIndex) {
     // Highlight navigation button for current step
     highlightNavButton(step.navButton);
 
-    // Position spotlight and tooltip (avoiding nav buttons)
+    // Position spotlight and tooltip
     if (step.target) {
         positionSpotlight(step.target, step.position);
-        // Reposition tooltip below navbar for site tour
-        positionTooltipBelowNav();
+        // Modal to the RIGHT when there's a spotlight
+        positionTooltipForTour(true);
     } else {
         hideSpotlight();
-        positionTooltipBelowNav();
+        // Modal CENTERED when no spotlight
+        positionTooltipForTour(false);
     }
 }
 
-// Position tooltip for site tour - prioritize showing complete modal
-function positionTooltipBelowNav() {
+// Position tooltip for site tour
+// hasSpotlight: true = position right, false = position center
+function positionTooltipForTour(hasSpotlight) {
     const tooltip = document.getElementById('tutorial-tooltip');
-    const highlightedBtn = document.querySelector('.cmd-link.site-tour-highlight');
 
     const margin = 20;
     const tooltipWidth = tooltip.offsetWidth || 420;
@@ -12069,56 +12070,33 @@ function positionTooltipBelowNav() {
     // Reset transform
     tooltip.style.transform = '';
 
-    // Priority: Modal must be FULLY visible (including navigation buttons)
-    // Modal can overlay navbar, but should avoid covering highlighted button
-
     // Calculate vertical position - ensure modal fits completely
     let topPosition;
+    let leftPosition;
 
-    // Get highlighted button position if exists
-    let btnRect = null;
-    if (highlightedBtn) {
-        btnRect = highlightedBtn.getBoundingClientRect();
-    }
-
-    // Calculate ideal position: modal should fit within viewport
+    // Vertical: position in upper-middle area, ensuring full visibility
     const maxTop = viewportHeight - tooltipHeight - margin;
+    topPosition = Math.max(margin + 80, Math.min(100, maxTop));
 
-    // Start with a position that shows modal completely
-    // Prefer upper area to leave room for modal
-    topPosition = Math.min(margin + 60, maxTop);
-
-    // Ensure modal doesn't go below viewport
+    // Ensure modal fits vertically
     if (topPosition + tooltipHeight > viewportHeight - margin) {
         topPosition = viewportHeight - tooltipHeight - margin;
     }
-
-    // Ensure modal doesn't go above viewport
     if (topPosition < margin) {
         topPosition = margin;
     }
 
-    // Calculate horizontal position - center, but avoid highlighted button if on sides
-    let leftPosition = (viewportWidth - tooltipWidth) / 2;
-
-    // If highlighted button is near center, shift modal slightly
-    if (btnRect) {
-        const btnCenterX = btnRect.left + btnRect.width / 2;
-        const modalCenterX = leftPosition + tooltipWidth / 2;
-        const overlap = Math.abs(btnCenterX - modalCenterX) < tooltipWidth / 2;
-
-        // If button is in the middle area and would be covered, adjust
-        if (overlap && btnRect.top < topPosition + tooltipHeight && btnRect.bottom > topPosition) {
-            // Button would be covered - try to position modal to avoid it
-            if (btnRect.left > viewportWidth / 2) {
-                // Button is on right, move modal slightly left
-                leftPosition = Math.max(margin, leftPosition - 100);
-            } else {
-                // Button is on left, move modal slightly right
-                leftPosition = Math.min(viewportWidth - tooltipWidth - margin, leftPosition + 100);
-            }
-        }
+    // Horizontal position based on spotlight
+    if (hasSpotlight) {
+        // Position modal on the RIGHT side when there's a spotlight
+        leftPosition = viewportWidth - tooltipWidth - margin - 10;
+    } else {
+        // Center modal when no spotlight (welcome, final step, etc.)
+        leftPosition = (viewportWidth - tooltipWidth) / 2;
     }
+
+    // Ensure modal stays within viewport horizontally
+    leftPosition = Math.max(margin, Math.min(leftPosition, viewportWidth - tooltipWidth - margin));
 
     tooltip.style.top = topPosition + 'px';
     tooltip.style.left = leftPosition + 'px';
