@@ -675,12 +675,15 @@ div[class*="label"], span[class*="label"],
 
 .boot-continue {
     position: fixed;
-    bottom: 80px;
+    bottom: 60px;
+    left: 50%;
+    transform: translateX(-50%);
     z-index: 3;
     font-family: 'IBM Plex Mono', 'Classic Console Neue', monospace;
-    font-size: 16px;
+    font-size: 14px;
     color: #FF9800;
     text-shadow: 0 0 15px rgba(255, 152, 0, 0.6);
+    text-align: center;
 }
 
 .boot-blink {
@@ -1161,6 +1164,13 @@ function initPortalWarning() {
             ambient.play().catch(() => {});
         }
 
+        // Check if boot sequence needs to show - initialize it BEFORE hiding portal
+        const showBootSequence = !localStorage.getItem('emberholm_boot_seen');
+        if (showBootSequence) {
+            // Show boot sequence immediately (behind portal overlay)
+            initBootSequence();
+        }
+
         // Fade out effect
         overlay.classList.add('fade-out');
 
@@ -1180,10 +1190,6 @@ function initPortalWarning() {
 
         setTimeout(() => {
             overlay.style.display = 'none';
-            // Check if boot sequence was already seen
-            if (!localStorage.getItem('emberholm_boot_seen')) {
-                initBootSequence();
-            }
         }, 1500);
     }
 
@@ -1210,7 +1216,6 @@ const BOOT_SEQUENCE_TEXT = `[EMBER PROTOCOL v0.1978 // INITIALIZING...]
 
 CONNECTING TO EMBERHOLM REALM... OK
 LOADING EMISSARY DATABASE... OK
-SYNCHRONIZING GUILD NETWORKS... OK
 
 ════════════════════════════════════════════════════
 WELCOME, OPERATOR.
@@ -1222,7 +1227,7 @@ Through it, you will:
 » DEPLOY them on dangerous missions
 » EARN $EMBER tokens as they prove their worth
 » RISE through 11 ranks of glory
-» ACQUIRE Auras, Runes, and legendary Items
+» ACQUIRE Aura, XP, Runes, and legendary Items
 » CLAIM Lands that generate passive income
 But beware — death is permanent.
 Choose wisely. The realm depends on you.
@@ -1233,7 +1238,7 @@ const BOOT_CONFIG = {
     lineDelay: 80,           // extra delay at line breaks
     okDelay: 15,             // faster for "OK" text
     highlightWords: ['OK', 'EMBER PROTOCOL', 'WELCOME, OPERATOR.'],
-    dimPatterns: ['CONNECTING', 'LOADING', 'SYNCHRONIZING', '...'],
+    dimPatterns: ['CONNECTING', 'LOADING', '...'],
 };
 
 let bootSequenceActive = false;
@@ -1268,7 +1273,6 @@ function initBootSequence() {
         // Dim the loading prefixes
         formatted = formatted.replace(/(CONNECTING TO EMBERHOLM REALM\.\.\.)/g, '<span class="boot-dim">$1</span>');
         formatted = formatted.replace(/(LOADING EMISSARY DATABASE\.\.\.)/g, '<span class="boot-dim">$1</span>');
-        formatted = formatted.replace(/(SYNCHRONIZING GUILD NETWORKS\.\.\.)/g, '<span class="boot-dim">$1</span>');
         return formatted;
     }
 
