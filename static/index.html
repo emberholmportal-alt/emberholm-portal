@@ -12058,10 +12058,18 @@ function renderSiteTourStep(step, stepIndex) {
 
 // Position tooltip for site tour
 // hasSpotlight: true = position right, false = position center
-// Modal can overlay navbar EXCEPT the highlighted button (which has higher z-index)
+// Modal positioned BELOW navbar, avoiding highlighted button
 function positionTooltipForTour(hasSpotlight) {
     const tooltip = document.getElementById('tutorial-tooltip');
     const highlightedBtn = document.querySelector('.cmd-link.site-tour-highlight');
+
+    // Get navbar bottom position
+    const navRows = document.querySelectorAll('.nav-row');
+    let navBottom = 160; // fallback
+    if (navRows.length > 0) {
+        const lastNavRow = navRows[navRows.length - 1];
+        navBottom = lastNavRow.getBoundingClientRect().bottom;
+    }
 
     const margin = 15;
     const tooltipWidth = tooltip.offsetWidth || 420;
@@ -12075,22 +12083,16 @@ function positionTooltipForTour(hasSpotlight) {
     let topPosition;
     let leftPosition;
 
-    // Get highlighted button position
-    let btnRect = null;
-    if (highlightedBtn) {
-        btnRect = highlightedBtn.getBoundingClientRect();
-    }
-
-    // Vertical position: ensure modal is fully visible
-    // Start from upper area to maximize space
-    topPosition = margin + 80;
+    // ALWAYS position modal BELOW navbar
+    topPosition = navBottom + margin;
 
     // Ensure modal fits vertically
     if (topPosition + tooltipHeight > viewportHeight - margin) {
         topPosition = viewportHeight - tooltipHeight - margin;
     }
-    if (topPosition < margin) {
-        topPosition = margin;
+    // Never go above navbar
+    if (topPosition < navBottom + margin) {
+        topPosition = navBottom + margin;
     }
 
     // Horizontal position based on spotlight
@@ -12100,28 +12102,6 @@ function positionTooltipForTour(hasSpotlight) {
     } else {
         // Center modal when no spotlight (welcome, final step, etc.)
         leftPosition = (viewportWidth - tooltipWidth) / 2;
-    }
-
-    // Adjust position to avoid covering highlighted button
-    // The button has z-index 100000 so it will show above, but we try to not overlap
-    if (btnRect) {
-        const modalRight = leftPosition + tooltipWidth;
-        const modalBottom = topPosition + tooltipHeight;
-
-        // Check if modal would overlap with highlighted button
-        const overlapsHorizontally = leftPosition < btnRect.right && modalRight > btnRect.left;
-        const overlapsVertically = topPosition < btnRect.bottom && modalBottom > btnRect.top;
-
-        if (overlapsHorizontally && overlapsVertically) {
-            // Try to shift modal to avoid button
-            if (btnRect.left > viewportWidth / 2) {
-                // Button is on right side, move modal left
-                leftPosition = Math.max(margin, btnRect.left - tooltipWidth - margin);
-            } else {
-                // Button is on left side, move modal right
-                leftPosition = Math.min(viewportWidth - tooltipWidth - margin, btnRect.right + margin);
-            }
-        }
     }
 
     // Final bounds check
