@@ -350,6 +350,23 @@ div[class*="label"], span[class*="label"],
     </audio>
 </div>
 
+<!-- ============================================
+     BOOT SEQUENCE OVERLAY - System Initialization
+     ============================================ -->
+<div id="boot-sequence-overlay" class="boot-sequence-overlay" style="display: none;">
+    <div class="boot-scanlines"></div>
+    <div class="boot-container">
+        <pre id="boot-text" class="boot-text"></pre><span id="boot-cursor" class="boot-cursor">▮</span>
+    </div>
+    <button id="boot-skip-btn" class="boot-skip-btn">[ SKIP >> ]</button>
+    <div id="boot-continue" class="boot-continue" style="display: none;">
+        <span class="boot-blink">[PRESS ANY KEY TO CONTINUE]</span>
+    </div>
+    <audio id="boot-key-sound" preload="auto">
+        <source src="/music/key_tick.mp3" type="audio/mpeg">
+    </audio>
+</div>
+
 <style>
 /* ============================================
    PORTAL WARNING MODAL STYLES
@@ -545,6 +562,129 @@ div[class*="label"], span[class*="label"],
 @keyframes cursorBlink {
     0%, 50% { opacity: 1; }
     51%, 100% { opacity: 0; }
+}
+
+/* ============================================
+   BOOT SEQUENCE OVERLAY STYLES
+   ============================================ */
+.boot-sequence-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: #0a0a0a;
+    z-index: 99998;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    opacity: 1;
+    transition: opacity 0.5s ease-out;
+}
+
+.boot-sequence-overlay.fade-out {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.boot-scanlines {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: repeating-linear-gradient(
+        0deg,
+        rgba(0, 0, 0, 0.15) 0px,
+        rgba(255, 136, 0, 0.03) 1px,
+        rgba(0, 0, 0, 0.15) 2px,
+        transparent 3px
+    );
+    pointer-events: none;
+    z-index: 1;
+}
+
+.boot-container {
+    position: relative;
+    z-index: 2;
+    max-width: 800px;
+    width: 90%;
+    padding: 40px;
+    font-family: 'IBM Plex Mono', 'Classic Console Neue', 'Courier New', monospace;
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.boot-text {
+    color: #FF9800;
+    margin: 0;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    text-shadow: 0 0 10px rgba(255, 152, 0, 0.5);
+}
+
+.boot-text .boot-dim {
+    color: #B36800;
+    text-shadow: none;
+}
+
+.boot-text .boot-highlight {
+    color: #FFB74D;
+    text-shadow: 0 0 15px rgba(255, 183, 77, 0.6);
+}
+
+.boot-text .boot-ok {
+    color: #FFB74D;
+    text-shadow: 0 0 12px rgba(255, 183, 77, 0.7);
+}
+
+.boot-cursor {
+    color: #FF9800;
+    font-family: 'IBM Plex Mono', monospace;
+    animation: bootCursorBlink 0.6s infinite;
+    text-shadow: 0 0 10px rgba(255, 152, 0, 0.8);
+}
+
+@keyframes bootCursorBlink {
+    0%, 50% { opacity: 1; }
+    51%, 100% { opacity: 0; }
+}
+
+.boot-skip-btn {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    z-index: 3;
+    font-family: 'IBM Plex Mono', 'Classic Console Neue', monospace;
+    font-size: 12px;
+    padding: 10px 20px;
+    background: transparent;
+    border: 1px solid #B36800;
+    color: #B36800;
+    cursor: pointer;
+    letter-spacing: 2px;
+    transition: all 0.3s ease;
+}
+
+.boot-skip-btn:hover {
+    border-color: #FF9800;
+    color: #FF9800;
+    text-shadow: 0 0 10px rgba(255, 152, 0, 0.5);
+}
+
+.boot-continue {
+    position: fixed;
+    bottom: 80px;
+    z-index: 3;
+    font-family: 'IBM Plex Mono', 'Classic Console Neue', monospace;
+    font-size: 16px;
+    color: #FF9800;
+    text-shadow: 0 0 15px rgba(255, 152, 0, 0.6);
+}
+
+.boot-blink {
+    animation: bootCursorBlink 1s infinite;
 }
 
 /* ============================================
@@ -1040,6 +1180,10 @@ function initPortalWarning() {
 
         setTimeout(() => {
             overlay.style.display = 'none';
+            // Check if boot sequence was already seen
+            if (!localStorage.getItem('emberholm_boot_seen')) {
+                initBootSequence();
+            }
         }, 1500);
     }
 
@@ -1058,6 +1202,155 @@ function initPortalWarning() {
         canvas.height = window.innerHeight;
     });
 }
+
+// ============================================
+// BOOT SEQUENCE SYSTEM
+// ============================================
+const BOOT_SEQUENCE_TEXT = `[EMBER PROTOCOL v0.1978 // INITIALIZING...]
+
+CONNECTING TO EMBERHOLM REALM... OK
+LOADING EMISSARY DATABASE... OK
+SYNCHRONIZING GUILD NETWORKS... OK
+
+════════════════════════════════════════════════════
+WELCOME, OPERATOR.
+The Dying Flame grows weaker.
+Emberholm needs champions.
+This terminal is your gateway to the realm.
+Through it, you will:
+» SUMMON Emissaries to fight for the cause
+» DEPLOY them on dangerous missions
+» EARN $EMBER tokens as they prove their worth
+» RISE through 11 ranks of glory
+» ACQUIRE Auras, Runes, and legendary Items
+» CLAIM Lands that generate passive income
+But beware — death is permanent.
+Choose wisely. The realm depends on you.
+════════════════════════════════════════════════════`;
+
+const BOOT_CONFIG = {
+    charDelay: 35,           // ms between characters
+    lineDelay: 80,           // extra delay at line breaks
+    okDelay: 15,             // faster for "OK" text
+    highlightWords: ['OK', 'EMBER PROTOCOL', 'WELCOME, OPERATOR.'],
+    dimPatterns: ['CONNECTING', 'LOADING', 'SYNCHRONIZING', '...'],
+};
+
+let bootSequenceActive = false;
+let bootTypewriterTimeout = null;
+
+function initBootSequence() {
+    const overlay = document.getElementById('boot-sequence-overlay');
+    const textElement = document.getElementById('boot-text');
+    const cursor = document.getElementById('boot-cursor');
+    const skipBtn = document.getElementById('boot-skip-btn');
+    const continuePrompt = document.getElementById('boot-continue');
+
+    if (!overlay || !textElement) return;
+
+    bootSequenceActive = true;
+    overlay.style.display = 'flex';
+    textElement.innerHTML = '';
+
+    let currentIndex = 0;
+    let displayedText = '';
+
+    function applyFormatting(text) {
+        let formatted = text;
+        // Highlight "OK" at end of lines
+        formatted = formatted.replace(/OK(\n|$)/g, '<span class="boot-ok">OK</span>$1');
+        // Highlight title
+        formatted = formatted.replace(/\[EMBER PROTOCOL v0\.1978 \/\/ INITIALIZING\.\.\.\]/g,
+            '<span class="boot-highlight">[EMBER PROTOCOL v0.1978 // INITIALIZING...]</span>');
+        // Highlight welcome
+        formatted = formatted.replace(/WELCOME, OPERATOR\./g,
+            '<span class="boot-highlight">WELCOME, OPERATOR.</span>');
+        // Dim the loading prefixes
+        formatted = formatted.replace(/(CONNECTING TO EMBERHOLM REALM\.\.\.)/g, '<span class="boot-dim">$1</span>');
+        formatted = formatted.replace(/(LOADING EMISSARY DATABASE\.\.\.)/g, '<span class="boot-dim">$1</span>');
+        formatted = formatted.replace(/(SYNCHRONIZING GUILD NETWORKS\.\.\.)/g, '<span class="boot-dim">$1</span>');
+        return formatted;
+    }
+
+    function typeNextChar() {
+        if (!bootSequenceActive) return;
+
+        if (currentIndex < BOOT_SEQUENCE_TEXT.length) {
+            const char = BOOT_SEQUENCE_TEXT[currentIndex];
+            displayedText += char;
+            textElement.innerHTML = applyFormatting(displayedText);
+            currentIndex++;
+
+            // Calculate delay
+            let delay = BOOT_CONFIG.charDelay;
+            if (char === '\n') {
+                delay = BOOT_CONFIG.lineDelay;
+            }
+            // Speed up for "OK" sequences
+            const remaining = BOOT_SEQUENCE_TEXT.substring(currentIndex - 3, currentIndex);
+            if (remaining.includes('OK') || remaining.includes('...')) {
+                delay = BOOT_CONFIG.okDelay;
+            }
+
+            bootTypewriterTimeout = setTimeout(typeNextChar, delay);
+        } else {
+            // Typing complete
+            finishBootSequence();
+        }
+    }
+
+    function finishBootSequence() {
+        // Show full text with formatting
+        textElement.innerHTML = applyFormatting(BOOT_SEQUENCE_TEXT);
+        cursor.style.display = 'none';
+        skipBtn.style.display = 'none';
+        continuePrompt.style.display = 'block';
+
+        // Listen for any key to continue
+        function handleContinue(e) {
+            if (!bootSequenceActive) return;
+            e.preventDefault();
+            closeBootSequence();
+            document.removeEventListener('keydown', handleContinue);
+            overlay.removeEventListener('click', handleContinue);
+        }
+
+        document.addEventListener('keydown', handleContinue);
+        overlay.addEventListener('click', handleContinue);
+    }
+
+    function closeBootSequence() {
+        bootSequenceActive = false;
+        localStorage.setItem('emberholm_boot_seen', 'true');
+        overlay.classList.add('fade-out');
+
+        setTimeout(() => {
+            overlay.style.display = 'none';
+            overlay.classList.remove('fade-out');
+        }, 500);
+    }
+
+    // Skip button handler
+    skipBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (bootTypewriterTimeout) {
+            clearTimeout(bootTypewriterTimeout);
+        }
+        finishBootSequence();
+    });
+
+    // Start the typewriter effect
+    setTimeout(typeNextChar, 500);
+}
+
+// Function to replay boot sequence (called from tutorial)
+function replayBootSequence() {
+    localStorage.removeItem('emberholm_boot_seen');
+    initBootSequence();
+}
+
+// Make replayBootSequence available globally
+window.replayBootSequence = replayBootSequence;
 
 // Initialize when DOM is ready
 document.addEventListener('DOMContentLoaded', initPortalWarning);
@@ -1594,6 +1887,7 @@ document.addEventListener('DOMContentLoaded', initPortalWarning);
                         <div class="toc-section-title">ESSENTIALS</div>
                         <a href="#help-basics">→ Basic Principles</a>
                         <a href="#help-commandflow">→ Command Flow</a>
+                        <a href="#" onclick="replayBootSequence(); return false;" class="replay-intro-link">→ Replay Intro</a>
                     </div>
 
                     <div class="toc-section">
