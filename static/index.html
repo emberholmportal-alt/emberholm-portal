@@ -11937,7 +11937,7 @@ const SITE_TOUR_STEPS = [
         body: `
             <div style="text-align:center; padding: 10px 0;">
                 <div style="margin-bottom: 15px;">
-                    <img src="img/logo-site2.png" alt="Emberholm Portal" style="width: 80px; height: auto; filter: drop-shadow(0 0 10px rgba(255,204,0,0.5));" />
+                    <img src="img/logo-site2.png" alt="Emberholm Portal" style="width: 130px; height: auto; filter: drop-shadow(0 0 15px rgba(255,204,0,0.6));" />
                 </div>
                 <b>You've discovered Emberholm Portal!</b><br><br>
                 <div style="text-align:left; padding: 0 15px;">
@@ -12043,13 +12043,34 @@ function renderSiteTourStep(step, stepIndex) {
     // Highlight navigation button for current step
     highlightNavButton(step.navButton);
 
-    // Position spotlight
+    // Position spotlight and tooltip (avoiding nav buttons)
     if (step.target) {
         positionSpotlight(step.target, step.position);
+        // Reposition tooltip below navbar for site tour
+        positionTooltipBelowNav();
     } else {
         hideSpotlight();
-        positionTooltipCenter();
+        positionTooltipBelowNav();
     }
+}
+
+// Position tooltip below navigation bar to avoid covering highlighted buttons
+function positionTooltipBelowNav() {
+    const tooltip = document.getElementById('tutorial-tooltip');
+    const navRow = document.querySelector('.nav-row');
+
+    // Get navbar bottom position (approximately 160px from top)
+    const navBottom = navRow ? navRow.getBoundingClientRect().bottom : 160;
+    const margin = 20;
+    const tooltipWidth = 420;
+    const viewportWidth = window.innerWidth;
+
+    // Reset transform
+    tooltip.style.transform = '';
+
+    // Position tooltip below nav, centered horizontally
+    tooltip.style.top = (navBottom + margin) + 'px';
+    tooltip.style.left = Math.max(margin, (viewportWidth - tooltipWidth) / 2) + 'px';
 }
 
 // Highlight navigation button during site tour

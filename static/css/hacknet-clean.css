@@ -4226,39 +4226,60 @@ button:disabled {
 }
 
 /* Site Tour Navigation Button Highlight */
+/* Dim all nav buttons when site tour is active */
+.site-tour-active .cmd-link:not(.site-tour-highlight) {
+    opacity: 0.35 !important;
+    filter: grayscale(50%);
+    transition: opacity 0.3s ease, filter 0.3s ease;
+}
+
+/* Highlighted button stands out */
 .cmd-link.site-tour-highlight {
     position: relative;
-    background: rgba(59, 130, 246, 0.25) !important;
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.3) 0%, rgba(139, 92, 246, 0.2) 100%) !important;
     border-color: #60a5fa !important;
     color: #93c5fd !important;
-    box-shadow: 0 0 15px rgba(59, 130, 246, 0.5), inset 0 0 10px rgba(59, 130, 246, 0.2);
+    box-shadow:
+        0 0 20px rgba(59, 130, 246, 0.6),
+        0 0 40px rgba(59, 130, 246, 0.3),
+        inset 0 0 15px rgba(59, 130, 246, 0.2);
     animation: navButtonPulse 1.5s ease-in-out infinite;
     z-index: 10001;
+    opacity: 1 !important;
+    filter: none !important;
+    transform: scale(1.02);
 }
 
 .cmd-link.site-tour-highlight::before {
-    content: '◆';
+    content: '▶';
     position: absolute;
-    left: -18px;
+    left: -20px;
     top: 50%;
     transform: translateY(-50%);
     color: #60a5fa;
-    font-size: 10px;
+    font-size: 12px;
+    text-shadow: 0 0 10px rgba(59, 130, 246, 0.8);
     animation: navIndicatorBlink 1s ease-in-out infinite;
 }
 
 @keyframes navButtonPulse {
     0%, 100% {
-        box-shadow: 0 0 15px rgba(59, 130, 246, 0.5), inset 0 0 10px rgba(59, 130, 246, 0.2);
+        box-shadow:
+            0 0 20px rgba(59, 130, 246, 0.6),
+            0 0 40px rgba(59, 130, 246, 0.3),
+            inset 0 0 15px rgba(59, 130, 246, 0.2);
     }
     50% {
-        box-shadow: 0 0 25px rgba(59, 130, 246, 0.7), inset 0 0 15px rgba(59, 130, 246, 0.3);
+        box-shadow:
+            0 0 30px rgba(59, 130, 246, 0.8),
+            0 0 60px rgba(59, 130, 246, 0.4),
+            inset 0 0 20px rgba(59, 130, 246, 0.3);
     }
 }
 
 @keyframes navIndicatorBlink {
     0%, 100% { opacity: 1; }
-    50% { opacity: 0.3; }
+    50% { opacity: 0.4; }
 }
 
 /* Responsive */
