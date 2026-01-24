@@ -11567,8 +11567,16 @@ function exitTutorial() {
 
 // Manejar resize de ventana
 window.addEventListener('resize', () => {
+    // Tutorial resize handling
     if (tutorialActive && TUTORIAL_STEPS[currentTutorialStep]) {
         const step = TUTORIAL_STEPS[currentTutorialStep];
+        if (step.target) {
+            positionSpotlight(step.target, step.position);
+        }
+    }
+    // Site Tour resize handling
+    if (siteTourActive && SITE_TOUR_STEPS && SITE_TOUR_STEPS[currentSiteTourStep]) {
+        const step = SITE_TOUR_STEPS[currentSiteTourStep];
         if (step.target) {
             positionSpotlight(step.target, step.position);
         }
@@ -11577,8 +11585,16 @@ window.addEventListener('resize', () => {
 
 // Manejar scroll manual del usuario - mantener spotlight sobre el elemento
 window.addEventListener('scroll', () => {
+    // Tutorial scroll handling
     if (tutorialActive && !tutorialMinimized && TUTORIAL_STEPS[currentTutorialStep]) {
         const step = TUTORIAL_STEPS[currentTutorialStep];
+        if (step.target) {
+            updateSpotlightPosition(step.target, step.position);
+        }
+    }
+    // Site Tour scroll handling
+    if (siteTourActive && !siteTourMinimized && SITE_TOUR_STEPS && SITE_TOUR_STEPS[currentSiteTourStep]) {
+        const step = SITE_TOUR_STEPS[currentSiteTourStep];
         if (step.target) {
             updateSpotlightPosition(step.target, step.position);
         }
@@ -11747,6 +11763,7 @@ const SITE_TOUR_STEPS = [
         id: 'welcome',
         target: null,
         screen: 'home',
+        navButton: 'home',
         title: 'WELCOME TO EMBERHOLM PORTAL',
         body: `
             <div style="text-align:center; padding: 10px 0;">
@@ -11768,6 +11785,7 @@ const SITE_TOUR_STEPS = [
         id: 'realm-home',
         target: '.realm-map-container',
         screen: 'home',
+        navButton: 'home',
         title: 'THE REALM // HOME',
         body: `
             <b>The Realm Map</b> shows the current state of Emberholm.<br><br>
@@ -11783,6 +11801,7 @@ const SITE_TOUR_STEPS = [
         id: 'emissaries',
         target: '.roster-table',
         screen: 'profile',
+        navButton: 'profile',
         title: 'THE EMISSARIES // PROFILE',
         body: `
             <b>Emissaries</b> are the core of Emberholm Portal.<br><br>
@@ -11798,6 +11817,7 @@ const SITE_TOUR_STEPS = [
         id: 'orders',
         target: '.orders-grid',
         screen: 'guilds',
+        navButton: 'guilds',
         title: 'THE SIX ORDERS // GUILDS',
         body: `
             Emberholm is protected by <b>Six Orders</b>:<br><br>
@@ -11816,6 +11836,7 @@ const SITE_TOUR_STEPS = [
         id: 'missions',
         target: '.mission-board',
         screen: 'missions',
+        navButton: 'missions',
         title: 'THE MISSIONS // GAMEPLAY',
         body: `
             <b>Missions</b> are the main gameplay loop.<br><br>
@@ -11831,6 +11852,7 @@ const SITE_TOUR_STEPS = [
         id: 'vault',
         target: '.vault-section',
         screen: 'vault',
+        navButton: 'vault',
         title: 'THE VAULT // INVENTORY',
         body: `
             The <b>Vault</b> stores all your assets:<br><br>
@@ -11849,6 +11871,7 @@ const SITE_TOUR_STEPS = [
         id: 'tokenomics',
         target: '.tokenomics-overview',
         screen: 'tokenomics',
+        navButton: 'tokenomics',
         title: 'TOKENOMICS // ECONOMY',
         body: `
             <b>Dual Token Economy:</b><br><br>
@@ -11874,6 +11897,7 @@ const SITE_TOUR_STEPS = [
         id: 'contracts',
         target: '.contracts-section',
         screen: 'whitepaper',
+        navButton: 'whitepaper',
         title: 'THE CONTRACTS // INFRASTRUCTURE',
         body: `
             <b>Five Smart Contracts on Base Network:</b><br><br>
@@ -11912,7 +11936,9 @@ const SITE_TOUR_STEPS = [
         title: 'ECOSYSTEM TOUR COMPLETE',
         body: `
             <div style="text-align:center; padding: 10px 0;">
-                <div style="font-size: 50px; margin-bottom: 15px;">🏰</div>
+                <div style="margin-bottom: 15px;">
+                    <img src="img/logo-site2.png" alt="Emberholm Portal" style="width: 80px; height: auto; filter: drop-shadow(0 0 10px rgba(255,204,0,0.5));" />
+                </div>
                 <b>You've discovered Emberholm Portal!</b><br><br>
                 <div style="text-align:left; padding: 0 15px;">
                     <b>Quick Links:</b><br>
@@ -12014,12 +12040,31 @@ function renderSiteTourStep(step, stepIndex) {
         nextBtn.textContent = '[NEXT]';
     }
 
+    // Highlight navigation button for current step
+    highlightNavButton(step.navButton);
+
     // Position spotlight
     if (step.target) {
         positionSpotlight(step.target, step.position);
     } else {
         hideSpotlight();
         positionTooltipCenter();
+    }
+}
+
+// Highlight navigation button during site tour
+function highlightNavButton(navTarget) {
+    // Remove highlight from all nav buttons
+    document.querySelectorAll('.cmd-link').forEach(btn => {
+        btn.classList.remove('site-tour-highlight');
+    });
+
+    // Add highlight to current nav button
+    if (navTarget) {
+        const targetBtn = document.querySelector(`.cmd-link[data-target="${navTarget}"]`);
+        if (targetBtn) {
+            targetBtn.classList.add('site-tour-highlight');
+        }
     }
 }
 
@@ -12068,6 +12113,11 @@ function exitSiteTour() {
     // Reset tooltip position
     const tooltip = document.getElementById('tutorial-tooltip');
     tooltip.style.transform = '';
+
+    // Remove nav button highlight
+    document.querySelectorAll('.cmd-link.site-tour-highlight').forEach(btn => {
+        btn.classList.remove('site-tour-highlight');
+    });
 
     // Save that tour was completed
     localStorage.setItem('emberholm_site_tour_completed', 'true');
