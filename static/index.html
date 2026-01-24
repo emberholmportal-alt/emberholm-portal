@@ -11085,7 +11085,7 @@ const TUTORIAL_STEPS = [
     },
     {
         id: 'send-mission',
-        target: '.roster-table tbody tr:first-child .action-btn.send',
+        target: '.roster-table .action-btn.send',
         screen: 'profile',
         title: 'STEP 5: SEND ON MISSION',
         body: `
@@ -11093,7 +11093,20 @@ const TUTORIAL_STEPS = [
             This opens the <b>Mission Selection</b> modal where you can choose from available missions.
         `,
         tip: 'Missions rotate every 72 hours. Each Emissary can only do each mission once per rotation.',
-        position: 'left'
+        position: 'left',
+        checkReadyEmissary: true,
+        noReadyEmissaryContent: {
+            title: 'STEP 5: SEND ON MISSION',
+            body: `
+                <div style="text-align:center; padding: 10px 0;">
+                    <div style="font-size: 40px; margin-bottom: 15px;">⏳</div>
+                    <b>All your Emissaries are currently on missions.</b><br><br>
+                    Wait for them to return to READY state, then you can send them on new missions.<br><br>
+                    The <b>[SEND MISSION]</b> button appears next to READY Emissaries.
+                </div>
+            `,
+            tip: 'Check the PROFILE section to see when your Emissaries will be available.'
+        }
     },
     {
         id: 'mission-select',
@@ -11266,6 +11279,17 @@ function renderTutorialStep(step, stepIndex) {
         if (!hasEmissaries && step.noEmissariesContent) {
             renderTutorialContent(step.noEmissariesContent, stepIndex, true);
             positionSpotlightForNoEmissaries();
+            return;
+        }
+    }
+
+    // Verificar si hay algún emisario READY (con botón SEND visible)
+    if (step.checkReadyEmissary) {
+        const sendButton = document.querySelector('.roster-table .action-btn.send');
+        if (!sendButton && step.noReadyEmissaryContent) {
+            renderTutorialContent(step.noReadyEmissaryContent, stepIndex, false);
+            hideSpotlight();
+            positionTooltipCenter();
             return;
         }
     }
