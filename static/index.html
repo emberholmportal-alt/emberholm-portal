@@ -12058,20 +12058,35 @@ function renderSiteTourStep(step, stepIndex) {
 // Position tooltip below navigation bar to avoid covering highlighted buttons
 function positionTooltipBelowNav() {
     const tooltip = document.getElementById('tutorial-tooltip');
-    const navRow = document.querySelector('.nav-row');
+    const navRows = document.querySelectorAll('.nav-row');
 
-    // Get navbar bottom position (approximately 160px from top)
-    const navBottom = navRow ? navRow.getBoundingClientRect().bottom : 160;
-    const margin = 20;
-    const tooltipWidth = 420;
+    // Get the bottom of the last nav row
+    let navBottom = 160;
+    if (navRows.length > 0) {
+        const lastNavRow = navRows[navRows.length - 1];
+        navBottom = lastNavRow.getBoundingClientRect().bottom;
+    }
+
+    const margin = 25;
+    const tooltipWidth = tooltip.offsetWidth || 420;
+    const tooltipHeight = tooltip.offsetHeight || 350;
     const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
 
     // Reset transform
     tooltip.style.transform = '';
 
-    // Position tooltip below nav, centered horizontally
-    tooltip.style.top = (navBottom + margin) + 'px';
-    tooltip.style.left = Math.max(margin, (viewportWidth - tooltipWidth) / 2) + 'px';
+    // Calculate available space below navbar
+    const availableHeight = viewportHeight - navBottom - margin * 2;
+
+    // Center tooltip vertically in the available space below navbar
+    const topPosition = navBottom + margin + Math.max(0, (availableHeight - tooltipHeight) / 2);
+
+    // Center horizontally
+    const leftPosition = Math.max(margin, (viewportWidth - tooltipWidth) / 2);
+
+    tooltip.style.top = topPosition + 'px';
+    tooltip.style.left = leftPosition + 'px';
 }
 
 // Highlight navigation button during site tour
