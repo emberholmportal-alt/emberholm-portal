@@ -1164,12 +1164,8 @@ function initPortalWarning() {
             ambient.play().catch(() => {});
         }
 
-        // Check if boot sequence needs to show - initialize it BEFORE hiding portal
-        const showBootSequence = !localStorage.getItem('emberholm_boot_seen');
-        if (showBootSequence) {
-            // Show boot sequence immediately (behind portal overlay)
-            initBootSequence();
-        }
+        // Always show boot sequence after entering portal
+        initBootSequence();
 
         // Fade out effect
         overlay.classList.add('fade-out');
