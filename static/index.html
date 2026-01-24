@@ -1214,31 +1214,29 @@ function initPortalWarning() {
 // ============================================
 const BOOT_SEQUENCE_TEXT = `[EMBER PROTOCOL v0.1978 // INITIALIZING...]
 
-CONNECTING TO EMBERHOLM REALM... OK
-LOADING EMISSARY DATABASE... OK
+> CONNECTING TO EMBERHOLM... OK
 
-════════════════════════════════════════════════════
+════════════════════════════════════════
+
 WELCOME, OPERATOR.
+
 The Dying Flame grows weaker.
-Emberholm needs champions.
-This terminal is your gateway to the realm.
-Through it, you will:
-» SUMMON Emissaries to fight for the cause
-» DEPLOY them on dangerous missions
-» EARN $EMBER tokens as they prove their worth
-» RISE through 11 ranks of glory
-» ACQUIRE Aura, XP, Runes, and legendary Items
-» CLAIM Lands that generate passive income
-But beware — death is permanent.
-Choose wisely. The realm depends on you.
-════════════════════════════════════════════════════`;
+This terminal is your gateway to save Emberholm.
+
+Summon Emissaries. Send them on missions.
+Earn $EMBER. Rise in rank. Claim lands.
+Collect runes and legendary items.
+
+But beware — death can be permanent.
+
+════════════════════════════════════════`;
 
 const BOOT_CONFIG = {
     charDelay: 35,           // ms between characters
     lineDelay: 80,           // extra delay at line breaks
     okDelay: 15,             // faster for "OK" text
     highlightWords: ['OK', 'EMBER PROTOCOL', 'WELCOME, OPERATOR.'],
-    dimPatterns: ['CONNECTING', 'LOADING', '...'],
+    dimPatterns: ['CONNECTING', '...'],
 };
 
 let bootSequenceActive = false;
@@ -1270,9 +1268,8 @@ function initBootSequence() {
         // Highlight welcome
         formatted = formatted.replace(/WELCOME, OPERATOR\./g,
             '<span class="boot-highlight">WELCOME, OPERATOR.</span>');
-        // Dim the loading prefixes
-        formatted = formatted.replace(/(CONNECTING TO EMBERHOLM REALM\.\.\.)/g, '<span class="boot-dim">$1</span>');
-        formatted = formatted.replace(/(LOADING EMISSARY DATABASE\.\.\.)/g, '<span class="boot-dim">$1</span>');
+        // Dim the connecting line
+        formatted = formatted.replace(/(> CONNECTING TO EMBERHOLM\.\.\.)/g, '<span class="boot-dim">$1</span>');
         return formatted;
     }
 
