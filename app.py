@@ -400,6 +400,12 @@ CHAIN_ID = 8453
 EMBER_RUNES_CONTRACT = "0xDa2D1085053c3700645a13498293D17c1cc3f595"
 EMBER_ITEMS_CONTRACT = "0xCE71702CE99Bc927216e64d57e4BD19254Ac28bA"
 
+# 🏆 TROPHIES CONTRACT (ERC-1155)
+EMBER_TROPHIES_ADDRESS = "0x99bB074468DF7acED00a7a4960c52c4e22543ab8"
+GOLDEN_RUNE_TOKEN_ID = 1
+ETERNAL_TORCH_TOKEN_ID = 2
+GOLDEN_RUNE_DROP_CHANCE = 0.00001  # 0.001%
+
 # 🔥 IPFS CIDs for Items and Runes metadata
 ITEMS_METADATA_CID = "bafybeibs6mm5rghbpld7twbj35dbpryrfimmqkbnkev6ufs4kpbp343wfm"
 RUNES_METADATA_CID = "bafybeiajq22kxgm764srr55wsiz4t65so5laxe2nmrryzgailzpmfes3nq"
@@ -2441,22 +2447,127 @@ def generate_claim_signature(player_wallet: str, claim_type: str, mission_id: st
         traceback.print_exc()
         return None
 
-def calculate_drops(difficulty: str, is_party: bool = False) -> dict:
+
+# ---------------------------------
+# 🏆 EVENT SYSTEM HELPERS (for drops)
+# ---------------------------------
+
+def get_active_event_for_drops():
+    """
+    Get the currently active event from database (for drop multipliers).
+    Returns None if no active event or database unavailable.
+    """
+    if not POSTGRESQL_AVAILABLE:
+        return None
+
+    try:
+        with db.get_db() as conn:
+            with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                cur.execute("""
+                    SELECT * FROM events WHERE status = 'active' LIMIT 1
+                """)
+                event = cur.fetchone()
+                return dict(event) if event else None
+    except Exception as e:
+        logger.error(f"Error getting active event: {e}")
+        return None
+
+
+def get_drop_multipliers():
+    """
+    Get drop multipliers from the active event.
+    Returns (item_multiplier, rune_multiplier) tuple.
+    """
+    event = get_active_event_for_drops()
+    if event:
+        return (
+            float(event.get('item_drop_multiplier', 1)),
+            float(event.get('rune_drop_multiplier', 1))
+        )
+    return (1.0, 1.0)
+
+
+def check_golden_rune_drop(player_wallet):
+    """
+    Check if the player finds the Golden Rune (0.001% chance).
+    Only drops once during the event (supply = 1).
+
+    Returns:
+        True if Golden Rune was found, False otherwise
+    """
+    if not POSTGRESQL_AVAILABLE:
+        return False
+
+    try:
+        # 1. Check if event is active
+        event = get_active_event_for_drops()
+        if not event or event.get('slug') != 'the-first-spark':
+            return False
+
+        # 2. Check if Golden Rune was already found
+        with db.get_db() as conn:
+            with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                cur.execute("""
+                    SELECT * FROM event_prizes
+                    WHERE trophy_token_id = %s AND winner_wallet IS NOT NULL
+                """, (GOLDEN_RUNE_TOKEN_ID,))
+                if cur.fetchone():
+                    return False  # Already found by someone
+
+        # 3. Roll for Golden Rune
+        roll = random.random()
+        if roll > GOLDEN_RUNE_DROP_CHANCE:
+            return False  # Not lucky
+
+        # 4. GOLDEN RUNE FOUND!
+        logger.warning(f"🎉 GOLDEN RUNE FOUND! Wallet: {player_wallet}")
+
+        with db.get_db() as conn:
+            with conn.cursor() as cur:
+                # Update the prize record
+                cur.execute("""
+                    UPDATE event_prizes
+                    SET winner_wallet = %s, found_at = NOW()
+                    WHERE trophy_token_id = %s AND winner_wallet IS NULL
+                """, (player_wallet.lower(), GOLDEN_RUNE_TOKEN_ID))
+
+        # TODO: Mint trophy to player via Web3 (requires backend wallet private key)
+        # For now, the trophy will be minted manually by the owner
+
+        return True
+
+    except Exception as e:
+        logger.error(f"Error checking Golden Rune drop: {e}")
+        return False
+
+
+def calculate_drops(difficulty: str, is_party: bool = False, player_wallet: str = None) -> dict:
     """
     Calculate if player wins item or rune drop based on mission difficulty.
+    Applies event multipliers if an event is active.
 
     Args:
         difficulty: Mission difficulty ("EASY", "MEDIUM", "HARD")
         is_party: True if this was a party mission
+        player_wallet: (optional) Wallet address for Golden Rune check
 
     Returns:
-        dict with "item" and "rune" booleans
+        dict with "item", "rune", "golden_rune" booleans
     """
     # Use PARTY rates if party mission, otherwise use difficulty rates
     if is_party:
-        rates = DROP_RATES.get("PARTY", {"item": 25, "rune": 12})
+        base_rates = DROP_RATES.get("PARTY", {"item": 25, "rune": 12})
     else:
-        rates = DROP_RATES.get(difficulty.upper(), {"item": 5, "rune": 1})
+        base_rates = DROP_RATES.get(difficulty.upper(), {"item": 5, "rune": 1})
+
+    # Get event multipliers (defaults to 1.0 if no event active)
+    item_mult, rune_mult = get_drop_multipliers()
+
+    # Apply multipliers (cap at 100%)
+    rates = {
+        "item": min(100, int(base_rates["item"] * item_mult)),
+        "rune": min(100, int(base_rates["rune"] * rune_mult))
+    }
 
     item_roll = random.randint(1, 100)
     rune_roll = random.randint(1, 100)
@@ -2464,21 +2575,34 @@ def calculate_drops(difficulty: str, is_party: bool = False) -> dict:
     won_item = item_roll <= rates["item"]
     won_rune = rune_roll <= rates["rune"]
 
+    # Check for Golden Rune drop (only during "The First Spark" event)
+    golden_rune_found = False
+    if player_wallet:
+        golden_rune_found = check_golden_rune_drop(player_wallet)
+
     # Enhanced logging for debugging
+    event_active = item_mult > 1 or rune_mult > 1
     print(f"\n{'='*50}")
     print(f"🎲 DROP CALCULATION")
     print(f"   Difficulty: {difficulty}, Party: {is_party}")
-    print(f"   Drop rates: item={rates['item']}%, rune={rates['rune']}%")
+    if event_active:
+        print(f"   🔥 EVENT ACTIVE! Multipliers: item={item_mult}x, rune={rune_mult}x")
+        print(f"   Base rates: item={base_rates['item']}%, rune={base_rates['rune']}%")
+    print(f"   Final rates: item={rates['item']}%, rune={rates['rune']}%")
     print(f"   Item roll: {item_roll}/100 (need <= {rates['item']}) → {'🎁 WON ITEM!' if won_item else '💨 No item'}")
     print(f"   Rune roll: {rune_roll}/100 (need <= {rates['rune']}) → {'🎁 WON RUNE!' if won_rune else '💨 No rune'}")
-    if won_item or won_rune:
+    if golden_rune_found:
+        print(f"   🏆 GOLDEN RUNE FOUND! The Fortunate has been discovered!")
+    if won_item or won_rune or golden_rune_found:
         print(f"   🎉 PLAYER WON DROP(S)!")
     print(f"{'='*50}\n")
 
     return {
         "item": won_item,
         "rune": won_rune,
-        "rates": rates
+        "golden_rune": golden_rune_found,
+        "rates": rates,
+        "multipliers": {"item": item_mult, "rune": rune_mult}
     }
 
 def save_pending_claim(wallet: str, claim_type: str, claim_id: str, signature: str,
@@ -4594,7 +4718,7 @@ def handle_party_mission_complete(wallet, party_mission):
     # Only roll for drops if there was at least one success
     if successes > 0:
         try:
-            drops_result = calculate_drops(mission.get("difficulty", "EASY"), is_party=True)
+            drops_result = calculate_drops(mission.get("difficulty", "EASY"), is_party=True, player_wallet=wallet)
 
             if drops_result["item"]:
                 item_claim = generate_claim_signature(wallet, "ITEM", mission_id)
@@ -4627,6 +4751,15 @@ def handle_party_mission_complete(wallet, party_mission):
                     print(f"⚠️ Rune drop won but signature generation failed")
                     if not drop_error_reason:
                         drop_error_reason = "Signature generation unavailable - check BACKEND_SIGNER_PRIVATE_KEY"
+
+            # Check for Golden Rune (The First Spark event)
+            if drops_result.get("golden_rune"):
+                drops.append({
+                    "type": "TROPHY",
+                    "name": "Golden Rune of Emberholm",
+                    "token_id": GOLDEN_RUNE_TOKEN_ID,
+                    "message": "🏆 THE FORTUNATE! You found the Golden Rune! 1 ETH awaits..."
+                })
 
         except Exception as drop_err:
             print(f"❌ DROP SYSTEM ERROR in party mission (mission still completes): {drop_err}")
@@ -4940,8 +5073,8 @@ def api_mission_complete():
             drop_error_reason = None
 
             try:
-                drops_result = calculate_drops(mission.get("difficulty", "EASY"), is_party=False)
-                print(f"   Drop result: item={drops_result['item']}, rune={drops_result['rune']}")
+                drops_result = calculate_drops(mission.get("difficulty", "EASY"), is_party=False, player_wallet=wallet)
+                print(f"   Drop result: item={drops_result['item']}, rune={drops_result['rune']}, golden_rune={drops_result.get('golden_rune', False)}")
 
                 if drops_result["item"]:
                     print("   🎁 Item drop won! Generating claim signature...")
@@ -4980,6 +5113,16 @@ def api_mission_complete():
                         print("   ⚠️ Rune drop won but signature generation failed")
                         if not drop_error_reason:
                             drop_error_reason = "Signature generation unavailable - check BACKEND_SIGNER_PRIVATE_KEY"
+
+                # Check for Golden Rune (The First Spark event)
+                if drops_result.get("golden_rune"):
+                    print("   🏆 GOLDEN RUNE FOUND! THE FORTUNATE!")
+                    drops.append({
+                        "type": "TROPHY",
+                        "name": "Golden Rune of Emberholm",
+                        "token_id": GOLDEN_RUNE_TOKEN_ID,
+                        "message": "🏆 THE FORTUNATE! You found the Golden Rune! 1 ETH awaits..."
+                    })
 
             except Exception as drop_err:
                 print(f"   ❌ DROP SYSTEM ERROR (mission still completes): {drop_err}")
@@ -10265,6 +10408,389 @@ def get_player_stats(wallet):
     except Exception as e:
         logger.error(f"Error getting player stats: {e}")
         return None
+
+
+# ---------------------------------
+
+
+# =========================================================================
+# 🏆 EVENTS & TROPHIES SYSTEM
+# =========================================================================
+# The First Spark event + EmberTrophies ERC-1155 integration
+# Constants defined at top of file: EMBER_TROPHIES_ADDRESS, GOLDEN_RUNE_TOKEN_ID, etc.
+
+# EmberTrophies ABI (minimal for minting)
+EMBER_TROPHIES_ABI = [
+    {
+        "inputs": [
+            {"name": "to", "type": "address"},
+            {"name": "tokenId", "type": "uint256"}
+        ],
+        "name": "mintByBackend",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [{"name": "tokenId", "type": "uint256"}],
+        "name": "isTrophyMinted",
+        "outputs": [{"name": "", "type": "bool"}],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [{"name": "wallet", "type": "address"}],
+        "name": "getWalletTrophies",
+        "outputs": [
+            {"name": "tokenIds", "type": "uint256[]"},
+            {"name": "amounts", "type": "uint256[]"}
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {"name": "wallet", "type": "address"},
+            {"name": "tokenId", "type": "uint256"}
+        ],
+        "name": "canClaimTrophy",
+        "outputs": [{"name": "", "type": "bool"}],
+        "stateMutability": "view",
+        "type": "function"
+    }
+]
+
+
+def get_active_event():
+    """
+    Get the currently active event from database.
+    Returns None if no active event.
+    """
+    if not POSTGRESQL_AVAILABLE:
+        return None
+
+    try:
+        with db.get_db() as conn:
+            with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                cur.execute("""
+                    SELECT * FROM events WHERE status = 'active' LIMIT 1
+                """)
+                event = cur.fetchone()
+                return dict(event) if event else None
+    except Exception as e:
+        logger.error(f"Error getting active event: {e}")
+        return None
+
+
+def get_event_prizes(event_id):
+    """
+    Get prizes for a specific event.
+    """
+    if not POSTGRESQL_AVAILABLE:
+        return []
+
+    try:
+        with db.get_db() as conn:
+            with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                cur.execute("""
+                    SELECT * FROM event_prizes WHERE event_id = %s
+                """, (event_id,))
+                return [dict(p) for p in cur.fetchall()]
+    except Exception as e:
+        logger.error(f"Error getting event prizes: {e}")
+        return []
+
+
+def get_total_emissaries_minted():
+    """
+    Get the total number of emissaries minted (for event progress).
+    """
+    if not POSTGRESQL_AVAILABLE:
+        return 0
+
+    try:
+        with db.get_db() as conn:
+            with conn.cursor() as cur:
+                cur.execute("SELECT COUNT(*) FROM nfts")
+                result = cur.fetchone()
+                return result[0] if result else 0
+    except Exception as e:
+        logger.error(f"Error getting total minted: {e}")
+        return 0
+
+
+# ---------------------------------
+# 📡 EVENTS API ENDPOINTS
+# ---------------------------------
+
+@app.route('/api/events/active')
+@rate_limit(requests_per_minute=60)
+def api_get_active_event():
+    """
+    Get the active event with prizes and progress.
+
+    Returns:
+        JSON with event details, prizes, and leaderboard link
+    """
+    event = get_active_event()
+
+    if not event:
+        return jsonify({"active": False})
+
+    # Get prizes
+    prizes = get_event_prizes(event['id'])
+
+    # Get progress (total minted)
+    total_minted = get_total_emissaries_minted()
+
+    # Format prizes for frontend
+    formatted_prizes = []
+    for p in prizes:
+        winner = p.get('winner_wallet')
+        formatted_prizes.append({
+            "name": p['prize_name'],
+            "type": p['prize_type'],
+            "reward_eth": str(p['reward_eth']),
+            "trophy_token_id": p['trophy_token_id'],
+            "found": winner is not None,
+            "winner_wallet": f"{winner[:6]}...{winner[-4:]}" if winner else None,
+            "winner_wallet_full": winner,
+            "trophy_minted": p.get('trophy_minted', False),
+            "reward_sent": p.get('reward_sent', False),
+            "found_at": str(p['found_at']) if p.get('found_at') else None
+        })
+
+    return jsonify({
+        "active": True,
+        "event": {
+            "id": event['id'],
+            "name": event['name'],
+            "slug": event['slug'],
+            "description": event['description'],
+            "item_multiplier": float(event['item_drop_multiplier']),
+            "rune_multiplier": float(event['rune_drop_multiplier']),
+            "start_condition": event['start_condition'],
+            "end_condition": event['end_condition'],
+            "created_at": str(event['created_at'])
+        },
+        "progress": {
+            "current": total_minted,
+            "target": 35000
+        },
+        "prizes": formatted_prizes
+    })
+
+
+@app.route('/api/events/leaderboard')
+@rate_limit(requests_per_minute=30)
+def api_get_event_leaderboard():
+    """
+    Get the XP leaderboard for the active event.
+    Groups by wallet, sums XP of all alive emissaries.
+
+    Query params:
+        wallet: (optional) Include user's position in response
+    """
+    if not POSTGRESQL_AVAILABLE:
+        return jsonify({"error": "Database not available"}), 503
+
+    wallet = request.args.get('wallet', '').lower()
+
+    try:
+        with db.get_db() as conn:
+            with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                # Get top 10
+                cur.execute("""
+                    SELECT
+                        last_known_owner as wallet,
+                        COUNT(*) as emissary_count,
+                        SUM((dynamic_state->>'xp_total')::int) as total_xp
+                    FROM nfts
+                    WHERE last_known_owner IS NOT NULL
+                      AND dynamic_state->>'state' != 'FALLEN'
+                    GROUP BY last_known_owner
+                    ORDER BY total_xp DESC
+                    LIMIT 10
+                """)
+                top_10 = cur.fetchall()
+
+                leaderboard = []
+                for i, row in enumerate(top_10):
+                    w = row['wallet']
+                    leaderboard.append({
+                        "rank": i + 1,
+                        "wallet": f"{w[:6]}...{w[-4:]}" if w else "Unknown",
+                        "wallet_full": w,
+                        "total_xp": row['total_xp'] or 0,
+                        "emissary_count": row['emissary_count']
+                    })
+
+                result = {"leaderboard": leaderboard}
+
+                # Get user position if wallet provided
+                if wallet:
+                    cur.execute("""
+                        WITH ranked AS (
+                            SELECT
+                                last_known_owner as wallet,
+                                COUNT(*) as emissary_count,
+                                SUM((dynamic_state->>'xp_total')::int) as total_xp,
+                                RANK() OVER (ORDER BY SUM((dynamic_state->>'xp_total')::int) DESC) as rank
+                            FROM nfts
+                            WHERE last_known_owner IS NOT NULL
+                              AND dynamic_state->>'state' != 'FALLEN'
+                            GROUP BY last_known_owner
+                        )
+                        SELECT * FROM ranked WHERE wallet = %s
+                    """, (wallet,))
+                    user_pos = cur.fetchone()
+
+                    if user_pos:
+                        result["user_position"] = {
+                            "rank": user_pos['rank'],
+                            "total_xp": user_pos['total_xp'] or 0,
+                            "emissary_count": user_pos['emissary_count']
+                        }
+                    else:
+                        result["user_position"] = None
+
+                return jsonify(result)
+
+    except Exception as e:
+        logger.error(f"Error getting event leaderboard: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/trophies/<wallet>')
+@rate_limit(requests_per_minute=30)
+def api_get_wallet_trophies(wallet):
+    """
+    Get trophies owned by a wallet.
+    Reads from the EmberTrophies contract on Base mainnet.
+    """
+    if not wallet:
+        return jsonify({"error": "Wallet required"}), 400
+
+    wallet = wallet.lower()
+
+    # Trophy metadata (hardcoded for now, could be fetched from IPFS)
+    TROPHY_METADATA = {
+        1: {
+            "name": "Golden Rune of Emberholm",
+            "description": "Found during The First Spark event",
+            "image": "ipfs://bafybeiastvxo4iu665flaihoia4722zliwbsjho4jds3hrjniesct3e6sm/1.png",
+            "rarity": "Mythic"
+        },
+        2: {
+            "name": "The Eternal Torch",
+            "description": "Awarded to the Worthy - highest XP during The First Spark",
+            "image": "ipfs://bafybeiastvxo4iu665flaihoia4722zliwbsjho4jds3hrjniesct3e6sm/2.png",
+            "rarity": "Legendary"
+        }
+    }
+
+    trophies = []
+    claimable = []
+
+    try:
+        # Try to read from contract if Web3 is available
+        if Web3Lib:
+            try:
+                w3 = Web3Lib(Web3Lib.HTTPProvider("https://mainnet.base.org"))
+                contract = w3.eth.contract(
+                    address=Web3Lib.to_checksum_address(EMBER_TROPHIES_ADDRESS),
+                    abi=EMBER_TROPHIES_ABI
+                )
+
+                # Get wallet trophies
+                wallet_checksum = Web3Lib.to_checksum_address(wallet)
+                token_ids, amounts = contract.functions.getWalletTrophies(wallet_checksum).call()
+
+                for i, token_id in enumerate(token_ids):
+                    metadata = TROPHY_METADATA.get(token_id, {
+                        "name": f"Trophy #{token_id}",
+                        "rarity": "Unknown"
+                    })
+                    trophies.append({
+                        "token_id": token_id,
+                        "amount": amounts[i],
+                        "name": metadata.get("name"),
+                        "image": metadata.get("image"),
+                        "rarity": metadata.get("rarity"),
+                        "owned": amounts[i] > 0
+                    })
+
+                # Check for claimable trophies
+                for token_id in [1, 2]:
+                    can_claim = contract.functions.canClaimTrophy(wallet_checksum, token_id).call()
+                    if can_claim:
+                        claimable.append({
+                            "token_id": token_id,
+                            "name": TROPHY_METADATA.get(token_id, {}).get("name", f"Trophy #{token_id}")
+                        })
+
+            except Exception as e:
+                logger.warning(f"Error reading trophies from contract: {e}")
+                # Fall back to database check
+                pass
+
+        # Also check database for prize winners (in case contract call failed)
+        if POSTGRESQL_AVAILABLE:
+            with db.get_db() as conn:
+                with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                    cur.execute("""
+                        SELECT trophy_token_id, prize_name, trophy_minted
+                        FROM event_prizes
+                        WHERE winner_wallet = %s
+                    """, (wallet,))
+                    db_prizes = cur.fetchall()
+
+                    for prize in db_prizes:
+                        token_id = prize['trophy_token_id']
+                        # Add to trophies if not already there
+                        existing = next((t for t in trophies if t['token_id'] == token_id), None)
+                        if not existing:
+                            metadata = TROPHY_METADATA.get(token_id, {})
+                            trophies.append({
+                                "token_id": token_id,
+                                "amount": 1 if prize['trophy_minted'] else 0,
+                                "name": metadata.get("name", prize['prize_name']),
+                                "image": metadata.get("image"),
+                                "rarity": metadata.get("rarity"),
+                                "owned": prize['trophy_minted'],
+                                "pending_claim": not prize['trophy_minted']
+                            })
+
+        # Add all possible trophies as locked if not owned
+        for token_id, metadata in TROPHY_METADATA.items():
+            existing = next((t for t in trophies if t['token_id'] == token_id), None)
+            if not existing:
+                trophies.append({
+                    "token_id": token_id,
+                    "amount": 0,
+                    "name": metadata.get("name"),
+                    "image": metadata.get("image"),
+                    "rarity": metadata.get("rarity"),
+                    "owned": False,
+                    "locked": True
+                })
+
+        # Sort by token_id
+        trophies.sort(key=lambda x: x['token_id'])
+
+        return jsonify({
+            "wallet": wallet,
+            "trophies": trophies,
+            "claimable": claimable
+        })
+
+    except Exception as e:
+        logger.error(f"Error getting wallet trophies: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
 
 
 # ---------------------------------

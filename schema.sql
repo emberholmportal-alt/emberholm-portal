@@ -332,6 +332,107 @@ CREATE INDEX IF NOT EXISTS idx_revive_log_wallet ON revive_log(wallet);
 CREATE INDEX IF NOT EXISTS idx_revive_log_emissary ON revive_log(emissary_id);
 CREATE INDEX IF NOT EXISTS idx_revive_log_tx ON revive_log(tx_hash);
 
+-- -------------------------------------------------------------------------
+-- TABLA: EVENTS (Sistema de eventos escalable)
+-- -------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS events (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,                          -- "The First Spark"
+    slug VARCHAR(50) UNIQUE NOT NULL,                    -- "the-first-spark"
+    status VARCHAR(20) DEFAULT 'active',                 -- active, ended
+    description TEXT,
+    start_condition VARCHAR(255),                        -- "mint >= 1"
+    end_condition VARCHAR(255),                          -- "mint >= 35000"
+    item_drop_multiplier DECIMAL(5,2) DEFAULT 1.00,      -- 3 para este evento
+    rune_drop_multiplier DECIMAL(5,2) DEFAULT 1.00,      -- 2 para este evento
+    created_at TIMESTAMP DEFAULT NOW(),
+    ended_at TIMESTAMP NULL
+);
+
+-- Índices para events
+CREATE INDEX IF NOT EXISTS idx_events_status ON events(status);
+CREATE INDEX IF NOT EXISTS idx_events_slug ON events(slug);
+
+-- -------------------------------------------------------------------------
+-- TABLA: EVENT_PRIZES (Premios de cada evento)
+-- -------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS event_prizes (
+    id SERIAL PRIMARY KEY,
+    event_id INTEGER REFERENCES events(id) ON DELETE CASCADE,
+    prize_name VARCHAR(100) NOT NULL,                    -- "The Fortunate", "The Worthy"
+    prize_type VARCHAR(50) NOT NULL,                     -- "random_drop", "leaderboard"
+    trophy_token_id INTEGER NOT NULL,                    -- 1 para Golden Rune, 2 para Eternal Torch
+    reward_eth DECIMAL(10,4) DEFAULT 0,                  -- 1 ETH
+    winner_wallet VARCHAR(42) NULL,                      -- Se llena cuando se determina
+    trophy_minted BOOLEAN DEFAULT FALSE,                 -- Si ya se minteó el trofeo
+    reward_sent BOOLEAN DEFAULT FALSE,                   -- Si ya se envió el ETH
+    found_at TIMESTAMP NULL,                             -- Cuando se encontró/determinó
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Índices para event_prizes
+CREATE INDEX IF NOT EXISTS idx_event_prizes_event ON event_prizes(event_id);
+CREATE INDEX IF NOT EXISTS idx_event_prizes_trophy ON event_prizes(trophy_token_id);
+CREATE INDEX IF NOT EXISTS idx_event_prizes_winner ON event_prizes(winner_wallet);
+
+-- -------------------------------------------------------------------------
+-- DATOS INICIALES: Evento "The First Spark"
+-- -------------------------------------------------------------------------
+INSERT INTO events (name, slug, description, start_condition, end_condition, item_drop_multiplier, rune_drop_multiplier)
+VALUES (
+    'The First Spark',
+    'the-first-spark',
+    'The Portal opens. Two prophecies await fulfillment.',
+    'mint >= 1',
+    'mint >= 35000',
+    3.00,
+    2.00
+)
+ON CONFLICT (slug) DO NOTHING;
+
+-- Premios del evento (requiere que el evento exista)
+INSERT INTO event_prizes (event_id, prize_name, prize_type, trophy_token_id, reward_eth)
+SELECT
+    e.id,
+    'The Fortunate',
+    'random_drop',
+    1,
+    1.0000
+FROM events e
+WHERE e.slug = 'the-first-spark'
+  AND NOT EXISTS (
+    SELECT 1 FROM event_prizes ep
+    WHERE ep.event_id = e.id AND ep.prize_name = 'The Fortunate'
+  );
+
+INSERT INTO event_prizes (event_id, prize_name, prize_type, trophy_token_id, reward_eth)
+SELECT
+    e.id,
+    'The Worthy',
+    'leaderboard',
+    2,
+    1.0000
+FROM events e
+WHERE e.slug = 'the-first-spark'
+  AND NOT EXISTS (
+    SELECT 1 FROM event_prizes ep
+    WHERE ep.event_id = e.id AND ep.prize_name = 'The Worthy'
+  );
+
+-- -------------------------------------------------------------------------
+-- VIEW: Event XP Leaderboard (Solo emissaries vivos)
+-- -------------------------------------------------------------------------
+CREATE OR REPLACE VIEW event_xp_leaderboard AS
+SELECT
+    last_known_owner as wallet,
+    COUNT(*) as emissary_count,
+    SUM((dynamic_state->>'xp_total')::int) as total_xp
+FROM nfts
+WHERE last_known_owner IS NOT NULL
+  AND dynamic_state->>'state' != 'FALLEN'
+GROUP BY last_known_owner
+ORDER BY total_xp DESC;
+
 -- =========================================================================
 -- SCHEMA COMPLETO
 -- =========================================================================

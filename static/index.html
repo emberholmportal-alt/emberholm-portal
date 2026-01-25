@@ -1713,6 +1713,24 @@ document.addEventListener('DOMContentLoaded', initPortalWarning);
                             <div style="color:#666; font-style:italic;">Connect wallet to view achievements...</div>
                         </div>
                     </div>
+
+                    <!-- Trophies Display (Event Rewards) -->
+                    <div id="trophies-display" style="margin-top:15px; padding:12px; border:1px solid #ffcc00; background:rgba(255,204,0,0.05);">
+                        <div class="subheading" style="margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
+                            <span style="color:#ffcc00;">&#127942; TROPHIES</span>
+                            <span id="trophies-count" style="font-size:0.8em; color:#888;">[0]</span>
+                        </div>
+                        <div id="trophies-grid" style="display:grid; grid-template-columns:repeat(2, 1fr); gap:8px; font-size:11px;">
+                            <div style="color:#666; font-style:italic; grid-column:span 2;">Connect wallet to view trophies...</div>
+                        </div>
+                        <!-- Claimable Trophies Alert -->
+                        <div id="claimable-trophies" style="display:none; margin-top:10px; padding:8px; border:1px dashed #44ff44; background:rgba(68,255,68,0.1);">
+                            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+                                <span style="color:#44ff44; font-size:11px;" id="claimable-trophy-name">CLAIMABLE: --</span>
+                                <button class="terminal-btn small-btn" onclick="claimTrophy()" style="font-size:10px; padding:4px 8px; border-color:#44ff44; color:#44ff44;">[CLAIM]</button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="profile-col-right">
@@ -3226,11 +3244,138 @@ document.addEventListener('DOMContentLoaded', initPortalWarning);
     <!-- EVENTS -->
     <section class="screen" data-screen="events">
         <div class="section-block">
-            <div class="section-title">EVENTS // SPECIAL OPERATIONS</div>
-            <div id="events-list"></div>
-            <div class="mono-small-note">
-                NOTE: Special Events may appear without warning and may ignore standard Guild targeting.<br/>
-                Each Emissary can participate once per event.
+            <div class="section-title">EVENTS // ACTIVE CAMPAIGNS</div>
+
+            <!-- Event Container (populated by JS) -->
+            <div id="events-container">
+                <!-- Loading state -->
+                <div id="events-loading" class="terminal-box" style="text-align:center; padding:40px;">
+                    <span style="color:#ffaa00;">SCANNING FOR ACTIVE EVENTS...</span>
+                </div>
+
+                <!-- No events state -->
+                <div id="no-events" style="display:none;" class="terminal-box" style="text-align:center; padding:40px;">
+                    <span style="color:#888;">NO ACTIVE EVENTS</span><br/><br/>
+                    <span style="color:#666; font-size:11px;">The Ember Core is dormant. Check back later.</span>
+                </div>
+
+                <!-- Active Event Content (hidden until loaded) -->
+                <div id="active-event-content" style="display:none;">
+
+                    <!-- Event Header with Lore -->
+                    <div class="terminal-box" style="margin-bottom:16px; border-color:#ff6600;">
+                        <div style="color:#ff6600; font-size:16px; font-weight:bold; margin-bottom:8px; text-align:center;">
+                            EMBER PROTOCOL // EVENT BROADCAST
+                        </div>
+                        <div style="color:#888; font-size:11px; margin-bottom:12px; text-align:center;">
+                            > ANOMALY DETECTED... SOURCE: THE EMBER CORE // CLASSIFICATION: MYTHIC
+                        </div>
+                        <div id="event-name" style="color:#ffcc00; font-size:20px; font-weight:bold; text-align:center; margin-bottom:8px;">
+                            THE FIRST SPARK
+                        </div>
+                        <div id="event-description" style="color:#aaa; font-size:12px; text-align:center; margin-bottom:16px;">
+                            The Portal opens. Two prophecies await fulfillment.
+                        </div>
+
+                        <!-- Progress Bar -->
+                        <div style="margin-bottom:8px;">
+                            <div style="display:flex; justify-content:space-between; font-size:11px; margin-bottom:4px;">
+                                <span style="color:#888;">PROGRESS:</span>
+                                <span id="event-progress-text" style="color:#44ff44;">0 / 35,000 Emissaries</span>
+                            </div>
+                            <div style="background:#1a1a1a; border:1px solid #333; height:20px; position:relative;">
+                                <div id="event-progress-bar" style="background:linear-gradient(90deg, #ff6600, #ffcc00); height:100%; width:0%; transition:width 0.5s;"></div>
+                                <span id="event-progress-percent" style="position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); color:#fff; font-size:10px; font-weight:bold;">0%</span>
+                            </div>
+                        </div>
+                        <div style="color:#666; font-size:10px; text-align:center;">
+                            Event ends when Emissary #35,000 is summoned
+                        </div>
+                    </div>
+
+                    <!-- Prize Cards Row -->
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px;">
+
+                        <!-- THE FORTUNATE -->
+                        <div class="terminal-box" id="prize-fortunate" style="border-color:#ffcc00;">
+                            <div style="display:flex; align-items:center; gap:8px; margin-bottom:12px;">
+                                <span style="font-size:20px;">&#127922;</span>
+                                <span style="color:#ffcc00; font-size:14px; font-weight:bold;">THE FORTUNATE</span>
+                                <span style="color:#44ff44; font-size:12px; margin-left:auto;">1 ETH</span>
+                            </div>
+                            <div style="color:#aaa; font-size:11px; margin-bottom:12px;">
+                                <div style="margin-bottom:8px; font-style:italic; color:#888;">
+                                    "One shall find what was lost in the First Collapse. The Golden Rune will choose its bearer."
+                                </div>
+                                Find the <span style="color:#ffcc00;">Golden Rune of Emberholm</span>.<br/>
+                                It drops randomly from missions during the event (0.001% chance).
+                            </div>
+                            <div id="fortunate-status" style="padding:8px; background:#1a1a1a; border:1px solid #333; text-align:center;">
+                                <span style="color:#888;">&#9675; NOT YET FOUND</span>
+                            </div>
+                        </div>
+
+                        <!-- THE WORTHY -->
+                        <div class="terminal-box" id="prize-worthy" style="border-color:#00ccff;">
+                            <div style="display:flex; align-items:center; gap:8px; margin-bottom:12px;">
+                                <span style="font-size:20px;">&#9876;</span>
+                                <span style="color:#00ccff; font-size:14px; font-weight:bold;">THE WORTHY</span>
+                                <span style="color:#44ff44; font-size:12px; margin-left:auto;">1 ETH</span>
+                            </div>
+                            <div style="color:#aaa; font-size:11px; margin-bottom:12px;">
+                                <div style="margin-bottom:8px; font-style:italic; color:#888;">
+                                    "One shall prove themselves above all others. The Core will recognize the Operator who gave most."
+                                </div>
+                                Accumulate the most <span style="color:#00ccff;">XP</span> across all your Emissaries.<br/>
+                                Winner determined when event ends.
+                            </div>
+                            <div style="padding:8px; background:#1a1a1a; border:1px solid #333; text-align:center;">
+                                <span style="color:#00ccff;">&#9660; SEE LEADERBOARD BELOW</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- XP Leaderboard -->
+                    <div class="terminal-box" style="margin-bottom:16px; border-color:#00ccff;">
+                        <div style="color:#00ccff; font-size:14px; font-weight:bold; margin-bottom:12px; text-align:center;">
+                            XP LEADERBOARD // THE WORTHY
+                        </div>
+
+                        <div id="xp-leaderboard" style="font-size:11px;">
+                            <!-- Populated by JS -->
+                            <div style="color:#888; text-align:center;">Loading leaderboard...</div>
+                        </div>
+
+                        <!-- User Position -->
+                        <div id="user-leaderboard-position" style="display:none; margin-top:12px; padding-top:12px; border-top:1px solid #333;">
+                            <div style="display:flex; justify-content:space-between; color:#ffcc00; font-size:12px;">
+                                <span>YOUR POSITION:</span>
+                                <span id="user-rank-display">#-- | -- XP</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Event Bonus -->
+                    <div class="terminal-box" style="border-color:#44ff44;">
+                        <div style="display:flex; align-items:center; gap:8px; margin-bottom:12px;">
+                            <span style="font-size:20px;">&#127873;</span>
+                            <span style="color:#44ff44; font-size:14px; font-weight:bold;">EVENT BONUS</span>
+                            <span style="background:#1a3a1a; color:#44ff44; padding:2px 8px; font-size:10px; margin-left:auto; border:1px solid #44ff44;">ACTIVE</span>
+                        </div>
+                        <div style="color:#aaa; font-size:12px;">
+                            During <span style="color:#ffcc00;">THE FIRST SPARK</span>:
+                            <ul style="margin:8px 0 0 20px; padding:0;">
+                                <li style="margin-bottom:4px;">Item drop rates: <span id="item-multiplier" style="color:#44ff44;">x3</span></li>
+                                <li>Rune drop rates: <span id="rune-multiplier" style="color:#44ff44;">x2</span></li>
+                            </ul>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <div class="mono-small-note" style="margin-top:16px;">
+                NOTE: Special Events may appear without warning. Prizes are sent manually by the Ember Core after verification.
             </div>
         </div>
     </section>
@@ -5687,80 +5832,139 @@ async function fetchMissionsAndRender(){
     }
 }
 
-/* --------- EVENTS PANEL --------- */
+/* --------- EVENTS PANEL (The First Spark) --------- */
 async function fetchEventsAndRender(){
     try {
-        const response = await fetchJSON("/api/events");
-        const events = response.events || [];
-        const eventSettings = response.event_settings || {};
+        console.log("🔥 Loading active event...");
 
-        if (events.length === 0) {
-            document.getElementById("events-list").innerHTML =
-                `<div class="mono-block">
-                    NO ACTIVE EVENTS<br/><br/>
-                    Check back later. Special events may appear at any time.
-                </div>`;
+        // Fetch active event
+        const eventResponse = await fetchJSON("/api/events/active");
+
+        const loadingEl = document.getElementById("events-loading");
+        const noEventsEl = document.getElementById("no-events");
+        const activeContentEl = document.getElementById("active-event-content");
+
+        if (!eventResponse.active) {
+            // No active event
+            if (loadingEl) loadingEl.style.display = "none";
+            if (noEventsEl) noEventsEl.style.display = "block";
+            if (activeContentEl) activeContentEl.style.display = "none";
             return;
         }
 
-        let html = "";
-        events.forEach(e => {
-            // Event active status
-            const isActive = e.event_active !== false;
-            const statusColor = isActive ? "#44ff44" : "#888";
+        // Show active event content
+        if (loadingEl) loadingEl.style.display = "none";
+        if (noEventsEl) noEventsEl.style.display = "none";
+        if (activeContentEl) activeContentEl.style.display = "block";
 
-            // Difficulty color
-            let diffColor = "#44ff44";
-            if (e.difficulty === "MEDIUM") diffColor = "#ffaa00";
-            if (e.difficulty === "HARD") diffColor = "#ff4444";
+        const event = eventResponse.event;
+        const progress = eventResponse.progress;
+        const prizes = eventResponse.prizes;
 
-            // Time remaining display
-            const timeRemaining = e.time_remaining_hours || 0;
-            const daysLeft = Math.floor(timeRemaining / 24);
-            const hoursLeft = Math.floor(timeRemaining % 24);
-            let timeDisplay = "";
-            if (daysLeft > 0) {
-                timeDisplay = `${daysLeft}d ${hoursLeft}h remaining`;
-            } else {
-                timeDisplay = `${hoursLeft}h remaining`;
+        // Update event name and description
+        const eventNameEl = document.getElementById("event-name");
+        const eventDescEl = document.getElementById("event-description");
+        if (eventNameEl) eventNameEl.textContent = event.name.toUpperCase();
+        if (eventDescEl) eventDescEl.textContent = event.description;
+
+        // Update progress bar
+        const progressPercent = Math.min(100, (progress.current / progress.target) * 100);
+        const progressTextEl = document.getElementById("event-progress-text");
+        const progressBarEl = document.getElementById("event-progress-bar");
+        const progressPercentEl = document.getElementById("event-progress-percent");
+
+        if (progressTextEl) progressTextEl.textContent = `${progress.current.toLocaleString()} / ${progress.target.toLocaleString()} Emissaries`;
+        if (progressBarEl) progressBarEl.style.width = `${progressPercent}%`;
+        if (progressPercentEl) progressPercentEl.textContent = `${progressPercent.toFixed(1)}%`;
+
+        // Update multipliers
+        const itemMultEl = document.getElementById("item-multiplier");
+        const runeMultEl = document.getElementById("rune-multiplier");
+        if (itemMultEl) itemMultEl.textContent = `x${event.item_multiplier}`;
+        if (runeMultEl) runeMultEl.textContent = `x${event.rune_multiplier}`;
+
+        // Update prize statuses
+        prizes.forEach(prize => {
+            if (prize.name === "The Fortunate") {
+                const fortunateStatusEl = document.getElementById("fortunate-status");
+                if (fortunateStatusEl) {
+                    if (prize.found) {
+                        fortunateStatusEl.innerHTML = `<span style="color:#44ff44;">&#9679; FOUND BY ${prize.winner_wallet}</span>`;
+                        fortunateStatusEl.style.borderColor = "#44ff44";
+                    } else {
+                        fortunateStatusEl.innerHTML = `<span style="color:#888;">&#9675; NOT YET FOUND</span>`;
+                    }
+                }
             }
-
-            html += `
-            <div class="mono-block" style="margin-bottom:20px; border:2px solid ${diffColor};">
-                <div style="display:flex; justify-content:space-between; align-items:flex-start;">
-                    <div style="flex:1;">
-                        <b style="font-size:18px;">${e.name}</b><br/>
-                        <span style="color:${diffColor};">● ${e.difficulty}</span> |
-                        Duration: ${e.duration_hours}h |
-                        Energy: ${e.energy_cost}<br/>
-                        <span style="color:${statusColor};">⏱️ ${timeDisplay}</span><br/><br/>
-
-                        <b>Rewards:</b><br/>
-                        XP: ${e.reward_xp} | Aura: ${e.reward_aura}<br/>
-                        Success Rate: ${e.success_rate}% (base)<br/><br/>
-
-                        <div style="font-size:14px; color:#aaa;">
-                            ${e.description || ""}<br/><br/>
-                            <i>${e.lore || ""}</i>
-                        </div>
-                    </div>
-                    <div style="margin-left:20px;">
-                        ${connectedWallet && isActive
-                            ? `<button class="cmd-link" onclick="openEventSendModal('${e.id}')">[PARTICIPATE]</button>`
-                            : !connectedWallet
-                            ? `<button class="cmd-link" style="opacity:0.5;" onclick="showInfoModal('WALLET REQUIRED', 'Please connect your wallet using the [CONNECT WALLET] button in the PROFILE section.')">[WALLET REQUIRED]</button>`
-                            : `<button class="cmd-link" style="opacity:0.5;">[ENDED]</button>`
-                        }
-                    </div>
-                </div>
-            </div>`;
         });
 
-        document.getElementById("events-list").innerHTML = html;
+        // Load XP leaderboard
+        await loadEventLeaderboard();
+
     } catch(e){
-        console.error(e);
-        document.getElementById("events-list").innerHTML =
-            `<div class="mono-small-note">Events system offline.</div>`;
+        console.error("Error loading events:", e);
+        const loadingEl = document.getElementById("events-loading");
+        if (loadingEl) {
+            loadingEl.innerHTML = `<span style="color:#ff4444;">Error loading events. Please refresh.</span>`;
+        }
+    }
+}
+
+async function loadEventLeaderboard() {
+    try {
+        // Get leaderboard with user position if wallet connected
+        const walletParam = connectedWallet ? `?wallet=${connectedWallet}` : "";
+        const response = await fetchJSON(`/api/events/leaderboard${walletParam}`);
+
+        const leaderboardEl = document.getElementById("xp-leaderboard");
+        const userPosEl = document.getElementById("user-leaderboard-position");
+        const userRankEl = document.getElementById("user-rank-display");
+
+        if (!response.leaderboard || response.leaderboard.length === 0) {
+            if (leaderboardEl) {
+                leaderboardEl.innerHTML = `<div style="color:#888; text-align:center;">No data yet. Start completing missions!</div>`;
+            }
+            return;
+        }
+
+        // Build leaderboard HTML
+        let html = `<div style="display:grid; grid-template-columns:40px 1fr 100px 120px; gap:4px; font-size:11px;">`;
+        html += `<div style="color:#666;">RANK</div><div style="color:#666;">WALLET</div><div style="color:#666; text-align:right;">EMISSARIES</div><div style="color:#666; text-align:right;">TOTAL XP</div>`;
+
+        response.leaderboard.forEach((entry, i) => {
+            const rankColor = i === 0 ? "#ffcc00" : i === 1 ? "#c0c0c0" : i === 2 ? "#cd7f32" : "#888";
+            const crown = i === 0 ? " &#128081;" : "";
+            const isUser = connectedWallet && entry.wallet_full && entry.wallet_full.toLowerCase() === connectedWallet.toLowerCase();
+            const rowStyle = isUser ? "background:#1a2a1a;" : "";
+
+            html += `
+                <div style="color:${rankColor}; ${rowStyle}">#${entry.rank}${crown}</div>
+                <div style="color:#aaa; ${rowStyle}">${entry.wallet}</div>
+                <div style="color:#00ccff; text-align:right; ${rowStyle}">${entry.emissary_count}</div>
+                <div style="color:#44ff44; text-align:right; ${rowStyle}">${(entry.total_xp || 0).toLocaleString()}</div>
+            `;
+        });
+
+        html += `</div>`;
+
+        if (leaderboardEl) leaderboardEl.innerHTML = html;
+
+        // Show user position if available
+        if (response.user_position && connectedWallet) {
+            if (userPosEl) userPosEl.style.display = "block";
+            if (userRankEl) {
+                userRankEl.textContent = `#${response.user_position.rank} | ${response.user_position.emissary_count} Emissaries | ${(response.user_position.total_xp || 0).toLocaleString()} XP`;
+            }
+        } else if (userPosEl) {
+            userPosEl.style.display = "none";
+        }
+
+    } catch(e) {
+        console.error("Error loading leaderboard:", e);
+        const leaderboardEl = document.getElementById("xp-leaderboard");
+        if (leaderboardEl) {
+            leaderboardEl.innerHTML = `<div style="color:#ff4444; text-align:center;">Error loading leaderboard</div>`;
+        }
     }
 }
 
@@ -5930,6 +6134,11 @@ async function loadPlayerAndRender(){
         // Load achievements if function is available
         if (typeof loadAchievements === 'function') {
             loadAchievements(player.heroes || []);
+        }
+
+        // Load trophies if wallet connected
+        if (typeof loadWalletTrophies === 'function') {
+            loadWalletTrophies(wallet);
         }
 
         const totals = player.totals || {};
@@ -9381,6 +9590,114 @@ async function loadAchievements(heroes) {
 
     // Render
     renderAchievements(stats, grantedFromAPI);
+}
+
+// ---------------------------------
+// TROPHIES SYSTEM (Event Rewards)
+// ---------------------------------
+async function loadWalletTrophies(wallet) {
+    const trophiesGrid = document.getElementById('trophies-grid');
+    const trophiesCount = document.getElementById('trophies-count');
+    const claimableSection = document.getElementById('claimable-trophies');
+    const claimableName = document.getElementById('claimable-trophy-name');
+
+    if (!wallet) {
+        if (trophiesGrid) trophiesGrid.innerHTML = '<div style="color:#666; font-style:italic; grid-column:span 2;">Connect wallet to view trophies...</div>';
+        return;
+    }
+
+    if (trophiesGrid) trophiesGrid.innerHTML = '<div style="color:#ffaa00; font-style:italic; grid-column:span 2;">Loading trophies...</div>';
+
+    try {
+        const response = await fetchJSON(`/api/trophies/${wallet}`);
+        const trophies = response.trophies || [];
+        const claimable = response.claimable || [];
+
+        // Count owned trophies
+        const ownedCount = trophies.filter(t => t.owned || t.amount > 0).length;
+        if (trophiesCount) trophiesCount.textContent = `[${ownedCount}]`;
+
+        // Render trophies grid
+        let html = '';
+        trophies.forEach(trophy => {
+            const isOwned = trophy.owned || trophy.amount > 0;
+            const isPending = trophy.pending_claim;
+            const isLocked = trophy.locked && !isOwned;
+
+            const borderColor = isOwned ? '#ffcc00' : isPending ? '#44ff44' : '#333';
+            const bgColor = isOwned ? 'rgba(255,204,0,0.1)' : 'rgba(0,0,0,0.3)';
+            const nameColor = isOwned ? '#ffcc00' : '#666';
+
+            html += `
+                <div style="border:1px solid ${borderColor}; background:${bgColor}; padding:8px; text-align:center;">
+                    <div style="font-size:18px; margin-bottom:4px;">${isLocked ? '?' : (trophy.token_id === 1 ? '&#127942;' : '&#128293;')}</div>
+                    <div style="color:${nameColor}; font-size:10px; line-height:1.2;">
+                        ${isLocked ? 'LOCKED' : trophy.name}
+                    </div>
+                    ${isOwned ? '<div style="color:#44ff44; font-size:9px; margin-top:4px;">&#10003; OWNED</div>' : ''}
+                    ${isPending ? '<div style="color:#44ff44; font-size:9px; margin-top:4px;">PENDING CLAIM</div>' : ''}
+                </div>
+            `;
+        });
+
+        if (trophiesGrid) trophiesGrid.innerHTML = html || '<div style="color:#666; grid-column:span 2;">No trophies available</div>';
+
+        // Show claimable section if there are claimable trophies
+        if (claimable.length > 0 && claimableSection) {
+            claimableSection.style.display = 'block';
+            if (claimableName) claimableName.textContent = `CLAIMABLE: ${claimable[0].name}`;
+            window.pendingClaimTrophyId = claimable[0].token_id;
+        } else if (claimableSection) {
+            claimableSection.style.display = 'none';
+        }
+
+    } catch (e) {
+        console.error('Error loading trophies:', e);
+        if (trophiesGrid) trophiesGrid.innerHTML = '<div style="color:#ff4444; grid-column:span 2;">Error loading trophies</div>';
+    }
+}
+
+async function claimTrophy() {
+    if (!window.pendingClaimTrophyId) {
+        showInfoModal('ERROR', 'No trophy to claim');
+        return;
+    }
+
+    if (!window.ethereum) {
+        showInfoModal('WALLET REQUIRED', 'Please connect a Web3 wallet to claim your trophy.');
+        return;
+    }
+
+    try {
+        const EMBER_TROPHIES_ADDRESS = "0x99bB074468DF7acED00a7a4960c52c4e22543ab8";
+        const CLAIM_ABI = [{
+            "inputs": [{"name": "tokenId", "type": "uint256"}],
+            "name": "claimTrophy",
+            "outputs": [],
+            "stateMutability": "nonpayable",
+            "type": "function"
+        }];
+
+        const provider = new ethers.providers.Web3Provider(window.ethereum);
+        const signer = provider.getSigner();
+        const contract = new ethers.Contract(EMBER_TROPHIES_ADDRESS, CLAIM_ABI, signer);
+
+        showInfoModal('CLAIMING TROPHY', 'Please confirm the transaction in your wallet...');
+
+        const tx = await contract.claimTrophy(window.pendingClaimTrophyId);
+        await tx.wait();
+
+        showInfoModal('SUCCESS', 'Trophy claimed successfully! Check your wallet.');
+
+        // Refresh trophies
+        if (connectedWallet) {
+            loadWalletTrophies(connectedWallet);
+        }
+
+    } catch (e) {
+        console.error('Error claiming trophy:', e);
+        showInfoModal('ERROR', 'Failed to claim trophy: ' + (e.message || e));
+    }
 }
 </script>
 
