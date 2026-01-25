@@ -10504,19 +10504,223 @@ def get_event_prizes(event_id):
 def get_total_emissaries_minted():
     """
     Get the total number of emissaries minted (for event progress).
+    Calls the EmberholmPortal contract's totalSupply() function.
+    Falls back to database count if contract call fails.
     """
+    PORTAL_CONTRACT = "0x7AB2cf80FbfB8c89868b3dFa053729ecC86E39b3"
+
+    # Try to get from contract first (most accurate)
+    if Web3Lib:
+        try:
+            w3 = Web3Lib(Web3Lib.HTTPProvider("https://mainnet.base.org"))
+            # Minimal ABI for totalSupply
+            abi = [{"inputs": [], "name": "totalSupply", "outputs": [{"type": "uint256"}], "stateMutability": "view", "type": "function"}]
+            contract = w3.eth.contract(address=Web3Lib.to_checksum_address(PORTAL_CONTRACT), abi=abi)
+            total = contract.functions.totalSupply().call()
+            logger.info(f"Event progress: {total} emissaries from contract")
+            return total
+        except Exception as e:
+            logger.warning(f"Failed to get totalSupply from contract: {e}")
+
+    # Fallback to database count
     if not POSTGRESQL_AVAILABLE:
         return 0
 
     try:
         with db.get_db() as conn:
             with conn.cursor() as cur:
-                cur.execute("SELECT COUNT(*) FROM nfts")
+                cur.execute("""
+                    SELECT COUNT(*) FROM nfts
+                    WHERE last_known_owner IS NOT NULL
+                      AND last_known_owner != ''
+                """)
                 result = cur.fetchone()
-                return result[0] if result else 0
+                count = result[0] if result else 0
+                logger.info(f"Event progress: {count} emissaries from database (fallback)")
+                return count
     except Exception as e:
         logger.error(f"Error getting total minted: {e}")
         return 0
+
+
+@app.route('/api/debug/verify-nfts')
+def api_debug_verify_nfts():
+    """
+    Debug endpoint to verify which NFTs in DB actually exist on-chain.
+    Uses ERC721Enumerable tokenByIndex() for efficient verification.
+    Returns list of valid tokens and garbage tokens.
+    """
+    PORTAL_CONTRACT = "0x7AB2cf80FbfB8c89868b3dFa053729ecC86E39b3"
+
+    if not POSTGRESQL_AVAILABLE:
+        return jsonify({"error": "Database not available"}), 503
+
+    result = {
+        "contract": PORTAL_CONTRACT,
+        "onchain_tokens": [],
+        "db_tokens": [],
+        "garbage_tokens": [],
+        "summary": {}
+    }
+
+    try:
+        # Step 1: Get all valid token IDs from contract using ERC721Enumerable
+        if Web3Lib:
+            w3 = Web3Lib(Web3Lib.HTTPProvider("https://mainnet.base.org"))
+            # ABI for totalSupply and tokenByIndex (ERC721Enumerable)
+            abi = [
+                {"inputs": [], "name": "totalSupply", "outputs": [{"type": "uint256"}], "stateMutability": "view", "type": "function"},
+                {"inputs": [{"type": "uint256"}], "name": "tokenByIndex", "outputs": [{"type": "uint256"}], "stateMutability": "view", "type": "function"}
+            ]
+            contract = w3.eth.contract(address=Web3Lib.to_checksum_address(PORTAL_CONTRACT), abi=abi)
+
+            # Get total supply
+            total_supply = contract.functions.totalSupply().call()
+
+            # Get all token IDs using tokenByIndex
+            valid_token_ids = set()
+            for i in range(total_supply):
+                token_id = contract.functions.tokenByIndex(i).call()
+                valid_token_ids.add(str(token_id))
+
+            result["onchain_tokens"] = sorted(list(valid_token_ids), key=lambda x: int(x))
+        else:
+            return jsonify({"error": "Web3 not available"}), 503
+
+        # Step 2: Get all token IDs from database
+        with db.get_db() as conn:
+            with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                cur.execute("""
+                    SELECT token_id, last_known_owner,
+                           (dynamic_state->>'xp_total')::int as xp
+                    FROM nfts
+                    ORDER BY token_id
+                """)
+                db_nfts = cur.fetchall()
+
+        db_token_ids = set()
+        for nft in db_nfts:
+            db_token_ids.add(nft['token_id'])
+            result["db_tokens"].append({
+                "token_id": nft['token_id'],
+                "owner": nft['last_known_owner'],
+                "xp": nft['xp']
+            })
+
+        # Step 3: Find garbage tokens (in DB but not on-chain)
+        garbage_ids = db_token_ids - valid_token_ids
+        for nft in db_nfts:
+            if nft['token_id'] in garbage_ids:
+                result["garbage_tokens"].append({
+                    "token_id": nft['token_id'],
+                    "owner": nft['last_known_owner'],
+                    "xp": nft['xp']
+                })
+
+        result["summary"] = {
+            "total_onchain": len(valid_token_ids),
+            "total_in_db": len(db_token_ids),
+            "garbage_count": len(garbage_ids),
+            "garbage_ids": sorted(list(garbage_ids), key=lambda x: int(x))
+        }
+
+        return jsonify(result)
+
+    except Exception as e:
+        logger.error(f"Error verifying NFTs: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/admin/cleanup-garbage-nfts', methods=['POST'])
+def api_cleanup_garbage_nfts():
+    """
+    Admin endpoint to remove garbage NFT data from database.
+    Removes all NFT records that don't exist on-chain.
+
+    POST body:
+        confirm: must be "DELETE_GARBAGE" to proceed
+    """
+    PORTAL_CONTRACT = "0x7AB2cf80FbfB8c89868b3dFa053729ecC86E39b3"
+
+    if not POSTGRESQL_AVAILABLE:
+        return jsonify({"error": "Database not available"}), 503
+
+    # Require confirmation
+    data = request.get_json() or {}
+    if data.get('confirm') != 'DELETE_GARBAGE':
+        return jsonify({
+            "error": "Confirmation required",
+            "message": "Send POST with {\"confirm\": \"DELETE_GARBAGE\"} to proceed"
+        }), 400
+
+    try:
+        # Get all valid token IDs from contract
+        if not Web3Lib:
+            return jsonify({"error": "Web3 not available"}), 503
+
+        w3 = Web3Lib(Web3Lib.HTTPProvider("https://mainnet.base.org"))
+        abi = [
+            {"inputs": [], "name": "totalSupply", "outputs": [{"type": "uint256"}], "stateMutability": "view", "type": "function"},
+            {"inputs": [{"type": "uint256"}], "name": "tokenByIndex", "outputs": [{"type": "uint256"}], "stateMutability": "view", "type": "function"}
+        ]
+        contract = w3.eth.contract(address=Web3Lib.to_checksum_address(PORTAL_CONTRACT), abi=abi)
+
+        # Get total supply
+        total_supply = contract.functions.totalSupply().call()
+
+        # Get all valid token IDs
+        valid_token_ids = set()
+        for i in range(total_supply):
+            token_id = contract.functions.tokenByIndex(i).call()
+            valid_token_ids.add(str(token_id))
+
+        logger.info(f"Cleanup: Found {len(valid_token_ids)} valid tokens on-chain")
+
+        # Get all DB token IDs and find garbage
+        with db.get_db() as conn:
+            with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                cur.execute("SELECT token_id FROM nfts")
+                db_nfts = cur.fetchall()
+
+                db_token_ids = {nft['token_id'] for nft in db_nfts}
+                garbage_ids = db_token_ids - valid_token_ids
+
+                logger.info(f"Cleanup: Found {len(garbage_ids)} garbage tokens in DB")
+
+                if garbage_ids:
+                    # Delete garbage records
+                    garbage_list = list(garbage_ids)
+                    cur.execute(
+                        "DELETE FROM nfts WHERE token_id = ANY(%s)",
+                        (garbage_list,)
+                    )
+                    deleted_count = cur.rowcount
+                    conn.commit()
+
+                    logger.info(f"Cleanup: Deleted {deleted_count} garbage NFT records")
+
+                    return jsonify({
+                        "success": True,
+                        "valid_onchain": len(valid_token_ids),
+                        "garbage_deleted": deleted_count,
+                        "deleted_ids": sorted(garbage_list, key=lambda x: int(x)),
+                        "remaining_in_db": len(db_token_ids) - deleted_count
+                    })
+                else:
+                    return jsonify({
+                        "success": True,
+                        "message": "No garbage to clean",
+                        "valid_onchain": len(valid_token_ids),
+                        "total_in_db": len(db_token_ids)
+                    })
+
+    except Exception as e:
+        logger.error(f"Error cleaning garbage NFTs: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
 
 
 # ---------------------------------
@@ -10532,10 +10736,48 @@ def api_get_active_event():
     Returns:
         JSON with event details, prizes, and leaderboard link
     """
-    event = get_active_event()
+    # Debug: Check if PostgreSQL is available
+    if not POSTGRESQL_AVAILABLE:
+        logger.warning("Events API: PostgreSQL not available")
+        return jsonify({
+            "active": False,
+            "debug": {
+                "reason": "PostgreSQL not available",
+                "postgresql_available": False
+            }
+        })
+
+    # Try to get active event
+    event = None
+    db_error = None
+    try:
+        event = get_active_event()
+    except Exception as e:
+        db_error = str(e)
+        logger.error(f"Events API: Error getting active event: {e}")
 
     if not event:
-        return jsonify({"active": False})
+        # Debug info to help diagnose
+        debug_info = {
+            "reason": "No active event found or database error",
+            "postgresql_available": POSTGRESQL_AVAILABLE,
+            "db_error": db_error
+        }
+
+        # Try to check if table exists
+        try:
+            with db.get_db() as conn:
+                with conn.cursor() as cur:
+                    cur.execute("SELECT COUNT(*) FROM events")
+                    count = cur.fetchone()[0]
+                    debug_info["events_table_exists"] = True
+                    debug_info["events_count"] = count
+        except Exception as e:
+            debug_info["events_table_exists"] = False
+            debug_info["table_error"] = str(e)
+
+        logger.warning(f"Events API: No active event. Debug: {debug_info}")
+        return jsonify({"active": False, "debug": debug_info})
 
     # Get prizes
     prizes = get_event_prizes(event['id'])
