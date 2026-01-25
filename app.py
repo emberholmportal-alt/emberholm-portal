@@ -10532,10 +10532,48 @@ def api_get_active_event():
     Returns:
         JSON with event details, prizes, and leaderboard link
     """
-    event = get_active_event()
+    # Debug: Check if PostgreSQL is available
+    if not POSTGRESQL_AVAILABLE:
+        logger.warning("Events API: PostgreSQL not available")
+        return jsonify({
+            "active": False,
+            "debug": {
+                "reason": "PostgreSQL not available",
+                "postgresql_available": False
+            }
+        })
+
+    # Try to get active event
+    event = None
+    db_error = None
+    try:
+        event = get_active_event()
+    except Exception as e:
+        db_error = str(e)
+        logger.error(f"Events API: Error getting active event: {e}")
 
     if not event:
-        return jsonify({"active": False})
+        # Debug info to help diagnose
+        debug_info = {
+            "reason": "No active event found or database error",
+            "postgresql_available": POSTGRESQL_AVAILABLE,
+            "db_error": db_error
+        }
+
+        # Try to check if table exists
+        try:
+            with db.get_db() as conn:
+                with conn.cursor() as cur:
+                    cur.execute("SELECT COUNT(*) FROM events")
+                    count = cur.fetchone()[0]
+                    debug_info["events_table_exists"] = True
+                    debug_info["events_count"] = count
+        except Exception as e:
+            debug_info["events_table_exists"] = False
+            debug_info["table_error"] = str(e)
+
+        logger.warning(f"Events API: No active event. Debug: {debug_info}")
+        return jsonify({"active": False, "debug": debug_info})
 
     # Get prizes
     prizes = get_event_prizes(event['id'])
