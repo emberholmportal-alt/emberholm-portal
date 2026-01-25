@@ -10733,6 +10733,82 @@ def api_cleanup_garbage_nfts():
         return jsonify({"error": str(e)}), 500
 
 
+@app.route('/api/admin/cleanup-test-nfts', methods=['POST'])
+def api_cleanup_test_nfts():
+    """
+    Simple cleanup endpoint to remove known test/garbage NFT data.
+    Removes tokens 00001-00026 which are known to be from testnet/testing.
+    Real tokens are: 03382, 05854, 08535, 19726, 20877, 21466, 23586, 27367, 27900, 27932, 28859, 32419
+
+    POST body:
+        confirm: must be "DELETE_TEST_DATA" to proceed
+    """
+    if not POSTGRESQL_AVAILABLE:
+        return jsonify({"error": "Database not available"}), 503
+
+    # Require confirmation
+    data = request.get_json() or {}
+    if data.get('confirm') != 'DELETE_TEST_DATA':
+        return jsonify({
+            "error": "Confirmation required",
+            "message": "Send POST with {\"confirm\": \"DELETE_TEST_DATA\"} to proceed"
+        }), 400
+
+    # Known garbage token IDs (00001-00026 from testnet/testing)
+    garbage_tokens = [f"{i:05d}" for i in range(1, 27)]  # 00001 to 00026
+
+    try:
+        with db.get_db() as conn:
+            with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                # Get info before deletion
+                cur.execute(
+                    "SELECT token_id, last_known_owner, (dynamic_state->>'xp_total')::int as xp FROM nfts WHERE token_id = ANY(%s)",
+                    (garbage_tokens,)
+                )
+                to_delete = cur.fetchall()
+
+                if to_delete:
+                    # Delete garbage records
+                    cur.execute(
+                        "DELETE FROM nfts WHERE token_id = ANY(%s)",
+                        (garbage_tokens,)
+                    )
+                    deleted_count = cur.rowcount
+                    conn.commit()
+
+                    # Get remaining stats
+                    cur.execute("""
+                        SELECT COUNT(*) as count,
+                               COALESCE(SUM((dynamic_state->>'xp_total')::int), 0) as total_xp
+                        FROM nfts
+                        WHERE last_known_owner IS NOT NULL
+                    """)
+                    remaining = cur.fetchone()
+
+                    logger.info(f"Cleanup: Deleted {deleted_count} test NFT records")
+
+                    return jsonify({
+                        "success": True,
+                        "deleted_count": deleted_count,
+                        "deleted_tokens": [d['token_id'] for d in to_delete],
+                        "deleted_xp": sum(d['xp'] or 0 for d in to_delete),
+                        "remaining_nfts": remaining['count'],
+                        "remaining_xp": remaining['total_xp']
+                    })
+                else:
+                    return jsonify({
+                        "success": True,
+                        "message": "No test data to clean (tokens 00001-00026 not found)",
+                        "deleted_count": 0
+                    })
+
+    except Exception as e:
+        logger.error(f"Error cleaning test NFTs: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
+
+
 # ---------------------------------
 # 📡 EVENTS API ENDPOINTS
 # ---------------------------------
