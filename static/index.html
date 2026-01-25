@@ -3301,7 +3301,10 @@ document.addEventListener('DOMContentLoaded', initPortalWarning);
                             <div style="display:flex; align-items:center; gap:8px; margin-bottom:12px;">
                                 <span style="font-size:20px;">&#127922;</span>
                                 <span style="color:#ffcc00; font-size:14px; font-weight:bold;">THE FORTUNATE</span>
-                                <span style="color:#44ff44; font-size:12px; margin-left:auto;">1 ETH</span>
+                                <div style="margin-left:auto; text-align:center;">
+                                    <div style="color:#44ff44; font-size:12px;">1 ETH</div>
+                                    <img src="/img/GoldenRune.png" alt="Golden Rune" style="width:120px; height:120px; margin-top:4px; border:1px solid #ffcc00; border-radius:4px;">
+                                </div>
                             </div>
                             <div style="color:#aaa; font-size:11px; margin-bottom:12px;">
                                 <div style="margin-bottom:8px; font-style:italic; color:#888;">
@@ -3320,7 +3323,10 @@ document.addEventListener('DOMContentLoaded', initPortalWarning);
                             <div style="display:flex; align-items:center; gap:8px; margin-bottom:12px;">
                                 <span style="font-size:20px;">&#9876;</span>
                                 <span style="color:#00ccff; font-size:14px; font-weight:bold;">THE WORTHY</span>
-                                <span style="color:#44ff44; font-size:12px; margin-left:auto;">1 ETH</span>
+                                <div style="margin-left:auto; text-align:center;">
+                                    <div style="color:#44ff44; font-size:12px;">1 ETH</div>
+                                    <img src="/img/EternalTorch.png" alt="Eternal Torch" style="width:120px; height:120px; margin-top:4px; border:1px solid #00ccff; border-radius:4px;">
+                                </div>
                             </div>
                             <div style="color:#aaa; font-size:11px; margin-bottom:12px;">
                                 <div style="margin-bottom:8px; font-style:italic; color:#888;">
@@ -3347,11 +3353,9 @@ document.addEventListener('DOMContentLoaded', initPortalWarning);
                         </div>
 
                         <!-- User Position -->
-                        <div id="user-leaderboard-position" style="display:none; margin-top:12px; padding-top:12px; border-top:1px solid #333;">
-                            <div style="display:flex; justify-content:space-between; color:#ffcc00; font-size:12px;">
-                                <span>YOUR POSITION:</span>
-                                <span id="user-rank-display">#-- | -- XP</span>
-                            </div>
+                        <div id="user-leaderboard-position" style="display:none; margin-top:12px; padding:12px; background:#1a2a1a; border:2px solid #44ff44; border-radius:4px;">
+                            <div style="color:#44ff44; font-size:10px; margin-bottom:6px; text-transform:uppercase;">&#9733; Your Position</div>
+                            <div id="user-rank-display" style="color:#ffcc00; font-size:14px; font-weight:bold;">#-- | -- Emissaries | -- XP</div>
                         </div>
                     </div>
 
@@ -5874,8 +5878,14 @@ async function fetchEventsAndRender(){
         const progressPercentEl = document.getElementById("event-progress-percent");
 
         if (progressTextEl) progressTextEl.textContent = `${progress.current.toLocaleString()} / ${progress.target.toLocaleString()} Emissaries`;
-        if (progressBarEl) progressBarEl.style.width = `${progressPercent}%`;
-        if (progressPercentEl) progressPercentEl.textContent = `${progressPercent.toFixed(1)}%`;
+        if (progressBarEl) progressBarEl.style.width = `${Math.max(progressPercent, 0.5)}%`; // Min width for visibility
+        // Show more decimals for small percentages
+        let progressPercentStr;
+        if (progressPercent >= 1) progressPercentStr = progressPercent.toFixed(1) + '%';
+        else if (progressPercent >= 0.01) progressPercentStr = progressPercent.toFixed(2) + '%';
+        else if (progressPercent > 0) progressPercentStr = progressPercent.toFixed(3) + '%';
+        else progressPercentStr = '0%';
+        if (progressPercentEl) progressPercentEl.textContent = progressPercentStr;
 
         // Update multipliers
         const itemMultEl = document.getElementById("item-multiplier");
@@ -5927,25 +5937,31 @@ async function loadEventLeaderboard() {
             return;
         }
 
-        // Build leaderboard HTML
-        let html = `<div style="display:grid; grid-template-columns:40px 1fr 100px 120px; gap:4px; font-size:11px;">`;
-        html += `<div style="color:#666;">RANK</div><div style="color:#666;">WALLET</div><div style="color:#666; text-align:right;">EMISSARIES</div><div style="color:#666; text-align:right;">TOTAL XP</div>`;
+        // Build leaderboard HTML with table styling
+        let html = `<table style="width:100%; border-collapse:collapse; font-size:11px;">`;
+        html += `<thead><tr style="border-bottom:2px solid #444;">
+            <th style="color:#666; text-align:left; padding:8px 4px; width:50px;">RANK</th>
+            <th style="color:#666; text-align:left; padding:8px 4px;">WALLET</th>
+            <th style="color:#666; text-align:right; padding:8px 4px; width:90px;">EMISSARIES</th>
+            <th style="color:#666; text-align:right; padding:8px 4px; width:100px;">TOTAL XP</th>
+        </tr></thead><tbody>`;
 
         response.leaderboard.forEach((entry, i) => {
             const rankColor = i === 0 ? "#ffcc00" : i === 1 ? "#c0c0c0" : i === 2 ? "#cd7f32" : "#888";
             const crown = i === 0 ? " &#128081;" : "";
             const isUser = connectedWallet && entry.wallet_full && entry.wallet_full.toLowerCase() === connectedWallet.toLowerCase();
-            const rowStyle = isUser ? "background:#1a2a1a;" : "";
+            const rowBg = isUser ? "background:#1a3a1a;" : (i % 2 === 0 ? "background:#1a1a1a;" : "background:#141414;");
+            const rowBorder = isUser ? "border:1px solid #44ff44;" : "border-bottom:1px solid #333;";
 
-            html += `
-                <div style="color:${rankColor}; ${rowStyle}">#${entry.rank}${crown}</div>
-                <div style="color:#aaa; ${rowStyle}">${entry.wallet}</div>
-                <div style="color:#00ccff; text-align:right; ${rowStyle}">${entry.emissary_count}</div>
-                <div style="color:#44ff44; text-align:right; ${rowStyle}">${(entry.total_xp || 0).toLocaleString()}</div>
-            `;
+            html += `<tr style="${rowBg} ${rowBorder}">
+                <td style="color:${rankColor}; padding:8px 4px; font-weight:bold;">#${entry.rank}${crown}</td>
+                <td style="color:#aaa; padding:8px 4px;">${entry.wallet}</td>
+                <td style="color:#00ccff; text-align:right; padding:8px 4px;">${entry.emissary_count}</td>
+                <td style="color:#44ff44; text-align:right; padding:8px 4px; font-weight:bold;">${(entry.total_xp || 0).toLocaleString()}</td>
+            </tr>`;
         });
 
-        html += `</div>`;
+        html += `</tbody></table>`;
 
         if (leaderboardEl) leaderboardEl.innerHTML = html;
 
@@ -6105,7 +6121,12 @@ async function loadPlayerAndRender(){
             heroes: heroes,
             totals: {
                 heroes_count: heroes.length,
-                xp_total_all: heroes.reduce((sum, h) => sum + (h.dynamic_state?.xp_total || 0), 0),
+                // XP only counts from alive heroes (FALLEN = 0 XP)
+                xp_total_all: heroes.reduce((sum, h) => {
+                    const state = h.dynamic_state?.state || 'READY';
+                    if (state === 'FALLEN') return sum; // Dead heroes don't contribute XP
+                    return sum + (h.dynamic_state?.xp_total || 0);
+                }, 0),
                 aura_total_all: heroes.reduce((sum, h) => sum + (h.dynamic_state?.aura_level || 0), 0),
                 energy_total_available: heroes.reduce((sum, h) => sum + (h.dynamic_state?.energy_current || 100), 0)
             }
