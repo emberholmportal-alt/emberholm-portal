@@ -10504,6 +10504,7 @@ def get_event_prizes(event_id):
 def get_total_emissaries_minted():
     """
     Get the total number of emissaries minted (for event progress).
+    Counts only NFTs that have an owner (actually minted and owned).
     """
     if not POSTGRESQL_AVAILABLE:
         return 0
@@ -10511,7 +10512,12 @@ def get_total_emissaries_minted():
     try:
         with db.get_db() as conn:
             with conn.cursor() as cur:
-                cur.execute("SELECT COUNT(*) FROM nfts")
+                # Count only NFTs with a valid owner (actually minted)
+                cur.execute("""
+                    SELECT COUNT(*) FROM nfts
+                    WHERE last_known_owner IS NOT NULL
+                      AND last_known_owner != ''
+                """)
                 result = cur.fetchone()
                 return result[0] if result else 0
     except Exception as e:
