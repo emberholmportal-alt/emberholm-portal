@@ -10504,22 +10504,40 @@ def get_event_prizes(event_id):
 def get_total_emissaries_minted():
     """
     Get the total number of emissaries minted (for event progress).
-    Counts only NFTs that have an owner (actually minted and owned).
+    Calls the EmberholmPortal contract's totalSupply() function.
+    Falls back to database count if contract call fails.
     """
+    PORTAL_CONTRACT = "0x7AB2cf80FbfB8c89868b3dFa053729ecC86E39b3"
+
+    # Try to get from contract first (most accurate)
+    if Web3Lib:
+        try:
+            w3 = Web3Lib(Web3Lib.HTTPProvider("https://mainnet.base.org"))
+            # Minimal ABI for totalSupply
+            abi = [{"inputs": [], "name": "totalSupply", "outputs": [{"type": "uint256"}], "stateMutability": "view", "type": "function"}]
+            contract = w3.eth.contract(address=Web3Lib.to_checksum_address(PORTAL_CONTRACT), abi=abi)
+            total = contract.functions.totalSupply().call()
+            logger.info(f"Event progress: {total} emissaries from contract")
+            return total
+        except Exception as e:
+            logger.warning(f"Failed to get totalSupply from contract: {e}")
+
+    # Fallback to database count
     if not POSTGRESQL_AVAILABLE:
         return 0
 
     try:
         with db.get_db() as conn:
             with conn.cursor() as cur:
-                # Count only NFTs with a valid owner (actually minted)
                 cur.execute("""
                     SELECT COUNT(*) FROM nfts
                     WHERE last_known_owner IS NOT NULL
                       AND last_known_owner != ''
                 """)
                 result = cur.fetchone()
-                return result[0] if result else 0
+                count = result[0] if result else 0
+                logger.info(f"Event progress: {count} emissaries from database (fallback)")
+                return count
     except Exception as e:
         logger.error(f"Error getting total minted: {e}")
         return 0
