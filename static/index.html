@@ -3301,7 +3301,10 @@ document.addEventListener('DOMContentLoaded', initPortalWarning);
                             <div style="display:flex; align-items:center; gap:8px; margin-bottom:12px;">
                                 <span style="font-size:20px;">&#127922;</span>
                                 <span style="color:#ffcc00; font-size:14px; font-weight:bold;">THE FORTUNATE</span>
-                                <span style="color:#44ff44; font-size:12px; margin-left:auto;">1 ETH</span>
+                                <div style="margin-left:auto; text-align:center;">
+                                    <div style="color:#44ff44; font-size:12px;">1 ETH</div>
+                                    <img src="/static/img/GoldenRune.png" alt="Golden Rune" style="width:40px; height:40px; margin-top:4px; border:1px solid #ffcc00; border-radius:4px;">
+                                </div>
                             </div>
                             <div style="color:#aaa; font-size:11px; margin-bottom:12px;">
                                 <div style="margin-bottom:8px; font-style:italic; color:#888;">
@@ -3320,7 +3323,10 @@ document.addEventListener('DOMContentLoaded', initPortalWarning);
                             <div style="display:flex; align-items:center; gap:8px; margin-bottom:12px;">
                                 <span style="font-size:20px;">&#9876;</span>
                                 <span style="color:#00ccff; font-size:14px; font-weight:bold;">THE WORTHY</span>
-                                <span style="color:#44ff44; font-size:12px; margin-left:auto;">1 ETH</span>
+                                <div style="margin-left:auto; text-align:center;">
+                                    <div style="color:#44ff44; font-size:12px;">1 ETH</div>
+                                    <img src="/static/img/EternalTorch.png" alt="Eternal Torch" style="width:40px; height:40px; margin-top:4px; border:1px solid #00ccff; border-radius:4px;">
+                                </div>
                             </div>
                             <div style="color:#aaa; font-size:11px; margin-bottom:12px;">
                                 <div style="margin-bottom:8px; font-style:italic; color:#888;">
@@ -6111,7 +6117,12 @@ async function loadPlayerAndRender(){
             heroes: heroes,
             totals: {
                 heroes_count: heroes.length,
-                xp_total_all: heroes.reduce((sum, h) => sum + (h.dynamic_state?.xp_total || 0), 0),
+                // XP only counts from alive heroes (FALLEN = 0 XP)
+                xp_total_all: heroes.reduce((sum, h) => {
+                    const state = h.dynamic_state?.state || 'READY';
+                    if (state === 'FALLEN') return sum; // Dead heroes don't contribute XP
+                    return sum + (h.dynamic_state?.xp_total || 0);
+                }, 0),
                 aura_total_all: heroes.reduce((sum, h) => sum + (h.dynamic_state?.aura_level || 0), 0),
                 energy_total_available: heroes.reduce((sum, h) => sum + (h.dynamic_state?.energy_current || 100), 0)
             }
