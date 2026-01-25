@@ -5975,20 +5975,20 @@ async function loadEventLeaderboard() {
             if (userInTop10) {
                 // User is in top 10, show their position from leaderboard
                 userPosEl.style.display = "block";
-                userRankEl.textContent = `#${userInTop10.rank} | ${userInTop10.emissary_count} Emissaries | ${(userInTop10.total_xp || 0).toLocaleString()} XP`;
+                userRankEl.innerHTML = `#${userInTop10.rank} | ${userInTop10.emissary_count} Emissaries | ${(userInTop10.total_xp || 0).toLocaleString()} XP`;
             } else if (response.user_position) {
                 // User not in top 10, but API returned their position
                 userPosEl.style.display = "block";
-                userRankEl.textContent = `#${response.user_position.rank} | ${response.user_position.emissary_count} Emissaries | ${(response.user_position.total_xp || 0).toLocaleString()} XP`;
+                userRankEl.innerHTML = `#${response.user_position.rank} | ${response.user_position.emissary_count} Emissaries | ${(response.user_position.total_xp || 0).toLocaleString()} XP`;
             } else {
-                // User has no position (no NFTs or no XP)
+                // Wallet connected but user has no position (no NFTs or no XP)
                 userPosEl.style.display = "block";
-                userRankEl.textContent = `Not ranked yet - complete missions to earn XP!`;
+                userRankEl.innerHTML = `<span style="color:#888;">Not ranked yet - complete missions to earn XP!</span>`;
             }
-        } else if (userPosEl) {
-            // No wallet connected
+        } else if (userPosEl && userRankEl) {
+            // No wallet connected - show connect button
             userPosEl.style.display = "block";
-            userRankEl.textContent = `Connect wallet to see your position`;
+            userRankEl.innerHTML = `<button onclick="connectWallet()" style="background:#ffcc00; color:#000; border:none; padding:8px 16px; cursor:pointer; font-family:inherit; font-weight:bold; border-radius:4px;">CONNECT WALLET</button>`;
         }
 
     } catch(e) {
