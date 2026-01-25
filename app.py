@@ -10928,14 +10928,15 @@ def api_get_event_leaderboard():
         with db.get_db() as conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
                 # Get top 10
+                # Count ALL NFTs (including FALLEN), but only sum XP from alive ones
                 cur.execute("""
                     SELECT
                         last_known_owner as wallet,
                         COUNT(*) as emissary_count,
-                        SUM((dynamic_state->>'xp_total')::int) as total_xp
+                        SUM(CASE WHEN dynamic_state->>'state' != 'FALLEN'
+                            THEN COALESCE((dynamic_state->>'xp_total')::int, 0) ELSE 0 END) as total_xp
                     FROM nfts
                     WHERE last_known_owner IS NOT NULL
-                      AND dynamic_state->>'state' != 'FALLEN'
                     GROUP BY last_known_owner
                     ORDER BY total_xp DESC
                     LIMIT 10
@@ -10962,11 +10963,12 @@ def api_get_event_leaderboard():
                             SELECT
                                 last_known_owner as wallet,
                                 COUNT(*) as emissary_count,
-                                SUM((dynamic_state->>'xp_total')::int) as total_xp,
-                                RANK() OVER (ORDER BY SUM((dynamic_state->>'xp_total')::int) DESC) as rank
+                                SUM(CASE WHEN dynamic_state->>'state' != 'FALLEN'
+                                    THEN COALESCE((dynamic_state->>'xp_total')::int, 0) ELSE 0 END) as total_xp,
+                                RANK() OVER (ORDER BY SUM(CASE WHEN dynamic_state->>'state' != 'FALLEN'
+                                    THEN COALESCE((dynamic_state->>'xp_total')::int, 0) ELSE 0 END) DESC) as rank
                             FROM nfts
                             WHERE last_known_owner IS NOT NULL
-                              AND dynamic_state->>'state' != 'FALLEN'
                             GROUP BY last_known_owner
                         )
                         SELECT * FROM ranked WHERE wallet = %s
