@@ -3299,11 +3299,11 @@ document.addEventListener('DOMContentLoaded', initPortalWarning);
                         <!-- THE FORTUNATE -->
                         <div class="terminal-box" id="prize-fortunate" style="border-color:#ffcc00;">
                             <div style="display:flex; align-items:center; gap:8px; margin-bottom:12px;">
-                                <span style="font-size:20px;">&#127922;</span>
-                                <span style="color:#ffcc00; font-size:14px; font-weight:bold;">THE FORTUNATE</span>
+                                <span style="font-size:24px; filter:sepia(1) saturate(5) hue-rotate(-10deg);">&#127922;</span>
+                                <span style="color:#ffcc00; font-size:18px; font-weight:bold;">THE FORTUNATE</span>
                                 <div style="margin-left:auto; text-align:center;">
                                     <div style="color:#44ff44; font-size:12px;">1 ETH</div>
-                                    <img src="/img/GoldenRune.png" alt="Golden Rune" style="width:120px; height:120px; margin-top:4px; border:1px solid #ffcc00; border-radius:4px;">
+                                    <img src="/img/GoldenRune.png" alt="Golden Rune" style="width:80px; height:80px; margin-top:4px; border:1px solid #ffcc00; border-radius:4px;">
                                 </div>
                             </div>
                             <div style="color:#aaa; font-size:11px; margin-bottom:12px;">
@@ -3321,11 +3321,11 @@ document.addEventListener('DOMContentLoaded', initPortalWarning);
                         <!-- THE WORTHY -->
                         <div class="terminal-box" id="prize-worthy" style="border-color:#00ccff;">
                             <div style="display:flex; align-items:center; gap:8px; margin-bottom:12px;">
-                                <span style="font-size:20px;">&#9876;</span>
-                                <span style="color:#00ccff; font-size:14px; font-weight:bold;">THE WORTHY</span>
+                                <span style="font-size:24px;">&#9876;</span>
+                                <span style="color:#00ccff; font-size:18px; font-weight:bold;">THE WORTHY</span>
                                 <div style="margin-left:auto; text-align:center;">
                                     <div style="color:#44ff44; font-size:12px;">1 ETH</div>
-                                    <img src="/img/EternalTorch.png" alt="Eternal Torch" style="width:120px; height:120px; margin-top:4px; border:1px solid #00ccff; border-radius:4px;">
+                                    <img src="/img/EternalTorch.png" alt="Eternal Torch" style="width:80px; height:80px; margin-top:4px; border:1px solid #00ccff; border-radius:4px;">
                                 </div>
                             </div>
                             <div style="color:#aaa; font-size:11px; margin-bottom:12px;">
@@ -5965,14 +5965,30 @@ async function loadEventLeaderboard() {
 
         if (leaderboardEl) leaderboardEl.innerHTML = html;
 
-        // Show user position if available
-        if (response.user_position && connectedWallet) {
-            if (userPosEl) userPosEl.style.display = "block";
-            if (userRankEl) {
+        // Show user position if wallet connected
+        if (connectedWallet && userPosEl && userRankEl) {
+            // First check if user is in the top 10
+            const userInTop10 = response.leaderboard.find(entry =>
+                entry.wallet_full && entry.wallet_full.toLowerCase() === connectedWallet.toLowerCase()
+            );
+
+            if (userInTop10) {
+                // User is in top 10, show their position from leaderboard
+                userPosEl.style.display = "block";
+                userRankEl.textContent = `#${userInTop10.rank} | ${userInTop10.emissary_count} Emissaries | ${(userInTop10.total_xp || 0).toLocaleString()} XP`;
+            } else if (response.user_position) {
+                // User not in top 10, but API returned their position
+                userPosEl.style.display = "block";
                 userRankEl.textContent = `#${response.user_position.rank} | ${response.user_position.emissary_count} Emissaries | ${(response.user_position.total_xp || 0).toLocaleString()} XP`;
+            } else {
+                // User has no position (no NFTs or no XP)
+                userPosEl.style.display = "block";
+                userRankEl.textContent = `Not ranked yet - complete missions to earn XP!`;
             }
         } else if (userPosEl) {
-            userPosEl.style.display = "none";
+            // No wallet connected
+            userPosEl.style.display = "block";
+            userRankEl.textContent = `Connect wallet to see your position`;
         }
 
     } catch(e) {
