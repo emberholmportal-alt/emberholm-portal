@@ -5087,3 +5087,220 @@ img {
         scroll-behavior: smooth;
     }
 }
+
+/* ============================================
+   MOBILE FIX: Navigation & Console Bar
+   Targets the ACTUAL classes used in HTML
+   ============================================ */
+
+/* ----------------------------------------
+   TABLETS (max-width: 768px)
+   ---------------------------------------- */
+@media (max-width: 768px) {
+    /* === NAVIGATION: cmd-link buttons === */
+    .cmd-link {
+        font-size: 12px !important;
+        padding: 10px 12px !important;
+        min-height: 40px;
+        box-sizing: border-box;
+    }
+
+    .top-command-bar {
+        padding: 4px 8px;
+        gap: 6px;
+    }
+
+    /* === CONSOLE BAR: Reorganize for tablets === */
+    .ember-console-bar {
+        grid-template-columns: 1fr auto;
+        gap: 10px;
+        padding: 10px 12px;
+    }
+
+    .console-section.console-calendar {
+        display: none; /* Hide calendar on tablets */
+    }
+
+    .console-btn {
+        font-size: 12px !important;
+        padding: 8px 10px !important;
+        min-height: 40px;
+    }
+
+    .console-block-label {
+        font-size: 10px;
+        padding-right: 6px;
+    }
+
+    .console-track-now {
+        font-size: 10px;
+        max-width: 120px;
+    }
+}
+
+/* ----------------------------------------
+   PHONES LANDSCAPE (max-width: 600px)
+   ---------------------------------------- */
+@media (max-width: 600px) {
+    /* === NAVIGATION: Horizontal scroll with visual cues === */
+    .top-command-bar {
+        justify-content: flex-start;
+        padding: 6px 10px;
+        gap: 8px;
+        /* Visual scroll indicator */
+        mask-image: linear-gradient(90deg, black 90%, transparent 100%);
+        -webkit-mask-image: linear-gradient(90deg, black 90%, transparent 100%);
+    }
+
+    .cmd-link {
+        font-size: 13px !important;
+        padding: 12px 14px !important;
+        min-height: 44px;
+    }
+
+    /* === CONSOLE BAR: Single row, compact === */
+    .ember-console-bar {
+        grid-template-columns: 1fr;
+        padding: 8px 10px;
+        gap: 8px;
+    }
+
+    .console-music {
+        justify-content: space-between;
+        width: 100%;
+    }
+
+    .console-btn {
+        font-size: 13px !important;
+        padding: 10px 12px !important;
+        min-height: 44px;
+    }
+
+    /* Hide track label, show only controls */
+    .console-block-label {
+        display: none;
+    }
+
+    .console-track-now {
+        flex: 1;
+        max-width: none;
+        font-size: 11px;
+    }
+
+    /* Phase/Weather section */
+    .console-section:last-child {
+        justify-content: center;
+        font-size: 11px;
+    }
+}
+
+/* ----------------------------------------
+   PHONES PORTRAIT (max-width: 480px)
+   ---------------------------------------- */
+@media (max-width: 480px) {
+    /* === TOP HEADER: More vertical space === */
+    .top-header {
+        padding: 8px 10px;
+        gap: 6px;
+    }
+
+    /* === NAVIGATION: Larger touch targets === */
+    .top-command-bar {
+        padding: 8px 5px;
+        gap: 6px;
+    }
+
+    .cmd-link {
+        font-size: 14px !important;
+        padding: 14px 16px !important;
+        min-height: 48px;
+        border-radius: 4px;
+    }
+
+    /* First row nav - most important buttons */
+    #nav-bar {
+        order: 1;
+    }
+
+    /* Second row nav */
+    #nav-bar-2 {
+        order: 2;
+    }
+
+    /* === CONSOLE BAR: Minimal on phones === */
+    .ember-console-bar {
+        top: 4px;
+        left: 4px;
+        right: 4px;
+        padding: 8px;
+        grid-template-columns: 1fr auto;
+        gap: 6px;
+    }
+
+    .console-music-controls {
+        gap: 4px;
+    }
+
+    .console-btn {
+        font-size: 12px !important;
+        padding: 10px !important;
+        min-width: 44px;
+        min-height: 44px;
+    }
+
+    /* Hide volume slider on small phones */
+    .console-volume {
+        display: none;
+    }
+
+    .console-track-now {
+        display: none; /* Hide track name, too small */
+    }
+
+    /* Show only essential: MUTE + NEXT buttons */
+    .console-music {
+        gap: 4px;
+    }
+
+    /* Weather/Phase - compact */
+    .console-section:last-child {
+        font-size: 10px;
+    }
+
+    /* === WRAPPER: Account for console bar === */
+    .wrapper {
+        padding-top: 60px; /* Space for fixed console bar */
+    }
+}
+
+/* ----------------------------------------
+   SMALL PHONES (max-width: 375px)
+   ---------------------------------------- */
+@media (max-width: 375px) {
+    .cmd-link {
+        font-size: 13px !important;
+        padding: 12px 10px !important;
+    }
+
+    /* Stack command bars vertically if needed */
+    .top-header {
+        padding: 6px 8px;
+    }
+
+    .top-command-bar {
+        padding: 4px;
+        gap: 4px;
+    }
+
+    /* Ultra compact console */
+    .ember-console-bar {
+        padding: 6px;
+    }
+
+    .console-btn {
+        font-size: 11px !important;
+        padding: 8px !important;
+        min-width: 40px;
+        min-height: 40px;
+    }
+}
