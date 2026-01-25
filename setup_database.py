@@ -117,6 +117,81 @@ CREATE OR REPLACE FUNCTION count_active_missions()
 RETURNS INTEGER AS $$
     SELECT COUNT(*)::INTEGER FROM active_missions;
 $$ LANGUAGE SQL;
+
+-- TABLA: EVENTS (Sistema de eventos escalable)
+CREATE TABLE IF NOT EXISTS events (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    slug VARCHAR(50) UNIQUE NOT NULL,
+    status VARCHAR(20) DEFAULT 'active',
+    description TEXT,
+    start_condition VARCHAR(255),
+    end_condition VARCHAR(255),
+    item_drop_multiplier DECIMAL(5,2) DEFAULT 1.00,
+    rune_drop_multiplier DECIMAL(5,2) DEFAULT 1.00,
+    created_at TIMESTAMP DEFAULT NOW(),
+    ended_at TIMESTAMP NULL
+);
+
+-- Índices para events
+CREATE INDEX IF NOT EXISTS idx_events_status ON events(status);
+CREATE INDEX IF NOT EXISTS idx_events_slug ON events(slug);
+
+-- TABLA: EVENT_PRIZES
+CREATE TABLE IF NOT EXISTS event_prizes (
+    id SERIAL PRIMARY KEY,
+    event_id INTEGER REFERENCES events(id) ON DELETE CASCADE,
+    prize_name VARCHAR(100) NOT NULL,
+    prize_type VARCHAR(50) NOT NULL,
+    trophy_token_id INTEGER NOT NULL,
+    reward_eth DECIMAL(10,4) DEFAULT 0,
+    winner_wallet VARCHAR(42) NULL,
+    trophy_minted BOOLEAN DEFAULT FALSE,
+    reward_sent BOOLEAN DEFAULT FALSE,
+    found_at TIMESTAMP NULL,
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Índices para event_prizes
+CREATE INDEX IF NOT EXISTS idx_event_prizes_event ON event_prizes(event_id);
+CREATE INDEX IF NOT EXISTS idx_event_prizes_trophy ON event_prizes(trophy_token_id);
+CREATE INDEX IF NOT EXISTS idx_event_prizes_winner ON event_prizes(winner_wallet);
+
+-- Datos iniciales: Evento "The First Spark"
+INSERT INTO events (name, slug, description, start_condition, end_condition, item_drop_multiplier, rune_drop_multiplier)
+VALUES (
+    'The First Spark',
+    'the-first-spark',
+    'The Portal opens. Two prophecies await fulfillment.',
+    'mint >= 1',
+    'mint >= 35000',
+    3.00,
+    2.00
+)
+ON CONFLICT (slug) DO NOTHING;
+
+-- Premios del evento
+INSERT INTO event_prizes (event_id, prize_name, prize_type, trophy_token_id, reward_eth)
+SELECT e.id, 'The Fortunate', 'random_drop', 1, 1.0000
+FROM events e WHERE e.slug = 'the-first-spark'
+  AND NOT EXISTS (SELECT 1 FROM event_prizes ep WHERE ep.event_id = e.id AND ep.prize_name = 'The Fortunate');
+
+INSERT INTO event_prizes (event_id, prize_name, prize_type, trophy_token_id, reward_eth)
+SELECT e.id, 'The Worthy', 'leaderboard', 2, 1.0000
+FROM events e WHERE e.slug = 'the-first-spark'
+  AND NOT EXISTS (SELECT 1 FROM event_prizes ep WHERE ep.event_id = e.id AND ep.prize_name = 'The Worthy');
+
+-- VIEW: Event XP Leaderboard (Solo emissaries vivos)
+CREATE OR REPLACE VIEW event_xp_leaderboard AS
+SELECT
+    last_known_owner as wallet,
+    COUNT(*) as emissary_count,
+    SUM((dynamic_state->>'xp_total')::int) as total_xp
+FROM nfts
+WHERE last_known_owner IS NOT NULL
+  AND dynamic_state->>'state' != 'FALLEN'
+GROUP BY last_known_owner
+ORDER BY total_xp DESC;
 """
 
 def setup_database():
