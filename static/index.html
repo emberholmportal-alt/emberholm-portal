@@ -6336,6 +6336,7 @@ async function loadPlayerAndRender(){
 
         // roster table
         let tbodyRows = "";
+        let mobileCardsHtml = ""; // Mobile responsive cards
 
         // Count missions ready to claim for CLAIM ALL button
         let missionsReadyToClaim = [];
@@ -6627,6 +6628,51 @@ async function loadPlayerAndRender(){
                 <td style="color:${stateColor};">${stateText}${timeRemainingHtml}</td>
                 <td>${actionButtons}</td>
             </tr>`;
+
+            // Generate mobile card for this emissary
+            mobileCardsHtml += `
+            <div class="roster-card ${fallenClass}">
+                <div class="roster-card-header">
+                    <img src="${h.image_url || '/img/emissary-placeholder.png'}"
+                         alt="${h.name}"
+                         loading="lazy"
+                         class="roster-card-avatar ${fallenClass}"
+                         onerror="this.src='/img/emissary-placeholder.png'"/>
+                    <div class="roster-card-info">
+                        <div class="roster-card-name">${h.name || 'Emissary #' + h.token_id}</div>
+                        <div class="roster-card-class">${h.race_class || 'Unknown Class'}</div>
+                        <div class="roster-card-id">ID: ${h.token_id}</div>
+                    </div>
+                    <div class="roster-card-status" style="color:${stateColor};">
+                        ${state === "FALLEN" ? "☠" : state === "ON_MISSION" ? "⚔" : "✓"}
+                    </div>
+                </div>
+                <div class="roster-card-stats">
+                    <div class="roster-card-stat">
+                        <span class="roster-card-stat-label">XP</span>
+                        <span class="roster-card-stat-value">${displayXp}</span>
+                    </div>
+                    <div class="roster-card-stat">
+                        <span class="roster-card-stat-label">AURA</span>
+                        <span class="roster-card-stat-value">${displayAura}</span>
+                    </div>
+                    <div class="roster-card-stat">
+                        <span class="roster-card-stat-label">ENERGY</span>
+                        <span class="roster-card-stat-value">${displayEnergy}/${maxEnergy}</span>
+                    </div>
+                    <div class="roster-card-stat">
+                        <span class="roster-card-stat-label">GUILD</span>
+                        <span class="roster-card-stat-value">${h.guild || ds.current_guild || '-'}</span>
+                    </div>
+                </div>
+                <div class="roster-card-state" style="color:${stateColor};">
+                    ${stateText}
+                    ${timeRemainingHtml ? `<div class="roster-card-mission-info">${timeRemainingHtml}</div>` : ''}
+                </div>
+                <div class="roster-card-actions">
+                    ${actionButtons}
+                </div>
+            </div>`;
         });
 
         // Generate CLAIM ALL button if there are missions ready
@@ -6641,7 +6687,8 @@ async function loadPlayerAndRender(){
 
         const rosterTableHtml = `
             ${paginationControlsHtml}
-            <table class="roster-table">
+            <!-- Desktop: Table view -->
+            <table class="roster-table roster-desktop">
                 <thead>
                     <tr>
                         <th>NAME</th>
@@ -6658,6 +6705,11 @@ async function loadPlayerAndRender(){
                     ${tbodyRows}
                 </tbody>
             </table>
+            <!-- Mobile: Card view -->
+            <div class="roster-cards-mobile">
+                ${claimAllBtn ? `<div class="roster-cards-header">${claimAllBtn}</div>` : ''}
+                ${mobileCardsHtml}
+            </div>
             ${paginationControlsHtml}
         `;
         document.getElementById("roster-table-wrap").innerHTML = rosterTableHtml;

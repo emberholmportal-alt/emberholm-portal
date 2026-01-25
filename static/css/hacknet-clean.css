@@ -4357,6 +4357,15 @@ button:disabled {
    Phase 1: Foundation + Phase 2: Critical Layouts
    ============================================ */
 
+/* === BASE STYLES: Hide mobile elements on desktop === */
+.roster-cards-mobile {
+    display: none;
+}
+
+.roster-desktop {
+    display: table;
+}
+
 /* ----------------------------------------
    TABLETS & SMALL LAPTOPS (max-width: 1024px)
    ---------------------------------------- */
@@ -4593,6 +4602,73 @@ button:disabled {
     .roster-card-actions .action-btn {
         flex: 1 1 calc(50% - 4px);
         min-width: 100px;
+    }
+
+    /* Additional card elements */
+    .roster-card-info {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .roster-card-id {
+        font-size: 11px;
+        color: #666;
+        margin-top: 2px;
+    }
+
+    .roster-card-status {
+        font-size: 24px;
+        margin-left: auto;
+        flex-shrink: 0;
+    }
+
+    .roster-card-state {
+        padding: 10px;
+        background: rgba(0, 0, 0, 0.3);
+        border-radius: 4px;
+        font-size: 14px;
+        text-align: center;
+    }
+
+    .roster-card-mission-info {
+        margin-top: 8px;
+        font-size: 12px;
+        opacity: 0.9;
+    }
+
+    .roster-card-mission-info small {
+        display: block;
+        line-height: 1.4;
+    }
+
+    .roster-cards-header {
+        display: flex;
+        justify-content: flex-end;
+        margin-bottom: 10px;
+    }
+
+    /* Fallen emissary card styling */
+    .roster-card.fallen {
+        opacity: 0.7;
+        border-color: rgba(255, 68, 68, 0.4);
+    }
+
+    .roster-card.fallen .roster-card-avatar {
+        filter: grayscale(70%);
+    }
+
+    .roster-card.fallen .roster-card-name {
+        color: #ff4444;
+        text-decoration: line-through;
+    }
+
+    /* Actions cell styling in cards */
+    .roster-card-actions .actions-cell {
+        display: contents;
+    }
+
+    .roster-card-actions .actions-cell .action-btn {
+        flex: 1 1 calc(50% - 4px);
     }
 
     /* === NAVIGATION: Horizontal scroll === */
