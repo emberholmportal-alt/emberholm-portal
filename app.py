@@ -10547,7 +10547,8 @@ def get_total_emissaries_minted():
 def api_debug_verify_nfts():
     """
     Debug endpoint to verify which NFTs in DB actually exist on-chain.
-    Compares DB token_ids against EmberholmPortal contract.
+    Uses ERC721Enumerable tokenByIndex() for efficient verification.
+    Returns list of valid tokens and garbage tokens.
     """
     PORTAL_CONTRACT = "0x7AB2cf80FbfB8c89868b3dFa053729ecC86E39b3"
 
@@ -10556,65 +10557,167 @@ def api_debug_verify_nfts():
 
     result = {
         "contract": PORTAL_CONTRACT,
-        "db_nfts_with_owner": [],
-        "valid_onchain": [],
-        "invalid_not_onchain": [],
+        "onchain_tokens": [],
+        "db_tokens": [],
+        "garbage_tokens": [],
         "summary": {}
     }
 
     try:
-        # Get all NFTs with owner from DB
+        # Step 1: Get all valid token IDs from contract using ERC721Enumerable
+        if Web3Lib:
+            w3 = Web3Lib(Web3Lib.HTTPProvider("https://mainnet.base.org"))
+            # ABI for totalSupply and tokenByIndex (ERC721Enumerable)
+            abi = [
+                {"inputs": [], "name": "totalSupply", "outputs": [{"type": "uint256"}], "stateMutability": "view", "type": "function"},
+                {"inputs": [{"type": "uint256"}], "name": "tokenByIndex", "outputs": [{"type": "uint256"}], "stateMutability": "view", "type": "function"}
+            ]
+            contract = w3.eth.contract(address=Web3Lib.to_checksum_address(PORTAL_CONTRACT), abi=abi)
+
+            # Get total supply
+            total_supply = contract.functions.totalSupply().call()
+
+            # Get all token IDs using tokenByIndex
+            valid_token_ids = set()
+            for i in range(total_supply):
+                token_id = contract.functions.tokenByIndex(i).call()
+                valid_token_ids.add(str(token_id))
+
+            result["onchain_tokens"] = sorted(list(valid_token_ids), key=lambda x: int(x))
+        else:
+            return jsonify({"error": "Web3 not available"}), 503
+
+        # Step 2: Get all token IDs from database
         with db.get_db() as conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
                 cur.execute("""
                     SELECT token_id, last_known_owner,
                            (dynamic_state->>'xp_total')::int as xp
                     FROM nfts
-                    WHERE last_known_owner IS NOT NULL
-                      AND last_known_owner != ''
                     ORDER BY token_id
                 """)
                 db_nfts = cur.fetchall()
 
-        result["db_nfts_with_owner"] = [dict(n) for n in db_nfts]
+        db_token_ids = set()
+        for nft in db_nfts:
+            db_token_ids.add(nft['token_id'])
+            result["db_tokens"].append({
+                "token_id": nft['token_id'],
+                "owner": nft['last_known_owner'],
+                "xp": nft['xp']
+            })
 
-        # Verify each against contract
-        if Web3Lib:
-            w3 = Web3Lib(Web3Lib.HTTPProvider("https://mainnet.base.org"))
-            abi = [{"inputs": [{"type": "uint256"}], "name": "ownerOf", "outputs": [{"type": "address"}], "stateMutability": "view", "type": "function"}]
-            contract = w3.eth.contract(address=Web3Lib.to_checksum_address(PORTAL_CONTRACT), abi=abi)
-
-            for nft in db_nfts:
-                token_id = nft['token_id']
-                try:
-                    # Try to get owner from contract
-                    token_id_int = int(token_id)
-                    onchain_owner = contract.functions.ownerOf(token_id_int).call()
-                    result["valid_onchain"].append({
-                        "token_id": token_id,
-                        "db_owner": nft['last_known_owner'],
-                        "onchain_owner": onchain_owner.lower(),
-                        "xp": nft['xp']
-                    })
-                except Exception as e:
-                    # Token doesn't exist on-chain
-                    result["invalid_not_onchain"].append({
-                        "token_id": token_id,
-                        "db_owner": nft['last_known_owner'],
-                        "xp": nft['xp'],
-                        "error": str(e)[:100]
-                    })
+        # Step 3: Find garbage tokens (in DB but not on-chain)
+        garbage_ids = db_token_ids - valid_token_ids
+        for nft in db_nfts:
+            if nft['token_id'] in garbage_ids:
+                result["garbage_tokens"].append({
+                    "token_id": nft['token_id'],
+                    "owner": nft['last_known_owner'],
+                    "xp": nft['xp']
+                })
 
         result["summary"] = {
-            "total_in_db": len(db_nfts),
-            "valid_onchain": len(result["valid_onchain"]),
-            "invalid_garbage": len(result["invalid_not_onchain"])
+            "total_onchain": len(valid_token_ids),
+            "total_in_db": len(db_token_ids),
+            "garbage_count": len(garbage_ids),
+            "garbage_ids": sorted(list(garbage_ids), key=lambda x: int(x))
         }
 
         return jsonify(result)
 
     except Exception as e:
         logger.error(f"Error verifying NFTs: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/admin/cleanup-garbage-nfts', methods=['POST'])
+def api_cleanup_garbage_nfts():
+    """
+    Admin endpoint to remove garbage NFT data from database.
+    Removes all NFT records that don't exist on-chain.
+
+    POST body:
+        confirm: must be "DELETE_GARBAGE" to proceed
+    """
+    PORTAL_CONTRACT = "0x7AB2cf80FbfB8c89868b3dFa053729ecC86E39b3"
+
+    if not POSTGRESQL_AVAILABLE:
+        return jsonify({"error": "Database not available"}), 503
+
+    # Require confirmation
+    data = request.get_json() or {}
+    if data.get('confirm') != 'DELETE_GARBAGE':
+        return jsonify({
+            "error": "Confirmation required",
+            "message": "Send POST with {\"confirm\": \"DELETE_GARBAGE\"} to proceed"
+        }), 400
+
+    try:
+        # Get all valid token IDs from contract
+        if not Web3Lib:
+            return jsonify({"error": "Web3 not available"}), 503
+
+        w3 = Web3Lib(Web3Lib.HTTPProvider("https://mainnet.base.org"))
+        abi = [
+            {"inputs": [], "name": "totalSupply", "outputs": [{"type": "uint256"}], "stateMutability": "view", "type": "function"},
+            {"inputs": [{"type": "uint256"}], "name": "tokenByIndex", "outputs": [{"type": "uint256"}], "stateMutability": "view", "type": "function"}
+        ]
+        contract = w3.eth.contract(address=Web3Lib.to_checksum_address(PORTAL_CONTRACT), abi=abi)
+
+        # Get total supply
+        total_supply = contract.functions.totalSupply().call()
+
+        # Get all valid token IDs
+        valid_token_ids = set()
+        for i in range(total_supply):
+            token_id = contract.functions.tokenByIndex(i).call()
+            valid_token_ids.add(str(token_id))
+
+        logger.info(f"Cleanup: Found {len(valid_token_ids)} valid tokens on-chain")
+
+        # Get all DB token IDs and find garbage
+        with db.get_db() as conn:
+            with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                cur.execute("SELECT token_id FROM nfts")
+                db_nfts = cur.fetchall()
+
+                db_token_ids = {nft['token_id'] for nft in db_nfts}
+                garbage_ids = db_token_ids - valid_token_ids
+
+                logger.info(f"Cleanup: Found {len(garbage_ids)} garbage tokens in DB")
+
+                if garbage_ids:
+                    # Delete garbage records
+                    garbage_list = list(garbage_ids)
+                    cur.execute(
+                        "DELETE FROM nfts WHERE token_id = ANY(%s)",
+                        (garbage_list,)
+                    )
+                    deleted_count = cur.rowcount
+                    conn.commit()
+
+                    logger.info(f"Cleanup: Deleted {deleted_count} garbage NFT records")
+
+                    return jsonify({
+                        "success": True,
+                        "valid_onchain": len(valid_token_ids),
+                        "garbage_deleted": deleted_count,
+                        "deleted_ids": sorted(garbage_list, key=lambda x: int(x)),
+                        "remaining_in_db": len(db_token_ids) - deleted_count
+                    })
+                else:
+                    return jsonify({
+                        "success": True,
+                        "message": "No garbage to clean",
+                        "valid_onchain": len(valid_token_ids),
+                        "total_in_db": len(db_token_ids)
+                    })
+
+    except Exception as e:
+        logger.error(f"Error cleaning garbage NFTs: {e}")
         import traceback
         traceback.print_exc()
         return jsonify({"error": str(e)}), 500
