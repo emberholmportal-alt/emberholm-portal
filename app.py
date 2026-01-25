@@ -10576,12 +10576,17 @@ def api_debug_verify_nfts():
 
             # Get total supply
             total_supply = contract.functions.totalSupply().call()
+            logger.info(f"Verify NFTs: totalSupply = {total_supply}")
 
-            # Get all token IDs using tokenByIndex
+            # Get all token IDs using tokenByIndex (with delay to avoid rate limit)
+            import time
             valid_token_ids = set()
             for i in range(total_supply):
+                if i > 0:
+                    time.sleep(1)  # 1 second delay between calls to avoid 429
                 token_id = contract.functions.tokenByIndex(i).call()
                 valid_token_ids.add(str(token_id))
+                logger.info(f"Verify NFTs: tokenByIndex({i}) = {token_id}")
 
             result["onchain_tokens"] = sorted(list(valid_token_ids), key=lambda x: int(x))
         else:
@@ -10669,12 +10674,17 @@ def api_cleanup_garbage_nfts():
 
         # Get total supply
         total_supply = contract.functions.totalSupply().call()
+        logger.info(f"Cleanup: totalSupply = {total_supply}")
 
-        # Get all valid token IDs
+        # Get all valid token IDs (with delay to avoid rate limit)
+        import time
         valid_token_ids = set()
         for i in range(total_supply):
+            if i > 0:
+                time.sleep(1)  # 1 second delay between calls to avoid 429
             token_id = contract.functions.tokenByIndex(i).call()
             valid_token_ids.add(str(token_id))
+            logger.info(f"Cleanup: tokenByIndex({i}) = {token_id}")
 
         logger.info(f"Cleanup: Found {len(valid_token_ids)} valid tokens on-chain")
 
