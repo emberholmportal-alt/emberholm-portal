@@ -10543,6 +10543,83 @@ def get_total_emissaries_minted():
         return 0
 
 
+@app.route('/api/debug/verify-nfts')
+def api_debug_verify_nfts():
+    """
+    Debug endpoint to verify which NFTs in DB actually exist on-chain.
+    Compares DB token_ids against EmberholmPortal contract.
+    """
+    PORTAL_CONTRACT = "0x7AB2cf80FbfB8c89868b3dFa053729ecC86E39b3"
+
+    if not POSTGRESQL_AVAILABLE:
+        return jsonify({"error": "Database not available"}), 503
+
+    result = {
+        "contract": PORTAL_CONTRACT,
+        "db_nfts_with_owner": [],
+        "valid_onchain": [],
+        "invalid_not_onchain": [],
+        "summary": {}
+    }
+
+    try:
+        # Get all NFTs with owner from DB
+        with db.get_db() as conn:
+            with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                cur.execute("""
+                    SELECT token_id, last_known_owner,
+                           (dynamic_state->>'xp_total')::int as xp
+                    FROM nfts
+                    WHERE last_known_owner IS NOT NULL
+                      AND last_known_owner != ''
+                    ORDER BY token_id
+                """)
+                db_nfts = cur.fetchall()
+
+        result["db_nfts_with_owner"] = [dict(n) for n in db_nfts]
+
+        # Verify each against contract
+        if Web3Lib:
+            w3 = Web3Lib(Web3Lib.HTTPProvider("https://mainnet.base.org"))
+            abi = [{"inputs": [{"type": "uint256"}], "name": "ownerOf", "outputs": [{"type": "address"}], "stateMutability": "view", "type": "function"}]
+            contract = w3.eth.contract(address=Web3Lib.to_checksum_address(PORTAL_CONTRACT), abi=abi)
+
+            for nft in db_nfts:
+                token_id = nft['token_id']
+                try:
+                    # Try to get owner from contract
+                    token_id_int = int(token_id)
+                    onchain_owner = contract.functions.ownerOf(token_id_int).call()
+                    result["valid_onchain"].append({
+                        "token_id": token_id,
+                        "db_owner": nft['last_known_owner'],
+                        "onchain_owner": onchain_owner.lower(),
+                        "xp": nft['xp']
+                    })
+                except Exception as e:
+                    # Token doesn't exist on-chain
+                    result["invalid_not_onchain"].append({
+                        "token_id": token_id,
+                        "db_owner": nft['last_known_owner'],
+                        "xp": nft['xp'],
+                        "error": str(e)[:100]
+                    })
+
+        result["summary"] = {
+            "total_in_db": len(db_nfts),
+            "valid_onchain": len(result["valid_onchain"]),
+            "invalid_garbage": len(result["invalid_not_onchain"])
+        }
+
+        return jsonify(result)
+
+    except Exception as e:
+        logger.error(f"Error verifying NFTs: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
+
+
 # ---------------------------------
 # 📡 EVENTS API ENDPOINTS
 # ---------------------------------
