@@ -5414,6 +5414,11 @@ async function connectWallet() {
         // 🔥 Load Profile balances (EMBER + ASH)
         loadProfileBalances();
 
+        // 🔥 Reload event leaderboard to show user position
+        if (typeof loadEventLeaderboard === 'function') {
+            loadEventLeaderboard();
+        }
+
         // 🔥 Hide glitch overlay on success
         hideGlitchOverlay();
 
