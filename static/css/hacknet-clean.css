@@ -4515,6 +4515,22 @@ button:disabled {
 
     .noise {
         animation-duration: 0.5s; /* Slower flicker */
+        opacity: 0.04; /* Reduce intensity */
+    }
+
+    /* Reduce CRT effect intensity */
+    body::before {
+        opacity: 0.01; /* Almost invisible scanlines */
+    }
+
+    .crt-overlay {
+        opacity: 0.5; /* Lighter vignette */
+    }
+
+    /* Simplify glowing effects */
+    .terminal-btn:hover,
+    .action-btn:hover {
+        transition: all 0.2s ease;
     }
 }
 
@@ -4889,6 +4905,32 @@ button:disabled {
     .crt-overlay {
         display: none;
     }
+
+    /* Disable all heavy CRT/glitch animations on mobile */
+    body::before {
+        animation: none !important;
+        background: none !important;
+    }
+
+    /* Disable inventory/modal heavy effects */
+    .inventory-scanlines,
+    .modal-scanlines,
+    .glitch-effect {
+        animation: none !important;
+        display: none !important;
+    }
+
+    /* Reduce box-shadow complexity for better performance */
+    .terminal-btn,
+    .action-btn,
+    .roster-card {
+        box-shadow: none;
+    }
+
+    .terminal-btn:hover,
+    .action-btn:hover {
+        box-shadow: 0 0 5px var(--primary-green, #ff9900);
+    }
 }
 
 /* ----------------------------------------
@@ -4992,5 +5034,56 @@ button:disabled {
 
     .roster-card {
         border-width: 2px;
+    }
+}
+
+/* ----------------------------------------
+   TOUCH & GPU OPTIMIZATIONS
+   ---------------------------------------- */
+/* Improve touch scrolling */
+.nav-bar,
+.roster-cards-mobile,
+.terminal-modal-content,
+.inventory-grid,
+.mission-grid {
+    -webkit-overflow-scrolling: touch;
+}
+
+/* Prevent accidental zoom on double-tap */
+.terminal-btn,
+.action-btn,
+button,
+[role="button"] {
+    touch-action: manipulation;
+}
+
+/* GPU acceleration for animated elements */
+.scan-beam,
+.noise,
+.terminal-modal,
+.roster-card {
+    transform: translateZ(0);
+    backface-visibility: hidden;
+}
+
+/* Optimize images for mobile */
+img {
+    max-width: 100%;
+    height: auto;
+}
+
+/* Prevent text selection on UI elements */
+.terminal-btn,
+.action-btn,
+.nav-bar,
+.console-music-controls {
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+/* Smooth scrolling for the whole page */
+@media (prefers-reduced-motion: no-preference) {
+    html {
+        scroll-behavior: smooth;
     }
 }
