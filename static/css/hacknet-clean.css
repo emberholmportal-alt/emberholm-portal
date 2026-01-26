@@ -5104,27 +5104,31 @@ img {
         top: 0 !important;
         left: 0 !important;
         right: 0 !important;
-        z-index: 9999 !important;
+        z-index: 10000 !important;
         border-radius: 0 !important;
         margin: 0 !important;
     }
 
     /* === Navigation header: FIXED below console bar === */
+    .wrapper .top-header,
     .top-header {
         position: fixed !important;
-        top: 85px !important; /* Below console bar */
+        top: 85px !important;
         left: 0 !important;
         right: 0 !important;
-        z-index: 9998 !important;
-        background: var(--bg-panel, #0f0f14) !important;
+        z-index: 9999 !important;
+        background: #0a0a0f !important;
         margin: 0 !important;
-        padding: 8px 10px !important;
-        border-bottom: 1px solid var(--border-primary, rgba(255, 153, 0, 0.4)) !important;
+        padding: 10px !important;
+        border-bottom: 2px solid #ff9900 !important;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.8) !important;
     }
 
-    /* === Content: padding to clear both fixed bars === */
+    /* Wrapper must not interfere with fixed elements */
     .wrapper {
-        padding-top: 200px !important; /* Space for console + nav */
+        position: static !important;
+        z-index: auto !important;
+        padding-top: 220px !important;
     }
 
     /* Hide the divider since we have fixed bars now */
