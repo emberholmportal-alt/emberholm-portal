@@ -5098,23 +5098,38 @@ img {
    TABLETS (max-width: 768px)
    ---------------------------------------- */
 @media (max-width: 768px) {
-    /* === SOLUTION: Console bar scrolls with content === */
+    /* === Console bar: FIXED at top === */
     .ember-console-bar {
-        position: relative !important;
+        position: fixed !important;
         top: 0 !important;
         left: 0 !important;
         right: 0 !important;
-        margin: 0 0 10px 0 !important;
+        z-index: 9999 !important;
         border-radius: 0 !important;
+        margin: 0 !important;
     }
 
-    /* No padding needed since console bar is not fixed */
-    .wrapper {
-        padding-top: 10px !important;
-    }
-
+    /* === Navigation header: FIXED below console bar === */
     .top-header {
-        margin-top: 0 !important;
+        position: fixed !important;
+        top: 85px !important; /* Below console bar */
+        left: 0 !important;
+        right: 0 !important;
+        z-index: 9998 !important;
+        background: var(--bg-panel, #0f0f14) !important;
+        margin: 0 !important;
+        padding: 8px 10px !important;
+        border-bottom: 1px solid var(--border-primary, rgba(255, 153, 0, 0.4)) !important;
+    }
+
+    /* === Content: padding to clear both fixed bars === */
+    .wrapper {
+        padding-top: 200px !important; /* Space for console + nav */
+    }
+
+    /* Hide the divider since we have fixed bars now */
+    .console-header-divider {
+        display: none !important;
     }
 
     /* === NAVIGATION: cmd-link buttons - HIGH SPECIFICITY === */
@@ -5171,6 +5186,15 @@ img {
    PHONES LANDSCAPE (max-width: 600px)
    ---------------------------------------- */
 @media (max-width: 600px) {
+    /* Console bar is taller due to single column layout */
+    .top-header {
+        top: 120px !important; /* Console bar is taller */
+    }
+
+    .wrapper {
+        padding-top: 250px !important;
+    }
+
     /* === NAVIGATION: Horizontal scroll with visual cues === */
     .top-command-bar {
         justify-content: flex-start !important;
@@ -5231,10 +5255,15 @@ img {
    PHONES PORTRAIT (max-width: 480px)
    ---------------------------------------- */
 @media (max-width: 480px) {
-    /* === TOP HEADER: Styling for phones === */
+    /* Console bar even taller on small phones */
     .top-header {
+        top: 140px !important;
         padding: 8px 10px !important;
         gap: 6px !important;
+    }
+
+    .wrapper {
+        padding-top: 280px !important;
     }
 
     /* === NAVIGATION: Larger touch targets === */
