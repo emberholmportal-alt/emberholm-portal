@@ -5100,7 +5100,12 @@ img {
 @media (max-width: 768px) {
     /* === CRITICAL: Space for fixed console bar === */
     .wrapper {
-        padding-top: 75px !important;
+        padding-top: 80px !important;
+    }
+
+    /* Push header below console bar */
+    .top-header {
+        margin-top: 10px !important;
     }
 
     /* === NAVIGATION: cmd-link buttons - HIGH SPECIFICITY === */
@@ -5159,7 +5164,11 @@ img {
 @media (max-width: 600px) {
     /* === CRITICAL: More space for console bar === */
     .wrapper {
-        padding-top: 90px !important;
+        padding-top: 100px !important;
+    }
+
+    .top-header {
+        margin-top: 15px !important;
     }
 
     /* === NAVIGATION: Horizontal scroll with visual cues === */
@@ -5222,8 +5231,14 @@ img {
    PHONES PORTRAIT (max-width: 480px)
    ---------------------------------------- */
 @media (max-width: 480px) {
-    /* === TOP HEADER: More vertical space === */
+    /* === CRITICAL: Console bar is taller on phones === */
+    .wrapper {
+        padding-top: 120px !important;
+    }
+
+    /* === TOP HEADER: Push below console bar === */
     .top-header {
+        margin-top: 20px !important;
         padding: 8px 10px !important;
         gap: 6px !important;
     }
