@@ -4366,6 +4366,15 @@ button:disabled {
    Phase 1: Foundation + Phase 2: Critical Layouts
    ============================================ */
 
+/* === BASE STYLES: Hide mobile elements on desktop === */
+.roster-cards-mobile {
+    display: none;
+}
+
+.roster-desktop {
+    display: table;
+}
+
 /* ----------------------------------------
    TABLETS & SMALL LAPTOPS (max-width: 1024px)
    ---------------------------------------- */
@@ -4515,6 +4524,22 @@ button:disabled {
 
     .noise {
         animation-duration: 0.5s; /* Slower flicker */
+        opacity: 0.04; /* Reduce intensity */
+    }
+
+    /* Reduce CRT effect intensity */
+    body::before {
+        opacity: 0.01; /* Almost invisible scanlines */
+    }
+
+    .crt-overlay {
+        opacity: 0.5; /* Lighter vignette */
+    }
+
+    /* Simplify glowing effects */
+    .terminal-btn:hover,
+    .action-btn:hover {
+        transition: all 0.2s ease;
     }
 }
 
@@ -4602,6 +4627,73 @@ button:disabled {
     .roster-card-actions .action-btn {
         flex: 1 1 calc(50% - 4px);
         min-width: 100px;
+    }
+
+    /* Additional card elements */
+    .roster-card-info {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .roster-card-id {
+        font-size: 11px;
+        color: #666;
+        margin-top: 2px;
+    }
+
+    .roster-card-status {
+        font-size: 24px;
+        margin-left: auto;
+        flex-shrink: 0;
+    }
+
+    .roster-card-state {
+        padding: 10px;
+        background: rgba(0, 0, 0, 0.3);
+        border-radius: 4px;
+        font-size: 14px;
+        text-align: center;
+    }
+
+    .roster-card-mission-info {
+        margin-top: 8px;
+        font-size: 12px;
+        opacity: 0.9;
+    }
+
+    .roster-card-mission-info small {
+        display: block;
+        line-height: 1.4;
+    }
+
+    .roster-cards-header {
+        display: flex;
+        justify-content: flex-end;
+        margin-bottom: 10px;
+    }
+
+    /* Fallen emissary card styling */
+    .roster-card.fallen {
+        opacity: 0.7;
+        border-color: rgba(255, 68, 68, 0.4);
+    }
+
+    .roster-card.fallen .roster-card-avatar {
+        filter: grayscale(70%);
+    }
+
+    .roster-card.fallen .roster-card-name {
+        color: #ff4444;
+        text-decoration: line-through;
+    }
+
+    /* Actions cell styling in cards */
+    .roster-card-actions .actions-cell {
+        display: contents;
+    }
+
+    .roster-card-actions .actions-cell .action-btn {
+        flex: 1 1 calc(50% - 4px);
     }
 
     /* === NAVIGATION: Horizontal scroll === */
@@ -4822,6 +4914,32 @@ button:disabled {
     .crt-overlay {
         display: none;
     }
+
+    /* Disable all heavy CRT/glitch animations on mobile */
+    body::before {
+        animation: none !important;
+        background: none !important;
+    }
+
+    /* Disable inventory/modal heavy effects */
+    .inventory-scanlines,
+    .modal-scanlines,
+    .glitch-effect {
+        animation: none !important;
+        display: none !important;
+    }
+
+    /* Reduce box-shadow complexity for better performance */
+    .terminal-btn,
+    .action-btn,
+    .roster-card {
+        box-shadow: none;
+    }
+
+    .terminal-btn:hover,
+    .action-btn:hover {
+        box-shadow: 0 0 5px var(--primary-green, #ff9900);
+    }
 }
 
 /* ----------------------------------------
@@ -4925,5 +5043,288 @@ button:disabled {
 
     .roster-card {
         border-width: 2px;
+    }
+}
+
+/* ----------------------------------------
+   TOUCH & GPU OPTIMIZATIONS
+   ---------------------------------------- */
+/* Improve touch scrolling */
+.nav-bar,
+.roster-cards-mobile,
+.terminal-modal-content,
+.inventory-grid,
+.mission-grid {
+    -webkit-overflow-scrolling: touch;
+}
+
+/* Prevent accidental zoom on double-tap */
+.terminal-btn,
+.action-btn,
+button,
+[role="button"] {
+    touch-action: manipulation;
+}
+
+/* GPU acceleration for animated elements */
+.scan-beam,
+.noise,
+.terminal-modal,
+.roster-card {
+    transform: translateZ(0);
+    backface-visibility: hidden;
+}
+
+/* Optimize images for mobile */
+img {
+    max-width: 100%;
+    height: auto;
+}
+
+/* Prevent text selection on UI elements */
+.terminal-btn,
+.action-btn,
+.nav-bar,
+.console-music-controls {
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+/* Smooth scrolling for the whole page */
+@media (prefers-reduced-motion: no-preference) {
+    html {
+        scroll-behavior: smooth;
+    }
+}
+
+/* ============================================
+   MOBILE FIX: Navigation & Console Bar
+   Targets the ACTUAL classes used in HTML
+   ============================================ */
+
+/* ----------------------------------------
+   TABLETS (max-width: 768px)
+   ---------------------------------------- */
+@media (max-width: 768px) {
+    /* === CRITICAL: Space for fixed console bar === */
+    .wrapper {
+        padding-top: 75px;
+    }
+
+    /* === NAVIGATION: cmd-link buttons === */
+    .cmd-link {
+        font-size: 12px !important;
+        padding: 10px 12px !important;
+        min-height: 40px;
+        box-sizing: border-box;
+    }
+
+    .top-command-bar {
+        padding: 4px 8px;
+        gap: 6px;
+    }
+
+    /* === CONSOLE BAR: Reorganize for tablets === */
+    .ember-console-bar {
+        grid-template-columns: 1fr auto;
+        gap: 10px;
+        padding: 10px 12px;
+    }
+
+    .console-section.console-calendar {
+        display: none; /* Hide calendar on tablets */
+    }
+
+    .console-btn {
+        font-size: 12px !important;
+        padding: 8px 10px !important;
+        min-height: 40px;
+    }
+
+    .console-block-label {
+        font-size: 10px;
+        padding-right: 6px;
+    }
+
+    .console-track-now {
+        font-size: 10px;
+        max-width: 120px;
+    }
+}
+
+/* ----------------------------------------
+   PHONES LANDSCAPE (max-width: 600px)
+   ---------------------------------------- */
+@media (max-width: 600px) {
+    /* === CRITICAL: More space for console bar === */
+    .wrapper {
+        padding-top: 90px;
+    }
+
+    /* === NAVIGATION: Horizontal scroll with visual cues === */
+    .top-command-bar {
+        justify-content: flex-start;
+        padding: 6px 10px;
+        gap: 8px;
+        /* Visual scroll indicator */
+        mask-image: linear-gradient(90deg, black 90%, transparent 100%);
+        -webkit-mask-image: linear-gradient(90deg, black 90%, transparent 100%);
+    }
+
+    .cmd-link {
+        font-size: 13px !important;
+        padding: 12px 14px !important;
+        min-height: 44px;
+    }
+
+    /* === CONSOLE BAR: Single row, compact === */
+    .ember-console-bar {
+        grid-template-columns: 1fr;
+        padding: 8px 10px;
+        gap: 8px;
+    }
+
+    .console-music {
+        justify-content: space-between;
+        width: 100%;
+    }
+
+    .console-btn {
+        font-size: 13px !important;
+        padding: 10px 12px !important;
+        min-height: 44px;
+    }
+
+    /* Hide track label, show only controls */
+    .console-block-label {
+        display: none;
+    }
+
+    .console-track-now {
+        flex: 1;
+        max-width: none;
+        font-size: 11px;
+    }
+
+    /* Phase/Weather section */
+    .console-section:last-child {
+        justify-content: center;
+        font-size: 11px;
+    }
+}
+
+/* ----------------------------------------
+   PHONES PORTRAIT (max-width: 480px)
+   ---------------------------------------- */
+@media (max-width: 480px) {
+    /* === TOP HEADER: More vertical space === */
+    .top-header {
+        padding: 8px 10px;
+        gap: 6px;
+    }
+
+    /* === NAVIGATION: Larger touch targets === */
+    .top-command-bar {
+        padding: 8px 5px;
+        gap: 6px;
+    }
+
+    .cmd-link {
+        font-size: 14px !important;
+        padding: 14px 16px !important;
+        min-height: 48px;
+        border-radius: 4px;
+    }
+
+    /* First row nav - most important buttons */
+    #nav-bar {
+        order: 1;
+    }
+
+    /* Second row nav */
+    #nav-bar-2 {
+        order: 2;
+    }
+
+    /* === CONSOLE BAR: Minimal on phones === */
+    .ember-console-bar {
+        top: 4px;
+        left: 4px;
+        right: 4px;
+        padding: 8px;
+        grid-template-columns: 1fr auto;
+        gap: 6px;
+    }
+
+    .console-music-controls {
+        gap: 4px;
+    }
+
+    .console-btn {
+        font-size: 12px !important;
+        padding: 10px !important;
+        min-width: 44px;
+        min-height: 44px;
+    }
+
+    /* Hide volume slider on small phones */
+    .console-volume {
+        display: none;
+    }
+
+    .console-track-now {
+        display: none; /* Hide track name, too small */
+    }
+
+    /* Show only essential: MUTE + NEXT buttons */
+    .console-music {
+        gap: 4px;
+    }
+
+    /* Weather/Phase - compact */
+    .console-section:last-child {
+        font-size: 10px;
+    }
+
+    /* === WRAPPER: Account for console bar === */
+    .wrapper {
+        padding-top: 110px; /* Space for taller console bar on phones */
+    }
+}
+
+/* ----------------------------------------
+   SMALL PHONES (max-width: 375px)
+   ---------------------------------------- */
+@media (max-width: 375px) {
+    /* === CRITICAL: Space for console bar === */
+    .wrapper {
+        padding-top: 100px;
+    }
+
+    .cmd-link {
+        font-size: 13px !important;
+        padding: 12px 10px !important;
+    }
+
+    /* Stack command bars vertically if needed */
+    .top-header {
+        padding: 6px 8px;
+    }
+
+    .top-command-bar {
+        padding: 4px;
+        gap: 4px;
+    }
+
+    /* Ultra compact console */
+    .ember-console-bar {
+        padding: 6px;
+    }
+
+    .console-btn {
+        font-size: 11px !important;
+        padding: 8px !important;
+        min-width: 40px;
+        min-height: 40px;
     }
 }
