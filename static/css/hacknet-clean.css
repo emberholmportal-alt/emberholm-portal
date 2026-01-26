@@ -5232,28 +5232,55 @@ img {
         margin: 0 !important;
     }
 
-    /* === NAVIGATION: cmd-link buttons - wrap on multiple rows === */
+    /* === NAVIGATION: cmd-link buttons - ORGANIZED GRID === */
     .top-header .top-command-bar .cmd-link,
     .top-command-bar .cmd-link,
     button.cmd-link {
-        font-size: 12px !important;
-        padding: 10px 12px !important;
-        min-height: 40px !important;
+        font-size: 11px !important;
+        padding: 8px 10px !important;
+        min-height: 36px !important;
         height: auto !important;
         box-sizing: border-box !important;
         display: inline-flex !important;
         align-items: center !important;
         justify-content: center !important;
-        flex-shrink: 0 !important;
+        flex: 1 1 auto !important;
+        min-width: 80px !important;
+        max-width: 150px !important;
     }
 
+    /* Navigation bar - GRID layout for organized buttons */
     .top-command-bar {
-        padding: 6px 8px !important;
-        gap: 6px !important;
-        display: flex !important;
-        flex-wrap: wrap !important;
-        justify-content: center !important;
+        padding: 8px !important;
+        gap: 8px !important;
+        display: grid !important;
+        grid-template-columns: repeat(3, 1fr) !important;
+        justify-items: stretch !important;
         overflow-x: visible !important;
+    }
+
+    /* Make header contain multiple nav bars in column */
+    .top-header {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 4px !important;
+    }
+
+    /* === LOGO: Smaller and centered on mobile === */
+    .logo-wrapper {
+        text-align: center !important;
+        margin: 15px auto !important;
+        padding: 0 20px !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
+    }
+
+    .project-logo-img {
+        max-width: 200px !important;
+        width: 60% !important;
+        height: auto !important;
+        margin: 0 auto !important;
+        display: block !important;
     }
 
     /* === CONSOLE BAR: Reorganize for tablets === */
@@ -5323,24 +5350,29 @@ img {
    PHONES LANDSCAPE (max-width: 600px)
    ---------------------------------------- */
 @media (max-width: 600px) {
-    /* No fixed positioning - elements flow naturally */
-
-    /* === NAVIGATION: Wrap buttons, centered === */
+    /* === NAVIGATION: 2 columns on phones === */
     .top-command-bar {
-        justify-content: center !important;
-        padding: 6px 10px !important;
-        gap: 8px !important;
-        flex-wrap: wrap !important;
+        grid-template-columns: repeat(2, 1fr) !important;
+        padding: 6px !important;
+        gap: 6px !important;
     }
 
-    /* HIGH SPECIFICITY for cmd-link */
+    /* Buttons - proper touch targets */
     .top-header .top-command-bar .cmd-link,
     .top-command-bar .cmd-link,
     button.cmd-link {
-        font-size: 13px !important;
-        padding: 12px 14px !important;
-        min-height: 44px !important;
+        font-size: 11px !important;
+        padding: 10px 8px !important;
+        min-height: 42px !important;
         height: auto !important;
+        min-width: unset !important;
+        max-width: unset !important;
+    }
+
+    /* === LOGO: Even smaller on phones === */
+    .project-logo-img {
+        max-width: 160px !important;
+        width: 50% !important;
     }
 
     /* === CONSOLE BAR: Single column layout === */
@@ -5383,40 +5415,33 @@ img {
    PHONES PORTRAIT (max-width: 480px)
    ---------------------------------------- */
 @media (max-width: 480px) {
-    /* No fixed positioning - natural flow */
-
     /* Navigation header padding */
     .top-header {
-        padding: 8px 10px !important;
+        padding: 6px !important;
     }
 
-    /* === NAVIGATION: Larger touch targets === */
+    /* === NAVIGATION: 2 columns, compact === */
     .top-command-bar {
-        padding: 8px 5px !important;
-        gap: 6px !important;
-        flex-wrap: wrap !important;
-        justify-content: center !important;
+        grid-template-columns: repeat(2, 1fr) !important;
+        padding: 4px !important;
+        gap: 4px !important;
     }
 
-    /* HIGH SPECIFICITY: Maximum touch targets on phones */
+    /* Buttons - compact but still touchable */
     .top-header .top-command-bar .cmd-link,
     .top-command-bar .cmd-link,
     button.cmd-link {
-        font-size: 14px !important;
-        padding: 14px 16px !important;
-        min-height: 48px !important;
+        font-size: 10px !important;
+        padding: 10px 6px !important;
+        min-height: 40px !important;
         height: auto !important;
-        border-radius: 4px !important;
+        border-radius: 3px !important;
     }
 
-    /* First row nav - most important buttons */
-    #nav-bar {
-        order: 1;
-    }
-
-    /* Second row nav */
-    #nav-bar-2 {
-        order: 2;
+    /* === LOGO: Small on portrait phones === */
+    .project-logo-img {
+        max-width: 140px !important;
+        width: 45% !important;
     }
 
     /* === CONSOLE BAR: Compact on phones === */
