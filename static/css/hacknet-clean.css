@@ -5097,6 +5097,11 @@ img {
    TABLETS (max-width: 768px)
    ---------------------------------------- */
 @media (max-width: 768px) {
+    /* === CRITICAL: Space for fixed console bar === */
+    .wrapper {
+        padding-top: 75px;
+    }
+
     /* === NAVIGATION: cmd-link buttons === */
     .cmd-link {
         font-size: 12px !important;
@@ -5142,6 +5147,11 @@ img {
    PHONES LANDSCAPE (max-width: 600px)
    ---------------------------------------- */
 @media (max-width: 600px) {
+    /* === CRITICAL: More space for console bar === */
+    .wrapper {
+        padding-top: 90px;
+    }
+
     /* === NAVIGATION: Horizontal scroll with visual cues === */
     .top-command-bar {
         justify-content: flex-start;
@@ -5269,7 +5279,7 @@ img {
 
     /* === WRAPPER: Account for console bar === */
     .wrapper {
-        padding-top: 60px; /* Space for fixed console bar */
+        padding-top: 110px; /* Space for taller console bar on phones */
     }
 }
 
@@ -5277,6 +5287,11 @@ img {
    SMALL PHONES (max-width: 375px)
    ---------------------------------------- */
 @media (max-width: 375px) {
+    /* === CRITICAL: Space for console bar === */
+    .wrapper {
+        padding-top: 100px;
+    }
+
     .cmd-link {
         font-size: 13px !important;
         padding: 12px 10px !important;
