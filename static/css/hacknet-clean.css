@@ -5098,14 +5098,23 @@ img {
    TABLETS (max-width: 768px)
    ---------------------------------------- */
 @media (max-width: 768px) {
-    /* === CRITICAL: Space for fixed console bar === */
-    .wrapper {
-        padding-top: 80px !important;
+    /* === SOLUTION: Console bar scrolls with content === */
+    .ember-console-bar {
+        position: relative !important;
+        top: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        margin: 0 0 10px 0 !important;
+        border-radius: 0 !important;
     }
 
-    /* Push header below console bar */
+    /* No padding needed since console bar is not fixed */
+    .wrapper {
+        padding-top: 10px !important;
+    }
+
     .top-header {
-        margin-top: 10px !important;
+        margin-top: 0 !important;
     }
 
     /* === NAVIGATION: cmd-link buttons - HIGH SPECIFICITY === */
@@ -5162,15 +5171,6 @@ img {
    PHONES LANDSCAPE (max-width: 600px)
    ---------------------------------------- */
 @media (max-width: 600px) {
-    /* === CRITICAL: More space for console bar === */
-    .wrapper {
-        padding-top: 100px !important;
-    }
-
-    .top-header {
-        margin-top: 15px !important;
-    }
-
     /* === NAVIGATION: Horizontal scroll with visual cues === */
     .top-command-bar {
         justify-content: flex-start !important;
@@ -5231,14 +5231,8 @@ img {
    PHONES PORTRAIT (max-width: 480px)
    ---------------------------------------- */
 @media (max-width: 480px) {
-    /* === CRITICAL: Console bar is taller on phones === */
-    .wrapper {
-        padding-top: 120px !important;
-    }
-
-    /* === TOP HEADER: Push below console bar === */
+    /* === TOP HEADER: Styling for phones === */
     .top-header {
-        margin-top: 20px !important;
         padding: 8px 10px !important;
         gap: 6px !important;
     }
@@ -5309,22 +5303,12 @@ img {
     .console-section:last-child {
         font-size: 10px;
     }
-
-    /* === WRAPPER: Account for console bar === */
-    .wrapper {
-        padding-top: 110px; /* Space for taller console bar on phones */
-    }
 }
 
 /* ----------------------------------------
    SMALL PHONES (max-width: 375px)
    ---------------------------------------- */
 @media (max-width: 375px) {
-    /* === CRITICAL: Space for console bar === */
-    .wrapper {
-        padding-top: 100px !important;
-    }
-
     /* HIGH SPECIFICITY: Small phones */
     .top-header .top-command-bar .cmd-link,
     .top-command-bar .cmd-link,
