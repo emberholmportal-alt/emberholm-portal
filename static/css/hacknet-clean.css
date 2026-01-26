@@ -5090,53 +5090,57 @@ img {
 
 /* ============================================
    MOBILE FIX: Navigation & Console Bar
-   Targets the ACTUAL classes used in HTML
-   Using HIGH SPECIFICITY selectors
+   NEW APPROACH: No fixed positioning - natural scroll
+   This avoids hardcoded top values that don't match actual heights
    ============================================ */
 
 /* ----------------------------------------
    TABLETS (max-width: 768px)
    ---------------------------------------- */
 @media (max-width: 768px) {
-    /* === Console bar: FIXED at top === */
+    /* === Console bar: NOT FIXED - scrolls with content === */
     .ember-console-bar {
-        position: fixed !important;
-        top: 0 !important;
-        left: 0 !important;
-        right: 0 !important;
-        z-index: 10000 !important;
+        position: relative !important;
+        top: auto !important;
+        left: auto !important;
+        right: auto !important;
+        z-index: 100 !important;
         border-radius: 0 !important;
         margin: 0 !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
     }
 
-    /* === Navigation header: FIXED below console bar === */
+    /* === Navigation header: NOT FIXED - follows console bar === */
     .wrapper .top-header,
     .top-header {
-        position: fixed !important;
-        top: 85px !important;
-        left: 0 !important;
-        right: 0 !important;
-        z-index: 9999 !important;
+        position: relative !important;
+        top: auto !important;
+        left: auto !important;
+        right: auto !important;
+        z-index: 99 !important;
         background: #0a0a0f !important;
         margin: 0 !important;
         padding: 10px !important;
         border-bottom: 2px solid #ff9900 !important;
-        box-shadow: 0 4px 10px rgba(0,0,0,0.8) !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
     }
 
-    /* Wrapper must not interfere with fixed elements */
+    /* Wrapper: normal flow, no padding-top needed */
     .wrapper {
-        position: static !important;
+        position: relative !important;
         z-index: auto !important;
-        padding-top: 220px !important;
+        padding-top: 0 !important;
     }
 
-    /* Hide the divider since we have fixed bars now */
+    /* Show the divider normally */
     .console-header-divider {
-        display: none !important;
+        display: block !important;
+        margin: 0 !important;
     }
 
-    /* === NAVIGATION: cmd-link buttons - HIGH SPECIFICITY === */
+    /* === NAVIGATION: cmd-link buttons - wrap on multiple rows === */
     .top-header .top-command-bar .cmd-link,
     .top-command-bar .cmd-link,
     button.cmd-link {
@@ -5148,14 +5152,16 @@ img {
         display: inline-flex !important;
         align-items: center !important;
         justify-content: center !important;
+        flex-shrink: 0 !important;
     }
 
     .top-command-bar {
-        padding: 4px 8px !important;
+        padding: 6px 8px !important;
         gap: 6px !important;
         display: flex !important;
-        flex-wrap: nowrap !important;
-        overflow-x: auto !important;
+        flex-wrap: wrap !important;
+        justify-content: center !important;
+        overflow-x: visible !important;
     }
 
     /* === CONSOLE BAR: Reorganize for tablets === */
@@ -5184,29 +5190,55 @@ img {
         font-size: 10px;
         max-width: 120px;
     }
+
+    /* === EVENTS: Stack prize cards vertically on mobile === */
+    #prize-cards-row {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 16px !important;
+    }
+
+    /* === EVENTS: Make prize card images responsive === */
+    #prize-cards-row img,
+    #prize-fortunate img,
+    #prize-worthy img,
+    #active-event-content img {
+        width: auto !important;
+        max-width: 100px !important;
+        height: auto !important;
+        min-height: auto !important;
+        max-height: 100px !important;
+        object-fit: contain !important;
+    }
+
+    /* Prize card layout fix for mobile */
+    #prize-fortunate > div:first-child,
+    #prize-worthy > div:first-child {
+        flex-wrap: wrap !important;
+        justify-content: center !important;
+        text-align: center !important;
+    }
+
+    #prize-fortunate > div:first-child > div,
+    #prize-worthy > div:first-child > div {
+        margin-left: 0 !important;
+        margin-top: 12px !important;
+        width: 100% !important;
+    }
 }
 
 /* ----------------------------------------
    PHONES LANDSCAPE (max-width: 600px)
    ---------------------------------------- */
 @media (max-width: 600px) {
-    /* Console bar is taller due to single column layout */
-    .top-header {
-        top: 120px !important; /* Console bar is taller */
-    }
+    /* No fixed positioning - elements flow naturally */
 
-    .wrapper {
-        padding-top: 250px !important;
-    }
-
-    /* === NAVIGATION: Horizontal scroll with visual cues === */
+    /* === NAVIGATION: Wrap buttons, centered === */
     .top-command-bar {
-        justify-content: flex-start !important;
+        justify-content: center !important;
         padding: 6px 10px !important;
         gap: 8px !important;
-        /* Visual scroll indicator */
-        mask-image: linear-gradient(90deg, black 90%, transparent 100%);
-        -webkit-mask-image: linear-gradient(90deg, black 90%, transparent 100%);
+        flex-wrap: wrap !important;
     }
 
     /* HIGH SPECIFICITY for cmd-link */
@@ -5219,7 +5251,7 @@ img {
         height: auto !important;
     }
 
-    /* === CONSOLE BAR: Single row, compact === */
+    /* === CONSOLE BAR: Single column layout === */
     .ember-console-bar {
         grid-template-columns: 1fr;
         padding: 8px 10px;
@@ -5259,21 +5291,19 @@ img {
    PHONES PORTRAIT (max-width: 480px)
    ---------------------------------------- */
 @media (max-width: 480px) {
-    /* Console bar even taller on small phones */
-    .top-header {
-        top: 140px !important;
-        padding: 8px 10px !important;
-        gap: 6px !important;
-    }
+    /* No fixed positioning - natural flow */
 
-    .wrapper {
-        padding-top: 280px !important;
+    /* Navigation header padding */
+    .top-header {
+        padding: 8px 10px !important;
     }
 
     /* === NAVIGATION: Larger touch targets === */
     .top-command-bar {
         padding: 8px 5px !important;
         gap: 6px !important;
+        flex-wrap: wrap !important;
+        justify-content: center !important;
     }
 
     /* HIGH SPECIFICITY: Maximum touch targets on phones */
@@ -5297,11 +5327,8 @@ img {
         order: 2;
     }
 
-    /* === CONSOLE BAR: Minimal on phones === */
+    /* === CONSOLE BAR: Compact on phones === */
     .ember-console-bar {
-        top: 4px;
-        left: 4px;
-        right: 4px;
         padding: 8px;
         grid-template-columns: 1fr auto;
         gap: 6px;
