@@ -5091,6 +5091,7 @@ img {
 /* ============================================
    MOBILE FIX: Navigation & Console Bar
    Targets the ACTUAL classes used in HTML
+   Using HIGH SPECIFICITY selectors
    ============================================ */
 
 /* ----------------------------------------
@@ -5099,20 +5100,29 @@ img {
 @media (max-width: 768px) {
     /* === CRITICAL: Space for fixed console bar === */
     .wrapper {
-        padding-top: 75px;
+        padding-top: 75px !important;
     }
 
-    /* === NAVIGATION: cmd-link buttons === */
-    .cmd-link {
+    /* === NAVIGATION: cmd-link buttons - HIGH SPECIFICITY === */
+    .top-header .top-command-bar .cmd-link,
+    .top-command-bar .cmd-link,
+    button.cmd-link {
         font-size: 12px !important;
         padding: 10px 12px !important;
-        min-height: 40px;
-        box-sizing: border-box;
+        min-height: 40px !important;
+        height: auto !important;
+        box-sizing: border-box !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
     }
 
     .top-command-bar {
-        padding: 4px 8px;
-        gap: 6px;
+        padding: 4px 8px !important;
+        gap: 6px !important;
+        display: flex !important;
+        flex-wrap: nowrap !important;
+        overflow-x: auto !important;
     }
 
     /* === CONSOLE BAR: Reorganize for tablets === */
@@ -5149,23 +5159,27 @@ img {
 @media (max-width: 600px) {
     /* === CRITICAL: More space for console bar === */
     .wrapper {
-        padding-top: 90px;
+        padding-top: 90px !important;
     }
 
     /* === NAVIGATION: Horizontal scroll with visual cues === */
     .top-command-bar {
-        justify-content: flex-start;
-        padding: 6px 10px;
-        gap: 8px;
+        justify-content: flex-start !important;
+        padding: 6px 10px !important;
+        gap: 8px !important;
         /* Visual scroll indicator */
         mask-image: linear-gradient(90deg, black 90%, transparent 100%);
         -webkit-mask-image: linear-gradient(90deg, black 90%, transparent 100%);
     }
 
-    .cmd-link {
+    /* HIGH SPECIFICITY for cmd-link */
+    .top-header .top-command-bar .cmd-link,
+    .top-command-bar .cmd-link,
+    button.cmd-link {
         font-size: 13px !important;
         padding: 12px 14px !important;
-        min-height: 44px;
+        min-height: 44px !important;
+        height: auto !important;
     }
 
     /* === CONSOLE BAR: Single row, compact === */
@@ -5210,21 +5224,25 @@ img {
 @media (max-width: 480px) {
     /* === TOP HEADER: More vertical space === */
     .top-header {
-        padding: 8px 10px;
-        gap: 6px;
+        padding: 8px 10px !important;
+        gap: 6px !important;
     }
 
     /* === NAVIGATION: Larger touch targets === */
     .top-command-bar {
-        padding: 8px 5px;
-        gap: 6px;
+        padding: 8px 5px !important;
+        gap: 6px !important;
     }
 
-    .cmd-link {
+    /* HIGH SPECIFICITY: Maximum touch targets on phones */
+    .top-header .top-command-bar .cmd-link,
+    .top-command-bar .cmd-link,
+    button.cmd-link {
         font-size: 14px !important;
         padding: 14px 16px !important;
-        min-height: 48px;
-        border-radius: 4px;
+        min-height: 48px !important;
+        height: auto !important;
+        border-radius: 4px !important;
     }
 
     /* First row nav - most important buttons */
@@ -5289,33 +5307,38 @@ img {
 @media (max-width: 375px) {
     /* === CRITICAL: Space for console bar === */
     .wrapper {
-        padding-top: 100px;
+        padding-top: 100px !important;
     }
 
-    .cmd-link {
+    /* HIGH SPECIFICITY: Small phones */
+    .top-header .top-command-bar .cmd-link,
+    .top-command-bar .cmd-link,
+    button.cmd-link {
         font-size: 13px !important;
         padding: 12px 10px !important;
+        min-height: 44px !important;
+        height: auto !important;
     }
 
     /* Stack command bars vertically if needed */
     .top-header {
-        padding: 6px 8px;
+        padding: 6px 8px !important;
     }
 
     .top-command-bar {
-        padding: 4px;
-        gap: 4px;
+        padding: 4px !important;
+        gap: 4px !important;
     }
 
     /* Ultra compact console */
     .ember-console-bar {
-        padding: 6px;
+        padding: 6px !important;
     }
 
     .console-btn {
         font-size: 11px !important;
         padding: 8px !important;
-        min-width: 40px;
-        min-height: 40px;
+        min-width: 40px !important;
+        min-height: 40px !important;
     }
 }
