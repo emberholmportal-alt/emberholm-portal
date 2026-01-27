@@ -1324,6 +1324,10 @@ function initBootSequence() {
         setTimeout(() => {
             overlay.style.display = 'none';
             overlay.classList.remove('fade-out');
+            // 🔗 Handle URL-based navigation after boot sequence closes
+            if (typeof handleURLNavigation === 'function') {
+                handleURLNavigation();
+            }
         }, 500);
     }
 
@@ -7504,7 +7508,20 @@ setTimeout(() => {
 }, 2000);
 
 window.addEventListener("DOMContentLoaded", () => {
-    // 🔗 URL-based navigation - detect path and switch to correct screen
+    // 🔥 Pre-load STATS and GUILDS data on page load
+    // This ensures data is ready when users navigate to those sections
+    fetchStatsAndRender();
+    fetchGuildsAndRender();
+    fetchMissionsAndRender();
+    fetchEventsAndRender();
+
+    // Handle URL navigation (also called after boot sequence)
+    handleURLNavigation();
+});
+
+// 🔗 Global URL-based navigation function
+// Called on DOMContentLoaded and after boot sequence closes
+function handleURLNavigation() {
     const path = window.location.pathname;
     const screenMap = {
         '/tutorial': 'tutorial',
@@ -7528,21 +7545,15 @@ window.addEventListener("DOMContentLoaded", () => {
             document.querySelectorAll('.cmd-link').forEach(b => b.classList.remove('is-active'));
             targetBtn.classList.add('is-active');
         }
+        console.log('🔗 URL Navigation: switched to', targetScreen);
     } else {
         // Default: set home as active
         const homeBtn = document.querySelector('.cmd-link[data-target="home"]');
-        if (homeBtn) {
+        if (homeBtn && !document.querySelector('.cmd-link.is-active')) {
             homeBtn.classList.add("is-active");
         }
     }
-
-    // 🔥 Pre-load STATS and GUILDS data on page load
-    // This ensures data is ready when users navigate to those sections
-    fetchStatsAndRender();
-    fetchGuildsAndRender();
-    fetchMissionsAndRender();
-    fetchEventsAndRender();
-});
+}
 
 /* ========== CUSTOM MODAL FUNCTIONS ========== */
 
