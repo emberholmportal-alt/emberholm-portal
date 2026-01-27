@@ -2710,6 +2710,43 @@ def google_verification():
 def serve_mint():
     # mint.html está en la carpeta raíz del proyecto (C:\EmberholmServer)
     return render_template("mint.html")
+
+@app.route("/tutorial")
+def serve_tutorial():
+    return send_from_directory(app.static_folder, "index.html")
+
+@app.route("/events")
+def serve_events():
+    return send_from_directory(app.static_folder, "index.html")
+
+@app.route("/profile")
+def serve_profile():
+    return send_from_directory(app.static_folder, "index.html")
+
+@app.route("/missions")
+def serve_missions():
+    return send_from_directory(app.static_folder, "index.html")
+
+@app.route("/guilds")
+def serve_guilds():
+    return send_from_directory(app.static_folder, "index.html")
+
+@app.route("/vault")
+def serve_vault():
+    return send_from_directory(app.static_folder, "index.html")
+
+@app.route("/tokenomics")
+def serve_tokenomics():
+    return send_from_directory(app.static_folder, "index.html")
+
+@app.route("/whitepaper")
+def serve_whitepaper():
+    return send_from_directory(app.static_folder, "index.html")
+
+@app.route("/credits")
+def serve_credits():
+    return send_from_directory(app.static_folder, "index.html")
+
 # servir whitepapers desde /static/docs
 @app.route("/docs/<path:filename>")
 def serve_docs(filename):
