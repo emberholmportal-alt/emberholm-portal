@@ -2759,54 +2759,109 @@ def serve_docs(filename):
 
 @app.route("/api/stats")
 def api_stats():
-    """Stats globales y leaderboard desde las nuevas tablas PostgreSQL"""
+    """Stats globales desde blockchain y base de datos"""
     try:
-        conn = db.get_connection()
-        cur = conn.cursor(cursor_factory=RealDictCursor)
-
         stats = {}
 
-        # Total emissaries minted
-        cur.execute("SELECT COUNT(*) as count FROM emissaries_state WHERE minted = TRUE")
-        result = cur.fetchone()
-        stats['total_minted'] = result['count'] if result else 0
+        # 1. Total emissaries minted - FROM BLOCKCHAIN (most accurate)
+        stats['total_characters'] = get_total_emissaries_minted()
 
-        # Total XP distribuido
-        cur.execute("SELECT COALESCE(SUM(xp), 0) as total FROM emissaries_state")
-        result = cur.fetchone()
-        stats['total_xp'] = int(result['total']) if result else 0
-
-        # Total misiones completadas
-        cur.execute("SELECT COUNT(*) as count FROM missions_history")
-        result = cur.fetchone()
-        stats['total_missions'] = result['count'] if result else 0
-
-        # Guild rankings
-        cur.execute("""
-            SELECT guild_id, guild_name, total_members, total_xp, total_missions
-            FROM stats_guilds
-            ORDER BY total_xp DESC
-        """)
-        stats['guild_rankings'] = cur.fetchall() or []
-
-        # Top 10 emissaries por XP
-        cur.execute("""
-            SELECT m.token_id, m.name, m.race, m.class, m.guild,
-                   COALESCE(s.xp, 0) as xp
-            FROM emissaries_metadata m
-            LEFT JOIN emissaries_state s ON m.token_id = s.token_id
-            WHERE s.minted = TRUE
-            ORDER BY s.xp DESC NULLS LAST
-            LIMIT 10
-        """)
-        stats['leaderboard'] = cur.fetchall() or []
-
-        # Campos adicionales para compatibilidad
+        # 2. Active guilds (always 6)
         stats['active_guilds'] = 6
-        stats['last_updated'] = now_utc_str()
 
-        cur.close()
-        db.release_connection(conn)
+        # Initialize mission and XP/Aura counters
+        total_xp = 0
+        total_aura = 0
+        missions_completed = 0
+        missions_failed = 0
+        missions_in_progress = 0
+
+        # 3. Get stats from NFTs table (dynamic_state contains XP, Aura, missions)
+        if POSTGRESQL_AVAILABLE:
+            try:
+                conn = db.get_connection()
+                cur = conn.cursor(cursor_factory=RealDictCursor)
+
+                # Get aggregated stats from nfts table
+                cur.execute("""
+                    SELECT
+                        COALESCE(SUM((dynamic_state->>'xp_total')::int), 0) as total_xp,
+                        COALESCE(SUM((dynamic_state->>'aura_level')::int), 0) as total_aura,
+                        COALESCE(SUM((dynamic_state->>'missions_completed')::int), 0) as missions_completed,
+                        COALESCE(SUM((dynamic_state->>'missions_failed')::int), 0) as missions_failed
+                    FROM nfts
+                    WHERE last_known_owner IS NOT NULL AND last_known_owner != ''
+                """)
+                result = cur.fetchone()
+                if result:
+                    total_xp = int(result['total_xp'] or 0)
+                    total_aura = int(result['total_aura'] or 0)
+                    missions_completed = int(result['missions_completed'] or 0)
+                    missions_failed = int(result['missions_failed'] or 0)
+
+                # Get missions in progress from active_missions table
+                cur.execute("SELECT COUNT(*) as count FROM active_missions")
+                result = cur.fetchone()
+                missions_in_progress = result['count'] if result else 0
+
+                # Guild rankings - calculate from nfts table
+                cur.execute("""
+                    SELECT
+                        guild as name,
+                        COUNT(*) as members,
+                        COALESCE(SUM((dynamic_state->>'xp_total')::int), 0) as xp_total,
+                        COALESCE(SUM((dynamic_state->>'aura_level')::int), 0) as aura_total,
+                        COALESCE(SUM((dynamic_state->>'missions_completed')::int), 0) as missions_completed,
+                        COALESCE(SUM((dynamic_state->>'missions_failed')::int), 0) as missions_failed
+                    FROM nfts
+                    WHERE guild IS NOT NULL AND last_known_owner IS NOT NULL AND last_known_owner != ''
+                    GROUP BY guild
+                    ORDER BY xp_total DESC
+                """)
+                guild_rows = cur.fetchall() or []
+                guild_ranking = []
+                for g in guild_rows:
+                    total_missions = (g['missions_completed'] or 0) + (g['missions_failed'] or 0)
+                    success_rate = round((g['missions_completed'] / total_missions * 100), 1) if total_missions > 0 else 0
+                    guild_ranking.append({
+                        "name": g['name'],
+                        "members": g['members'],
+                        "xp_total": g['xp_total'] or 0,
+                        "aura_total": g['aura_total'] or 0,
+                        "success_rate": f"{success_rate}%"
+                    })
+                stats['guild_ranking'] = guild_ranking
+
+                # Player leaderboard - top 10 by XP
+                cur.execute("""
+                    SELECT
+                        last_known_owner as wallet,
+                        COUNT(*) as heroes_count,
+                        COALESCE(SUM((dynamic_state->>'xp_total')::int), 0) as xp_total_all,
+                        COALESCE(SUM((dynamic_state->>'aura_level')::int), 0) as aura_total_all
+                    FROM nfts
+                    WHERE last_known_owner IS NOT NULL AND last_known_owner != ''
+                    GROUP BY last_known_owner
+                    ORDER BY xp_total_all DESC
+                    LIMIT 10
+                """)
+                stats['player_leaderboard'] = cur.fetchall() or []
+
+                cur.close()
+                db.release_connection(conn)
+
+            except Exception as db_err:
+                print(f"Database error in /api/stats: {db_err}")
+                stats['guild_ranking'] = []
+                stats['player_leaderboard'] = []
+
+        # Set the stats with correct field names for frontend
+        stats['missions_completed'] = missions_completed
+        stats['missions_failed'] = missions_failed
+        stats['missions_in_progress'] = missions_in_progress
+        stats['total_exp_collected'] = total_xp
+        stats['total_aura_collected'] = total_aura
+        stats['last_updated'] = now_utc_str()
 
         return jsonify(stats)
 
@@ -2822,26 +2877,75 @@ def api_stats():
 
 @app.route("/api/guilds")
 def api_guilds():
-    """Obtener datos de guilds desde stats_guilds"""
+    """Obtener datos de guilds calculados desde NFTs minteados + datos estáticos"""
     try:
-        conn = db.get_connection()
-        cur = conn.cursor(cursor_factory=RealDictCursor)
+        # Load static guild data (flavor, badge)
+        guilds_static = {}
+        try:
+            guilds_json_path = os.path.join(DATA_DIR, "guilds.json")
+            with open(guilds_json_path, 'r') as f:
+                guilds_list = json.load(f)
+                for g in guilds_list:
+                    guilds_static[g['name']] = {
+                        'flavor': g.get('flavor', ''),
+                        'badge': g.get('badge', '/img/guild-placeholder.png')
+                    }
+        except Exception as e:
+            print(f"Error loading guilds.json: {e}")
 
-        cur.execute("""
-            SELECT guild_id, guild_name, total_members, total_xp,
-                   total_missions, total_deaths,
-                   CASE WHEN total_missions > 0
-                        THEN ROUND((successful_missions::numeric / total_missions) * 100, 1)
-                        ELSE 0
-                   END as success_rate
-            FROM stats_guilds
-            ORDER BY total_xp DESC
-        """)
+        guilds = []
 
-        guilds = cur.fetchall() or []
+        if POSTGRESQL_AVAILABLE:
+            conn = db.get_connection()
+            cur = conn.cursor(cursor_factory=RealDictCursor)
 
-        cur.close()
-        db.release_connection(conn)
+            # Calculate guild stats from actual minted NFTs
+            cur.execute("""
+                SELECT
+                    guild as name,
+                    COUNT(*) as members,
+                    COALESCE(SUM((dynamic_state->>'xp_total')::int), 0) as total_xp,
+                    COALESCE(SUM((dynamic_state->>'aura_level')::int), 0) as total_aura,
+                    COALESCE(AVG((dynamic_state->>'xp_total')::int), 0) as avg_xp,
+                    COALESCE(AVG((dynamic_state->>'aura_level')::int), 0) as avg_aura
+                FROM nfts
+                WHERE guild IS NOT NULL AND last_known_owner IS NOT NULL AND last_known_owner != ''
+                GROUP BY guild
+                ORDER BY total_xp DESC
+            """)
+
+            guild_rows = cur.fetchall() or []
+
+            for g in guild_rows:
+                guild_name = g['name']
+                static_data = guilds_static.get(guild_name, {})
+                guilds.append({
+                    "name": guild_name,
+                    "flavor": static_data.get('flavor', ''),
+                    "badge": static_data.get('badge', '/img/guild-placeholder.png'),
+                    "members": g['members'],
+                    "total_xp": g['total_xp'] or 0,
+                    "total_aura": g['total_aura'] or 0,
+                    "avg_xp": round(float(g['avg_xp'] or 0), 2),
+                    "avg_aura": round(float(g['avg_aura'] or 0), 2)
+                })
+
+            cur.close()
+            db.release_connection(conn)
+
+        # If no data from DB, return empty guilds with static info
+        if not guilds:
+            for name, static_data in guilds_static.items():
+                guilds.append({
+                    "name": name,
+                    "flavor": static_data.get('flavor', ''),
+                    "badge": static_data.get('badge', '/img/guild-placeholder.png'),
+                    "members": 0,
+                    "total_xp": 0,
+                    "total_aura": 0,
+                    "avg_xp": 0,
+                    "avg_aura": 0
+                })
 
         return jsonify({
             "guilds": guilds,
@@ -2850,10 +2954,29 @@ def api_guilds():
 
     except Exception as e:
         print(f"Error in /api/guilds: {e}")
-        # Fallback a la función anterior si hay error
-        guilds_data = calculate_guilds_data()
+        import traceback
+        traceback.print_exc()
+        # Fallback to static guilds with zero values
+        guilds = []
+        try:
+            guilds_json_path = os.path.join(DATA_DIR, "guilds.json")
+            with open(guilds_json_path, 'r') as f:
+                guilds_list = json.load(f)
+                for g in guilds_list:
+                    guilds.append({
+                        "name": g['name'],
+                        "flavor": g.get('flavor', ''),
+                        "badge": g.get('badge', '/img/guild-placeholder.png'),
+                        "members": 0,
+                        "total_xp": 0,
+                        "total_aura": 0,
+                        "avg_xp": 0,
+                        "avg_aura": 0
+                    })
+        except:
+            pass
         return jsonify({
-            "guilds": guilds_data,
+            "guilds": guilds,
             "last_updated": now_utc_str()
         })
 

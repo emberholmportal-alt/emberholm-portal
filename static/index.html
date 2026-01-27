@@ -10771,8 +10771,8 @@ const ASH_ABI = [
 ];
 
 const PORTAL_ABI = [
-    'function totalMinted() view returns (uint256)',
-    'function totalSupply() view returns (uint256)'
+    {"inputs":[],"name":"totalSupply","outputs":[{"name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+    {"inputs":[],"name":"maxSupply","outputs":[{"name":"","type":"uint256"}],"stateMutability":"pure","type":"function"}
 ];
 
 const NFT_ABI = [
@@ -11131,9 +11131,32 @@ async function getAshData(provider) {
 
 // Fetch NFT data with fallbacks
 async function getNFTData(provider, address, maxSupply) {
-    const contract = new ethers.Contract(address, NFT_ABI, provider);
+    // Use specific ABI for Portal contract (same as mint.html)
+    const isPortal = address.toLowerCase() === CONTRACTS.PORTAL.toLowerCase();
+    const abi = isPortal ? PORTAL_ABI : NFT_ABI;
+    const contract = new ethers.Contract(address, abi, provider);
 
-    // Try each method with retries
+    // For Portal, use direct totalSupply call (proven to work in mint.html)
+    if (isPortal) {
+        for (let attempt = 0; attempt < 3; attempt++) {
+            try {
+                const supply = await contract.totalSupply();
+                const minted = Number(supply);
+                console.log(`Portal totalSupply (attempt ${attempt + 1}): ${minted}`);
+                return { minted, remaining: maxSupply - minted };
+            } catch (e) {
+                console.warn(`Portal totalSupply attempt ${attempt + 1} failed:`, e.message);
+                if (attempt < 2) {
+                    await new Promise(r => setTimeout(r, 1000)); // Wait 1s before retry
+                }
+            }
+        }
+        // If all attempts fail, return null (don't assume sold out)
+        console.error('Portal: All totalSupply attempts failed');
+        return null;
+    }
+
+    // For other NFT contracts, try multiple methods
     const methods = [
         { name: 'supplyInfo', fn: async () => {
             const info = await contract.supplyInfo();
@@ -11144,7 +11167,6 @@ async function getNFTData(provider, address, maxSupply) {
     ];
 
     for (const method of methods) {
-        // Try up to 2 times per method
         for (let attempt = 0; attempt < 2; attempt++) {
             try {
                 const minted = await method.fn();
@@ -11152,19 +11174,14 @@ async function getNFTData(provider, address, maxSupply) {
                 return { minted, remaining: maxSupply - minted };
             } catch (e) {
                 if (attempt === 0) {
-                    await new Promise(r => setTimeout(r, 500)); // Wait before retry
+                    await new Promise(r => setTimeout(r, 500));
                 }
             }
         }
     }
 
-    console.warn(`NFT ${address.slice(0,10)} all methods failed, using fallback`);
-    // Return fallback data based on known contracts
-    if (address.toLowerCase() === CONTRACTS.PORTAL.toLowerCase()) {
-        return { minted: 35000, remaining: 0 }; // Portal is sold out
-    }
+    console.warn(`NFT ${address.slice(0,10)} all methods failed`);
     return null;
-    return { minted: null, remaining: null };
 }
 
 // Apply data to UI
