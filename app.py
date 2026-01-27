@@ -2787,8 +2787,8 @@ def api_stats():
                     SELECT
                         COALESCE(SUM((dynamic_state->>'xp_total')::int), 0) as total_xp,
                         COALESCE(SUM((dynamic_state->>'aura_level')::int), 0) as total_aura,
-                        COALESCE(SUM((dynamic_state->>'missions_completed')::int), 0) as missions_completed,
-                        COALESCE(SUM((dynamic_state->>'missions_failed')::int), 0) as missions_failed
+                        COALESCE(SUM((dynamic_state->>'total_missions_completed')::int), 0) as missions_completed,
+                        COALESCE(SUM((dynamic_state->>'total_missions_failed')::int), 0) as missions_failed
                     FROM nfts
                     WHERE last_known_owner IS NOT NULL AND last_known_owner != ''
                 """)
@@ -2811,8 +2811,8 @@ def api_stats():
                         COUNT(*) as members,
                         COALESCE(SUM((dynamic_state->>'xp_total')::int), 0) as xp_total,
                         COALESCE(SUM((dynamic_state->>'aura_level')::int), 0) as aura_total,
-                        COALESCE(SUM((dynamic_state->>'missions_completed')::int), 0) as missions_completed,
-                        COALESCE(SUM((dynamic_state->>'missions_failed')::int), 0) as missions_failed
+                        COALESCE(SUM((dynamic_state->>'total_missions_completed')::int), 0) as missions_completed,
+                        COALESCE(SUM((dynamic_state->>'total_missions_failed')::int), 0) as missions_failed
                     FROM nfts
                     WHERE guild IS NOT NULL AND last_known_owner IS NOT NULL AND last_known_owner != ''
                     GROUP BY guild
@@ -2869,6 +2869,29 @@ def api_stats():
         print(f"Error in /api/stats: {e}")
         import traceback
         traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
+
+# ---------------------------------
+# API: PORTAL SUPPLY (for Tokenomics)
+# ---------------------------------
+
+@app.route("/api/portal/supply")
+def api_portal_supply():
+    """
+    Get Portal (Emissaries) supply from blockchain.
+    Used by Tokenomics section for accurate minted count.
+    """
+    try:
+        minted = get_total_emissaries_minted()
+        max_supply = 35000
+        return jsonify({
+            "minted": minted,
+            "max_supply": max_supply,
+            "remaining": max_supply - minted,
+            "last_updated": now_utc_str()
+        })
+    except Exception as e:
+        print(f"Error in /api/portal/supply: {e}")
         return jsonify({"error": str(e)}), 500
 
 # ---------------------------------

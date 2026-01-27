@@ -11247,6 +11247,19 @@ function applyTokenomicsData(data, source = 'live') {
     }
 }
 
+// Fetch Portal supply from backend (more reliable than direct RPC)
+async function getPortalSupplyFromBackend() {
+    try {
+        const response = await fetch('/api/portal/supply');
+        if (!response.ok) throw new Error('Backend error');
+        const data = await response.json();
+        return { minted: data.minted, remaining: data.remaining };
+    } catch (e) {
+        console.warn('Backend portal supply failed:', e.message);
+        return null;
+    }
+}
+
 // Fetch fresh data from RPC
 async function fetchTokenomicsFromRPC() {
     console.log('[rpc] Fetching tokenomics data...');
@@ -11255,10 +11268,11 @@ async function fetchTokenomicsFromRPC() {
     const provider = await getProvider();
 
     // All calls in parallel with timeout
+    // Portal uses backend endpoint (more reliable), others use direct RPC
     const [ember, ash, portal, items, runes] = await Promise.all([
         withTimeout(getEmberData(provider), RPC_TIMEOUT, 'EMBER timeout').catch(() => null),
         withTimeout(getAshData(provider), RPC_TIMEOUT, 'ASH timeout').catch(() => null),
-        withTimeout(getNFTData(provider, CONTRACTS.PORTAL, 35000), RPC_TIMEOUT, 'PORTAL timeout').catch(() => null),
+        getPortalSupplyFromBackend(),
         withTimeout(getNFTData(provider, CONTRACTS.ITEMS, 50000), RPC_TIMEOUT, 'ITEMS timeout').catch(() => null),
         withTimeout(getNFTData(provider, CONTRACTS.RUNES, 25000), RPC_TIMEOUT, 'RUNES timeout').catch(() => null)
     ]);
@@ -11289,12 +11303,7 @@ async function fetchTokenomicsFromRPC() {
             minted: formatNumber(portal.minted),
             remaining: formatNumber(portal.remaining),
             progress: createProgressBar(portal.minted, 35000)
-        } : {
-            // Fallback: Portal is sold out (35,000 minted)
-            minted: '35,000',
-            remaining: '0',
-            progress: createProgressBar(35000, 35000)
-        },
+        } : null,
         items: items ? {
             minted: formatNumber(items.minted),
             remaining: formatNumber(items.remaining),
