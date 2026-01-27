@@ -3246,6 +3246,21 @@ document.addEventListener('DOMContentLoaded', initPortalWarning);
         <div class="section-block">
             <div class="section-title">EVENTS // ACTIVE CAMPAIGNS</div>
 
+            <!-- INTERACTIVE EVENTS TUTORIAL BUTTON -->
+            <div class="tutorial-banner-inline" style="margin: 15px 0; padding: 12px 16px; background: linear-gradient(135deg, rgba(255,102,0,0.1) 0%, rgba(255,204,0,0.05) 100%); border: 1px solid #ff6600; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+                <div>
+                    <div style="font-family: 'Alagard', serif; font-size: 15px; color: #ff6600; margin-bottom: 3px;">
+                        EVENTS GUIDE
+                    </div>
+                    <div style="color: var(--bright-green); font-size: 12px;">
+                        Learn how events work and how to win prizes.
+                    </div>
+                </div>
+                <button class="cmd tutorial-start-btn" onclick="startEventsTutorial()" style="font-size: 13px; padding: 10px 20px; background: rgba(255,102,0,0.15); border-color: #ff6600; color: #ff6600;">
+                    [START EVENTS GUIDE]
+                </button>
+            </div>
+
             <!-- Event Container (populated by JS) -->
             <div id="events-container">
                 <!-- Loading state -->
@@ -11965,6 +11980,13 @@ window.addEventListener('resize', () => {
             positionSpotlight(step.target, step.position);
         }
     }
+    // Events Tutorial resize handling
+    if (eventsTutorialActive && EVENTS_TUTORIAL_STEPS && EVENTS_TUTORIAL_STEPS[currentEventsTutorialStep]) {
+        const step = EVENTS_TUTORIAL_STEPS[currentEventsTutorialStep];
+        if (step.target) {
+            positionSpotlight(step.target, step.position);
+        }
+    }
     // Site Tour resize handling
     if (siteTourActive && SITE_TOUR_STEPS && SITE_TOUR_STEPS[currentSiteTourStep]) {
         const step = SITE_TOUR_STEPS[currentSiteTourStep];
@@ -11979,6 +12001,13 @@ window.addEventListener('scroll', () => {
     // Tutorial scroll handling
     if (tutorialActive && !tutorialMinimized && TUTORIAL_STEPS[currentTutorialStep]) {
         const step = TUTORIAL_STEPS[currentTutorialStep];
+        if (step.target) {
+            updateSpotlightPosition(step.target, step.position);
+        }
+    }
+    // Events Tutorial scroll handling
+    if (eventsTutorialActive && EVENTS_TUTORIAL_STEPS && EVENTS_TUTORIAL_STEPS[currentEventsTutorialStep]) {
+        const step = EVENTS_TUTORIAL_STEPS[currentEventsTutorialStep];
         if (step.target) {
             updateSpotlightPosition(step.target, step.position);
         }
@@ -12138,6 +12167,311 @@ console.log('✅ Interactive Tutorial System loaded');
 
     console.log('✅ Tutorial drag functionality initialized');
 })();
+
+// ============================================
+//     EVENTS TUTORIAL SYSTEM
+// ============================================
+
+// Events Tutorial state
+let currentEventsTutorialStep = 0;
+let eventsTutorialActive = false;
+
+// Events Tutorial steps configuration
+const EVENTS_TUTORIAL_STEPS = [
+    {
+        id: 'events-intro',
+        target: null,
+        screen: 'events',
+        title: 'STEP 1: WHAT ARE EVENTS?',
+        body: `
+            <div style="text-align:center; padding: 10px 0;">
+                <div style="font-size: 40px; margin-bottom: 15px;">&#127873;</div>
+                <b>Events are special limited-time campaigns</b> with exclusive rewards.<br><br>
+                <div style="text-align:left; padding: 0 10px;">
+                    During events you can:<br><br>
+                    • Win <span style="color:var(--gold);">ETH prizes</span><br>
+                    • Get <span style="color:#8b5cf6;">exclusive NFT trophies</span><br>
+                    • Earn <span style="color:#44ff44;">boosted drop rates</span><br>
+                    • Compete on <span style="color:#00ccff;">leaderboards</span>
+                </div>
+            </div>
+        `,
+        tip: 'Events may appear without warning. Check this section regularly!',
+        position: 'center'
+    },
+    {
+        id: 'current-event',
+        target: '#event-name',
+        screen: 'events',
+        title: 'STEP 2: CURRENT EVENT',
+        body: `
+            This is the <b>active event header</b>.<br><br>
+            • The event <span style="color:#ffcc00;">name and description</span> tell you the theme<br>
+            • Events are classified by <span style="color:#ff6600;">MYTHIC, LEGENDARY, EPIC</span> rarity<br><br>
+            Each event has unique objectives and prizes to claim.
+        `,
+        tip: 'THE FIRST SPARK is the inaugural event celebrating the Portal opening.',
+        position: 'bottom'
+    },
+    {
+        id: 'progress-bar',
+        target: '#event-progress-bar',
+        screen: 'events',
+        title: 'STEP 3: EVENT PROGRESS',
+        body: `
+            The <b>progress bar</b> shows how close the event is to ending.<br><br>
+            • Current event ends when <span style="color:#44ff44;">35,000 Emissaries</span> are summoned<br>
+            • The percentage shows overall progress<br>
+            • Once complete, prizes are distributed<br><br>
+            <span style="color:#888;">Some events are time-based instead of milestone-based.</span>
+        `,
+        tip: 'Keep an eye on progress - you want to complete objectives before the event ends!',
+        position: 'bottom'
+    },
+    {
+        id: 'prize-fortunate',
+        target: '#prize-fortunate',
+        screen: 'events',
+        title: 'STEP 4: THE FORTUNATE',
+        body: `
+            <b>THE FORTUNATE</b> is a <span style="color:#ffcc00;">random drop prize</span>.<br><br>
+            • Find the <span style="color:#ffcc00;">Golden Rune of Emberholm</span><br>
+            • Drops randomly from missions (<b>0.001% chance</b>)<br>
+            • Winner receives <span style="color:#44ff44;">1 ETH</span> + exclusive NFT trophy<br><br>
+            The more missions you complete, the higher your chances!
+        `,
+        tip: 'The Golden Rune can drop from ANY mission difficulty during the event.',
+        position: 'right'
+    },
+    {
+        id: 'prize-worthy',
+        target: '#prize-worthy',
+        screen: 'events',
+        title: 'STEP 5: THE WORTHY',
+        body: `
+            <b>THE WORTHY</b> is a <span style="color:#00ccff;">leaderboard-based prize</span>.<br><br>
+            • Accumulate the most <span style="color:#00ccff;">XP</span> across all your Emissaries<br>
+            • Winner is determined when the event ends<br>
+            • Receives <span style="color:#44ff44;">1 ETH</span> + Eternal Torch NFT trophy<br><br>
+            Strategy: Use multiple Emissaries and complete harder missions for more XP.
+        `,
+        tip: 'HARD missions give 180 XP vs EASY missions with 60 XP.',
+        position: 'left'
+    },
+    {
+        id: 'leaderboard',
+        target: '#xp-leaderboard',
+        screen: 'events',
+        title: 'STEP 6: XP LEADERBOARD',
+        body: `
+            The <b>XP Leaderboard</b> shows the top 10 operators.<br><br>
+            • Rankings are based on <span style="color:#00ccff;">total XP</span> across all Emissaries<br>
+            • Your position is shown if you're connected<br>
+            • Updates in real-time as missions complete<br><br>
+            Only <span style="color:#44ff44;">living Emissaries</span> count towards your total XP!
+        `,
+        tip: 'Dead Emissaries lose all XP. Revive them with $ASH tokens to recover.',
+        position: 'top'
+    },
+    {
+        id: 'event-bonus',
+        target: null,
+        screen: 'events',
+        title: 'STEP 7: EVENT BONUSES',
+        body: `
+            <div style="text-align:center; padding: 10px 0;">
+                <div style="font-size: 40px; margin-bottom: 15px;">&#10024;</div>
+                <b>Active events provide special bonuses!</b><br><br>
+                <div style="text-align:left; padding: 0 10px;">
+                    During <span style="color:#ffcc00;">THE FIRST SPARK</span>:<br><br>
+                    • Item drop rates: <span style="color:#44ff44;">x3 multiplier</span><br>
+                    • Rune drop rates: <span style="color:#44ff44;">x2 multiplier</span><br><br>
+                    These bonuses apply to ALL missions completed during the event.
+                </div>
+            </div>
+        `,
+        tip: 'Take advantage of boosted rates to build your inventory!',
+        position: 'center'
+    },
+    {
+        id: 'events-complete',
+        target: null,
+        screen: null,
+        title: 'EVENTS GUIDE COMPLETE',
+        body: `
+            <div style="text-align:center; padding: 10px 0;">
+                <div style="font-size: 50px; margin-bottom: 15px;">&#127942;</div>
+                <b>You now understand how Events work!</b><br><br>
+                <div style="text-align:left; padding: 0 20px;">
+                    <b>Quick summary:</b><br>
+                    • <span style="color:#ffcc00;">THE FORTUNATE</span>: Random drop - complete many missions<br>
+                    • <span style="color:#00ccff;">THE WORTHY</span>: Top XP - use multiple Emissaries<br>
+                    • <span style="color:#44ff44;">BONUSES</span>: Boosted item/rune drops<br><br>
+                    Good luck, Operator!
+                </div>
+            </div>
+        `,
+        tip: 'Prizes are sent manually after verification. Check your wallet!',
+        position: 'center',
+        isLast: true
+    }
+];
+
+// Start Events Tutorial
+function startEventsTutorial() {
+    console.log('🎮 Starting Events Tutorial...');
+
+    eventsTutorialActive = true;
+    currentEventsTutorialStep = 0;
+
+    // Add tutorial-active class to body
+    document.body.classList.add('tutorial-active');
+
+    // Show overlay
+    const overlay = document.getElementById('interactive-tutorial-overlay');
+    overlay.classList.add('active');
+
+    // Update total steps
+    document.getElementById('tut-step-total').textContent = EVENTS_TUTORIAL_STEPS.length;
+
+    // Show first step
+    showEventsTutorialStep(0);
+
+    // Add keyboard listener
+    document.addEventListener('keydown', handleEventsTutorialKeyboard);
+}
+
+// Show specific Events Tutorial step
+function showEventsTutorialStep(stepIndex) {
+    if (stepIndex < 0 || stepIndex >= EVENTS_TUTORIAL_STEPS.length) return;
+
+    const step = EVENTS_TUTORIAL_STEPS[stepIndex];
+    currentEventsTutorialStep = stepIndex;
+
+    console.log(`📍 Events Tutorial step ${stepIndex + 1}: ${step.id}`);
+
+    // Change screen if needed
+    if (step.screen && typeof switchScreen === 'function') {
+        switchScreen(step.screen);
+    }
+
+    // Give time for screen to render
+    setTimeout(() => renderEventsTutorialStep(step, stepIndex), 300);
+}
+
+// Render Events Tutorial step content
+function renderEventsTutorialStep(step, stepIndex) {
+    // Render content in tooltip
+    document.getElementById('tut-step-num').textContent = stepIndex + 1;
+    document.getElementById('tut-title').textContent = step.title;
+    document.getElementById('tut-body').innerHTML = step.body;
+
+    // Tip
+    const tipEl = document.getElementById('tut-tip');
+    const tipTextEl = document.getElementById('tut-tip-text');
+    if (step.tip) {
+        tipTextEl.textContent = step.tip;
+        tipEl.style.display = 'block';
+    } else {
+        tipEl.style.display = 'none';
+    }
+
+    // Navigation buttons
+    const prevBtn = document.getElementById('tut-prev-btn');
+    const nextBtn = document.getElementById('tut-next-btn');
+    const finishBtn = document.getElementById('tut-finish-btn');
+
+    // Show/hide previous button
+    prevBtn.style.display = stepIndex > 0 ? 'block' : 'none';
+    prevBtn.onclick = prevEventsTutorialStep;
+
+    // Determine if last step
+    const isLastStep = step.isLast;
+
+    if (isLastStep) {
+        nextBtn.style.display = 'none';
+        finishBtn.style.display = 'block';
+        finishBtn.onclick = exitEventsTutorial;
+    } else {
+        nextBtn.style.display = 'block';
+        finishBtn.style.display = 'none';
+        nextBtn.textContent = '[NEXT]';
+        nextBtn.onclick = nextEventsTutorialStep;
+    }
+
+    // Position spotlight
+    if (step.target) {
+        positionSpotlight(step.target, step.position);
+    } else {
+        hideSpotlight();
+        positionTooltipCenter();
+    }
+}
+
+// Next Events Tutorial step
+function nextEventsTutorialStep() {
+    if (currentEventsTutorialStep < EVENTS_TUTORIAL_STEPS.length - 1) {
+        showEventsTutorialStep(currentEventsTutorialStep + 1);
+    }
+}
+
+// Previous Events Tutorial step
+function prevEventsTutorialStep() {
+    if (currentEventsTutorialStep > 0) {
+        showEventsTutorialStep(currentEventsTutorialStep - 1);
+    }
+}
+
+// Exit Events Tutorial
+function exitEventsTutorial() {
+    console.log('👋 Exiting Events Tutorial...');
+
+    eventsTutorialActive = false;
+
+    // Remove tutorial-active class
+    document.body.classList.remove('tutorial-active');
+
+    // Hide overlay
+    const overlay = document.getElementById('interactive-tutorial-overlay');
+    overlay.classList.remove('active');
+    overlay.classList.remove('minimized');
+
+    // Hide minimized bar
+    const minimizedBar = document.getElementById('tutorial-minimized-bar');
+    if (minimizedBar) minimizedBar.style.display = 'none';
+
+    // Reset tooltip position
+    const tooltip = document.getElementById('tutorial-tooltip');
+    tooltip.style.transform = '';
+
+    // Remove keyboard listener
+    document.removeEventListener('keydown', handleEventsTutorialKeyboard);
+
+    // Restore original button handlers
+    document.getElementById('tut-prev-btn').onclick = prevTutorialStep;
+    document.getElementById('tut-next-btn').onclick = nextTutorialStep;
+    document.getElementById('tut-finish-btn').onclick = exitTutorial;
+}
+
+// Handle keyboard for Events Tutorial
+function handleEventsTutorialKeyboard(e) {
+    if (!eventsTutorialActive) return;
+
+    switch (e.key) {
+        case 'Escape':
+            exitEventsTutorial();
+            break;
+        case 'ArrowRight':
+        case 'Enter':
+            nextEventsTutorialStep();
+            break;
+        case 'ArrowLeft':
+            prevEventsTutorialStep();
+            break;
+    }
+}
+
+console.log('✅ Events Tutorial System loaded');
 
 // ============================================
 //     SITE TOUR SYSTEM - ECOSYSTEM PRESENTATION
