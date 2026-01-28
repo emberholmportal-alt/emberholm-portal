@@ -4198,6 +4198,25 @@ def handle_party_mission_start(wallet, hero_ids, mission_id):
             if ds.get("state") == "ON_MISSION":
                 abort(400, f"Hero {hero_id} is already on a mission")
 
+            # 🎮 MINI APP EXCLUSIVITY: Check if hero is on a micro-mission
+            if ds.get("state") == "ON_MICRO_MISSION":
+                abort(400, f"Hero {hero_id} is on a micro-mission. Complete it first.")
+
+            # Check for active micro-mission in database (extra safety check)
+            if POSTGRESQL_AVAILABLE and db:
+                try:
+                    with db.get_db() as conn:
+                        with conn.cursor() as cur:
+                            cur.execute("""
+                                SELECT id FROM active_micro_missions
+                                WHERE emissary_token_id = %s
+                                AND status IN ('active', 'choice_pending')
+                            """, (str(hero_id).zfill(5),))
+                            if cur.fetchone():
+                                abort(400, f"Hero {hero_id} is on a micro-mission. Complete it first.")
+                except Exception as e:
+                    print(f"⚠️ Error checking micro-mission status: {e}")
+
             # Check energy
             cost_energy = mission["energy_cost"]
             energy_current = ds.get("energy_current", 0)
@@ -4382,6 +4401,27 @@ def api_mission_start():
         # Check if hero is already on a mission
         if ds.get("state") == "ON_MISSION":
             abort(400, "Hero is already on a mission")
+
+        # 🎮 MINI APP EXCLUSIVITY: Check if hero is on a micro-mission
+        if ds.get("state") == "ON_MICRO_MISSION":
+            abort(400, "Hero is on a micro-mission. Complete it first before starting a normal mission.")
+
+        # Check for active micro-mission in database (extra safety check)
+        if POSTGRESQL_AVAILABLE and db:
+            try:
+                with db.get_db() as conn:
+                    with conn.cursor() as cur:
+                        cur.execute("""
+                            SELECT id, micro_mission_id, ends_at
+                            FROM active_micro_missions
+                            WHERE emissary_token_id = %s
+                            AND status IN ('active', 'choice_pending')
+                        """, (str(hero_id).zfill(5),))
+                        micro_mission = cur.fetchone()
+                        if micro_mission:
+                            abort(400, f"Hero is on micro-mission {micro_mission[1]}. Complete it first.")
+            except Exception as e:
+                print(f"⚠️ Error checking micro-mission status: {e}")
 
         # Check energy (with potential buff reduction)
         base_energy_cost = mission["energy_cost"]  # Save original before reductions
@@ -11282,6 +11322,22 @@ def api_get_wallet_trophies(wallet):
         traceback.print_exc()
         return jsonify({"error": str(e)}), 500
 
+
+# ---------------------------------
+
+# =========================================================================
+# 🎮 MINI APP ROUTES REGISTRATION
+# =========================================================================
+try:
+    from miniapp_routes import register_miniapp_routes
+    register_miniapp_routes(app, database_module=db, postgresql_available=POSTGRESQL_AVAILABLE)
+    print("✅ Mini App routes loaded successfully")
+except ImportError as e:
+    print(f"⚠️ Mini App routes not available: {e}")
+except Exception as e:
+    print(f"❌ Error loading Mini App routes: {e}")
+    import traceback
+    traceback.print_exc()
 
 # ---------------------------------
 
