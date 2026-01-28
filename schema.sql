@@ -434,13 +434,13 @@ GROUP BY last_known_owner
 ORDER BY total_xp DESC;
 
 -- =========================================================================
--- MINI APP TABLES ($SPARK & MICRO-MISSIONS)
+-- MINI APP TABLES ($PYRE & MICRO-MISSIONS)
 -- =========================================================================
 
 -- -------------------------------------------------------------------------
--- TABLA: SPARK BALANCES (Token off-chain para Mini App)
+-- TABLA: PYRE BALANCES (Token off-chain para Mini App)
 -- -------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS spark_balances (
+CREATE TABLE IF NOT EXISTS pyre_balances (
     wallet VARCHAR(42) PRIMARY KEY,
     balance INTEGER DEFAULT 0,
     total_earned INTEGER DEFAULT 0,
@@ -452,12 +452,12 @@ CREATE TABLE IF NOT EXISTS spark_balances (
 );
 
 -- Índice para búsquedas rápidas
-CREATE INDEX IF NOT EXISTS idx_spark_balances_wallet ON spark_balances(wallet);
+CREATE INDEX IF NOT EXISTS idx_pyre_balances_wallet ON pyre_balances(wallet);
 
 -- -------------------------------------------------------------------------
--- TABLA: SPARK TRANSACTIONS (Historial de $SPARK)
+-- TABLA: PYRE TRANSACTIONS (Historial de $PYRE)
 -- -------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS spark_transactions (
+CREATE TABLE IF NOT EXISTS pyre_transactions (
     id SERIAL PRIMARY KEY,
     wallet VARCHAR(42) NOT NULL,
     amount INTEGER NOT NULL,                          -- Positivo = ganado, Negativo = gastado
@@ -468,9 +468,9 @@ CREATE TABLE IF NOT EXISTS spark_transactions (
 );
 
 -- Índices para historial
-CREATE INDEX IF NOT EXISTS idx_spark_transactions_wallet ON spark_transactions(wallet);
-CREATE INDEX IF NOT EXISTS idx_spark_transactions_type ON spark_transactions(transaction_type);
-CREATE INDEX IF NOT EXISTS idx_spark_transactions_date ON spark_transactions(created_at);
+CREATE INDEX IF NOT EXISTS idx_pyre_transactions_wallet ON pyre_transactions(wallet);
+CREATE INDEX IF NOT EXISTS idx_pyre_transactions_type ON pyre_transactions(transaction_type);
+CREATE INDEX IF NOT EXISTS idx_pyre_transactions_date ON pyre_transactions(created_at);
 
 -- -------------------------------------------------------------------------
 -- TABLA: MICRO MISSIONS (Definiciones de aventuras cortas)
@@ -482,8 +482,8 @@ CREATE TABLE IF NOT EXISTS micro_missions (
     difficulty VARCHAR(20) NOT NULL,                  -- EASY, MEDIUM, HARD
     duration_seconds INTEGER NOT NULL,                -- 60-300 segundos
     energy_cost INTEGER DEFAULT 0,
-    spark_reward_min INTEGER NOT NULL,
-    spark_reward_max INTEGER NOT NULL,
+    pyre_reward_min INTEGER NOT NULL,
+    pyre_reward_max INTEGER NOT NULL,
     xp_reward_min INTEGER DEFAULT 0,
     xp_reward_max INTEGER DEFAULT 0,
     aura_chance DECIMAL(5,2) DEFAULT 0,               -- Probabilidad de +1 aura (0-100)
@@ -512,7 +512,7 @@ CREATE TABLE IF NOT EXISTS active_micro_missions (
     status VARCHAR(20) DEFAULT 'active',              -- active, choice_pending, completed, claimed
     current_step INTEGER DEFAULT 0,                   -- Paso narrativo actual
     choice_made VARCHAR(50),                          -- Decisión tomada (A, B, C)
-    spark_earned INTEGER DEFAULT 0,
+    pyre_earned INTEGER DEFAULT 0,
     xp_earned INTEGER DEFAULT 0,
     aura_earned INTEGER DEFAULT 0,
     outcome_text TEXT,                                -- Texto del resultado
@@ -574,6 +574,96 @@ BEGIN
     WHERE n.token_id = p_token_id;
 END;
 $$ LANGUAGE plpgsql;
+
+-- =========================================================================
+-- MINI APP SOCIAL TABLES
+-- =========================================================================
+
+-- -------------------------------------------------------------------------
+-- TABLA: USER PROFILES (Perfiles de usuario para Mini App)
+-- -------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS user_profiles (
+    id SERIAL PRIMARY KEY,
+    wallet VARCHAR(42) UNIQUE NOT NULL,
+    farcaster_fid INTEGER,                            -- Farcaster ID
+    farcaster_username VARCHAR(100),                  -- @username
+    farcaster_pfp_url TEXT,                           -- URL de avatar
+    country_code CHAR(3),                             -- ISO 3166-1 alpha-3 (USA, MEX, ESP, etc.)
+    display_name VARCHAR(100),                        -- Nombre visible en chat
+    last_seen TIMESTAMP DEFAULT NOW(),
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Índices
+CREATE INDEX IF NOT EXISTS idx_user_profiles_wallet ON user_profiles(wallet);
+CREATE INDEX IF NOT EXISTS idx_user_profiles_country ON user_profiles(country_code);
+CREATE INDEX IF NOT EXISTS idx_user_profiles_fid ON user_profiles(farcaster_fid);
+
+-- -------------------------------------------------------------------------
+-- TABLA: PRIVATE MESSAGES (Chat 1:1 entre usuarios)
+-- -------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS private_messages (
+    id SERIAL PRIMARY KEY,
+    from_wallet VARCHAR(42) NOT NULL,
+    to_wallet VARCHAR(42) NOT NULL,
+    message TEXT NOT NULL,
+    read BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Índices para mensajes
+CREATE INDEX IF NOT EXISTS idx_private_messages_from ON private_messages(from_wallet);
+CREATE INDEX IF NOT EXISTS idx_private_messages_to ON private_messages(to_wallet);
+CREATE INDEX IF NOT EXISTS idx_private_messages_date ON private_messages(created_at);
+CREATE INDEX IF NOT EXISTS idx_private_messages_conversation ON private_messages(from_wallet, to_wallet);
+
+-- -------------------------------------------------------------------------
+-- TABLA: EVENT PARTICIPATION (Progreso de usuarios en eventos)
+-- -------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS event_participation (
+    id SERIAL PRIMARY KEY,
+    event_id INTEGER NOT NULL REFERENCES events(id) ON DELETE CASCADE,
+    wallet VARCHAR(42) NOT NULL,
+    progress INTEGER DEFAULT 0,                       -- Progreso en el evento
+    milestones_claimed JSONB DEFAULT '[]'::jsonb,    -- Milestones reclamados
+    completed_at TIMESTAMP,
+    created_at TIMESTAMP DEFAULT NOW(),
+
+    UNIQUE(event_id, wallet)
+);
+
+-- Índices
+CREATE INDEX IF NOT EXISTS idx_event_participation_event ON event_participation(event_id);
+CREATE INDEX IF NOT EXISTS idx_event_participation_wallet ON event_participation(wallet);
+
+-- -------------------------------------------------------------------------
+-- VIEW: Country Statistics (para el globo 3D)
+-- -------------------------------------------------------------------------
+CREATE OR REPLACE VIEW country_stats AS
+SELECT
+    country_code,
+    COUNT(*) as user_count,
+    COUNT(CASE WHEN last_seen > NOW() - INTERVAL '15 minutes' THEN 1 END) as online_count
+FROM user_profiles
+WHERE country_code IS NOT NULL
+GROUP BY country_code;
+
+-- -------------------------------------------------------------------------
+-- VIEW: Conversations (lista de conversaciones por usuario)
+-- -------------------------------------------------------------------------
+CREATE OR REPLACE VIEW user_conversations AS
+SELECT DISTINCT
+    CASE
+        WHEN from_wallet < to_wallet THEN from_wallet
+        ELSE to_wallet
+    END as user1,
+    CASE
+        WHEN from_wallet < to_wallet THEN to_wallet
+        ELSE from_wallet
+    END as user2,
+    MAX(created_at) as last_message_at
+FROM private_messages
+GROUP BY user1, user2;
 
 -- =========================================================================
 -- SCHEMA COMPLETO
