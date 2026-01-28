@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   MicroMission,
@@ -13,7 +13,8 @@ import {
 
 /**
  * MissionPlayer - Interactive micro-mission experience
- * Shows narrative, choices, timer, and results
+ * Shows narrative with typewriter, choices, timer, and results
+ * Uses $PYRE rewards
  */
 
 type MissionPhase = 'starting' | 'narrative' | 'choosing' | 'waiting' | 'completing' | 'complete';
@@ -22,7 +23,7 @@ interface MissionPlayerProps {
   mission: MicroMission;
   emissary: Emissary;
   wallet: string;
-  onComplete: (rewards: { spark: number; xp: number; aura: number }) => void;
+  onComplete: (rewards: { pyre: number; xp: number; aura: number }) => void;
   onCancel: () => void;
 }
 
@@ -36,12 +37,45 @@ export function MissionPlayer({
   const [phase, setPhase] = useState<MissionPhase>('starting');
   const [activeMissionId, setActiveMissionId] = useState<number | null>(null);
   const [narrativeText, setNarrativeText] = useState('');
+  const [displayedText, setDisplayedText] = useState('');
   const [choices, setChoices] = useState<{ id: string; text: string; icon?: string }[]>([]);
   const [selectedChoice, setSelectedChoice] = useState<string | null>(null);
   const [outcomeText, setOutcomeText] = useState('');
-  const [rewards, setRewards] = useState<{ spark: number; xp: number; aura: number } | null>(null);
+  const [rewards, setRewards] = useState<{ pyre: number; xp: number; aura: number } | null>(null);
   const [timeRemaining, setTimeRemaining] = useState(mission.duration_seconds);
   const [error, setError] = useState<string | null>(null);
+  const typewriterRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Typewriter effect for narrative
+  useEffect(() => {
+    if (phase !== 'narrative' || !narrativeText) return;
+
+    let i = 0;
+    setDisplayedText('');
+
+    const typeChar = () => {
+      if (i < narrativeText.length) {
+        setDisplayedText(prev => prev + narrativeText.charAt(i));
+        i++;
+        const speed = 25 + Math.random() * 25; // 25-50ms per character
+        typewriterRef.current = setTimeout(typeChar, speed);
+      }
+    };
+
+    typeChar();
+
+    return () => {
+      if (typewriterRef.current) clearTimeout(typewriterRef.current);
+    };
+  }, [phase, narrativeText]);
+
+  // Skip typewriter on tap
+  const skipTypewriter = () => {
+    if (typewriterRef.current) {
+      clearTimeout(typewriterRef.current);
+      setDisplayedText(narrativeText);
+    }
+  };
 
   // Start the mission
   useEffect(() => {
@@ -138,36 +172,38 @@ export function MissionPlayer({
   // Error state
   if (error) {
     return (
-      <div className="flex flex-col min-h-screen p-4 pt-12 items-center justify-center">
-        <div className="text-center">
-          <div className="text-4xl mb-4">❌</div>
-          <h3 className="text-red-400 font-semibold mb-2">Mission Failed</h3>
-          <p className="text-ember-400/60 text-sm mb-4">{error}</p>
-          <button onClick={onCancel} className="btn-ember">
-            Return
-          </button>
+      <div className="screen-view flex flex-col min-h-screen p-4">
+        <div className="flex-1 flex items-center justify-center">
+          <div className="portal-box">
+            <div className="ornament">═══ ◈ ═══</div>
+            <div className="text-4xl my-4">❌</div>
+            <h3 className="text-red font-semibold mb-2">Mission Failed</h3>
+            <p className="text-amber-dim text-sm mb-4">{error}</p>
+            <div className="ornament">═══ ◈ ═══</div>
+          </div>
         </div>
+        <button onClick={onCancel} className="back-btn">
+          ← RETURN
+        </button>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col min-h-screen p-4 pt-12">
+    <div className="screen-view flex flex-col min-h-screen p-4">
       {/* Header with timer */}
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h2 className="font-alagard text-lg text-ember-400 text-glow">
-            {mission.name}
-          </h2>
-          <p className="text-xs text-ember-400/60">
+          <h2 className="title text-lg">{mission.name}</h2>
+          <p className="text-xs text-amber-dim">
             {emissary.name || `Emissary #${emissary.token_id}`}
           </p>
         </div>
         <div className="text-right">
-          <div className="text-2xl font-mono text-ember-400 text-glow">
+          <div className="text-2xl font-mono text-amber-bright animate-pulse-glow">
             {formatTime(timeRemaining)}
           </div>
-          <p className="text-xs text-ember-400/50">remaining</p>
+          <p className="text-xs text-amber-dim">remaining</p>
         </div>
       </div>
 
@@ -193,9 +229,11 @@ export function MissionPlayer({
               exit={{ opacity: 0 }}
               className="flex items-center justify-center h-full"
             >
-              <div className="text-center">
-                <div className="text-4xl animate-pulse mb-4">🔥</div>
-                <p className="text-ember-400/70">Initiating mission...</p>
+              <div className="portal-box">
+                <div className="ornament">═══ ◈ ═══</div>
+                <div className="text-4xl animate-pulse my-6">🔥</div>
+                <p className="text-amber-dim">Initiating mission...</p>
+                <div className="ornament mt-4">═══ ◈ ═══</div>
               </div>
             </motion.div>
           )}
@@ -208,38 +246,43 @@ export function MissionPlayer({
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
             >
-              <div className="panel-glow p-4 mb-6">
-                <p className="text-ember-400/90 leading-relaxed whitespace-pre-line">
-                  {narrativeText}
+              <div
+                className="data-box mb-6 cursor-pointer"
+                onClick={skipTypewriter}
+              >
+                <p className="text-amber leading-relaxed whitespace-pre-line">
+                  {displayedText}
+                  {displayedText.length < narrativeText.length && (
+                    <span className="inline-block w-2 h-4 bg-amber animate-blink ml-1" />
+                  )}
                 </p>
               </div>
 
-              <p className="text-center text-ember-400/60 text-sm mb-4">
-                What do you do?
-              </p>
+              {displayedText.length === narrativeText.length && choices.length > 0 && (
+                <>
+                  <p className="text-center text-amber-dim text-sm mb-4">
+                    What do you do?
+                  </p>
 
-              <div className="space-y-3">
-                {choices.map((choice) => (
-                  <motion.button
-                    key={choice.id}
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={() => handleChoice(choice.id)}
-                    className="w-full panel p-4 text-left hover:border-ember-400/50 hover:shadow-ember"
-                  >
-                    <div className="flex items-center gap-3">
-                      <span className="text-xl w-8 h-8 flex items-center justify-center bg-ember-400/10 rounded">
-                        {choice.id}
-                      </span>
-                      <span className="text-ember-400/90 text-sm flex-1">
-                        {choice.text}
-                      </span>
-                    </div>
-                  </motion.button>
-                ))}
-              </div>
+                  <div className="space-y-3">
+                    {choices.map((choice, index) => (
+                      <motion.button
+                        key={choice.id}
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.1 * index }}
+                        onClick={() => handleChoice(choice.id)}
+                        className="menu-btn w-full"
+                      >
+                        <span className="icon text-lg">{choice.id}</span>
+                        <span className="flex-1 text-left text-sm">
+                          {choice.text}
+                        </span>
+                      </motion.button>
+                    ))}
+                  </div>
+                </>
+              )}
             </motion.div>
           )}
 
@@ -252,21 +295,25 @@ export function MissionPlayer({
               exit={{ opacity: 0 }}
               className="text-center"
             >
-              <div className="panel-glow p-4 mb-6">
-                <p className="text-ember-400/70 text-sm mb-2">
-                  Your choice: <span className="text-ember-400">{selectedChoice}</span>
+              <div className="data-box mb-6">
+                <p className="text-amber-dim text-sm mb-2">
+                  Your choice: <span className="text-amber">{selectedChoice}</span>
                 </p>
                 {outcomeText && (
-                  <p className="text-ember-400/90 leading-relaxed">
+                  <p className="text-amber leading-relaxed mt-4">
                     {outcomeText}
                   </p>
                 )}
               </div>
 
-              <div className="text-4xl animate-pulse mb-4">⏳</div>
-              <p className="text-ember-400/60">
-                {phase === 'choosing' ? 'Recording choice...' : 'Awaiting outcome...'}
-              </p>
+              <div className="portal-box">
+                <div className="ornament">═══ ◈ ═══</div>
+                <div className="text-4xl animate-pulse my-6">⏳</div>
+                <p className="text-amber-dim">
+                  {phase === 'choosing' ? 'Recording choice...' : 'Awaiting outcome...'}
+                </p>
+                <div className="ornament mt-4">═══ ◈ ═══</div>
+              </div>
             </motion.div>
           )}
 
@@ -279,9 +326,11 @@ export function MissionPlayer({
               exit={{ opacity: 0 }}
               className="flex items-center justify-center h-full"
             >
-              <div className="text-center">
-                <div className="text-4xl animate-pulse mb-4">✨</div>
-                <p className="text-ember-400/70">Calculating rewards...</p>
+              <div className="portal-box">
+                <div className="ornament">═══ ◈ ═══</div>
+                <div className="text-4xl animate-pulse my-6">✨</div>
+                <p className="text-amber-dim">Calculating rewards...</p>
+                <div className="ornament mt-4">═══ ◈ ═══</div>
               </div>
             </motion.div>
           )}
@@ -295,37 +344,35 @@ export function MissionPlayer({
               className="text-center"
             >
               <div className="text-5xl mb-4">🎉</div>
-              <h3 className="font-alagard text-2xl text-ember-400 text-glow mb-4">
+              <h3 className="title text-2xl mb-4">
                 MISSION COMPLETE
               </h3>
 
               {outcomeText && (
-                <div className="panel-glow p-4 mb-6 text-left">
-                  <p className="text-ember-400/90 text-sm leading-relaxed">
+                <div className="data-box mb-6 text-left">
+                  <p className="text-amber text-sm leading-relaxed">
                     {outcomeText}
                   </p>
                 </div>
               )}
 
-              <div className="panel p-4 mb-6">
-                <h4 className="text-ember-400/60 text-xs mb-3 uppercase tracking-wider">
-                  Rewards Earned
-                </h4>
-                <div className="flex justify-center gap-6">
+              <div className="data-box mb-6">
+                <div className="section-title">REWARDS EARNED</div>
+                <div className="flex justify-center gap-8 mt-4">
                   <div className="text-center">
-                    <p className="text-2xl text-spark font-bold">+{rewards.spark}</p>
-                    <p className="text-xs text-ember-400/50">$SPARK</p>
+                    <p className="text-2xl text-cyan font-bold">+{rewards.pyre}</p>
+                    <p className="text-xs text-amber-dim">◈ PYRE</p>
                   </div>
                   {rewards.xp > 0 && (
                     <div className="text-center">
-                      <p className="text-2xl text-blue-400 font-bold">+{rewards.xp}</p>
-                      <p className="text-xs text-ember-400/50">XP</p>
+                      <p className="text-2xl text-amber font-bold">+{rewards.xp}</p>
+                      <p className="text-xs text-amber-dim">XP</p>
                     </div>
                   )}
                   {rewards.aura > 0 && (
                     <div className="text-center">
-                      <p className="text-2xl text-purple-400 font-bold">+{rewards.aura}</p>
-                      <p className="text-xs text-ember-400/50">AURA</p>
+                      <p className="text-2xl text-amber-bright font-bold">+{rewards.aura}</p>
+                      <p className="text-xs text-amber-dim">AURA</p>
                     </div>
                   )}
                 </div>
@@ -333,7 +380,7 @@ export function MissionPlayer({
 
               <button
                 onClick={() => onComplete(rewards)}
-                className="btn-ember-primary px-8 py-3"
+                className="btn w-full"
               >
                 CONTINUE
               </button>

@@ -1,12 +1,13 @@
 /**
- * EMBERHOLM MINI APP - API Client
+ * EMBERHOLM MINI APP - API Client v2
  * Connects to Flask backend endpoints
+ * Includes: Realm Status, $PYRE, Micro-Missions, Social Chat
  */
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || '';
 
 // =========================================
-// Types
+// Types - Realm
 // =========================================
 
 export interface RealmStatus {
@@ -26,7 +27,11 @@ export interface RealmStatus {
   };
 }
 
-export interface SparkBalance {
+// =========================================
+// Types - $PYRE
+// =========================================
+
+export interface PyreBalance {
   wallet: string;
   balance: number;
   total_earned: number;
@@ -35,6 +40,19 @@ export interface SparkBalance {
   daily_available: boolean;
 }
 
+export interface PyreTransaction {
+  id: number;
+  amount: number;
+  type: string;
+  reference_id: string;
+  description: string;
+  created_at: string;
+}
+
+// =========================================
+// Types - Micro-Missions
+// =========================================
+
 export interface MicroMission {
   id: string;
   name: string;
@@ -42,7 +60,7 @@ export interface MicroMission {
   difficulty: 'EASY' | 'MEDIUM' | 'HARD';
   duration_seconds: number;
   energy_cost: number;
-  spark_reward: { min: number; max: number };
+  pyre_reward: { min: number; max: number };
   xp_reward: { min: number; max: number };
   aura_chance: number;
   narrative_intro: string;
@@ -58,7 +76,7 @@ export interface MicroMissionDetail extends MicroMission {
   narrative_outcomes: Record<string, {
     type: string;
     text: string;
-    spark_modifier: number;
+    pyre_modifier: number;
     xp_modifier: number;
   }>;
 }
@@ -76,6 +94,16 @@ export interface ActiveMicroMission {
   narrative_intro: string;
   choices: { id: string; text: string; icon?: string }[];
 }
+
+export interface MissionRewards {
+  pyre: number;
+  xp: number;
+  aura: number;
+}
+
+// =========================================
+// Types - Emissaries
+// =========================================
 
 export interface Emissary {
   token_id: string;
@@ -105,14 +133,66 @@ export interface Emissary {
   };
 }
 
-export interface MissionRewards {
-  spark: number;
-  xp: number;
-  aura: number;
+// =========================================
+// Types - Social
+// =========================================
+
+export interface UserProfile {
+  id: number;
+  wallet: string;
+  country_code: string | null;
+  display_name: string | null;
+  farcaster_fid: number | null;
+  farcaster_username: string | null;
+  farcaster_pfp_url: string | null;
+  last_seen: string | null;
+}
+
+export interface CountryStats {
+  country_code: string;
+  user_count: number;
+  online_count: number;
+}
+
+export interface CountryUser {
+  wallet: string;
+  display_name: string | null;
+  farcaster_username: string | null;
+  farcaster_pfp_url: string | null;
+  last_seen: string | null;
+  is_online: boolean;
+}
+
+export interface Conversation {
+  other_wallet: string;
+  last_message: string | null;
+  last_message_at: string | null;
+  unread_count: number;
+  other_user: {
+    display_name: string | null;
+    farcaster_username: string | null;
+    farcaster_pfp_url: string | null;
+  };
+}
+
+export interface PrivateMessage {
+  id: number;
+  from_wallet: string;
+  to_wallet: string;
+  message: string;
+  read: boolean;
+  created_at: string;
+  is_mine: boolean;
+}
+
+export interface OnlineStats {
+  total_users: number;
+  online_now: number;
+  countries_represented: number;
 }
 
 // =========================================
-// API Functions
+// API Fetch Helper
 // =========================================
 
 async function fetchAPI<T>(endpoint: string, options?: RequestInit): Promise<T> {
@@ -142,12 +222,19 @@ export async function getRealmStatus(): Promise<RealmStatus> {
 }
 
 // =========================================
-// $SPARK
+// $PYRE
 // =========================================
 
-export async function getSparkBalance(wallet: string): Promise<SparkBalance> {
-  const data = await fetchAPI<{ success: boolean } & SparkBalance>(`/api/spark/${wallet}`);
+export async function getPyreBalance(wallet: string): Promise<PyreBalance> {
+  const data = await fetchAPI<{ success: boolean } & PyreBalance>(`/api/pyre/${wallet}`);
   return data;
+}
+
+export async function getPyreHistory(wallet: string, limit = 50): Promise<PyreTransaction[]> {
+  const data = await fetchAPI<{ success: boolean; transactions: PyreTransaction[] }>(
+    `/api/pyre/history/${wallet}?limit=${limit}`
+  );
+  return data.transactions;
 }
 
 // =========================================
@@ -236,14 +323,11 @@ export async function getEmissaryFullStatus(tokenId: string): Promise<Emissary> 
   return data.emissary;
 }
 
-// Note: This endpoint needs to exist in the backend
 export async function getWalletEmissaries(wallet: string): Promise<Emissary[]> {
-  // For now, we'll use the player endpoint and transform
   try {
     const data = await fetchAPI<any>(`/api/player/${wallet}`);
     const heroes = data.player?.heroes || [];
 
-    // Transform heroes to Emissary format
     return heroes.map((hero: any) => ({
       token_id: hero.token_id,
       name: hero.name || `Emissary #${hero.token_id}`,
@@ -275,4 +359,92 @@ export async function getWalletEmissaries(wallet: string): Promise<Emissary[]> {
     console.error('Error fetching emissaries:', error);
     return [];
   }
+}
+
+// =========================================
+// Social - Profile
+// =========================================
+
+export async function getProfile(wallet: string): Promise<UserProfile | null> {
+  const data = await fetchAPI<{ success: boolean; profile: UserProfile | null }>(
+    `/api/social/profile/${wallet}`
+  );
+  return data.profile;
+}
+
+export async function updateProfile(params: {
+  wallet: string;
+  country_code?: string;
+  display_name?: string;
+  farcaster_fid?: number;
+  farcaster_username?: string;
+  farcaster_pfp_url?: string;
+}): Promise<UserProfile> {
+  const data = await fetchAPI<{ success: boolean; profile: UserProfile }>('/api/social/profile', {
+    method: 'POST',
+    body: JSON.stringify(params),
+  });
+  return data.profile;
+}
+
+// =========================================
+// Social - Countries (for 3D Globe)
+// =========================================
+
+export async function getCountries(): Promise<CountryStats[]> {
+  const data = await fetchAPI<{ success: boolean; countries: CountryStats[] }>('/api/social/countries');
+  return data.countries;
+}
+
+export async function getCountryUsers(countryCode: string): Promise<CountryUser[]> {
+  const data = await fetchAPI<{ success: boolean; users: CountryUser[] }>(
+    `/api/social/country/${countryCode}/users`
+  );
+  return data.users;
+}
+
+export async function getOnlineStats(): Promise<OnlineStats> {
+  const data = await fetchAPI<{ success: boolean; stats: OnlineStats }>('/api/social/online-stats');
+  return data.stats;
+}
+
+// =========================================
+// Social - Chat (1:1 Private Messages)
+// =========================================
+
+export async function getConversations(wallet: string): Promise<Conversation[]> {
+  const data = await fetchAPI<{ success: boolean; conversations: Conversation[] }>(
+    `/api/social/conversations/${wallet}`
+  );
+  return data.conversations;
+}
+
+export async function getMessages(wallet: string, otherWallet: string, limit = 50): Promise<PrivateMessage[]> {
+  const data = await fetchAPI<{ success: boolean; messages: PrivateMessage[] }>(
+    `/api/social/messages/${wallet}/${otherWallet}?limit=${limit}`
+  );
+  return data.messages;
+}
+
+export async function sendMessage(fromWallet: string, toWallet: string, message: string): Promise<PrivateMessage> {
+  const data = await fetchAPI<{ success: boolean; message: PrivateMessage }>('/api/social/message', {
+    method: 'POST',
+    body: JSON.stringify({
+      from_wallet: fromWallet,
+      to_wallet: toWallet,
+      message,
+    }),
+  });
+  return data.message;
+}
+
+export async function markMessagesRead(wallet: string, fromWallet: string): Promise<number> {
+  const data = await fetchAPI<{ success: boolean; marked_read: number }>('/api/social/message/read', {
+    method: 'POST',
+    body: JSON.stringify({
+      wallet,
+      from_wallet: fromWallet,
+    }),
+  });
+  return data.marked_read;
 }
