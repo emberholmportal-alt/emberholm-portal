@@ -1,0 +1,2290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Emberholm Mini App v8</title>
+    <link href="https://fonts.googleapis.com/css2?family=VT323&family=Pixelify+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* ═══════════════════════════════════════════════════════════
+           EMBERHOLM MINI APP v8 - COMPLETE PROTOTYPE
+           Amber Theme · Pixelify Sans · All corrections applied
+           ═══════════════════════════════════════════════════════════ */
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --amber: #ff9500;
+            --amber-bright: #ffb340;
+            --amber-dim: #cc7700;
+            --amber-dark: #804d00;
+            --amber-darker: #4d2e00;
+            --amber-glow: rgba(255, 149, 0, 0.5);
+            --cyan: #00d4ff;
+            --red: #ff4444;
+            --green: #44ff44;
+            --bg-dark: #0a0705;
+            --bg-screen: #0f0a05;
+        }
+
+        html, body {
+            height: 100%;
+            overflow: hidden;
+            background: var(--bg-dark);
+            font-family: 'Pixelify Sans', sans-serif;
+        }
+
+        body {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* ═══════════════════════════════════════════════════════════
+           CRT SCREEN
+           ═══════════════════════════════════════════════════════════ */
+        .crt-screen {
+            background: var(--bg-screen);
+            position: relative;
+            overflow: hidden;
+            width: 100%;
+            max-width: 420px;
+            height: 100vh;
+            max-height: 800px;
+        }
+
+        .crt-screen::after {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: repeating-linear-gradient(
+                0deg,
+                rgba(0, 0, 0, 0.08),
+                rgba(0, 0, 0, 0.08) 1px,
+                transparent 1px,
+                transparent 2px
+            );
+            pointer-events: none;
+            z-index: 1000;
+        }
+
+        .crt-screen::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: radial-gradient(
+                ellipse at center,
+                transparent 0%,
+                transparent 60%,
+                rgba(0,0,0,0.4) 100%
+            );
+            pointer-events: none;
+            z-index: 999;
+        }
+
+        .screen-content {
+            position: relative;
+            z-index: 10;
+            padding: 0;
+            color: var(--amber);
+            font-size: 16px;
+            line-height: 1.4;
+            text-shadow: 0 0 5px var(--amber), 0 0 10px var(--amber-glow);
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* ═══════════════════════════════════════════════════════════
+           TOP BAR (Always visible)
+           ═══════════════════════════════════════════════════════════ */
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 15px;
+            background: rgba(0, 0, 0, 0.3);
+            border-bottom: 1px solid var(--amber-dark);
+            font-size: 13px;
+            flex-shrink: 0;
+        }
+
+        .top-bar-left {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .music-icon {
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        .music-icon.muted { opacity: 0.4; }
+
+        .top-bar-center {
+            display: flex;
+            gap: 15px;
+            color: var(--amber-bright);
+        }
+
+        .top-bar-right {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .weather-icon { font-size: 14px; }
+
+        /* ═══════════════════════════════════════════════════════════
+           SCREENS
+           ═══════════════════════════════════════════════════════════ */
+        .screen-view {
+            display: none;
+            flex-direction: column;
+            flex: 1;
+            overflow: hidden;
+            padding: 15px;
+            animation: screenOn 0.15s ease;
+        }
+
+        .screen-view.active { display: flex; }
+
+        @keyframes screenOn {
+            0% { opacity: 0; filter: brightness(2); }
+            100% { opacity: 1; filter: brightness(1); }
+        }
+
+        /* ═══════════════════════════════════════════════════════════
+           TYPOGRAPHY
+           ═══════════════════════════════════════════════════════════ */
+        .title {
+            text-align: center;
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--amber-bright);
+            text-shadow: 
+                0 0 10px var(--amber),
+                0 0 20px var(--amber),
+                0 0 30px var(--amber-glow);
+            letter-spacing: 2px;
+            margin: 10px 0;
+        }
+
+        .subtitle {
+            text-align: center;
+            font-size: 14px;
+            color: var(--amber-dim);
+            letter-spacing: 3px;
+            font-weight: 500;
+        }
+
+        .section-title {
+            font-size: 12px;
+            color: var(--amber-dim);
+            letter-spacing: 2px;
+            margin: 15px 0 8px;
+            font-weight: 600;
+        }
+
+        /* ═══════════════════════════════════════════════════════════
+           BACK BUTTON (Always visible)
+           ═══════════════════════════════════════════════════════════ */
+        .back-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 20px;
+            background: var(--amber-darker);
+            border: 1px solid var(--amber-dark);
+            color: var(--amber);
+            font-family: 'Pixelify Sans', sans-serif;
+            font-size: 14px;
+            cursor: pointer;
+            margin-top: auto;
+            justify-content: center;
+            width: 100%;
+        }
+
+        .back-btn:hover {
+            background: var(--amber-dark);
+            border-color: var(--amber);
+        }
+
+        /* ═══════════════════════════════════════════════════════════
+           MENU BUTTONS (Centered, bigger)
+           ═══════════════════════════════════════════════════════════ */
+        .menu-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 8px;
+            padding: 10px 0;
+        }
+
+        .menu-btn {
+            padding: 16px 20px;
+            background: var(--bg-dark);
+            border: 2px solid var(--amber-dark);
+            color: var(--amber);
+            font-family: 'Pixelify Sans', sans-serif;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            transition: all 0.1s;
+            position: relative;
+        }
+
+        .menu-btn:hover {
+            border-color: var(--amber);
+            background: rgba(255, 149, 0, 0.1);
+        }
+
+        .menu-btn.selected {
+            background: var(--amber);
+            color: var(--bg-dark);
+            border-color: var(--amber);
+            text-shadow: none;
+        }
+
+        .menu-btn .icon {
+            font-size: 20px;
+            width: 28px;
+            text-align: center;
+        }
+
+        .menu-btn .badge {
+            margin-left: auto;
+            background: var(--red);
+            color: white;
+            padding: 3px 8px;
+            font-size: 11px;
+            border-radius: 3px;
+        }
+
+        /* ═══════════════════════════════════════════════════════════
+           SCROLL AREA
+           ═══════════════════════════════════════════════════════════ */
+        .scroll-area {
+            flex: 1;
+            overflow-y: auto;
+            padding-right: 5px;
+        }
+
+        .scroll-area::-webkit-scrollbar { width: 6px; }
+        .scroll-area::-webkit-scrollbar-track { background: var(--bg-dark); }
+        .scroll-area::-webkit-scrollbar-thumb { background: var(--amber-dark); }
+
+        /* ═══════════════════════════════════════════════════════════
+           DATA DISPLAY
+           ═══════════════════════════════════════════════════════════ */
+        .data-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px dotted var(--amber-darker);
+            font-size: 14px;
+        }
+
+        .data-box {
+            border: 1px solid var(--amber-dark);
+            padding: 12px;
+            margin: 8px 0;
+            background: rgba(0, 0, 0, 0.2);
+        }
+
+        .data-box.selected {
+            border-color: var(--amber);
+            background: rgba(255, 149, 0, 0.05);
+        }
+
+        .data-box-title {
+            color: var(--amber-bright);
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .divider {
+            border: none;
+            border-top: 1px dashed var(--amber-dark);
+            margin: 10px 0;
+        }
+
+        /* ═══════════════════════════════════════════════════════════
+           PORTAL BOX
+           ═══════════════════════════════════════════════════════════ */
+        .portal-box {
+            border: 2px solid var(--amber);
+            padding: 30px 25px;
+            margin: auto;
+            text-align: center;
+            max-width: 320px;
+            background: rgba(255, 149, 0, 0.02);
+        }
+
+        .portal-box .ornament {
+            color: var(--amber-dim);
+            letter-spacing: 5px;
+            font-size: 14px;
+        }
+
+        /* ═══════════════════════════════════════════════════════════
+           BUTTONS
+           ═══════════════════════════════════════════════════════════ */
+        .btn {
+            padding: 14px 20px;
+            background: var(--amber);
+            border: none;
+            color: var(--bg-dark);
+            font-family: 'Pixelify Sans', sans-serif;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            margin: 5px 0;
+        }
+
+        .btn:hover {
+            background: var(--amber-bright);
+        }
+
+        .btn.secondary {
+            background: transparent;
+            border: 2px solid var(--amber-dim);
+            color: var(--amber);
+        }
+
+        .btn.small {
+            padding: 8px 12px;
+            font-size: 12px;
+        }
+
+        /* ═══════════════════════════════════════════════════════════
+           EMISSARY CARD
+           ═══════════════════════════════════════════════════════════ */
+        .emissary-card {
+            border: 1px solid var(--amber-dark);
+            padding: 12px;
+            margin: 8px 0;
+            background: rgba(0, 0, 0, 0.2);
+        }
+
+        .emissary-card.selected {
+            border-color: var(--amber);
+            background: rgba(255, 149, 0, 0.05);
+        }
+
+        .emissary-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .emissary-name {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--amber-bright);
+        }
+
+        .emissary-status {
+            font-size: 11px;
+            padding: 3px 8px;
+            border-radius: 3px;
+        }
+
+        .emissary-status.ready { background: var(--green); color: #000; }
+        .emissary-status.mission { background: var(--cyan); color: #000; }
+        .emissary-status.claiming { background: var(--amber); color: #000; }
+
+        .emissary-actions {
+            display: flex;
+            gap: 6px;
+            margin-top: 10px;
+            flex-wrap: wrap;
+        }
+
+        .emissary-actions .btn {
+            flex: 1;
+            min-width: 80px;
+            padding: 10px 8px;
+            font-size: 11px;
+        }
+
+        /* ═══════════════════════════════════════════════════════════
+           INVENTORY SLOTS
+           ═══════════════════════════════════════════════════════════ */
+        .inventory-section {
+            margin: 15px 0;
+        }
+
+        .inventory-label {
+            font-size: 12px;
+            color: var(--amber-dim);
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        .slots-row {
+            display: flex;
+            gap: 8px;
+        }
+
+        .slot {
+            width: 60px;
+            height: 60px;
+            border: 2px solid var(--amber-dark);
+            background: var(--bg-dark);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .slot:hover {
+            border-color: var(--amber);
+        }
+
+        .slot.equipped {
+            border-color: var(--amber);
+            background: rgba(255, 149, 0, 0.1);
+        }
+
+        .slot.equipped::after {
+            content: '✓';
+            position: absolute;
+            top: 2px;
+            right: 4px;
+            font-size: 10px;
+            color: var(--green);
+        }
+
+        .slot .slot-icon {
+            font-size: 24px;
+        }
+
+        .slot .slot-name {
+            font-size: 9px;
+            color: var(--amber-dim);
+            margin-top: 2px;
+        }
+
+        .slot.empty {
+            border-style: dashed;
+            opacity: 0.5;
+        }
+
+        .slot.empty .slot-icon {
+            font-size: 16px;
+            color: var(--amber-dark);
+        }
+
+        .rune-slots {
+            display: flex;
+            gap: 10px;
+        }
+
+        .rune-slot {
+            width: 70px;
+            height: 70px;
+            border: 2px solid var(--cyan);
+            border-style: dashed;
+            background: rgba(0, 212, 255, 0.05);
+        }
+
+        .rune-slot.equipped {
+            border-style: solid;
+            background: rgba(0, 212, 255, 0.1);
+        }
+
+        /* ═══════════════════════════════════════════════════════════
+           ITEM POPUP
+           ═══════════════════════════════════════════════════════════ */
+        .item-popup {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.9);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+        }
+
+        .item-popup.visible {
+            display: flex;
+        }
+
+        .item-popup-content {
+            background: var(--bg-screen);
+            border: 2px solid var(--amber);
+            padding: 20px;
+            width: 280px;
+            text-align: center;
+        }
+
+        .item-popup-icon {
+            font-size: 48px;
+            margin: 10px 0;
+        }
+
+        .item-popup-name {
+            font-size: 18px;
+            color: var(--amber-bright);
+            font-weight: 600;
+        }
+
+        .item-popup-desc {
+            font-size: 12px;
+            color: var(--amber-dim);
+            margin: 10px 0;
+        }
+
+        .item-popup-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .item-popup-actions .btn {
+            flex: 1;
+        }
+
+        /* ═══════════════════════════════════════════════════════════
+           3D GLOBE
+           ═══════════════════════════════════════════════════════════ */
+        #globe-container {
+            width: 100%;
+            height: 280px;
+            position: relative;
+            border: 1px solid var(--amber-dark);
+            background: radial-gradient(ellipse at center, #1a0f05 0%, #0a0705 70%);
+            cursor: grab;
+            margin: 10px 0;
+        }
+
+        #globe-container:active { cursor: grabbing; }
+
+        .globe-hover-info {
+            position: absolute;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 13px;
+            color: var(--amber-bright);
+            text-align: center;
+            text-shadow: 0 0 10px var(--amber);
+            opacity: 0;
+            transition: opacity 0.2s;
+            background: rgba(10, 7, 5, 0.9);
+            padding: 5px 15px;
+            border: 1px solid var(--amber-dark);
+        }
+
+        .globe-hover-info.visible { opacity: 1; }
+
+        .globe-legend {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            font-size: 10px;
+        }
+
+        .globe-legend-item {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 5px;
+            margin: 3px 0;
+            color: var(--amber-dim);
+        }
+
+        .globe-legend-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        .globe-legend-dot.active {
+            background: var(--amber);
+            box-shadow: 0 0 6px var(--amber);
+        }
+
+        .globe-legend-dot.inactive {
+            background: transparent;
+            border: 1px solid var(--amber-dark);
+        }
+
+        .globe-popup {
+            position: absolute;
+            background: rgba(10, 7, 5, 0.98);
+            border: 1px solid var(--amber);
+            padding: 12px;
+            min-width: 200px;
+            z-index: 100;
+            display: none;
+            box-shadow: 0 0 20px var(--amber-glow);
+        }
+
+        .globe-popup.visible { display: block; }
+
+        .globe-popup-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            padding-bottom: 8px;
+            border-bottom: 1px dashed var(--amber-dark);
+        }
+
+        .globe-popup-title {
+            font-size: 16px;
+            color: var(--amber-bright);
+            font-weight: 600;
+        }
+
+        .globe-popup-close {
+            background: none;
+            border: none;
+            color: var(--amber-dim);
+            font-size: 20px;
+            cursor: pointer;
+        }
+
+        .globe-popup-stats {
+            font-size: 12px;
+            margin-bottom: 10px;
+        }
+
+        .globe-popup-stats div {
+            display: flex;
+            justify-content: space-between;
+            padding: 4px 0;
+        }
+
+        .globe-popup-stats .value { color: var(--cyan); }
+
+        .globe-popup-btn {
+            width: 100%;
+            padding: 10px;
+            background: var(--amber);
+            border: none;
+            color: var(--bg-dark);
+            font-family: 'Pixelify Sans', sans-serif;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        /* ═══════════════════════════════════════════════════════════
+           USER LIST
+           ═══════════════════════════════════════════════════════════ */
+        .user-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            border-bottom: 1px solid var(--amber-darker);
+            cursor: pointer;
+        }
+
+        .user-item:hover {
+            background: rgba(255, 149, 0, 0.05);
+        }
+
+        .user-item.no-farcaster { opacity: 0.6; }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            background: var(--amber-dark);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            border-radius: 4px;
+        }
+
+        .user-info { flex: 1; }
+        .user-name { color: var(--amber-bright); font-size: 14px; font-weight: 600; }
+        .user-handle { color: var(--amber-dim); font-size: 11px; }
+        .user-stats { color: var(--cyan); font-size: 12px; margin-top: 2px; }
+
+        .user-badge {
+            font-size: 10px;
+            padding: 3px 8px;
+            border-radius: 3px;
+            font-weight: 600;
+        }
+
+        .user-badge.online { background: var(--green); color: #000; }
+        .user-badge.offline { background: var(--amber-dark); color: var(--amber-dim); }
+        .user-badge.no-fc { background: var(--amber-darker); color: var(--amber-dim); }
+
+        /* ═══════════════════════════════════════════════════════════
+           MESSAGES / CHAT
+           ═══════════════════════════════════════════════════════════ */
+        .message-item {
+            padding: 12px;
+            border-bottom: 1px solid var(--amber-darker);
+            cursor: pointer;
+        }
+
+        .message-item:hover {
+            background: rgba(255, 149, 0, 0.05);
+        }
+
+        .message-item.unread {
+            border-left: 3px solid var(--cyan);
+            background: rgba(0, 212, 255, 0.03);
+        }
+
+        .message-from {
+            color: var(--amber-bright);
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .message-preview {
+            color: var(--amber-dim);
+            font-size: 12px;
+            margin-top: 4px;
+        }
+
+        .message-time {
+            color: var(--amber-dark);
+            font-size: 10px;
+            float: right;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px 0;
+        }
+
+        .chat-bubble {
+            max-width: 80%;
+            padding: 10px 14px;
+            margin: 6px 0;
+            font-size: 13px;
+            line-height: 1.4;
+        }
+
+        .chat-bubble.received {
+            background: var(--amber-darker);
+            border-radius: 0 12px 12px 12px;
+            margin-right: auto;
+        }
+
+        .chat-bubble.sent {
+            background: rgba(255, 149, 0, 0.2);
+            border: 1px solid var(--amber-dim);
+            border-radius: 12px 0 12px 12px;
+            margin-left: auto;
+        }
+
+        .chat-input {
+            display: flex;
+            gap: 10px;
+            padding-top: 10px;
+            border-top: 1px solid var(--amber-dark);
+        }
+
+        .chat-input input {
+            flex: 1;
+            background: var(--bg-dark);
+            border: 2px solid var(--amber-dim);
+            color: var(--amber);
+            padding: 12px;
+            font-family: 'Pixelify Sans', sans-serif;
+            font-size: 14px;
+        }
+
+        .chat-input input:focus {
+            outline: none;
+            border-color: var(--amber);
+        }
+
+        .chat-input button {
+            background: var(--amber);
+            border: none;
+            color: var(--bg-dark);
+            padding: 12px 20px;
+            font-family: 'Pixelify Sans', sans-serif;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        /* ═══════════════════════════════════════════════════════════
+           COUNTRY SELECTOR
+           ═══════════════════════════════════════════════════════════ */
+        .country-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin: 15px 0;
+        }
+
+        .country-btn {
+            padding: 14px 10px;
+            background: var(--bg-dark);
+            border: 2px solid var(--amber-dark);
+            color: var(--amber);
+            font-family: 'Pixelify Sans', sans-serif;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            text-align: center;
+        }
+
+        .country-btn:hover {
+            border-color: var(--amber);
+            background: rgba(255, 149, 0, 0.1);
+        }
+
+        .country-btn.selected {
+            background: var(--amber);
+            color: var(--bg-dark);
+            border-color: var(--amber);
+        }
+
+        .country-btn .flag {
+            font-size: 22px;
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        /* ═══════════════════════════════════════════════════════════
+           PROGRESS & TIMER
+           ═══════════════════════════════════════════════════════════ */
+        .progress-bar {
+            flex: 1;
+            height: 12px;
+            background: var(--bg-dark);
+            border: 1px solid var(--amber-dark);
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--amber);
+        }
+
+        .timer-big {
+            font-size: 48px;
+            text-align: center;
+            color: var(--amber-bright);
+            text-shadow: 0 0 20px var(--amber);
+            margin: 20px 0;
+            letter-spacing: 5px;
+            font-weight: 700;
+        }
+
+        /* ═══════════════════════════════════════════════════════════
+           STATS FOOTER
+           ═══════════════════════════════════════════════════════════ */
+        .stats-footer {
+            display: flex;
+            justify-content: space-around;
+            padding: 12px 0;
+            border-top: 1px solid var(--amber-dark);
+            margin-top: auto;
+        }
+
+        .stat-item { text-align: center; }
+        .stat-value {
+            font-size: 20px;
+            color: var(--amber-bright);
+            text-shadow: 0 0 8px var(--amber);
+            font-weight: 700;
+        }
+        .stat-label {
+            font-size: 10px;
+            color: var(--amber-dim);
+            letter-spacing: 1px;
+        }
+
+        /* ═══════════════════════════════════════════════════════════
+           HELPERS
+           ═══════════════════════════════════════════════════════════ */
+        .center { text-align: center; }
+        .bright { color: var(--amber-bright); }
+        .dim { color: var(--amber-dim); }
+        .cyan { color: var(--cyan); }
+        .red { color: var(--red); }
+        .green { color: var(--green); }
+
+        .notif-badge {
+            display: inline-block;
+            background: var(--red);
+            color: white;
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 10px;
+            margin-left: 5px;
+            animation: pulse-badge 1s infinite;
+        }
+
+        @keyframes pulse-badge {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        /* ═══════════════════════════════════════════════════════════
+           RESPONSIVE
+           ═══════════════════════════════════════════════════════════ */
+        @media (max-height: 700px) {
+            .menu-btn { padding: 12px 16px; font-size: 14px; }
+            #globe-container { height: 220px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="crt-screen">
+    <!-- ═══════════════════════════════════════════════════════════
+         TOP BAR (Always visible)
+         ═══════════════════════════════════════════════════════════ -->
+    <div class="top-bar">
+        <div class="top-bar-left">
+            <span class="music-icon" id="musicIcon" onclick="toggleMusic()">🔊</span>
+        </div>
+        <div class="top-bar-center">
+            <span id="clock">15:42</span>
+            <span id="date">JAN 27</span>
+        </div>
+        <div class="top-bar-right">
+            <span class="weather-icon">☀</span>
+            <span>SUNNY</span>
+        </div>
+    </div>
+
+    <div class="screen-content">
+
+        <!-- ═══════════════════════════════════════════════════════════
+             SCREEN: WELCOME OPERATOR
+             ═══════════════════════════════════════════════════════════ -->
+        <div class="screen-view active" id="screen-welcome">
+            <div style="flex:1; display:flex; flex-direction:column; justify-content:center; align-items:center;">
+                <div class="portal-box">
+                    <div class="ornament">═══ ◈ ═══</div>
+                    <br>
+                    <p class="dim" style="font-size:14px;">TERMINAL ONLINE</p>
+                    <br>
+                    <h1 class="title" style="font-size:24px;">WELCOME</h1>
+                    <h1 class="title" style="font-size:28px;">OPERATOR</h1>
+                    <br>
+                    <p class="dim" style="font-size:12px;">
+                        Initializing portal connection...<br>
+                        Emissary detected.
+                    </p>
+                    <br>
+                    <div class="ornament">═══ ◈ ═══</div>
+                </div>
+                
+                <button class="btn" style="margin-top:30px;max-width:250px;" onclick="goToScreen('screen-country-select')">
+                    [ CONTINUE ]
+                </button>
+            </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════════════
+             SCREEN: COUNTRY SELECTOR
+             ═══════════════════════════════════════════════════════════ -->
+        <div class="screen-view" id="screen-country-select">
+            <h2 class="center bright" style="margin:10px 0;">SELECT YOUR COUNTRY</h2>
+            <p class="center dim" style="font-size:12px;">You'll appear on the World Map</p>
+            
+            <div class="country-grid scroll-area" style="margin-top:15px;">
+                <div class="country-btn" onclick="selectCountry(this, 'US')"><span class="flag">🇺🇸</span>USA</div>
+                <div class="country-btn" onclick="selectCountry(this, 'GB')"><span class="flag">🇬🇧</span>UK</div>
+                <div class="country-btn" onclick="selectCountry(this, 'CA')"><span class="flag">🇨🇦</span>Canada</div>
+                <div class="country-btn" onclick="selectCountry(this, 'DE')"><span class="flag">🇩🇪</span>Germany</div>
+                <div class="country-btn" onclick="selectCountry(this, 'FR')"><span class="flag">🇫🇷</span>France</div>
+                <div class="country-btn" onclick="selectCountry(this, 'ES')"><span class="flag">🇪🇸</span>Spain</div>
+                <div class="country-btn" onclick="selectCountry(this, 'IT')"><span class="flag">🇮🇹</span>Italy</div>
+                <div class="country-btn" onclick="selectCountry(this, 'NL')"><span class="flag">🇳🇱</span>Netherlands</div>
+                <div class="country-btn" onclick="selectCountry(this, 'PL')"><span class="flag">🇵🇱</span>Poland</div>
+                <div class="country-btn" onclick="selectCountry(this, 'BR')"><span class="flag">🇧🇷</span>Brazil</div>
+                <div class="country-btn" onclick="selectCountry(this, 'AR')"><span class="flag">🇦🇷</span>Argentina</div>
+                <div class="country-btn" onclick="selectCountry(this, 'MX')"><span class="flag">🇲🇽</span>Mexico</div>
+                <div class="country-btn" onclick="selectCountry(this, 'JP')"><span class="flag">🇯🇵</span>Japan</div>
+                <div class="country-btn" onclick="selectCountry(this, 'KR')"><span class="flag">🇰🇷</span>S. Korea</div>
+                <div class="country-btn" onclick="selectCountry(this, 'AU')"><span class="flag">🇦🇺</span>Australia</div>
+                <div class="country-btn" onclick="selectCountry(this, 'IN')"><span class="flag">🇮🇳</span>India</div>
+                <div class="country-btn" onclick="selectCountry(this, 'CN')"><span class="flag">🇨🇳</span>China</div>
+                <div class="country-btn" onclick="selectCountry(this, 'OTHER')"><span class="flag">🌍</span>Other</div>
+            </div>
+
+            <p class="center dim" style="font-size:10px;margin-top:10px;">
+                Only your country will be shown publicly
+            </p>
+
+            <button class="btn" id="continueCountryBtn" style="margin-top:15px;opacity:0.5;" disabled onclick="goToScreen('screen-portal')">
+                [ CONTINUE ]
+            </button>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════════════
+             SCREEN: PORTAL INTRO
+             ═══════════════════════════════════════════════════════════ -->
+        <div class="screen-view" id="screen-portal">
+            <div style="flex:1; display:flex; align-items:center; justify-content:center;">
+                <div class="portal-box">
+                    <div class="ornament">═══ ◈ ═══</div>
+                    <br>
+                    <p style="font-size:14px;">The Portal pulses with</p>
+                    <p style="font-size:14px;">unstable energy.</p>
+                    <br>
+                    <p class="dim" style="font-size:12px;">Glitches ripple through</p>
+                    <p class="dim" style="font-size:12px;">the veil.</p>
+                    <br>
+                    <p class="bright" style="font-size:18px;">Still wish to proceed?</p>
+                    <br>
+                    <div class="ornament">═══ ◈ ═══</div>
+                </div>
+            </div>
+
+            <button class="btn" onclick="goToScreen('screen-menu')">
+                [ ENTER THE PORTAL ]
+            </button>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════════════
+             SCREEN: MAIN MENU
+             ═══════════════════════════════════════════════════════════ -->
+        <div class="screen-view" id="screen-menu">
+            <h1 class="title">EMBERHOLM</h1>
+            <p class="subtitle">PORTAL</p>
+
+            <div class="menu-container">
+                <button class="menu-btn selected" onclick="selectMenu(this); goToScreen('screen-play')">
+                    <span class="icon">▶</span> PLAY
+                </button>
+                <button class="menu-btn" onclick="selectMenu(this); goToScreen('screen-mint')">
+                    <span class="icon">◈</span> MINT EMISSARY
+                </button>
+                <button class="menu-btn" onclick="selectMenu(this); goToScreen('screen-social')">
+                    <span class="icon">🌍</span> SOCIAL
+                    <span class="notif-badge">3</span>
+                </button>
+                <button class="menu-btn" onclick="selectMenu(this); goToScreen('screen-vault')">
+                    <span class="icon">🏦</span> VAULT
+                </button>
+                <button class="menu-btn" onclick="selectMenu(this); goToScreen('screen-events')">
+                    <span class="icon">📅</span> EVENTS
+                </button>
+                <button class="menu-btn" onclick="selectMenu(this); goToScreen('screen-lore')">
+                    <span class="icon">📜</span> LORE
+                </button>
+            </div>
+
+            <div class="stats-footer">
+                <div class="stat-item">
+                    <div class="stat-value">3</div>
+                    <div class="stat-label">EMISSARIES</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value cyan">2,340</div>
+                    <div class="stat-label">◈ SPARK</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value">1,250</div>
+                    <div class="stat-label">🔥 EMBER</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════════════
+             SCREEN: SOCIAL (Globe + Messages)
+             ═══════════════════════════════════════════════════════════ -->
+        <div class="screen-view" id="screen-social">
+            <h2 class="center bright" style="margin-bottom:5px;">WORLD MAP</h2>
+            <p class="center dim" style="font-size:11px;">DRAG TO ROTATE · TAP MARKER FOR DETAILS</p>
+
+            <div id="globe-container">
+                <canvas id="globeCanvas"></canvas>
+                <div class="globe-hover-info" id="globeHoverInfo">-</div>
+                <div class="globe-legend">
+                    <div class="globe-legend-item">
+                        <span>Holders</span>
+                        <div class="globe-legend-dot active"></div>
+                    </div>
+                    <div class="globe-legend-item">
+                        <span>Borders</span>
+                        <div class="globe-legend-dot inactive"></div>
+                    </div>
+                </div>
+                <div class="globe-popup" id="globePopup">
+                    <div class="globe-popup-header">
+                        <span class="globe-popup-title" id="popupTitle">🇺🇸 United States</span>
+                        <button class="globe-popup-close" onclick="closeGlobePopup()">×</button>
+                    </div>
+                    <div class="globe-popup-stats">
+                        <div><span>Online</span><span class="value" id="popupOnline">24</span></div>
+                        <div><span>Total holders</span><span class="value" id="popupTotal">156</span></div>
+                        <div><span>With Farcaster</span><span class="value" id="popupFC">142</span></div>
+                    </div>
+                    <button class="globe-popup-btn" onclick="openCountryUsers()">VIEW PLAYERS →</button>
+                </div>
+            </div>
+
+            <div class="stats-footer" style="border-top:none;padding-top:5px;padding-bottom:5px;">
+                <div class="stat-item">
+                    <div class="stat-value">18</div>
+                    <div class="stat-label">COUNTRIES</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value cyan">127</div>
+                    <div class="stat-label">ONLINE</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value">1,892</div>
+                    <div class="stat-label">HOLDERS</div>
+                </div>
+            </div>
+
+            <button class="menu-btn" onclick="goToScreen('screen-inbox')" style="margin-top:5px;">
+                <span class="icon">✉</span> MESSAGES
+                <span class="badge">3</span>
+            </button>
+
+            <button class="back-btn" onclick="goBack()">
+                ◄ BACK TO MENU
+            </button>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════════════
+             SCREEN: COUNTRY USERS
+             ═══════════════════════════════════════════════════════════ -->
+        <div class="screen-view" id="screen-country-users">
+            <h2 class="center bright">🇺🇸 UNITED STATES</h2>
+            
+            <div class="data-row" style="background:rgba(255,149,0,0.05);padding:10px;margin:10px 0;font-size:12px;">
+                <span>24 online</span>
+                <span>142 w/ Farcaster</span>
+                <span>14 wallet only</span>
+            </div>
+
+            <div class="scroll-area">
+                <div class="user-item" onclick="goToScreen('screen-chat')">
+                    <div class="user-avatar">⚔</div>
+                    <div class="user-info">
+                        <div class="user-name">CryptoKnight</div>
+                        <div class="user-handle">@cryptoknight.eth</div>
+                        <div class="user-stats">LVL 67 · 12 NFTs</div>
+                    </div>
+                    <span class="user-badge online">ONLINE</span>
+                </div>
+
+                <div class="user-item" onclick="goToScreen('screen-chat')">
+                    <div class="user-avatar">🔮</div>
+                    <div class="user-info">
+                        <div class="user-name">MageOfFlame</div>
+                        <div class="user-handle">@mageflame</div>
+                        <div class="user-stats">LVL 54 · 8 NFTs</div>
+                    </div>
+                    <span class="user-badge online">ONLINE</span>
+                </div>
+
+                <div class="user-item no-farcaster" onclick="goToScreen('screen-chat-disabled')">
+                    <div class="user-avatar">💀</div>
+                    <div class="user-info">
+                        <div class="user-name">0x7a3...4f2</div>
+                        <div class="user-handle">Wallet only</div>
+                        <div class="user-stats">LVL 32 · 3 NFTs</div>
+                    </div>
+                    <span class="user-badge no-fc">NO FC</span>
+                </div>
+
+                <div class="user-item" onclick="goToScreen('screen-chat')">
+                    <div class="user-avatar">🛡</div>
+                    <div class="user-info">
+                        <div class="user-name">ShieldBearer</div>
+                        <div class="user-handle">@shieldbearer</div>
+                        <div class="user-stats">LVL 48 · 5 NFTs</div>
+                    </div>
+                    <span class="user-badge offline">OFFLINE</span>
+                </div>
+            </div>
+
+            <button class="back-btn" onclick="goBack()">
+                ◄ BACK TO MAP
+            </button>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════════════
+             SCREEN: INBOX
+             ═══════════════════════════════════════════════════════════ -->
+        <div class="screen-view" id="screen-inbox">
+            <h2 class="center bright">INBOX</h2>
+            <p class="center dim" style="font-size:12px;">3 new messages</p>
+
+            <div class="scroll-area" style="margin-top:15px;">
+                <div class="message-item unread" onclick="goToScreen('screen-chat')">
+                    <span class="message-time">2m ago</span>
+                    <div class="message-from">🇺🇸 CryptoKnight</div>
+                    <div class="message-preview">Hey! Want to team up for Guild Wars?</div>
+                </div>
+                <div class="message-item unread" onclick="goToScreen('screen-chat')">
+                    <span class="message-time">15m ago</span>
+                    <div class="message-from">🇯🇵 SamuraiEmber</div>
+                    <div class="message-preview">I found a legendary rune! Check this...</div>
+                </div>
+                <div class="message-item unread" onclick="goToScreen('screen-chat')">
+                    <span class="message-time">1h ago</span>
+                    <div class="message-from">🇧🇷 FlameHunter</div>
+                    <div class="message-preview">GG on the leaderboard climb! 🔥</div>
+                </div>
+                <div class="message-item" onclick="goToScreen('screen-chat')">
+                    <span class="message-time">3h ago</span>
+                    <div class="message-from">🇩🇪 RuneMaster</div>
+                    <div class="message-preview">Thanks for the tips on Void mission</div>
+                </div>
+            </div>
+
+            <button class="back-btn" onclick="goBack()">
+                ◄ BACK
+            </button>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════════════
+             SCREEN: CHAT
+             ═══════════════════════════════════════════════════════════ -->
+        <div class="screen-view" id="screen-chat">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+                <h2 class="bright">CryptoKnight</h2>
+                <span class="green">● ONLINE</span>
+            </div>
+
+            <div class="chat-messages" id="chatMessages">
+                <div class="chat-bubble received">
+                    Hey! I saw you're in Forge Legion too. Want to team up for Guild Wars?
+                </div>
+                <div class="chat-bubble sent">
+                    Hey! Yeah definitely. My Valorian is ready.
+                </div>
+                <div class="chat-bubble received">
+                    Nice! I was thinking we coordinate missions.
+                </div>
+                <div class="chat-bubble received">
+                    Also there's a 2x SPARK event right now!
+                </div>
+                <div class="chat-bubble sent">
+                    Let's do it 🔥
+                </div>
+            </div>
+
+            <div class="chat-input">
+                <input type="text" placeholder="Type message..." id="chatInput">
+                <button onclick="sendMessage()">SEND</button>
+            </div>
+
+            <button class="back-btn" onclick="goBack()" style="margin-top:10px;">
+                ◄ BACK
+            </button>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════════════
+             SCREEN: CHAT DISABLED (No Farcaster)
+             ═══════════════════════════════════════════════════════════ -->
+        <div class="screen-view" id="screen-chat-disabled">
+            <h2 class="center bright">0x7a3...4f2</h2>
+            <p class="center dim" style="font-size:11px;">Wallet holder · No Farcaster</p>
+
+            <div style="flex:1;display:flex;flex-direction:column;justify-content:center;padding:20px;">
+                <div style="text-align:center;padding:25px;background:var(--amber-darker);border:1px dashed var(--amber-dark);">
+                    <p style="font-size:32px;margin-bottom:15px;">🚫</p>
+                    <p class="bright" style="font-size:16px;">Cannot send messages</p>
+                    <p class="dim" style="margin-top:12px;font-size:12px;">
+                        This holder doesn't have a<br>
+                        Farcaster account linked.
+                    </p>
+                </div>
+
+                <div class="data-box" style="margin-top:20px;">
+                    <p class="section-title" style="margin:0 0 10px 0;">HOLDER INFO</p>
+                    <div class="data-row"><span>Wallet</span><span>0x7a3...4f2</span></div>
+                    <div class="data-row"><span>NFTs owned</span><span>3</span></div>
+                    <div class="data-row"><span>Highest level</span><span>32</span></div>
+                    <div class="data-row"><span>Country</span><span>🇩🇪 Germany</span></div>
+                </div>
+            </div>
+
+            <button class="back-btn" onclick="goBack()">
+                ◄ BACK
+            </button>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════════════
+             SCREEN: PLAY MENU
+             ═══════════════════════════════════════════════════════════ -->
+        <div class="screen-view" id="screen-play">
+            <h2 class="center bright">PLAY</h2>
+            <p class="center dim" style="font-size:12px;">Select game mode</p>
+
+            <div class="menu-container">
+                <button class="menu-btn selected" onclick="selectMenu(this); goToScreen('screen-micro')">
+                    <span class="icon">⚡</span> MICRO-MISSIONS
+                    <span style="margin-left:auto;font-size:11px;opacity:0.7;">1-5 min</span>
+                </button>
+                <button class="menu-btn" onclick="selectMenu(this); goToScreen('screen-missions')">
+                    <span class="icon">⚔</span> MISSIONS
+                    <span style="margin-left:auto;font-size:11px;opacity:0.7;">3-12 hrs</span>
+                </button>
+                <button class="menu-btn" onclick="selectMenu(this); goToScreen('screen-emissaries')">
+                    <span class="icon">👥</span> ACTIVE EMISSARIES
+                </button>
+                <button class="menu-btn" onclick="selectMenu(this); goToScreen('screen-leaderboard')">
+                    <span class="icon">🏆</span> LEADERBOARDS
+                </button>
+            </div>
+
+            <button class="back-btn" onclick="goBack()">
+                ◄ BACK TO MENU
+            </button>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════════════
+             SCREEN: EMISSARIES
+             ═══════════════════════════════════════════════════════════ -->
+        <div class="screen-view" id="screen-emissaries">
+            <h2 class="center bright">MY EMISSARIES</h2>
+            <p class="center dim" style="font-size:12px;">3 total · 1 on mission</p>
+
+            <div class="scroll-area" style="margin-top:10px;">
+                <!-- Emissary 1: Ready -->
+                <div class="emissary-card selected">
+                    <div class="emissary-header">
+                        <span class="emissary-name">⚔ VALORIAN #00042</span>
+                        <span class="emissary-status ready">READY</span>
+                    </div>
+                    <p class="dim" style="font-size:11px;">Human Warrior · Forge Legion</p>
+                    <div class="data-row"><span>LVL / XP</span><span>5 · 512 XP</span></div>
+                    <div class="data-row"><span>ENERGY</span><span>⚡ 72/100</span></div>
+                    <div class="data-row"><span>CHRONICLE</span><span class="green">✓12</span> <span class="red">✗2</span> <span>💀0</span></div>
+                    <div class="emissary-actions">
+                        <button class="btn small" onclick="goToScreen('screen-missions')">SEND MISSION</button>
+                        <button class="btn small secondary" onclick="goToScreen('screen-inventory')">INVENTORY</button>
+                        <button class="btn small secondary" onclick="alert('Recovering energy...')">⚡ RECOVER</button>
+                    </div>
+                </div>
+
+                <!-- Emissary 2: On Mission -->
+                <div class="emissary-card">
+                    <div class="emissary-header">
+                        <span class="emissary-name">🔮 LYRA #00089</span>
+                        <span class="emissary-status mission">ON MISSION</span>
+                    </div>
+                    <p class="dim" style="font-size:11px;">Elf Mage · Circle of Mist</p>
+                    <div class="data-row"><span>MISSION</span><span>Void Descent</span></div>
+                    <div class="data-row"><span>TIME LEFT</span><span class="bright">2h 34m</span></div>
+                    <div class="emissary-actions">
+                        <button class="btn small secondary" disabled>SEND MISSION</button>
+                        <button class="btn small secondary" onclick="goToScreen('screen-inventory')">INVENTORY</button>
+                        <button class="btn small secondary" disabled>⚡ RECOVER</button>
+                    </div>
+                </div>
+
+                <!-- Emissary 3: Claiming -->
+                <div class="emissary-card" style="border-color:var(--amber-bright);">
+                    <div class="emissary-header">
+                        <span class="emissary-name bright">★ THERON #00156</span>
+                        <span class="emissary-status claiming">CLAIMING</span>
+                    </div>
+                    <p class="dim" style="font-size:11px;">Dwarf Smith · Forge Legion</p>
+                    <div class="data-row"><span>REWARDS</span><span class="bright">+45 XP · +12 🔥</span></div>
+                    <div class="emissary-actions">
+                        <button class="btn small" onclick="alert('Rewards claimed!')">★ CLAIM REWARDS</button>
+                        <button class="btn small secondary" onclick="goToScreen('screen-inventory')">INVENTORY</button>
+                    </div>
+                </div>
+            </div>
+
+            <button class="back-btn" onclick="goBack()">
+                ◄ BACK
+            </button>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════════════
+             SCREEN: INVENTORY
+             ═══════════════════════════════════════════════════════════ -->
+        <div class="screen-view" id="screen-inventory">
+            <h2 class="center bright">INVENTORY</h2>
+            <p class="center dim" style="font-size:12px;">VALORIAN #00042</p>
+
+            <div class="scroll-area" style="margin-top:15px;">
+                <!-- Item Slots (5) -->
+                <div class="inventory-section">
+                    <div class="inventory-label">ITEM SLOTS (5)</div>
+                    <div class="slots-row">
+                        <div class="slot equipped" onclick="showItemPopup('Flame Sword', '⚔', 'ATK +15', true)">
+                            <span class="slot-icon">⚔</span>
+                            <span class="slot-name">Flame</span>
+                        </div>
+                        <div class="slot equipped" onclick="showItemPopup('Iron Shield', '🛡', 'DEF +10', true)">
+                            <span class="slot-icon">🛡</span>
+                            <span class="slot-name">Shield</span>
+                        </div>
+                        <div class="slot" onclick="showItemPopup('Fire Ring', '💍', 'HP +20', false)">
+                            <span class="slot-icon">💍</span>
+                            <span class="slot-name">Ring</span>
+                        </div>
+                        <div class="slot empty" onclick="alert('Empty slot')">
+                            <span class="slot-icon">+</span>
+                        </div>
+                        <div class="slot empty" onclick="alert('Empty slot')">
+                            <span class="slot-icon">+</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Rune Slots (2) -->
+                <div class="inventory-section">
+                    <div class="inventory-label">RUNE SLOTS (2)</div>
+                    <div class="rune-slots">
+                        <div class="slot rune-slot equipped" onclick="showItemPopup('Fire Rune', 'ᚱ', '+10% Fire DMG', true)">
+                            <span class="slot-icon" style="color:var(--cyan);">ᚱ</span>
+                            <span class="slot-name">Fire</span>
+                        </div>
+                        <div class="slot rune-slot" onclick="showItemPopup('Protection Rune', 'ᚦ', '-5% DMG Taken', false)">
+                            <span class="slot-icon" style="color:var(--cyan);">ᚦ</span>
+                            <span class="slot-name">Prot</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Available Items -->
+                <div class="inventory-section">
+                    <div class="inventory-label">AVAILABLE ITEMS</div>
+                    <div class="slots-row" style="flex-wrap:wrap;gap:10px;">
+                        <div class="slot" onclick="showItemPopup('Dagger', '🗡', 'ATK +8', false)">
+                            <span class="slot-icon">🗡</span>
+                            <span class="slot-name">Dagger</span>
+                        </div>
+                        <div class="slot" onclick="showItemPopup('Health Potion', '🧪', 'HP +50', false)">
+                            <span class="slot-icon">🧪</span>
+                            <span class="slot-name">Potion</span>
+                        </div>
+                        <div class="slot" onclick="showItemPopup('Shadow Cloak', '🎭', 'EVD +5%', false)">
+                            <span class="slot-icon">🎭</span>
+                            <span class="slot-name">Cloak</span>
+                        </div>
+                        <div class="slot" onclick="showItemPopup('Royal Crown', '👑', 'XP +10%', false)">
+                            <span class="slot-icon">👑</span>
+                            <span class="slot-name">Crown</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Available Runes -->
+                <div class="inventory-section">
+                    <div class="inventory-label">AVAILABLE RUNES</div>
+                    <div class="rune-slots">
+                        <div class="slot rune-slot" onclick="showItemPopup('Wind Rune', 'ᚹ', '+5% Speed', false)">
+                            <span class="slot-icon" style="color:var(--cyan);">ᚹ</span>
+                            <span class="slot-name">Wind</span>
+                        </div>
+                        <div class="slot rune-slot" onclick="showItemPopup('Void Rune', 'ᛟ', '+8% Crit', false)">
+                            <span class="slot-icon" style="color:var(--cyan);">ᛟ</span>
+                            <span class="slot-name">Void</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <button class="back-btn" onclick="goBack()">
+                ◄ BACK
+            </button>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════════════
+             SCREEN: MISSIONS
+             ═══════════════════════════════════════════════════════════ -->
+        <div class="screen-view" id="screen-missions">
+            <h2 class="center bright">MISSIONS</h2>
+            <p class="center dim" style="font-size:12px;">VALORIAN #00042 · ⚡72/100</p>
+
+            <div class="scroll-area" style="margin-top:10px;">
+                <div class="data-box selected">
+                    <div class="data-box-title">🌲 FOREST PATROL</div>
+                    <div class="data-row"><span>DURATION</span><span>3 HOURS</span></div>
+                    <div class="data-row"><span>DIFFICULTY</span><span class="green">EASY ██░░░</span></div>
+                    <div class="data-row"><span>ENERGY</span><span>-10 ⚡</span></div>
+                    <div class="data-row"><span>DEATH RISK</span><span class="red">2% 💀</span></div>
+                    <hr class="divider">
+                    <div class="data-row"><span>XP REWARD</span><span>25-50</span></div>
+                    <div class="data-row"><span>$EMBER</span><span class="bright">5-15 🔥</span></div>
+                </div>
+
+                <div class="data-box">
+                    <div class="data-box-title">⚔ VOID DESCENT</div>
+                    <div class="data-row"><span>DURATION</span><span>6 HOURS</span></div>
+                    <div class="data-row"><span>DIFFICULTY</span><span class="bright">HARD ████░</span></div>
+                    <div class="data-row"><span>DEATH RISK</span><span class="red">8% 💀</span></div>
+                </div>
+
+                <div class="data-box" style="border-color:var(--red);">
+                    <div class="data-box-title red">💀 ABYSS WALKER</div>
+                    <div class="data-row"><span>DURATION</span><span>12 HOURS</span></div>
+                    <div class="data-row"><span>DIFFICULTY</span><span class="red">DEADLY █████</span></div>
+                    <div class="data-row"><span>DEATH RISK</span><span class="red">25% 💀</span></div>
+                </div>
+            </div>
+
+            <button class="btn" onclick="goToScreen('screen-timer')">
+                [ START MISSION ]
+            </button>
+
+            <button class="back-btn" onclick="goBack()">
+                ◄ BACK
+            </button>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════════════
+             SCREEN: MICRO MISSIONS
+             ═══════════════════════════════════════════════════════════ -->
+        <div class="screen-view" id="screen-micro">
+            <h2 class="center bright">MICRO-MISSIONS</h2>
+            <p class="center dim" style="font-size:12px;">VALORIAN · ⚡72/100 · ◈2,340</p>
+
+            <div class="scroll-area" style="margin-top:10px;">
+                <div class="data-box selected">
+                    <div class="data-box-title">⚡ EMBER PATROL</div>
+                    <div class="data-row"><span>TIME</span><span>1 MIN</span></div>
+                    <div class="data-row"><span>REWARD</span><span class="cyan">+10 ◈</span></div>
+                    <div class="data-row"><span>XP</span><span>+5</span></div>
+                </div>
+
+                <div class="data-box" style="border-color:var(--green);">
+                    <div class="data-box-title">🙏 SHRINE BLESSING <span class="green" style="font-size:10px;">FREE</span></div>
+                    <div class="data-row"><span>TIME</span><span>2 MIN</span></div>
+                    <div class="data-row"><span>REWARD</span><span class="cyan">+30 ◈ +5 ✧</span></div>
+                    <p class="dim" style="font-size:10px;">DAILY · NO ENERGY</p>
+                </div>
+
+                <div class="data-box">
+                    <div class="data-box-title">🏃 SUPPLY RUN</div>
+                    <div class="data-row"><span>TIME</span><span>5 MIN</span></div>
+                    <div class="data-row"><span>REWARD</span><span class="cyan">+50 ◈</span></div>
+                    <div class="data-row"><span>COST</span><span>-8 ⚡</span></div>
+                </div>
+            </div>
+
+            <p class="center dim" style="font-size:10px;margin:10px 0;">
+                ⚠ While on micro-mission, can't do normal missions
+            </p>
+
+            <button class="btn" onclick="goToScreen('screen-timer')">
+                [ START ]
+            </button>
+
+            <button class="back-btn" onclick="goBack()">
+                ◄ BACK
+            </button>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════════════
+             SCREEN: TIMER
+             ═══════════════════════════════════════════════════════════ -->
+        <div class="screen-view" id="screen-timer">
+            <div style="flex:1;display:flex;flex-direction:column;justify-content:center;">
+                <p class="center bright" style="font-size:18px;">⚔ EMBER PATROL</p>
+                <p class="center dim" style="font-size:12px;">"Patrolling the perimeter..."</p>
+
+                <div class="timer-big">0:34</div>
+
+                <div style="display:flex;align-items:center;gap:10px;padding:0 20px;">
+                    <span style="font-size:11px;">0%</span>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width:65%;"></div>
+                    </div>
+                    <span style="font-size:11px;">100%</span>
+                </div>
+
+                <div class="center" style="margin-top:30px;">
+                    <p class="dim" style="font-size:12px;">EXPECTED REWARDS:</p>
+                    <p class="bright" style="font-size:16px;">+5 XP · +10 ◈ · 10% ✧</p>
+                </div>
+
+                <p class="center dim" style="margin-top:30px;font-size:11px;">
+                    You can close this app.<br>
+                    We'll notify you when done.
+                </p>
+            </div>
+
+            <button class="back-btn" onclick="goBack()">
+                ◄ BACK (KEEP RUNNING)
+            </button>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════════════
+             SCREEN: VAULT
+             ═══════════════════════════════════════════════════════════ -->
+        <div class="screen-view" id="screen-vault">
+            <h2 class="center bright">VAULT</h2>
+
+            <div class="scroll-area" style="margin-top:10px;">
+                <p class="section-title">TOKENS</p>
+
+                <div class="data-box">
+                    <div class="data-row">
+                        <span class="bright" style="font-size:16px;">🔥 $EMBER</span>
+                        <span style="font-size:20px;">1,250</span>
+                    </div>
+                    <p class="green" style="font-size:11px;">+340 pending claim</p>
+                    <button class="btn" style="margin-top:10px;" onclick="alert('Claiming 340 EMBER...')">CLAIM 340 🔥</button>
+                </div>
+
+                <div class="data-box">
+                    <div class="data-row">
+                        <span style="font-size:16px;">🌑 $ASH</span>
+                        <span style="font-size:20px;">5</span>
+                    </div>
+                    <p class="dim" style="font-size:10px;">BURN 1000 EMBER → 1 ASH</p>
+                    <button class="btn secondary" style="margin-top:10px;" onclick="alert('Burning 1000 EMBER for 1 ASH...')">BURN 1000 🔥 → 1 🌑</button>
+                </div>
+
+                <div class="data-box" style="border-color:var(--cyan);">
+                    <div class="data-row">
+                        <span class="cyan" style="font-size:16px;">◈ $SPARK</span>
+                        <span class="cyan" style="font-size:20px;">2,340</span>
+                    </div>
+                    <p class="green" style="font-size:11px;">+50 pending claim</p>
+                    <button class="btn" style="margin-top:10px;background:var(--cyan);" onclick="alert('Claiming 50 SPARK...')">CLAIM 50 ◈</button>
+                </div>
+
+                <p class="section-title">QUICK ACTIONS</p>
+
+                <button class="menu-btn" onclick="goToScreen('screen-inventory')">
+                    <span class="icon">📦</span> VIEW INVENTORY
+                </button>
+
+                <button class="menu-btn" onclick="goToScreen('screen-spark')">
+                    <span class="icon">◈</span> $SPARK GUIDE
+                </button>
+            </div>
+
+            <button class="back-btn" onclick="goBack()">
+                ◄ BACK TO MENU
+            </button>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════════════
+             SCREEN: MINT
+             ═══════════════════════════════════════════════════════════ -->
+        <div class="screen-view" id="screen-mint">
+            <h2 class="center bright">MINT EMISSARY</h2>
+
+            <div class="center" style="margin:25px 0;">
+                <div style="font-size:64px;animation:pulse-glow 2s infinite;">❓</div>
+                <p class="dim" style="font-size:12px;margin-top:10px;">Random Emissary</p>
+            </div>
+
+            <style>
+                @keyframes pulse-glow {
+                    0%,100% { opacity:1; filter: drop-shadow(0 0 5px var(--amber)); }
+                    50% { opacity:0.8; filter: drop-shadow(0 0 20px var(--amber)); }
+                }
+            </style>
+
+            <p class="center dim" style="font-size:12px;">
+                Each Emissary is unique.<br>
+                Race, class, guild assigned by fate.
+            </p>
+
+            <div class="data-box" style="margin-top:20px;">
+                <div class="data-row"><span>QUANTITY</span><span class="bright" style="font-size:20px;">1</span></div>
+                <div class="data-row"><span>PRICE</span><span class="bright">0.0011 ETH</span></div>
+                <div class="data-row"><span>SUPPLY</span><span>142 / 35,000</span></div>
+            </div>
+
+            <p class="center green" style="font-size:12px;margin:15px 0;">
+                +500 ◈ SPARK BONUS FOR FIRST MINT!
+            </p>
+
+            <button class="btn" onclick="alert('Minting...')">
+                [ MINT NOW ]
+            </button>
+
+            <button class="back-btn" onclick="goBack()">
+                ◄ BACK TO MENU
+            </button>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════════════
+             SCREEN: EVENTS
+             ═══════════════════════════════════════════════════════════ -->
+        <div class="screen-view" id="screen-events">
+            <h2 class="center bright">EVENTS</h2>
+
+            <div class="scroll-area" style="margin-top:15px;">
+                <p class="section-title">ACTIVE NOW</p>
+
+                <div class="data-box selected" style="border-color:var(--amber-bright);">
+                    <div class="data-box-title bright">🔥 FORGE WEEK</div>
+                    <p style="font-size:13px;">+25% XP for Forge Legion members</p>
+                    <p class="cyan" style="font-size:11px;margin-top:5px;">⏱ 2d 14h 32m remaining</p>
+                </div>
+
+                <div class="data-box" style="border-color:var(--cyan);">
+                    <div class="data-box-title cyan">⚡ DOUBLE SPARK</div>
+                    <p style="font-size:13px;">2x ◈ on all micro-missions</p>
+                    <p class="cyan" style="font-size:11px;margin-top:5px;">⏱ 12h 45m remaining</p>
+                </div>
+
+                <div class="data-box">
+                    <div class="data-box-title">🏆 WEEKLY HUNT</div>
+                    <p style="font-size:13px;">Complete 50 missions → Rare Rune</p>
+                    <div style="display:flex;align-items:center;gap:10px;margin-top:10px;">
+                        <span style="font-size:11px;">23/50</span>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width:46%;"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <p class="section-title">UPCOMING</p>
+
+                <div class="data-box dim">
+                    <p>📅 Guild Wars - Feb 3</p>
+                </div>
+                <div class="data-box dim">
+                    <p>📅 Rune Festival - Feb 10</p>
+                </div>
+            </div>
+
+            <button class="back-btn" onclick="goBack()">
+                ◄ BACK TO MENU
+            </button>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════════════
+             SCREEN: LORE
+             ═══════════════════════════════════════════════════════════ -->
+        <div class="screen-view" id="screen-lore">
+            <h2 class="center bright">THE DYING FLAME</h2>
+            <p class="center dim" style="font-size:12px;">Emberholm Lore</p>
+
+            <div class="menu-container" style="margin-top:15px;">
+                <button class="menu-btn selected" onclick="selectMenu(this); alert('Chapter I...')">
+                    <span class="icon">📖</span> I. The Beginning
+                </button>
+                <button class="menu-btn" onclick="selectMenu(this); alert('Chapter II...')">
+                    <span class="icon">🔥</span> II. The Eternal Flame
+                </button>
+                <button class="menu-btn" onclick="selectMenu(this); alert('Chapter III...')">
+                    <span class="icon">⚔</span> III. The Emissaries
+                </button>
+                <button class="menu-btn" onclick="selectMenu(this); alert('Chapter IV...')">
+                    <span class="icon">🏰</span> IV. The Six Guilds
+                </button>
+                <button class="menu-btn" onclick="selectMenu(this); alert('Chapter V...')">
+                    <span class="icon">💀</span> V. Permadeath
+                </button>
+                <button class="menu-btn" onclick="selectMenu(this); alert('Chapter VI...')">
+                    <span class="icon">🗺</span> VI. The Ember Lands
+                </button>
+            </div>
+
+            <button class="back-btn" onclick="goBack()">
+                ◄ BACK TO MENU
+            </button>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════════════
+             SCREEN: SPARK GUIDE
+             ═══════════════════════════════════════════════════════════ -->
+        <div class="screen-view" id="screen-spark">
+            <h2 class="center bright">$SPARK GUIDE</h2>
+
+            <div class="center" style="padding:15px;background:rgba(0,212,255,0.05);border:1px solid var(--cyan);margin:15px 0;">
+                <div style="font-size:36px;" class="cyan">◈</div>
+                <div class="dim" style="font-size:11px;">Your Balance</div>
+                <div class="cyan" style="font-size:28px;font-weight:700;">2,340</div>
+            </div>
+
+            <div class="scroll-area">
+                <p class="section-title">HOW TO EARN</p>
+                <div class="data-row"><span>Micro-missions</span><span class="cyan">10-50 ◈</span></div>
+                <div class="data-row"><span>Daily streak</span><span class="cyan">up to 500 ◈</span></div>
+                <div class="data-row"><span>First mint bonus</span><span class="cyan">500 ◈</span></div>
+                <div class="data-row"><span>Referrals</span><span class="cyan">100 ◈</span></div>
+
+                <p class="section-title">HOW TO USE</p>
+                <div class="data-row"><span>Skip cooldown</span><span class="cyan">50 ◈</span></div>
+                <div class="data-row"><span>Energy +25</span><span class="cyan">200 ◈</span></div>
+                <div class="data-row"><span>Lucky charm</span><span class="cyan">150 ◈</span></div>
+                <div class="data-row"><span>Rare crate</span><span class="cyan">2,000 ◈</span></div>
+                <div class="data-box" style="margin-top:10px;border-color:var(--amber);">
+                    <div class="data-row"><span>Convert to $EMBER</span><span class="bright">10,000 ◈ → 10 🔥</span></div>
+                </div>
+            </div>
+
+            <button class="btn" onclick="alert('Opening SPARK shop...')">
+                [ USE $SPARK ]
+            </button>
+
+            <button class="back-btn" onclick="goBack()">
+                ◄ BACK
+            </button>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════════════
+             SCREEN: LEADERBOARD
+             ═══════════════════════════════════════════════════════════ -->
+        <div class="screen-view" id="screen-leaderboard">
+            <h2 class="center bright">LEADERBOARDS</h2>
+            <p class="center dim" style="font-size:12px;">TOP BY XP</p>
+
+            <div class="scroll-area" style="margin-top:15px;">
+                <div class="data-box" style="border-color:var(--amber-bright);">
+                    <div class="data-row">
+                        <span class="bright">1. 👑 KIRA #00001</span>
+                        <span>152,340 XP</span>
+                    </div>
+                </div>
+                <div class="data-box">
+                    <div class="data-row">
+                        <span>2. ZORN #00023</span>
+                        <span>148,200 XP</span>
+                    </div>
+                </div>
+                <div class="data-box">
+                    <div class="data-row">
+                        <span>3. MIRA #00007</span>
+                        <span>145,800 XP</span>
+                    </div>
+                </div>
+                <div class="data-box dim">
+                    <div class="center">· · ·</div>
+                </div>
+                <div class="data-box" style="border-color:var(--cyan);">
+                    <div class="data-row">
+                        <span class="cyan">42. YOU: VALORIAN</span>
+                        <span>512 XP</span>
+                    </div>
+                </div>
+            </div>
+
+            <button class="menu-btn" onclick="alert('Trophies...')" style="margin-top:15px;">
+                <span class="icon">🏆</span> TROPHIES
+            </button>
+
+            <button class="back-btn" onclick="goBack()">
+                ◄ BACK
+            </button>
+        </div>
+
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     ITEM POPUP (Equip/Unequip)
+     ═══════════════════════════════════════════════════════════ -->
+<div class="item-popup" id="itemPopup">
+    <div class="item-popup-content">
+        <div class="item-popup-icon" id="itemPopupIcon">⚔</div>
+        <div class="item-popup-name" id="itemPopupName">Flame Sword</div>
+        <div class="item-popup-desc" id="itemPopupDesc">ATK +15</div>
+        <div class="item-popup-actions">
+            <button class="btn" id="itemPopupBtn" onclick="toggleEquip()">EQUIP</button>
+            <button class="btn secondary" onclick="closeItemPopup()">CLOSE</button>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+// ═══════════════════════════════════════════════════════════
+// NAVIGATION
+// ═══════════════════════════════════════════════════════════
+let currentScreen = 'screen-welcome';
+let screenHistory = [];
+let selectedCountry = null;
+let musicEnabled = true;
+
+function goToScreen(screenId) {
+    document.getElementById(currentScreen).classList.remove('active');
+    screenHistory.push(currentScreen);
+    currentScreen = screenId;
+    document.getElementById(currentScreen).classList.add('active');
+    
+    if (screenId === 'screen-social') {
+        setTimeout(initGlobe, 100);
+    }
+    
+    playBeep();
+}
+
+function goBack() {
+    if (screenHistory.length === 0) return;
+    document.getElementById(currentScreen).classList.remove('active');
+    currentScreen = screenHistory.pop();
+    document.getElementById(currentScreen).classList.add('active');
+    playBeep();
+}
+
+function selectMenu(btn) {
+    btn.parentElement.querySelectorAll('.menu-btn').forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+}
+
+function selectCountry(btn, code) {
+    document.querySelectorAll('.country-btn').forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+    selectedCountry = code;
+    
+    const continueBtn = document.getElementById('continueCountryBtn');
+    continueBtn.disabled = false;
+    continueBtn.style.opacity = '1';
+}
+
+function toggleMusic() {
+    musicEnabled = !musicEnabled;
+    const icon = document.getElementById('musicIcon');
+    icon.textContent = musicEnabled ? '🔊' : '🔇';
+    icon.classList.toggle('muted', !musicEnabled);
+}
+
+// ═══════════════════════════════════════════════════════════
+// ITEM POPUP
+// ═══════════════════════════════════════════════════════════
+let currentItemEquipped = false;
+
+function showItemPopup(name, icon, desc, equipped) {
+    document.getElementById('itemPopupIcon').textContent = icon;
+    document.getElementById('itemPopupName').textContent = name;
+    document.getElementById('itemPopupDesc').textContent = desc;
+    currentItemEquipped = equipped;
+    document.getElementById('itemPopupBtn').textContent = equipped ? 'UNEQUIP' : 'EQUIP';
+    document.getElementById('itemPopup').classList.add('visible');
+}
+
+function closeItemPopup() {
+    document.getElementById('itemPopup').classList.remove('visible');
+}
+
+function toggleEquip() {
+    currentItemEquipped = !currentItemEquipped;
+    alert(currentItemEquipped ? 'Item equipped!' : 'Item unequipped!');
+    closeItemPopup();
+}
+
+// ═══════════════════════════════════════════════════════════
+// CHAT
+// ═══════════════════════════════════════════════════════════
+function sendMessage() {
+    const input = document.getElementById('chatInput');
+    if (input && input.value.trim()) {
+        const msgDiv = document.createElement('div');
+        msgDiv.className = 'chat-bubble sent';
+        msgDiv.textContent = input.value;
+        document.getElementById('chatMessages').appendChild(msgDiv);
+        input.value = '';
+    }
+}
+
+const chatInput = document.getElementById('chatInput');
+if (chatInput) {
+    chatInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') sendMessage();
+    });
+}
+
+// ═══════════════════════════════════════════════════════════
+// CLOCK
+// ═══════════════════════════════════════════════════════════
+function updateClock() {
+    const now = new Date();
+    document.getElementById('clock').textContent = 
+        String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0');
+    const months = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+    document.getElementById('date').textContent = months[now.getMonth()] + ' ' + now.getDate();
+}
+updateClock();
+setInterval(updateClock, 60000);
+
+// ═══════════════════════════════════════════════════════════
+// SOUND
+// ═══════════════════════════════════════════════════════════
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+function playBeep() {
+    if (!musicEnabled) return;
+    try {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.frequency.value = 800;
+        osc.type = 'square';
+        gain.gain.setValueAtTime(0.02, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.05);
+        osc.start(audioCtx.currentTime);
+        osc.stop(audioCtx.currentTime + 0.05);
+    } catch(e) {}
+}
+
+document.addEventListener('click', () => {
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+}, { once: true });
+
+// ═══════════════════════════════════════════════════════════
+// 3D GLOBE
+// ═══════════════════════════════════════════════════════════
+const holdersData = {
+    'USA': { name: 'United States', flag: '🇺🇸', lat: 39.8, lon: -98.5, online: 24, total: 156, withFC: 142 },
+    'GBR': { name: 'United Kingdom', flag: '🇬🇧', lat: 55.4, lon: -3.4, online: 12, total: 78, withFC: 71 },
+    'DEU': { name: 'Germany', flag: '🇩🇪', lat: 51.2, lon: 10.5, online: 9, total: 56, withFC: 48 },
+    'JPN': { name: 'Japan', flag: '🇯🇵', lat: 36.2, lon: 138.3, online: 11, total: 72, withFC: 65 },
+    'BRA': { name: 'Brazil', flag: '🇧🇷', lat: -14.2, lon: -51.9, online: 15, total: 89, withFC: 82 },
+    'ARG': { name: 'Argentina', flag: '🇦🇷', lat: -38.4, lon: -63.6, online: 8, total: 45, withFC: 40 },
+    'FRA': { name: 'France', flag: '🇫🇷', lat: 46.2, lon: 2.2, online: 7, total: 48, withFC: 44 },
+    'ESP': { name: 'Spain', flag: '🇪🇸', lat: 40.5, lon: -3.7, online: 6, total: 38, withFC: 35 },
+    'ITA': { name: 'Italy', flag: '🇮🇹', lat: 41.9, lon: 12.6, online: 5, total: 32, withFC: 28 },
+    'KOR': { name: 'South Korea', flag: '🇰🇷', lat: 35.9, lon: 127.8, online: 6, total: 45, withFC: 42 },
+    'AUS': { name: 'Australia', flag: '🇦🇺', lat: -25.3, lon: 133.8, online: 4, total: 28, withFC: 25 },
+    'CAN': { name: 'Canada', flag: '🇨🇦', lat: 56.1, lon: -106.3, online: 5, total: 34, withFC: 31 },
+    'MEX': { name: 'Mexico', flag: '🇲🇽', lat: 23.6, lon: -102.5, online: 4, total: 28, withFC: 24 },
+    'IND': { name: 'India', flag: '🇮🇳', lat: 20.6, lon: 79.0, online: 3, total: 22, withFC: 18 },
+    'NLD': { name: 'Netherlands', flag: '🇳🇱', lat: 52.1, lon: 5.3, online: 4, total: 24, withFC: 22 },
+    'POL': { name: 'Poland', flag: '🇵🇱', lat: 51.9, lon: 19.1, online: 3, total: 18, withFC: 15 },
+    'CHN': { name: 'China', flag: '🇨🇳', lat: 35.9, lon: 104.2, online: 5, total: 34, withFC: 28 },
+    'RUS': { name: 'Russia', flag: '🇷🇺', lat: 61.5, lon: 105.3, online: 2, total: 15, withFC: 12 },
+};
+
+let globeInitialized = false;
+let globeGroup, playerMarkers = [];
+
+function initGlobe() {
+    if (globeInitialized) return;
+    globeInitialized = true;
+
+    const container = document.getElementById('globe-container');
+    const canvas = document.getElementById('globeCanvas');
+    
+    const width = container.clientWidth;
+    const height = container.clientHeight;
+
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(50, width / height, 0.1, 1000);
+    camera.position.z = 2.5;
+
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+    renderer.setSize(width, height);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+    globeGroup = new THREE.Group();
+    scene.add(globeGroup);
+
+    // Sphere
+    const sphereGeo = new THREE.SphereGeometry(0.995, 64, 64);
+    const sphereMat = new THREE.MeshBasicMaterial({ color: 0x0a0502 });
+    globeGroup.add(new THREE.Mesh(sphereGeo, sphereMat));
+
+    // Grid
+    const gridMat = new THREE.LineBasicMaterial({ color: 0x1a0f05, transparent: true, opacity: 0.5 });
+    for (let lat = -60; lat <= 60; lat += 30) {
+        const pts = [];
+        for (let lon = 0; lon <= 360; lon += 5) pts.push(latLonToVector3(lat, lon - 180, 1.001));
+        globeGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), gridMat));
+    }
+    for (let lon = -180; lon < 180; lon += 30) {
+        const pts = [];
+        for (let lat = -90; lat <= 90; lat += 5) pts.push(latLonToVector3(lat, lon, 1.001));
+        globeGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), gridMat));
+    }
+
+    // Atmosphere
+    const glowGeo = new THREE.SphereGeometry(1.12, 32, 32);
+    const glowMat = new THREE.ShaderMaterial({
+        vertexShader: `varying vec3 vNormal; void main() { vNormal = normalize(normalMatrix * normal); gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
+        fragmentShader: `varying vec3 vNormal; void main() { float intensity = pow(0.55 - dot(vNormal, vec3(0, 0, 1.0)), 2.0); gl_FragColor = vec4(1.0, 0.6, 0.2, intensity * 0.15); }`,
+        side: THREE.BackSide,
+        blending: THREE.AdditiveBlending,
+        transparent: true
+    });
+    scene.add(new THREE.Mesh(glowGeo, glowMat));
+
+    // Load country borders
+    fetch('https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_110m_admin_0_countries.geojson')
+        .then(res => res.json())
+        .then(geojson => {
+            geojson.features.forEach(feature => {
+                const code = feature.properties.ISO_A3 || feature.properties.ADM0_A3;
+                const hasPlayers = holdersData[code];
+                
+                const borderMat = new THREE.LineBasicMaterial({
+                    color: hasPlayers ? 0xff9500 : 0x2a1a0a,
+                    transparent: true,
+                    opacity: hasPlayers ? 0.7 : 0.4
+                });
+
+                const processCoords = (coords) => {
+                    const points = coords.map(([lon, lat]) => latLonToVector3(lat, lon, 1.003));
+                    if (points.length > 2) {
+                        const geo = new THREE.BufferGeometry().setFromPoints(points);
+                        globeGroup.add(new THREE.LineLoop(geo, borderMat.clone()));
+                    }
+                };
+
+                const geometry = feature.geometry;
+                if (geometry.type === 'Polygon') geometry.coordinates.forEach(processCoords);
+                else if (geometry.type === 'MultiPolygon') geometry.coordinates.forEach(poly => poly.forEach(processCoords));
+            });
+            createMarkers();
+        })
+        .catch(() => createMarkers());
+
+    function createMarkers() {
+        Object.entries(holdersData).forEach(([code, data]) => {
+            const pos = latLonToVector3(data.lat, data.lon, 1.02);
+            const baseSize = 0.02 + Math.min(data.online / 40, 0.035);
+
+            const ringGeo = new THREE.RingGeometry(baseSize * 1.8, baseSize * 2.5, 24);
+            const ringMat = new THREE.MeshBasicMaterial({ color: 0xff9500, transparent: true, opacity: 0.3, side: THREE.DoubleSide });
+            const ring = new THREE.Mesh(ringGeo, ringMat);
+            ring.position.copy(pos);
+            ring.lookAt(0, 0, 0);
+            globeGroup.add(ring);
+
+            const dotGeo = new THREE.CircleGeometry(baseSize, 24);
+            const dotMat = new THREE.MeshBasicMaterial({ color: 0xff9500, transparent: true, opacity: 0.95, side: THREE.DoubleSide });
+            const dot = new THREE.Mesh(dotGeo, dotMat);
+            dot.position.copy(pos);
+            dot.lookAt(0, 0, 0);
+            dot.userData = { code, ...data };
+            globeGroup.add(dot);
+
+            const centerGeo = new THREE.CircleGeometry(baseSize * 0.35, 16);
+            const centerMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.9, side: THREE.DoubleSide });
+            const center = new THREE.Mesh(centerGeo, centerMat);
+            center.position.copy(pos.clone().multiplyScalar(1.001));
+            center.lookAt(0, 0, 0);
+            globeGroup.add(center);
+
+            playerMarkers.push({ ring, dot, center, data: { code, ...data }, baseSize });
+        });
+    }
+
+    // Interaction
+    let isDragging = false;
+    let prevPos = { x: 0, y: 0 };
+    let dragStart = { x: 0, y: 0 };
+
+    canvas.addEventListener('mousedown', e => { isDragging = true; dragStart = { x: e.clientX, y: e.clientY }; prevPos = { x: e.clientX, y: e.clientY }; });
+    canvas.addEventListener('touchstart', e => { isDragging = true; dragStart = { x: e.touches[0].clientX, y: e.touches[0].clientY }; prevPos = { x: e.touches[0].clientX, y: e.touches[0].clientY }; });
+    window.addEventListener('mouseup', () => isDragging = false);
+    window.addEventListener('touchend', () => isDragging = false);
+
+    canvas.addEventListener('mousemove', e => { if (!isDragging) checkHover(e.clientX, e.clientY); handleDrag(e.clientX, e.clientY); });
+    canvas.addEventListener('touchmove', e => { e.preventDefault(); handleDrag(e.touches[0].clientX, e.touches[0].clientY); }, { passive: false });
+
+    function handleDrag(x, y) {
+        if (!isDragging) return;
+        globeGroup.rotation.y += (x - prevPos.x) * 0.005;
+        globeGroup.rotation.x += (y - prevPos.y) * 0.003;
+        globeGroup.rotation.x = Math.max(-1, Math.min(1, globeGroup.rotation.x));
+        prevPos = { x, y };
+    }
+
+    const raycaster = new THREE.Raycaster();
+    const mouse = new THREE.Vector2();
+
+    function getIntersected(x, y) {
+        const rect = canvas.getBoundingClientRect();
+        mouse.x = ((x - rect.left) / rect.width) * 2 - 1;
+        mouse.y = -((y - rect.top) / rect.height) * 2 + 1;
+        raycaster.setFromCamera(mouse, camera);
+        const dots = playerMarkers.map(m => m.dot);
+        const intersects = raycaster.intersectObjects(dots);
+        return intersects.length > 0 ? intersects[0].object.userData : null;
+    }
+
+    function checkHover(x, y) {
+        const data = getIntersected(x, y);
+        const hoverInfo = document.getElementById('globeHoverInfo');
+        if (data && data.code) {
+            hoverInfo.textContent = `${data.flag} ${data.name} · ${data.online} online`;
+            hoverInfo.classList.add('visible');
+            canvas.style.cursor = 'pointer';
+        } else {
+            hoverInfo.classList.remove('visible');
+            canvas.style.cursor = 'grab';
+        }
+    }
+
+    canvas.addEventListener('click', e => {
+        if (Math.abs(e.clientX - dragStart.x) < 5 && Math.abs(e.clientY - dragStart.y) < 5) {
+            const data = getIntersected(e.clientX, e.clientY);
+            if (data && data.code) showGlobePopup(data, e.clientX, e.clientY);
+            else closeGlobePopup();
+        }
+    });
+
+    let time = 0;
+    function animate() {
+        requestAnimationFrame(animate);
+        time += 0.02;
+        if (!isDragging) globeGroup.rotation.y += 0.0012;
+        playerMarkers.forEach((m, i) => {
+            const pulse = Math.sin(time * 2.5 + i * 0.8) * 0.5 + 0.5;
+            m.ring.scale.set(1 + pulse * 0.5, 1 + pulse * 0.5, 1);
+            m.ring.material.opacity = 0.15 + pulse * 0.2;
+            m.dot.material.opacity = 0.75 + pulse * 0.25;
+            m.center.material.opacity = 0.6 + pulse * 0.4;
+        });
+        renderer.render(scene, camera);
+    }
+    animate();
+}
+
+function latLonToVector3(lat, lon, radius = 1) {
+    const phi = (90 - lat) * (Math.PI / 180);
+    const theta = (lon + 180) * (Math.PI / 180);
+    return new THREE.Vector3(-radius * Math.sin(phi) * Math.cos(theta), radius * Math.cos(phi), radius * Math.sin(phi) * Math.sin(theta));
+}
+
+function showGlobePopup(data, x, y) {
+    document.getElementById('popupTitle').textContent = `${data.flag} ${data.name}`;
+    document.getElementById('popupOnline').textContent = data.online;
+    document.getElementById('popupTotal').textContent = data.total;
+    document.getElementById('popupFC').textContent = data.withFC;
+
+    const popup = document.getElementById('globePopup');
+    const container = document.getElementById('globe-container');
+    const rect = container.getBoundingClientRect();
+    
+    let px = x - rect.left - 100;
+    let py = y - rect.top - 120;
+    px = Math.max(5, Math.min(px, rect.width - 210));
+    py = Math.max(5, Math.min(py, rect.height - 150));
+
+    popup.style.left = px + 'px';
+    popup.style.top = py + 'px';
+    popup.classList.add('visible');
+}
+
+function closeGlobePopup() {
+    document.getElementById('globePopup').classList.remove('visible');
+}
+
+function openCountryUsers() {
+    closeGlobePopup();
+    goToScreen('screen-country-users');
+}
+</script>
+
+</body>
+</html>
