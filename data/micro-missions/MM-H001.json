@@ -5,7 +5,7 @@
   "difficulty": "HARD",
   "duration_seconds": 300,
   "energy_cost": 20,
-  "spark_reward": {
+  "pyre_reward": {
     "min": 75,
     "max": 120
   },
@@ -38,19 +38,19 @@
       "A": {
         "type": "NEUTRAL",
         "text": "Your boldness catches the Void creatures off guard! You plunge into darkness, grab the Anchor Stone, and hurl yourself back through the tear - but not without cost. The Void leaves its mark on you, a shadow that will take time to fade.\n\nThe mission succeeds, but you feel... different. The Void Echoes seal the breach with the recovered stone.\n\nYou receive a standard reward, plus wary respect for your recklessness.",
-        "spark_modifier": 1.0,
+        "pyre_modifier": 1.0,
         "xp_modifier": 1.1
       },
       "B": {
         "type": "GOOD",
         "text": "The rope holds as you descend into impossibility. Time has no meaning here - you could have been searching for seconds or centuries. Finally, your hand closes around the Anchor Stone just as a tendril of darkness reaches for you.\n\nYou yank the rope three times. Your allies pull you back to reality, the Stone clutched to your chest. The breach seals with a sound like a dying scream.\n\nThe Void Echoes reward you generously for your methodical approach.",
-        "spark_modifier": 1.25,
+        "pyre_modifier": 1.25,
         "xp_modifier": 1.3
       },
       "C": {
         "type": "PERFECT",
         "text": "You kneel and pray to the Eternal Flame. Golden light envelops you - a shield against the Void's corruption. When you step through the tear, the darkness RECOILS from your radiance.\n\nThe Anchor Stone lies in a nest of shadow-tendrils, but they cannot touch you. You walk through nightmare as if strolling through a garden, retrieve the Stone, and return unscathed. The Void creatures shriek in frustration as the breach seals.\n\nYou have done what mages could not. The Void Echoes bow before you, and the Order of Dawn sends their highest commendation. Your faith has been rewarded beyond measure.",
-        "spark_modifier": 1.6,
+        "pyre_modifier": 1.6,
         "xp_modifier": 1.5
       }
     }

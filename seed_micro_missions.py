@@ -50,9 +50,9 @@ def seed_micro_mission(conn, mission_data):
     duration_seconds = mission_data['duration_seconds']
     energy_cost = mission_data.get('energy_cost', 0)
 
-    spark_reward = mission_data.get('spark_reward', {})
-    spark_reward_min = spark_reward.get('min', 10)
-    spark_reward_max = spark_reward.get('max', 20)
+    pyre_reward = mission_data.get('pyre_reward', {})
+    pyre_reward_min = pyre_reward.get('min', 10)
+    pyre_reward_max = pyre_reward.get('max', 20)
 
     xp_reward = mission_data.get('xp_reward', {})
     xp_reward_min = xp_reward.get('min', 0)
@@ -72,7 +72,7 @@ def seed_micro_mission(conn, mission_data):
         cur.execute("""
             INSERT INTO micro_missions (
                 id, name, description, difficulty, duration_seconds,
-                energy_cost, spark_reward_min, spark_reward_max,
+                energy_cost, pyre_reward_min, pyre_reward_max,
                 xp_reward_min, xp_reward_max, aura_chance,
                 narrative_intro, narrative_choices, narrative_outcomes,
                 cooldown_minutes, is_active
@@ -89,8 +89,8 @@ def seed_micro_mission(conn, mission_data):
                 difficulty = EXCLUDED.difficulty,
                 duration_seconds = EXCLUDED.duration_seconds,
                 energy_cost = EXCLUDED.energy_cost,
-                spark_reward_min = EXCLUDED.spark_reward_min,
-                spark_reward_max = EXCLUDED.spark_reward_max,
+                pyre_reward_min = EXCLUDED.pyre_reward_min,
+                pyre_reward_max = EXCLUDED.pyre_reward_max,
                 xp_reward_min = EXCLUDED.xp_reward_min,
                 xp_reward_max = EXCLUDED.xp_reward_max,
                 aura_chance = EXCLUDED.aura_chance,
@@ -101,7 +101,7 @@ def seed_micro_mission(conn, mission_data):
                 is_active = EXCLUDED.is_active
         """, (
             mission_id, name, description, difficulty, duration_seconds,
-            energy_cost, spark_reward_min, spark_reward_max,
+            energy_cost, pyre_reward_min, pyre_reward_max,
             xp_reward_min, xp_reward_max, aura_chance,
             narrative_intro, Json(narrative_choices), Json(narrative_outcomes),
             cooldown_minutes, is_active
@@ -194,7 +194,7 @@ def main():
             with conn.cursor() as cur:
                 cur.execute("""
                     SELECT id, name, difficulty, duration_seconds,
-                           spark_reward_min, spark_reward_max, is_active
+                           pyre_reward_min, pyre_reward_max, is_active
                     FROM micro_missions
                     ORDER BY difficulty, id
                 """)
@@ -203,7 +203,7 @@ def main():
                 print()
                 print(f"Total micro-misiones en BD: {len(rows)}")
                 print("-" * 60)
-                print(f"{'ID':<10} {'Nombre':<25} {'Diff':<8} {'Dur':<6} {'$SPARK':<12}")
+                print(f"{'ID':<10} {'Nombre':<25} {'Diff':<8} {'Dur':<6} {'$PYRE':<12}")
                 print("-" * 60)
 
                 for row in rows:

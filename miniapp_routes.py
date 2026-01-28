@@ -2,7 +2,7 @@
 EMBERHOLM MINI APP - ROUTES MODULE
 ===================================
 Endpoints para la Mini App de Farcaster.
-Incluye: $SPARK system, Micro-Missions, Realm Status, Full Emissary Status.
+Incluye: $PYRE system, Micro-Missions, Realm Status, Full Emissary Status, Social Chat.
 
 Importar en app.py:
     from miniapp_routes import register_miniapp_routes
@@ -252,12 +252,12 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
         })
 
     # =====================================================================
-    # $SPARK ENDPOINTS
+    # $PYRE ENDPOINTS
     # =====================================================================
 
-    @app.route('/api/spark/<wallet>', methods=['GET'])
-    def api_spark_balance(wallet):
-        """Get $SPARK balance for a wallet"""
+    @app.route('/api/pyre/<wallet>', methods=['GET'])
+    def api_pyre_balance(wallet):
+        """Get $PYRE balance for a wallet"""
         wallet = wallet.lower()
 
         if not POSTGRESQL_AVAILABLE:
@@ -268,14 +268,14 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
                 with conn.cursor() as cur:
                     # Get or create balance
                     cur.execute("""
-                        INSERT INTO spark_balances (wallet, balance, total_earned, total_spent)
+                        INSERT INTO pyre_balances (wallet, balance, total_earned, total_spent)
                         VALUES (%s, 0, 0, 0)
                         ON CONFLICT (wallet) DO NOTHING
                     """, (wallet,))
 
                     cur.execute("""
                         SELECT balance, total_earned, total_spent, daily_streak, last_daily_claim
-                        FROM spark_balances WHERE wallet = %s
+                        FROM pyre_balances WHERE wallet = %s
                     """, (wallet,))
                     row = cur.fetchone()
 
@@ -310,13 +310,13 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
                     })
 
         except Exception as e:
-            print(f"Error getting spark balance: {e}")
+            print(f"Error getting pyre balance: {e}")
             return jsonify({"error": str(e)}), 500
 
-    @app.route('/api/spark/earn', methods=['POST'])
-    def api_spark_earn():
+    @app.route('/api/pyre/earn', methods=['POST'])
+    def api_pyre_earn():
         """
-        Add $SPARK to a wallet (internal use - from micro-missions, etc.)
+        Add $PYRE to a wallet (internal use - from micro-missions, etc.)
 
         Body: {
             "wallet": "0x...",
@@ -344,11 +344,11 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
                 with conn.cursor() as cur:
                     # Update balance
                     cur.execute("""
-                        INSERT INTO spark_balances (wallet, balance, total_earned)
+                        INSERT INTO pyre_balances (wallet, balance, total_earned)
                         VALUES (%s, %s, %s)
                         ON CONFLICT (wallet) DO UPDATE SET
-                            balance = spark_balances.balance + %s,
-                            total_earned = spark_balances.total_earned + %s,
+                            balance = pyre_balances.balance + %s,
+                            total_earned = pyre_balances.total_earned + %s,
                             updated_at = NOW()
                         RETURNING balance, total_earned
                     """, (wallet, amount, amount, amount, amount))
@@ -356,7 +356,7 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
 
                     # Record transaction
                     cur.execute("""
-                        INSERT INTO spark_transactions
+                        INSERT INTO pyre_transactions
                         (wallet, amount, transaction_type, reference_id, description)
                         VALUES (%s, %s, %s, %s, %s)
                     """, (wallet, amount, tx_type, ref_id, description))
@@ -370,13 +370,13 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
                     })
 
         except Exception as e:
-            print(f"Error earning spark: {e}")
+            print(f"Error earning pyre: {e}")
             return jsonify({"error": str(e)}), 500
 
-    @app.route('/api/spark/spend', methods=['POST'])
-    def api_spark_spend():
+    @app.route('/api/pyre/spend', methods=['POST'])
+    def api_pyre_spend():
         """
-        Spend $SPARK from a wallet
+        Spend $PYRE from a wallet
 
         Body: {
             "wallet": "0x...",
@@ -404,20 +404,20 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
                 with conn.cursor() as cur:
                     # Check balance first
                     cur.execute("""
-                        SELECT balance FROM spark_balances WHERE wallet = %s
+                        SELECT balance FROM pyre_balances WHERE wallet = %s
                     """, (wallet,))
                     row = cur.fetchone()
 
                     if not row or row[0] < amount:
                         return jsonify({
-                            "error": "Insufficient $SPARK balance",
+                            "error": "Insufficient $PYRE balance",
                             "balance": row[0] if row else 0,
                             "required": amount
                         }), 400
 
                     # Deduct balance
                     cur.execute("""
-                        UPDATE spark_balances SET
+                        UPDATE pyre_balances SET
                             balance = balance - %s,
                             total_spent = total_spent + %s,
                             updated_at = NOW()
@@ -428,7 +428,7 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
 
                     # Record transaction (negative amount)
                     cur.execute("""
-                        INSERT INTO spark_transactions
+                        INSERT INTO pyre_transactions
                         (wallet, amount, transaction_type, reference_id, description)
                         VALUES (%s, %s, %s, %s, %s)
                     """, (wallet, -amount, tx_type, ref_id, description))
@@ -442,12 +442,12 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
                     })
 
         except Exception as e:
-            print(f"Error spending spark: {e}")
+            print(f"Error spending pyre: {e}")
             return jsonify({"error": str(e)}), 500
 
-    @app.route('/api/spark/history/<wallet>', methods=['GET'])
-    def api_spark_history(wallet):
-        """Get $SPARK transaction history for a wallet"""
+    @app.route('/api/pyre/history/<wallet>', methods=['GET'])
+    def api_pyre_history(wallet):
+        """Get $PYRE transaction history for a wallet"""
         wallet = wallet.lower()
         limit = request.args.get('limit', 50, type=int)
         offset = request.args.get('offset', 0, type=int)
@@ -460,7 +460,7 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
                 with conn.cursor() as cur:
                     cur.execute("""
                         SELECT id, amount, transaction_type, reference_id, description, created_at
-                        FROM spark_transactions
+                        FROM pyre_transactions
                         WHERE wallet = %s
                         ORDER BY created_at DESC
                         LIMIT %s OFFSET %s
@@ -488,7 +488,7 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
                     })
 
         except Exception as e:
-            print(f"Error getting spark history: {e}")
+            print(f"Error getting pyre history: {e}")
             return jsonify({"error": str(e)}), 500
 
     # =====================================================================
@@ -506,7 +506,7 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
                 with conn.cursor() as cur:
                     cur.execute("""
                         SELECT id, name, description, difficulty, duration_seconds,
-                               energy_cost, spark_reward_min, spark_reward_max,
+                               energy_cost, pyre_reward_min, pyre_reward_max,
                                xp_reward_min, xp_reward_max, aura_chance,
                                narrative_intro, cooldown_minutes
                         FROM micro_missions
@@ -524,7 +524,7 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
                             "difficulty": row[3],
                             "duration_seconds": row[4],
                             "energy_cost": row[5],
-                            "spark_reward": {"min": row[6], "max": row[7]},
+                            "pyre_reward": {"min": row[6], "max": row[7]},
                             "xp_reward": {"min": row[8], "max": row[9]},
                             "aura_chance": float(row[10]) if row[10] else 0,
                             "narrative_intro": row[11],
@@ -552,7 +552,7 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
                 with conn.cursor() as cur:
                     cur.execute("""
                         SELECT id, name, description, difficulty, duration_seconds,
-                               energy_cost, spark_reward_min, spark_reward_max,
+                               energy_cost, pyre_reward_min, pyre_reward_max,
                                xp_reward_min, xp_reward_max, aura_chance,
                                narrative_intro, narrative_choices, narrative_outcomes,
                                cooldown_minutes
@@ -573,7 +573,7 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
                             "difficulty": row[3],
                             "duration_seconds": row[4],
                             "energy_cost": row[5],
-                            "spark_reward": {"min": row[6], "max": row[7]},
+                            "pyre_reward": {"min": row[6], "max": row[7]},
                             "xp_reward": {"min": row[8], "max": row[9]},
                             "aura_chance": float(row[10]) if row[10] else 0,
                             "narrative_intro": row[11],
@@ -827,7 +827,7 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
                     cur.execute("""
                         SELECT amm.id, amm.status, amm.emissary_token_id, amm.ends_at,
                                amm.choice_made, amm.outcome_text,
-                               mm.spark_reward_min, mm.spark_reward_max,
+                               mm.pyre_reward_min, mm.pyre_reward_max,
                                mm.xp_reward_min, mm.xp_reward_max,
                                mm.aura_chance, mm.name, mm.narrative_outcomes
                         FROM active_micro_missions amm
@@ -855,7 +855,7 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
                         }), 400
 
                     # Calculate rewards
-                    spark_earned = random.randint(row[6], row[7])  # spark_reward_min/max
+                    pyre_earned = random.randint(row[6], row[7])  # pyre_reward_min/max
                     xp_earned = random.randint(row[8], row[9])     # xp_reward_min/max
                     aura_earned = 1 if random.random() * 100 < float(row[10] or 0) else 0
 
@@ -863,8 +863,8 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
                     choice = row[4]
                     outcomes = row[12] or {}
                     if choice and choice in outcomes:
-                        modifier = outcomes[choice].get('spark_modifier', 1.0)
-                        spark_earned = int(spark_earned * modifier)
+                        modifier = outcomes[choice].get('pyre_modifier', 1.0)
+                        pyre_earned = int(pyre_earned * modifier)
 
                     token_id = row[2]
                     mission_name = row[11]
@@ -874,11 +874,11 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
                     cur.execute("""
                         UPDATE active_micro_missions SET
                             status = 'completed',
-                            spark_earned = %s,
+                            pyre_earned = %s,
                             xp_earned = %s,
                             aura_earned = %s
                         WHERE id = %s
-                    """, (spark_earned, xp_earned, aura_earned, active_id))
+                    """, (pyre_earned, xp_earned, aura_earned, active_id))
 
                     # Update emissary XP and aura
                     cur.execute("""
@@ -900,28 +900,28 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
                         WHERE token_id = %s
                     """, (xp_earned, aura_earned, token_id))
 
-                    # Add $SPARK to wallet
+                    # Add $PYRE to wallet
                     cur.execute("""
-                        INSERT INTO spark_balances (wallet, balance, total_earned)
+                        INSERT INTO pyre_balances (wallet, balance, total_earned)
                         VALUES (%s, %s, %s)
                         ON CONFLICT (wallet) DO UPDATE SET
-                            balance = spark_balances.balance + %s,
-                            total_earned = spark_balances.total_earned + %s,
+                            balance = pyre_balances.balance + %s,
+                            total_earned = pyre_balances.total_earned + %s,
                             updated_at = NOW()
-                    """, (wallet, spark_earned, spark_earned, spark_earned, spark_earned))
+                    """, (wallet, pyre_earned, pyre_earned, pyre_earned, pyre_earned))
 
                     # Record transaction
                     cur.execute("""
-                        INSERT INTO spark_transactions
+                        INSERT INTO pyre_transactions
                         (wallet, amount, transaction_type, reference_id, description)
                         VALUES (%s, %s, 'micro_mission', %s, %s)
-                    """, (wallet, spark_earned, str(active_id), f"Completed: {mission_name}"))
+                    """, (wallet, pyre_earned, str(active_id), f"Completed: {mission_name}"))
 
                     return jsonify({
                         "success": True,
                         "completed": True,
                         "rewards": {
-                            "spark": spark_earned,
+                            "pyre": pyre_earned,
                             "xp": xp_earned,
                             "aura": aura_earned
                         },
@@ -1120,12 +1120,469 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
             traceback.print_exc()
             return jsonify({"error": str(e)}), 500
 
+    # =====================================================================
+    # SOCIAL ENDPOINTS (Chat 1:1)
+    # =====================================================================
+
+    @app.route('/api/social/profile', methods=['POST'])
+    def api_social_profile_update():
+        """
+        Create or update user profile (country, display name, etc.)
+
+        Body: {
+            "wallet": "0x...",
+            "country_code": "USA",
+            "display_name": "Player123",
+            "farcaster_fid": 12345,
+            "farcaster_username": "player123",
+            "farcaster_pfp_url": "https://..."
+        }
+        """
+        data = request.get_json() or {}
+        wallet = data.get('wallet', '').lower()
+        country_code = data.get('country_code', '').upper()[:3]
+        display_name = data.get('display_name', '')
+        fid = data.get('farcaster_fid')
+        username = data.get('farcaster_username', '')
+        pfp_url = data.get('farcaster_pfp_url', '')
+
+        if not wallet:
+            return jsonify({"error": "Wallet required"}), 400
+
+        if not POSTGRESQL_AVAILABLE:
+            return jsonify({"error": "Database not available"}), 503
+
+        try:
+            with get_db_connection() as conn:
+                with conn.cursor() as cur:
+                    cur.execute("""
+                        INSERT INTO user_profiles
+                        (wallet, country_code, display_name, farcaster_fid, farcaster_username, farcaster_pfp_url)
+                        VALUES (%s, %s, %s, %s, %s, %s)
+                        ON CONFLICT (wallet) DO UPDATE SET
+                            country_code = COALESCE(EXCLUDED.country_code, user_profiles.country_code),
+                            display_name = COALESCE(EXCLUDED.display_name, user_profiles.display_name),
+                            farcaster_fid = COALESCE(EXCLUDED.farcaster_fid, user_profiles.farcaster_fid),
+                            farcaster_username = COALESCE(EXCLUDED.farcaster_username, user_profiles.farcaster_username),
+                            farcaster_pfp_url = COALESCE(EXCLUDED.farcaster_pfp_url, user_profiles.farcaster_pfp_url),
+                            last_seen = NOW()
+                        RETURNING id, wallet, country_code, display_name, farcaster_username
+                    """, (wallet, country_code or None, display_name or None, fid, username or None, pfp_url or None))
+                    row = cur.fetchone()
+
+                    return jsonify({
+                        "success": True,
+                        "profile": {
+                            "id": row[0],
+                            "wallet": row[1],
+                            "country_code": row[2],
+                            "display_name": row[3],
+                            "farcaster_username": row[4]
+                        }
+                    })
+
+        except Exception as e:
+            print(f"Error updating profile: {e}")
+            return jsonify({"error": str(e)}), 500
+
+    @app.route('/api/social/profile/<wallet>', methods=['GET'])
+    def api_social_profile_get(wallet):
+        """Get user profile"""
+        wallet = wallet.lower()
+
+        if not POSTGRESQL_AVAILABLE:
+            return jsonify({"error": "Database not available"}), 503
+
+        try:
+            with get_db_connection() as conn:
+                with conn.cursor() as cur:
+                    cur.execute("""
+                        SELECT id, wallet, country_code, display_name,
+                               farcaster_fid, farcaster_username, farcaster_pfp_url, last_seen
+                        FROM user_profiles WHERE wallet = %s
+                    """, (wallet,))
+                    row = cur.fetchone()
+
+                    if not row:
+                        return jsonify({"success": True, "profile": None})
+
+                    return jsonify({
+                        "success": True,
+                        "profile": {
+                            "id": row[0],
+                            "wallet": row[1],
+                            "country_code": row[2],
+                            "display_name": row[3],
+                            "farcaster_fid": row[4],
+                            "farcaster_username": row[5],
+                            "farcaster_pfp_url": row[6],
+                            "last_seen": row[7].isoformat() if row[7] else None
+                        }
+                    })
+
+        except Exception as e:
+            print(f"Error getting profile: {e}")
+            return jsonify({"error": str(e)}), 500
+
+    @app.route('/api/social/countries', methods=['GET'])
+    def api_social_countries():
+        """Get list of countries with user counts (for 3D globe)"""
+        if not POSTGRESQL_AVAILABLE:
+            return jsonify({"error": "Database not available"}), 503
+
+        try:
+            with get_db_connection() as conn:
+                with conn.cursor() as cur:
+                    cur.execute("""
+                        SELECT country_code,
+                               COUNT(*) as user_count,
+                               COUNT(CASE WHEN last_seen > NOW() - INTERVAL '15 minutes' THEN 1 END) as online_count
+                        FROM user_profiles
+                        WHERE country_code IS NOT NULL
+                        GROUP BY country_code
+                        ORDER BY user_count DESC
+                    """)
+                    rows = cur.fetchall()
+
+                    countries = []
+                    for row in rows:
+                        countries.append({
+                            "country_code": row[0],
+                            "user_count": row[1],
+                            "online_count": row[2]
+                        })
+
+                    return jsonify({
+                        "success": True,
+                        "countries": countries,
+                        "total_countries": len(countries)
+                    })
+
+        except Exception as e:
+            print(f"Error getting countries: {e}")
+            return jsonify({"error": str(e)}), 500
+
+    @app.route('/api/social/country/<country_code>/users', methods=['GET'])
+    def api_social_country_users(country_code):
+        """Get users from a specific country"""
+        country_code = country_code.upper()[:3]
+        limit = request.args.get('limit', 50, type=int)
+        offset = request.args.get('offset', 0, type=int)
+
+        if not POSTGRESQL_AVAILABLE:
+            return jsonify({"error": "Database not available"}), 503
+
+        try:
+            with get_db_connection() as conn:
+                with conn.cursor() as cur:
+                    cur.execute("""
+                        SELECT wallet, display_name, farcaster_username, farcaster_pfp_url, last_seen,
+                               (last_seen > NOW() - INTERVAL '15 minutes') as is_online
+                        FROM user_profiles
+                        WHERE country_code = %s
+                        ORDER BY last_seen DESC
+                        LIMIT %s OFFSET %s
+                    """, (country_code, limit, offset))
+                    rows = cur.fetchall()
+
+                    users = []
+                    for row in rows:
+                        users.append({
+                            "wallet": row[0],
+                            "display_name": row[1],
+                            "farcaster_username": row[2],
+                            "farcaster_pfp_url": row[3],
+                            "last_seen": row[4].isoformat() if row[4] else None,
+                            "is_online": row[5]
+                        })
+
+                    return jsonify({
+                        "success": True,
+                        "country_code": country_code,
+                        "users": users,
+                        "count": len(users)
+                    })
+
+        except Exception as e:
+            print(f"Error getting country users: {e}")
+            return jsonify({"error": str(e)}), 500
+
+    @app.route('/api/social/conversations/<wallet>', methods=['GET'])
+    def api_social_conversations(wallet):
+        """Get list of conversations for a wallet"""
+        wallet = wallet.lower()
+
+        if not POSTGRESQL_AVAILABLE:
+            return jsonify({"error": "Database not available"}), 503
+
+        try:
+            with get_db_connection() as conn:
+                with conn.cursor() as cur:
+                    # Get all unique conversations with last message
+                    cur.execute("""
+                        WITH conversations AS (
+                            SELECT
+                                CASE
+                                    WHEN from_wallet = %s THEN to_wallet
+                                    ELSE from_wallet
+                                END as other_wallet,
+                                message,
+                                created_at,
+                                CASE WHEN to_wallet = %s AND read = FALSE THEN 1 ELSE 0 END as unread
+                            FROM private_messages
+                            WHERE from_wallet = %s OR to_wallet = %s
+                            ORDER BY created_at DESC
+                        ),
+                        latest AS (
+                            SELECT DISTINCT ON (other_wallet)
+                                other_wallet, message, created_at
+                            FROM conversations
+                            ORDER BY other_wallet, created_at DESC
+                        ),
+                        unread_counts AS (
+                            SELECT other_wallet, SUM(unread) as unread_count
+                            FROM conversations
+                            GROUP BY other_wallet
+                        )
+                        SELECT l.other_wallet, l.message, l.created_at,
+                               COALESCE(u.unread_count, 0) as unread_count,
+                               p.display_name, p.farcaster_username, p.farcaster_pfp_url
+                        FROM latest l
+                        LEFT JOIN unread_counts u ON l.other_wallet = u.other_wallet
+                        LEFT JOIN user_profiles p ON l.other_wallet = p.wallet
+                        ORDER BY l.created_at DESC
+                    """, (wallet, wallet, wallet, wallet))
+                    rows = cur.fetchall()
+
+                    conversations = []
+                    for row in rows:
+                        conversations.append({
+                            "other_wallet": row[0],
+                            "last_message": row[1][:100] if row[1] else None,
+                            "last_message_at": row[2].isoformat() if row[2] else None,
+                            "unread_count": row[3],
+                            "other_user": {
+                                "display_name": row[4],
+                                "farcaster_username": row[5],
+                                "farcaster_pfp_url": row[6]
+                            }
+                        })
+
+                    return jsonify({
+                        "success": True,
+                        "conversations": conversations,
+                        "count": len(conversations)
+                    })
+
+        except Exception as e:
+            print(f"Error getting conversations: {e}")
+            import traceback
+            traceback.print_exc()
+            return jsonify({"error": str(e)}), 500
+
+    @app.route('/api/social/messages/<wallet>/<other_wallet>', methods=['GET'])
+    def api_social_messages(wallet, other_wallet):
+        """Get messages between two wallets"""
+        wallet = wallet.lower()
+        other_wallet = other_wallet.lower()
+        limit = request.args.get('limit', 50, type=int)
+        before_id = request.args.get('before_id', type=int)
+
+        if not POSTGRESQL_AVAILABLE:
+            return jsonify({"error": "Database not available"}), 503
+
+        try:
+            with get_db_connection() as conn:
+                with conn.cursor() as cur:
+                    # Get messages
+                    if before_id:
+                        cur.execute("""
+                            SELECT id, from_wallet, to_wallet, message, read, created_at
+                            FROM private_messages
+                            WHERE ((from_wallet = %s AND to_wallet = %s)
+                                   OR (from_wallet = %s AND to_wallet = %s))
+                              AND id < %s
+                            ORDER BY created_at DESC
+                            LIMIT %s
+                        """, (wallet, other_wallet, other_wallet, wallet, before_id, limit))
+                    else:
+                        cur.execute("""
+                            SELECT id, from_wallet, to_wallet, message, read, created_at
+                            FROM private_messages
+                            WHERE (from_wallet = %s AND to_wallet = %s)
+                               OR (from_wallet = %s AND to_wallet = %s)
+                            ORDER BY created_at DESC
+                            LIMIT %s
+                        """, (wallet, other_wallet, other_wallet, wallet, limit))
+                    rows = cur.fetchall()
+
+                    messages = []
+                    for row in rows:
+                        messages.append({
+                            "id": row[0],
+                            "from_wallet": row[1],
+                            "to_wallet": row[2],
+                            "message": row[3],
+                            "read": row[4],
+                            "created_at": row[5].isoformat() if row[5] else None,
+                            "is_mine": row[1] == wallet
+                        })
+
+                    # Mark messages as read
+                    cur.execute("""
+                        UPDATE private_messages SET read = TRUE
+                        WHERE from_wallet = %s AND to_wallet = %s AND read = FALSE
+                    """, (other_wallet, wallet))
+
+                    return jsonify({
+                        "success": True,
+                        "messages": list(reversed(messages)),  # Chronological order
+                        "count": len(messages)
+                    })
+
+        except Exception as e:
+            print(f"Error getting messages: {e}")
+            return jsonify({"error": str(e)}), 500
+
+    @app.route('/api/social/message', methods=['POST'])
+    def api_social_send_message():
+        """
+        Send a private message
+
+        Body: {
+            "from_wallet": "0x...",
+            "to_wallet": "0x...",
+            "message": "Hello!"
+        }
+        """
+        data = request.get_json() or {}
+        from_wallet = data.get('from_wallet', '').lower()
+        to_wallet = data.get('to_wallet', '').lower()
+        message = data.get('message', '').strip()
+
+        if not from_wallet or not to_wallet:
+            return jsonify({"error": "Both wallets required"}), 400
+
+        if not message:
+            return jsonify({"error": "Message cannot be empty"}), 400
+
+        if len(message) > 1000:
+            return jsonify({"error": "Message too long (max 1000 chars)"}), 400
+
+        if from_wallet == to_wallet:
+            return jsonify({"error": "Cannot message yourself"}), 400
+
+        if not POSTGRESQL_AVAILABLE:
+            return jsonify({"error": "Database not available"}), 503
+
+        try:
+            with get_db_connection() as conn:
+                with conn.cursor() as cur:
+                    # Insert message
+                    cur.execute("""
+                        INSERT INTO private_messages (from_wallet, to_wallet, message)
+                        VALUES (%s, %s, %s)
+                        RETURNING id, created_at
+                    """, (from_wallet, to_wallet, message))
+                    row = cur.fetchone()
+
+                    # Update sender's last_seen
+                    cur.execute("""
+                        UPDATE user_profiles SET last_seen = NOW()
+                        WHERE wallet = %s
+                    """, (from_wallet,))
+
+                    return jsonify({
+                        "success": True,
+                        "message": {
+                            "id": row[0],
+                            "from_wallet": from_wallet,
+                            "to_wallet": to_wallet,
+                            "message": message,
+                            "created_at": row[1].isoformat() if row[1] else None
+                        }
+                    })
+
+        except Exception as e:
+            print(f"Error sending message: {e}")
+            return jsonify({"error": str(e)}), 500
+
+    @app.route('/api/social/message/read', methods=['POST'])
+    def api_social_mark_read():
+        """
+        Mark messages as read
+
+        Body: {
+            "wallet": "0x...",       // The reader
+            "from_wallet": "0x..."   // The sender
+        }
+        """
+        data = request.get_json() or {}
+        wallet = data.get('wallet', '').lower()
+        from_wallet = data.get('from_wallet', '').lower()
+
+        if not wallet or not from_wallet:
+            return jsonify({"error": "Both wallets required"}), 400
+
+        if not POSTGRESQL_AVAILABLE:
+            return jsonify({"error": "Database not available"}), 503
+
+        try:
+            with get_db_connection() as conn:
+                with conn.cursor() as cur:
+                    cur.execute("""
+                        UPDATE private_messages SET read = TRUE
+                        WHERE from_wallet = %s AND to_wallet = %s AND read = FALSE
+                        RETURNING id
+                    """, (from_wallet, wallet))
+                    rows = cur.fetchall()
+
+                    return jsonify({
+                        "success": True,
+                        "marked_read": len(rows)
+                    })
+
+        except Exception as e:
+            print(f"Error marking read: {e}")
+            return jsonify({"error": str(e)}), 500
+
+    @app.route('/api/social/online-stats', methods=['GET'])
+    def api_social_online_stats():
+        """Get global online statistics"""
+        if not POSTGRESQL_AVAILABLE:
+            return jsonify({"error": "Database not available"}), 503
+
+        try:
+            with get_db_connection() as conn:
+                with conn.cursor() as cur:
+                    cur.execute("""
+                        SELECT
+                            COUNT(*) as total_users,
+                            COUNT(CASE WHEN last_seen > NOW() - INTERVAL '15 minutes' THEN 1 END) as online_now,
+                            COUNT(DISTINCT country_code) as countries_represented
+                        FROM user_profiles
+                    """)
+                    row = cur.fetchone()
+
+                    return jsonify({
+                        "success": True,
+                        "stats": {
+                            "total_users": row[0],
+                            "online_now": row[1],
+                            "countries_represented": row[2]
+                        }
+                    })
+
+        except Exception as e:
+            print(f"Error getting online stats: {e}")
+            return jsonify({"error": str(e)}), 500
+
     print("✅ Mini App routes registered successfully")
     print("   - GET  /api/realm-status")
-    print("   - GET  /api/spark/<wallet>")
-    print("   - POST /api/spark/earn")
-    print("   - POST /api/spark/spend")
-    print("   - GET  /api/spark/history/<wallet>")
+    print("   - GET  /api/pyre/<wallet>")
+    print("   - POST /api/pyre/earn")
+    print("   - POST /api/pyre/spend")
+    print("   - GET  /api/pyre/history/<wallet>")
     print("   - GET  /api/micro-missions")
     print("   - GET  /api/micro-mission/<id>")
     print("   - POST /api/micro-mission/start")
@@ -1133,3 +1590,12 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
     print("   - POST /api/micro-mission/complete")
     print("   - GET  /api/micro-mission/active/<wallet>")
     print("   - GET  /api/emissary/<id>/full-status")
+    print("   - POST /api/social/profile")
+    print("   - GET  /api/social/profile/<wallet>")
+    print("   - GET  /api/social/countries")
+    print("   - GET  /api/social/country/<code>/users")
+    print("   - GET  /api/social/conversations/<wallet>")
+    print("   - GET  /api/social/messages/<wallet>/<other>")
+    print("   - POST /api/social/message")
+    print("   - POST /api/social/message/read")
+    print("   - GET  /api/social/online-stats")

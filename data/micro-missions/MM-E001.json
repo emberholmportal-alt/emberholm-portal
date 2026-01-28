@@ -5,7 +5,7 @@
   "difficulty": "EASY",
   "duration_seconds": 90,
   "energy_cost": 0,
-  "spark_reward": {
+  "pyre_reward": {
     "min": 15,
     "max": 25
   },
@@ -37,20 +37,20 @@
     "outcomes": {
       "A": {
         "type": "GOOD",
-        "text": "Your caution proves wise. The figure is a lost traveler who startles at your approach but quickly relaxes when they see an Emissary. They offer a small pouch of $SPARK in gratitude for your protection.",
-        "spark_modifier": 1.0,
+        "text": "Your caution proves wise. The figure is a lost traveler who startles at your approach but quickly relaxes when they see an Emissary. They offer a small pouch of $PYRE in gratitude for your protection.",
+        "pyre_modifier": 1.0,
         "xp_modifier": 1.0
       },
       "B": {
         "type": "PERFECT",
         "text": "\"Hold, traveler!\" you call out. The figure turns - it's a merchant from the Circle of Mist! Grateful to see a friendly face, they share valuable information about unusual activity near the Void Echoes territory and reward you generously.",
-        "spark_modifier": 1.3,
+        "pyre_modifier": 1.3,
         "xp_modifier": 1.2
       },
       "C": {
         "type": "NEUTRAL",
         "text": "You take your time circling around, but by the time you reach the vantage point, the figure has moved on. Your patrol continues without incident. At least the borders remain secure.",
-        "spark_modifier": 0.8,
+        "pyre_modifier": 0.8,
         "xp_modifier": 1.0
       }
     }
