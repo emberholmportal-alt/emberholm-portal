@@ -1,0 +1,250 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* =========================================
+   EMBERHOLM MINI APP - Global Styles
+   ========================================= */
+
+/* Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;500;600;700&display=swap');
+
+@font-face {
+  font-family: 'Alagard';
+  src: url('/fonts/alagard.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Base Styles */
+:root {
+  --ember-primary: #ff9500;
+  --ember-dark: #0a0705;
+  --ember-glow: rgba(255, 149, 0, 0.5);
+}
+
+html {
+  font-size: 16px;
+}
+
+body {
+  @apply bg-void text-ember-400 font-pixel antialiased;
+  min-height: 100vh;
+  min-height: 100dvh;
+  overflow-x: hidden;
+}
+
+/* CRT Effects Container */
+.crt-container {
+  position: relative;
+  overflow: hidden;
+}
+
+/* Scanlines Overlay */
+.crt-scanlines::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(0, 0, 0, 0.15),
+    rgba(0, 0, 0, 0.15) 1px,
+    transparent 1px,
+    transparent 2px
+  );
+  pointer-events: none;
+  z-index: 9998;
+}
+
+/* CRT Vignette */
+.crt-vignette::after {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(
+    ellipse at center,
+    transparent 0%,
+    transparent 60%,
+    rgba(0, 0, 0, 0.4) 100%
+  );
+  pointer-events: none;
+  z-index: 9997;
+}
+
+/* Moving Scanline */
+.crt-moving-line::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 4px;
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    rgba(255, 149, 0, 0.1),
+    transparent
+  );
+  animation: scanline 8s linear infinite;
+  pointer-events: none;
+  z-index: 9996;
+}
+
+/* =========================================
+   Typography
+   ========================================= */
+
+.text-glow {
+  text-shadow: 0 0 10px var(--ember-glow);
+}
+
+.text-glow-strong {
+  text-shadow:
+    0 0 5px var(--ember-primary),
+    0 0 10px var(--ember-primary),
+    0 0 20px var(--ember-primary);
+}
+
+.title-epic {
+  @apply font-alagard text-2xl text-ember-400;
+  text-shadow:
+    0 0 10px rgba(255, 149, 0, 0.8),
+    0 0 20px rgba(255, 149, 0, 0.5);
+}
+
+/* =========================================
+   Buttons
+   ========================================= */
+
+.btn-ember {
+  @apply px-4 py-2 bg-void-light border border-ember-400/50 text-ember-400 font-pixel;
+  @apply transition-all duration-200;
+  @apply hover:border-ember-400 hover:shadow-ember hover:text-ember-300;
+  @apply active:scale-95;
+  @apply disabled:opacity-50 disabled:cursor-not-allowed;
+}
+
+.btn-ember-primary {
+  @apply btn-ember bg-ember-400/20;
+  @apply hover:bg-ember-400/30;
+}
+
+.btn-ember-ghost {
+  @apply px-4 py-2 bg-transparent border border-transparent text-ember-400/70 font-pixel;
+  @apply transition-all duration-200;
+  @apply hover:text-ember-400 hover:border-ember-400/30;
+}
+
+/* =========================================
+   Cards & Panels
+   ========================================= */
+
+.panel {
+  @apply bg-void-light/80 border border-ember-400/30 rounded-sm;
+  @apply backdrop-blur-sm;
+}
+
+.panel-glow {
+  @apply panel;
+  box-shadow:
+    0 0 10px rgba(255, 149, 0, 0.1),
+    inset 0 0 20px rgba(255, 149, 0, 0.05);
+}
+
+.card-emissary {
+  @apply panel p-3;
+  @apply transition-all duration-200;
+  @apply hover:border-ember-400/50 hover:shadow-ember;
+}
+
+/* =========================================
+   Progress Bars
+   ========================================= */
+
+.progress-bar {
+  @apply h-2 bg-void-lighter rounded-full overflow-hidden;
+}
+
+.progress-bar-fill {
+  @apply h-full bg-gradient-to-r from-ember-500 to-ember-400;
+  @apply transition-all duration-500 ease-out;
+}
+
+/* =========================================
+   Immersion Bar (Top)
+   ========================================= */
+
+.immersion-bar {
+  @apply fixed top-0 left-0 right-0 z-50;
+  @apply flex items-center justify-center gap-2 py-1 px-3;
+  @apply bg-void/90 border-b border-ember-400/20;
+  @apply text-xs text-ember-400/80 font-mono;
+  backdrop-filter: blur(4px);
+}
+
+/* =========================================
+   Scrollbar Styling
+   ========================================= */
+
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--ember-dark);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 149, 0, 0.3);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 149, 0, 0.5);
+}
+
+/* =========================================
+   Utilities
+   ========================================= */
+
+.safe-area-top {
+  padding-top: env(safe-area-inset-top);
+}
+
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* Mobile-first max width */
+.app-container {
+  @apply mx-auto w-full max-w-[420px] min-h-screen;
+}
+
+/* Typewriter effect */
+.typewriter {
+  overflow: hidden;
+  white-space: nowrap;
+  border-right: 2px solid var(--ember-primary);
+  animation:
+    typewriter 2s steps(40) forwards,
+    blink 1s step-end infinite;
+}
+
+/* Fade variants */
+.fade-enter {
+  opacity: 0;
+  transform: translateY(10px);
+}
+
+.fade-enter-active {
+  opacity: 1;
+  transform: translateY(0);
+  transition: all 0.3s ease-out;
+}
