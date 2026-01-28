@@ -11,3 +11,4 @@ export {
   getCountryPosition,
   getCountryName,
 } from './useGlobe';
+export { useSound, useAppSound } from './useSound';

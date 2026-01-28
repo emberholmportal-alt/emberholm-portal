@@ -34,6 +34,18 @@ export { LoreScreen } from './screens/LoreScreen';
 export { TutorialScreen } from './screens/TutorialScreen';
 export { PyreGuide } from './screens/PyreGuide';
 
+// UI Components
+export {
+  DataBox,
+  ProgressBar,
+  Modal,
+  TabBar,
+  ChatBubble,
+  EmissaryCard,
+  StatDisplay,
+  ItemPopup,
+} from './ui';
+
 // 3D Components (use dynamic import for these)
 // Globe3D should be imported dynamically to avoid SSR issues
 
