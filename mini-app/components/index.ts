@@ -21,6 +21,14 @@ export { MissionPlayer } from './screens/MissionPlayer';
 export { TimerScreen } from './screens/TimerScreen';
 export { LeaderboardScreen } from './screens/LeaderboardScreen';
 
+// Social Screens
+export { SocialGlobe } from './screens/SocialGlobe';
+export { SocialUsers } from './screens/SocialUsers';
+export { ChatScreen } from './screens/ChatScreen';
+
+// 3D Components (use dynamic import for these)
+// Globe3D should be imported dynamically to avoid SSR issues
+
 // Legacy (for backwards compatibility)
 export { MissionSelect } from './screens/MissionSelect';
 export { EnterPortal } from './screens/EnterPortal';

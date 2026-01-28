@@ -16,6 +16,9 @@ import { MicroMissionsScreen } from '@/components/screens/MicroMissionsScreen';
 import { MissionPlayer } from '@/components/screens/MissionPlayer';
 import { TimerScreen } from '@/components/screens/TimerScreen';
 import { LeaderboardScreen } from '@/components/screens/LeaderboardScreen';
+import { SocialGlobe } from '@/components/screens/SocialGlobe';
+import { SocialUsers } from '@/components/screens/SocialUsers';
+import { ChatScreen } from '@/components/screens/ChatScreen';
 import { useApp, actions, AppScreen, AppProvider } from '@/lib/store';
 import {
   Emissary,
@@ -192,8 +195,19 @@ function AppContent() {
     dispatch(actions.setScreen('menu'));
   };
 
+  // Social handlers
+  const handleSelectCountry = (countryCode: string) => {
+    dispatch(actions.selectCountry(countryCode));
+    dispatch(actions.setScreen('social-users'));
+  };
+
+  const handleMessageUser = (userWallet: string) => {
+    dispatch(actions.setCurrentChat(userWallet));
+    dispatch(actions.setScreen('chat'));
+  };
+
   // Determine which screens should show the top bar
-  const showTopBar = !['welcome', 'country-select', 'portal-entry'].includes(state.currentScreen);
+  const showTopBar = !['welcome', 'country-select', 'portal-entry', 'chat'].includes(state.currentScreen);
 
   return (
     <main className="crt-screen relative">
@@ -332,16 +346,29 @@ function AppContent() {
           <PlaceholderScreen title="TUTORIAL" onBack={handleBack} />
         )}
 
+        {/* Social Section */}
         {state.currentScreen === 'social-globe' && (
-          <PlaceholderScreen title="WORLD MAP" onBack={handleBack} />
+          <SocialGlobe
+            onSelectCountry={handleSelectCountry}
+            onBack={handleBack}
+          />
         )}
 
-        {state.currentScreen === 'social-users' && (
-          <PlaceholderScreen title="USERS" onBack={handleBack} />
+        {state.currentScreen === 'social-users' && state.selectedCountry && (
+          <SocialUsers
+            countryCode={state.selectedCountry}
+            currentWallet={state.wallet}
+            onMessageUser={handleMessageUser}
+            onBack={handleBack}
+          />
         )}
 
-        {state.currentScreen === 'chat' && (
-          <PlaceholderScreen title="CHAT" onBack={handleBack} />
+        {state.currentScreen === 'chat' && state.wallet && state.currentChatWallet && (
+          <ChatScreen
+            wallet={state.wallet}
+            otherWallet={state.currentChatWallet}
+            onBack={handleBack}
+          />
         )}
 
         {state.currentScreen === 'pyre-guide' && (
