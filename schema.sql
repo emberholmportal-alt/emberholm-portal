@@ -434,6 +434,148 @@ GROUP BY last_known_owner
 ORDER BY total_xp DESC;
 
 -- =========================================================================
+-- MINI APP TABLES ($SPARK & MICRO-MISSIONS)
+-- =========================================================================
+
+-- -------------------------------------------------------------------------
+-- TABLA: SPARK BALANCES (Token off-chain para Mini App)
+-- -------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS spark_balances (
+    wallet VARCHAR(42) PRIMARY KEY,
+    balance INTEGER DEFAULT 0,
+    total_earned INTEGER DEFAULT 0,
+    total_spent INTEGER DEFAULT 0,
+    last_daily_claim TIMESTAMP,
+    daily_streak INTEGER DEFAULT 0,
+    updated_at TIMESTAMP DEFAULT NOW(),
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Índice para búsquedas rápidas
+CREATE INDEX IF NOT EXISTS idx_spark_balances_wallet ON spark_balances(wallet);
+
+-- -------------------------------------------------------------------------
+-- TABLA: SPARK TRANSACTIONS (Historial de $SPARK)
+-- -------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS spark_transactions (
+    id SERIAL PRIMARY KEY,
+    wallet VARCHAR(42) NOT NULL,
+    amount INTEGER NOT NULL,                          -- Positivo = ganado, Negativo = gastado
+    transaction_type VARCHAR(50) NOT NULL,            -- micro_mission, daily_bonus, purchase, convert, spend
+    reference_id VARCHAR(100),                        -- ID de la misión, item, etc.
+    description TEXT,                                 -- Descripción legible
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Índices para historial
+CREATE INDEX IF NOT EXISTS idx_spark_transactions_wallet ON spark_transactions(wallet);
+CREATE INDEX IF NOT EXISTS idx_spark_transactions_type ON spark_transactions(transaction_type);
+CREATE INDEX IF NOT EXISTS idx_spark_transactions_date ON spark_transactions(created_at);
+
+-- -------------------------------------------------------------------------
+-- TABLA: MICRO MISSIONS (Definiciones de aventuras cortas)
+-- -------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS micro_missions (
+    id VARCHAR(20) PRIMARY KEY,                       -- "MM-E001", "MM-M001", "MM-H001"
+    name VARCHAR(100) NOT NULL,
+    description TEXT,
+    difficulty VARCHAR(20) NOT NULL,                  -- EASY, MEDIUM, HARD
+    duration_seconds INTEGER NOT NULL,                -- 60-300 segundos
+    energy_cost INTEGER DEFAULT 0,
+    spark_reward_min INTEGER NOT NULL,
+    spark_reward_max INTEGER NOT NULL,
+    xp_reward_min INTEGER DEFAULT 0,
+    xp_reward_max INTEGER DEFAULT 0,
+    aura_chance DECIMAL(5,2) DEFAULT 0,               -- Probabilidad de +1 aura (0-100)
+    narrative_intro TEXT,                             -- Texto inicial
+    narrative_choices JSONB DEFAULT '[]'::jsonb,      -- Array de opciones con textos
+    narrative_outcomes JSONB DEFAULT '{}'::jsonb,     -- Resultados por opción
+    is_active BOOLEAN DEFAULT TRUE,
+    cooldown_minutes INTEGER DEFAULT 0,
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Índices
+CREATE INDEX IF NOT EXISTS idx_micro_missions_difficulty ON micro_missions(difficulty);
+CREATE INDEX IF NOT EXISTS idx_micro_missions_active ON micro_missions(is_active);
+
+-- -------------------------------------------------------------------------
+-- TABLA: ACTIVE MICRO MISSIONS (Sesiones activas)
+-- -------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS active_micro_missions (
+    id SERIAL PRIMARY KEY,
+    wallet VARCHAR(42) NOT NULL,
+    emissary_token_id VARCHAR(10) NOT NULL,
+    micro_mission_id VARCHAR(20) NOT NULL REFERENCES micro_missions(id),
+    started_at TIMESTAMP DEFAULT NOW(),
+    ends_at TIMESTAMP NOT NULL,
+    status VARCHAR(20) DEFAULT 'active',              -- active, choice_pending, completed, claimed
+    current_step INTEGER DEFAULT 0,                   -- Paso narrativo actual
+    choice_made VARCHAR(50),                          -- Decisión tomada (A, B, C)
+    spark_earned INTEGER DEFAULT 0,
+    xp_earned INTEGER DEFAULT 0,
+    aura_earned INTEGER DEFAULT 0,
+    outcome_text TEXT,                                -- Texto del resultado
+    created_at TIMESTAMP DEFAULT NOW(),
+
+    CONSTRAINT fk_micro_emissary FOREIGN KEY (emissary_token_id)
+        REFERENCES nfts(token_id) ON DELETE CASCADE
+);
+
+-- Índices para micro-misiones activas
+CREATE INDEX IF NOT EXISTS idx_active_micro_wallet ON active_micro_missions(wallet);
+CREATE INDEX IF NOT EXISTS idx_active_micro_emissary ON active_micro_missions(emissary_token_id);
+CREATE INDEX IF NOT EXISTS idx_active_micro_status ON active_micro_missions(status);
+CREATE INDEX IF NOT EXISTS idx_active_micro_ends ON active_micro_missions(ends_at);
+
+-- -------------------------------------------------------------------------
+-- FUNCIÓN: Obtener estado unificado de emissary (incluye micro-misiones)
+-- -------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION get_emissary_unified_state(p_token_id VARCHAR(10))
+RETURNS TABLE (
+    token_id VARCHAR(10),
+    name VARCHAR(255),
+    guild VARCHAR(100),
+    race_class VARCHAR(100),
+    dynamic_state JSONB,
+    current_state VARCHAR(30),
+    mission_ends_at TIMESTAMP,
+    micro_mission_ends_at TIMESTAMP,
+    active_mission_id VARCHAR(10),
+    active_micro_mission_id VARCHAR(20)
+) AS $$
+BEGIN
+    RETURN QUERY
+    SELECT
+        n.token_id,
+        n.name,
+        n.guild,
+        n.race_class,
+        n.dynamic_state,
+        CASE
+            WHEN am.mission_key IS NOT NULL THEN 'ON_MISSION'
+            WHEN amm.status = 'active' OR amm.status = 'choice_pending' THEN 'ON_MICRO_MISSION'
+            WHEN (n.dynamic_state->>'state') = 'FALLEN' THEN 'FALLEN'
+            WHEN EXISTS (
+                SELECT 1 FROM active_missions am2
+                WHERE am2.hero_id = n.token_id
+                AND am2.start_time + (am2.duration_hours || ' hours')::interval < NOW()
+            ) THEN 'CLAIMING'
+            ELSE 'READY'
+        END::VARCHAR(30) as current_state,
+        (am.start_time + (am.duration_hours || ' hours')::interval) as mission_ends_at,
+        amm.ends_at as micro_mission_ends_at,
+        am.mission_id as active_mission_id,
+        amm.micro_mission_id as active_micro_mission_id
+    FROM nfts n
+    LEFT JOIN active_missions am ON n.token_id = am.hero_id
+    LEFT JOIN active_micro_missions amm ON n.token_id = amm.emissary_token_id
+        AND amm.status IN ('active', 'choice_pending')
+    WHERE n.token_id = p_token_id;
+END;
+$$ LANGUAGE plpgsql;
+
+-- =========================================================================
 -- SCHEMA COMPLETO
 -- =========================================================================
 -- Ejecutar este script en PostgreSQL para crear todas las tablas

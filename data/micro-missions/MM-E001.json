@@ -1,0 +1,67 @@
+{
+  "id": "MM-E001",
+  "name": "Ember Patrol",
+  "description": "A routine patrol along the Ashen Borders reveals unexpected activity.",
+  "difficulty": "EASY",
+  "duration_seconds": 90,
+  "energy_cost": 0,
+  "spark_reward": {
+    "min": 15,
+    "max": 25
+  },
+  "xp_reward": {
+    "min": 5,
+    "max": 10
+  },
+  "aura_chance": 5,
+  "cooldown_minutes": 30,
+  "narrative": {
+    "intro": "The Eternal Flame flickers as you begin your patrol along the Ashen Borders. The air is thick with the scent of smoke and possibility. Suddenly, you notice movement in the shadows ahead...",
+    "choices": [
+      {
+        "id": "A",
+        "text": "Approach cautiously with weapon drawn",
+        "icon": "sword"
+      },
+      {
+        "id": "B",
+        "text": "Call out to identify the figure",
+        "icon": "megaphone"
+      },
+      {
+        "id": "C",
+        "text": "Circle around for a better vantage point",
+        "icon": "eye"
+      }
+    ],
+    "outcomes": {
+      "A": {
+        "type": "GOOD",
+        "text": "Your caution proves wise. The figure is a lost traveler who startles at your approach but quickly relaxes when they see an Emissary. They offer a small pouch of $SPARK in gratitude for your protection.",
+        "spark_modifier": 1.0,
+        "xp_modifier": 1.0
+      },
+      "B": {
+        "type": "PERFECT",
+        "text": "\"Hold, traveler!\" you call out. The figure turns - it's a merchant from the Circle of Mist! Grateful to see a friendly face, they share valuable information about unusual activity near the Void Echoes territory and reward you generously.",
+        "spark_modifier": 1.3,
+        "xp_modifier": 1.2
+      },
+      "C": {
+        "type": "NEUTRAL",
+        "text": "You take your time circling around, but by the time you reach the vantage point, the figure has moved on. Your patrol continues without incident. At least the borders remain secure.",
+        "spark_modifier": 0.8,
+        "xp_modifier": 1.0
+      }
+    }
+  },
+  "achievements": {
+    "first_patrol": {
+      "name": "First Steps",
+      "description": "Complete your first Ember Patrol",
+      "icon": "footsteps"
+    }
+  },
+  "lore_connection": "The Ashen Borders mark the edge of Emberholm's influence, where the Eternal Flame's light begins to fade.",
+  "is_active": true
+}

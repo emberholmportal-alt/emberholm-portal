@@ -1,0 +1,67 @@
+{
+  "id": "MM-E003",
+  "name": "Message Runner",
+  "description": "An urgent message must be delivered to the Order of Dawn before sunset.",
+  "difficulty": "EASY",
+  "duration_seconds": 60,
+  "energy_cost": 0,
+  "spark_reward": {
+    "min": 12,
+    "max": 20
+  },
+  "xp_reward": {
+    "min": 5,
+    "max": 8
+  },
+  "aura_chance": 3,
+  "cooldown_minutes": 20,
+  "narrative": {
+    "intro": "A breathless acolyte from the Circle of Mist presses a sealed scroll into your hands. \"Please, Emissary! This must reach the Order of Dawn before the sun sets, or the ritual alignment will be missed!\" The sun already hangs low on the horizon.",
+    "choices": [
+      {
+        "id": "A",
+        "text": "Sprint through the main roads - speed is everything",
+        "icon": "running"
+      },
+      {
+        "id": "B",
+        "text": "Take the hidden shortcuts through the old quarter",
+        "icon": "map"
+      },
+      {
+        "id": "C",
+        "text": "Find a mounted courier to relay the message",
+        "icon": "horse"
+      }
+    ],
+    "outcomes": {
+      "A": {
+        "type": "GOOD",
+        "text": "Your feet pound against cobblestones as you weave through crowds. You arrive with minutes to spare, sweat-soaked but victorious. The Order of Dawn completes their ritual just as the last rays of sunlight fade.",
+        "spark_modifier": 1.0,
+        "xp_modifier": 1.0
+      },
+      "B": {
+        "type": "PERFECT",
+        "text": "The old quarter's maze of alleys would confuse most, but you know these paths well. You emerge at the Order's doorstep with time to spare, earning impressed nods from the knights. Your knowledge of the city has proven invaluable.",
+        "spark_modifier": 1.25,
+        "xp_modifier": 1.2
+      },
+      "C": {
+        "type": "NEUTRAL",
+        "text": "You find a courier, but negotiating takes precious time. The message arrives just as the sun sets - barely in time. The ritual proceeds, though the Order seems less than pleased with the close call.",
+        "spark_modifier": 0.75,
+        "xp_modifier": 0.9
+      }
+    }
+  },
+  "achievements": {
+    "swift_messenger": {
+      "name": "Swift Messenger",
+      "description": "Successfully deliver an urgent message",
+      "icon": "scroll"
+    }
+  },
+  "lore_connection": "The Order of Dawn performs sacred rituals tied to the sun's movements, maintaining the balance between light and shadow in Emberholm.",
+  "is_active": true
+}
