@@ -5,20 +5,22 @@ import { getRealmStatus, RealmStatus } from '@/lib/api';
 
 /**
  * ImmersionBar - Top bar showing realm status
- * Displays: Weather icon, time, date (Era of the Flame, 1978)
+ * Displays: Music toggle, Weather icon, time, date (Era of the Flame, 1978)
  */
 
 const WEATHER_ICONS: Record<string, string> = {
   sun: '☀️',
   cloud: '☁️',
   'cloud-lightning': '⛈️',
-  'cloud-drizzle': '🔥',
+  'cloud-drizzle': '🌧️',
   moon: '🌙',
   wind: '💨',
+  fire: '🔥',
 };
 
 export function ImmersionBar() {
   const [realm, setRealm] = useState<RealmStatus | null>(null);
+  const [soundEnabled, setSoundEnabled] = useState(true);
 
   useEffect(() => {
     // Fetch realm status
@@ -38,10 +40,24 @@ export function ImmersionBar() {
     return () => clearInterval(interval);
   }, []);
 
+  const toggleSound = () => {
+    setSoundEnabled(!soundEnabled);
+  };
+
   if (!realm) {
     return (
-      <div className="immersion-bar">
-        <span className="opacity-50">Loading realm...</span>
+      <div className="top-bar">
+        <div className="top-bar-left">
+          <span className="music-icon" onClick={toggleSound}>
+            {soundEnabled ? '🔊' : '🔇'}
+          </span>
+        </div>
+        <div className="top-bar-center">
+          <span className="text-amber-dim">Loading realm...</span>
+        </div>
+        <div className="top-bar-right">
+          <span className="weather-icon">🔥</span>
+        </div>
       </div>
     );
   }
@@ -49,15 +65,28 @@ export function ImmersionBar() {
   const weatherIcon = WEATHER_ICONS[realm.weather.icon] || '🔥';
 
   return (
-    <div className="immersion-bar safe-area-top">
-      <span className="flex items-center gap-1">
-        <span>{weatherIcon}</span>
-        <span>{realm.weather.name}</span>
-      </span>
-      <span className="text-ember-400/50">·</span>
-      <span>{realm.time}</span>
-      <span className="text-ember-400/50">·</span>
-      <span>{realm.date}</span>
+    <div className="top-bar">
+      {/* Left: Sound toggle */}
+      <div className="top-bar-left">
+        <span
+          className={`music-icon ${!soundEnabled ? 'muted' : ''}`}
+          onClick={toggleSound}
+        >
+          {soundEnabled ? '🔊' : '🔇'}
+        </span>
+      </div>
+
+      {/* Center: Time and Date */}
+      <div className="top-bar-center">
+        <span>{realm.time}</span>
+        <span>{realm.date}</span>
+      </div>
+
+      {/* Right: Weather */}
+      <div className="top-bar-right">
+        <span className="weather-icon">{weatherIcon}</span>
+        <span className="text-xs">{realm.weather.name}</span>
+      </div>
     </div>
   );
 }
