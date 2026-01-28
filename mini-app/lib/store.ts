@@ -1,33 +1,53 @@
 /**
- * EMBERHOLM MINI APP - Global State Store
+ * EMBERHOLM MINI APP - Global State Store v2
  * Simple React context-based store for app state
+ * Includes: Navigation, User, $PYRE, Social/Chat
  */
 
 import { createContext, useContext, useReducer, ReactNode } from 'react';
-import { Emissary, RealmStatus, ActiveMicroMission } from './api';
+import { Emissary, RealmStatus, ActiveMicroMission, UserProfile, Conversation, PrivateMessage, CountryStats } from './api';
 
 // =========================================
 // State Types
 // =========================================
 
 export type AppScreen =
-  | 'intro'
-  | 'welcome'
-  | 'menu'
-  | 'emissaries'
-  | 'mission-select'
-  | 'mission-play'
-  | 'mission-complete'
-  | 'vault';
+  // Intro Flow
+  | 'welcome'           // "Enter the Portal" screen
+  | 'country-select'    // Country selector
+  | 'portal-entry'      // "Accessing Emberholm..." animation
+  // Main Navigation
+  | 'menu'              // Main menu (6 options)
+  // Social
+  | 'social-globe'      // 3D Globe with countries
+  | 'social-users'      // Users list from a country
+  | 'chat'              // 1:1 chat screen
+  // Play
+  | 'play'              // Tabs: Emissaries/Missions/Micro
+  | 'emissary-detail'   // Emissary detail + inventory
+  | 'inventory'         // Full inventory view
+  | 'missions'          // Normal missions list
+  | 'micro-missions'    // Micro-missions list
+  | 'timer'             // Active mission timer
+  // Vault
+  | 'vault'             // Tabs: Tokens/$PYRE/Actions
+  // Other
+  | 'events'            // Events list
+  | 'lore'              // Lore chapters
+  | 'tutorial'          // Tutorial screen
+  | 'leaderboard'       // Leaderboard
+  | 'mint'              // Mint new emissary
+  | 'pyre-guide';       // $PYRE guide
 
 export interface AppState {
   // Navigation
   currentScreen: AppScreen;
-  previousScreen: AppScreen | null;
+  screenHistory: AppScreen[];
 
   // User
   wallet: string | null;
   isConnected: boolean;
+  userProfile: UserProfile | null;
 
   // Realm
   realmStatus: RealmStatus | null;
@@ -36,17 +56,27 @@ export interface AppState {
   emissaries: Emissary[];
   selectedEmissary: Emissary | null;
 
-  // $SPARK
-  sparkBalance: number;
+  // $PYRE (formerly $SPARK)
+  pyreBalance: number;
+  pyreTotalEarned: number;
+  pyreDailyAvailable: boolean;
 
   // Active Mission
   activeMission: ActiveMicroMission | null;
   selectedMissionId: string | null;
 
+  // Social
+  countries: CountryStats[];
+  selectedCountry: string | null;
+  conversations: Conversation[];
+  currentChatWallet: string | null;
+  chatMessages: PrivateMessage[];
+  unreadCount: number;
+
   // UI State
   isLoading: boolean;
   error: string | null;
-  introComplete: boolean;
+  soundEnabled: boolean;
 }
 
 // =========================================
@@ -54,18 +84,36 @@ export interface AppState {
 // =========================================
 
 type AppAction =
+  // Navigation
   | { type: 'SET_SCREEN'; screen: AppScreen }
+  | { type: 'GO_BACK' }
+  | { type: 'RESET_HISTORY' }
+  // User
   | { type: 'SET_WALLET'; wallet: string | null }
   | { type: 'SET_CONNECTED'; isConnected: boolean }
+  | { type: 'SET_USER_PROFILE'; profile: UserProfile | null }
+  // Realm
   | { type: 'SET_REALM_STATUS'; status: RealmStatus }
+  // Emissaries
   | { type: 'SET_EMISSARIES'; emissaries: Emissary[] }
   | { type: 'SELECT_EMISSARY'; emissary: Emissary | null }
-  | { type: 'SET_SPARK_BALANCE'; balance: number }
+  // $PYRE
+  | { type: 'SET_PYRE_BALANCE'; balance: number; totalEarned?: number; dailyAvailable?: boolean }
+  // Missions
   | { type: 'SET_ACTIVE_MISSION'; mission: ActiveMicroMission | null }
   | { type: 'SELECT_MISSION'; missionId: string | null }
+  // Social
+  | { type: 'SET_COUNTRIES'; countries: CountryStats[] }
+  | { type: 'SELECT_COUNTRY'; countryCode: string | null }
+  | { type: 'SET_CONVERSATIONS'; conversations: Conversation[] }
+  | { type: 'SET_CURRENT_CHAT'; wallet: string | null }
+  | { type: 'SET_CHAT_MESSAGES'; messages: PrivateMessage[] }
+  | { type: 'ADD_CHAT_MESSAGE'; message: PrivateMessage }
+  | { type: 'SET_UNREAD_COUNT'; count: number }
+  // UI
   | { type: 'SET_LOADING'; isLoading: boolean }
   | { type: 'SET_ERROR'; error: string | null }
-  | { type: 'COMPLETE_INTRO' }
+  | { type: 'TOGGLE_SOUND' }
   | { type: 'RESET' };
 
 // =========================================
@@ -73,19 +121,43 @@ type AppAction =
 // =========================================
 
 const initialState: AppState = {
-  currentScreen: 'intro',
-  previousScreen: null,
+  // Navigation
+  currentScreen: 'welcome',
+  screenHistory: [],
+
+  // User
   wallet: null,
   isConnected: false,
+  userProfile: null,
+
+  // Realm
   realmStatus: null,
+
+  // Emissaries
   emissaries: [],
   selectedEmissary: null,
-  sparkBalance: 0,
+
+  // $PYRE
+  pyreBalance: 0,
+  pyreTotalEarned: 0,
+  pyreDailyAvailable: true,
+
+  // Missions
   activeMission: null,
   selectedMissionId: null,
+
+  // Social
+  countries: [],
+  selectedCountry: null,
+  conversations: [],
+  currentChatWallet: null,
+  chatMessages: [],
+  unreadCount: 0,
+
+  // UI
   isLoading: false,
   error: null,
-  introComplete: false,
+  soundEnabled: true,
 };
 
 // =========================================
@@ -94,13 +166,33 @@ const initialState: AppState = {
 
 function appReducer(state: AppState, action: AppAction): AppState {
   switch (action.type) {
+    // Navigation
     case 'SET_SCREEN':
       return {
         ...state,
-        previousScreen: state.currentScreen,
+        screenHistory: [...state.screenHistory, state.currentScreen],
         currentScreen: action.screen,
       };
 
+    case 'GO_BACK':
+      if (state.screenHistory.length === 0) {
+        return { ...state, currentScreen: 'menu' };
+      }
+      const history = [...state.screenHistory];
+      const previousScreen = history.pop()!;
+      return {
+        ...state,
+        screenHistory: history,
+        currentScreen: previousScreen,
+      };
+
+    case 'RESET_HISTORY':
+      return {
+        ...state,
+        screenHistory: [],
+      };
+
+    // User
     case 'SET_WALLET':
       return {
         ...state,
@@ -114,12 +206,20 @@ function appReducer(state: AppState, action: AppAction): AppState {
         isConnected: action.isConnected,
       };
 
+    case 'SET_USER_PROFILE':
+      return {
+        ...state,
+        userProfile: action.profile,
+      };
+
+    // Realm
     case 'SET_REALM_STATUS':
       return {
         ...state,
         realmStatus: action.status,
       };
 
+    // Emissaries
     case 'SET_EMISSARIES':
       return {
         ...state,
@@ -132,12 +232,16 @@ function appReducer(state: AppState, action: AppAction): AppState {
         selectedEmissary: action.emissary,
       };
 
-    case 'SET_SPARK_BALANCE':
+    // $PYRE
+    case 'SET_PYRE_BALANCE':
       return {
         ...state,
-        sparkBalance: action.balance,
+        pyreBalance: action.balance,
+        pyreTotalEarned: action.totalEarned ?? state.pyreTotalEarned,
+        pyreDailyAvailable: action.dailyAvailable ?? state.pyreDailyAvailable,
       };
 
+    // Missions
     case 'SET_ACTIVE_MISSION':
       return {
         ...state,
@@ -150,6 +254,52 @@ function appReducer(state: AppState, action: AppAction): AppState {
         selectedMissionId: action.missionId,
       };
 
+    // Social
+    case 'SET_COUNTRIES':
+      return {
+        ...state,
+        countries: action.countries,
+      };
+
+    case 'SELECT_COUNTRY':
+      return {
+        ...state,
+        selectedCountry: action.countryCode,
+      };
+
+    case 'SET_CONVERSATIONS':
+      return {
+        ...state,
+        conversations: action.conversations,
+        unreadCount: action.conversations.reduce((sum, c) => sum + c.unread_count, 0),
+      };
+
+    case 'SET_CURRENT_CHAT':
+      return {
+        ...state,
+        currentChatWallet: action.wallet,
+        chatMessages: action.wallet ? state.chatMessages : [],
+      };
+
+    case 'SET_CHAT_MESSAGES':
+      return {
+        ...state,
+        chatMessages: action.messages,
+      };
+
+    case 'ADD_CHAT_MESSAGE':
+      return {
+        ...state,
+        chatMessages: [...state.chatMessages, action.message],
+      };
+
+    case 'SET_UNREAD_COUNT':
+      return {
+        ...state,
+        unreadCount: action.count,
+      };
+
+    // UI
     case 'SET_LOADING':
       return {
         ...state,
@@ -162,17 +312,17 @@ function appReducer(state: AppState, action: AppAction): AppState {
         error: action.error,
       };
 
-    case 'COMPLETE_INTRO':
+    case 'TOGGLE_SOUND':
       return {
         ...state,
-        introComplete: true,
-        currentScreen: 'welcome',
+        soundEnabled: !state.soundEnabled,
       };
 
     case 'RESET':
       return {
         ...initialState,
-        realmStatus: state.realmStatus, // Keep realm status
+        realmStatus: state.realmStatus,
+        soundEnabled: state.soundEnabled,
       };
 
     default:
@@ -222,17 +372,43 @@ export function useApp() {
 // =========================================
 
 export const actions = {
+  // Navigation
   setScreen: (screen: AppScreen): AppAction => ({ type: 'SET_SCREEN', screen }),
+  goBack: (): AppAction => ({ type: 'GO_BACK' }),
+  resetHistory: (): AppAction => ({ type: 'RESET_HISTORY' }),
+
+  // User
   setWallet: (wallet: string | null): AppAction => ({ type: 'SET_WALLET', wallet }),
   setConnected: (isConnected: boolean): AppAction => ({ type: 'SET_CONNECTED', isConnected }),
+  setUserProfile: (profile: UserProfile | null): AppAction => ({ type: 'SET_USER_PROFILE', profile }),
+
+  // Realm
   setRealmStatus: (status: RealmStatus): AppAction => ({ type: 'SET_REALM_STATUS', status }),
+
+  // Emissaries
   setEmissaries: (emissaries: Emissary[]): AppAction => ({ type: 'SET_EMISSARIES', emissaries }),
   selectEmissary: (emissary: Emissary | null): AppAction => ({ type: 'SELECT_EMISSARY', emissary }),
-  setSparkBalance: (balance: number): AppAction => ({ type: 'SET_SPARK_BALANCE', balance }),
+
+  // $PYRE
+  setPyreBalance: (balance: number, totalEarned?: number, dailyAvailable?: boolean): AppAction =>
+    ({ type: 'SET_PYRE_BALANCE', balance, totalEarned, dailyAvailable }),
+
+  // Missions
   setActiveMission: (mission: ActiveMicroMission | null): AppAction => ({ type: 'SET_ACTIVE_MISSION', mission }),
   selectMission: (missionId: string | null): AppAction => ({ type: 'SELECT_MISSION', missionId }),
+
+  // Social
+  setCountries: (countries: CountryStats[]): AppAction => ({ type: 'SET_COUNTRIES', countries }),
+  selectCountry: (countryCode: string | null): AppAction => ({ type: 'SELECT_COUNTRY', countryCode }),
+  setConversations: (conversations: Conversation[]): AppAction => ({ type: 'SET_CONVERSATIONS', conversations }),
+  setCurrentChat: (wallet: string | null): AppAction => ({ type: 'SET_CURRENT_CHAT', wallet }),
+  setChatMessages: (messages: PrivateMessage[]): AppAction => ({ type: 'SET_CHAT_MESSAGES', messages }),
+  addChatMessage: (message: PrivateMessage): AppAction => ({ type: 'ADD_CHAT_MESSAGE', message }),
+  setUnreadCount: (count: number): AppAction => ({ type: 'SET_UNREAD_COUNT', count }),
+
+  // UI
   setLoading: (isLoading: boolean): AppAction => ({ type: 'SET_LOADING', isLoading }),
   setError: (error: string | null): AppAction => ({ type: 'SET_ERROR', error }),
-  completeIntro: (): AppAction => ({ type: 'COMPLETE_INTRO' }),
+  toggleSound: (): AppAction => ({ type: 'TOGGLE_SOUND' }),
   reset: (): AppAction => ({ type: 'RESET' }),
 };
