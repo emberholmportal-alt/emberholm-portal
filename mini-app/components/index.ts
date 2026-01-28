@@ -26,6 +26,14 @@ export { SocialGlobe } from './screens/SocialGlobe';
 export { SocialUsers } from './screens/SocialUsers';
 export { ChatScreen } from './screens/ChatScreen';
 
+// Secondary Screens
+export { VaultScreen } from './screens/VaultScreen';
+export { MintScreen } from './screens/MintScreen';
+export { EventsScreen } from './screens/EventsScreen';
+export { LoreScreen } from './screens/LoreScreen';
+export { TutorialScreen } from './screens/TutorialScreen';
+export { PyreGuide } from './screens/PyreGuide';
+
 // 3D Components (use dynamic import for these)
 // Globe3D should be imported dynamically to avoid SSR issues
 

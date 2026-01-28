@@ -19,6 +19,12 @@ import { LeaderboardScreen } from '@/components/screens/LeaderboardScreen';
 import { SocialGlobe } from '@/components/screens/SocialGlobe';
 import { SocialUsers } from '@/components/screens/SocialUsers';
 import { ChatScreen } from '@/components/screens/ChatScreen';
+import { VaultScreen } from '@/components/screens/VaultScreen';
+import { MintScreen } from '@/components/screens/MintScreen';
+import { EventsScreen } from '@/components/screens/EventsScreen';
+import { LoreScreen } from '@/components/screens/LoreScreen';
+import { TutorialScreen } from '@/components/screens/TutorialScreen';
+import { PyreGuide } from '@/components/screens/PyreGuide';
 import { useApp, actions, AppScreen, AppProvider } from '@/lib/store';
 import {
   Emissary,
@@ -325,25 +331,43 @@ function AppContent() {
           />
         )}
 
-        {/* Placeholder screens - to be implemented */}
+        {/* Secondary Screens */}
         {state.currentScreen === 'mint' && (
-          <PlaceholderScreen title="MINT EMISSARY" onBack={handleBack} />
+          <MintScreen
+            wallet={state.wallet}
+            onMintSuccess={(tokenId) => {
+              // Refresh emissaries after mint
+              if (state.wallet) {
+                getWalletEmissaries(state.wallet).then(emissaries => {
+                  dispatch(actions.setEmissaries(emissaries));
+                });
+              }
+            }}
+            onBack={handleBack}
+          />
         )}
 
         {state.currentScreen === 'vault' && (
-          <PlaceholderScreen title="VAULT" onBack={handleBack} />
+          <VaultScreen
+            wallet={state.wallet}
+            emissaries={state.emissaries}
+            onBack={handleBack}
+          />
         )}
 
         {state.currentScreen === 'events' && (
-          <PlaceholderScreen title="EVENTS" onBack={handleBack} />
+          <EventsScreen
+            wallet={state.wallet}
+            onBack={handleBack}
+          />
         )}
 
         {state.currentScreen === 'lore' && (
-          <PlaceholderScreen title="LORE" onBack={handleBack} />
+          <LoreScreen onBack={handleBack} />
         )}
 
         {state.currentScreen === 'tutorial' && (
-          <PlaceholderScreen title="TUTORIAL" onBack={handleBack} />
+          <TutorialScreen onBack={handleBack} />
         )}
 
         {/* Social Section */}
@@ -372,7 +396,7 @@ function AppContent() {
         )}
 
         {state.currentScreen === 'pyre-guide' && (
-          <PlaceholderScreen title="$PYRE GUIDE" onBack={handleBack} />
+          <PyreGuide onBack={handleBack} />
         )}
       </div>
     </main>
