@@ -8,9 +8,14 @@ import { BootSequence } from '@/components/screens/BootSequence';
 import { CountrySelect } from '@/components/screens/CountrySelect';
 import { PortalEntry } from '@/components/screens/PortalEntry';
 import { MainMenu } from '@/components/screens/MainMenu';
+import { PlayScreen } from '@/components/screens/PlayScreen';
 import { EmissaryList } from '@/components/screens/EmissaryList';
-import { MissionSelect } from '@/components/screens/MissionSelect';
+import { EmissaryDetail } from '@/components/screens/EmissaryDetail';
+import { MissionsScreen } from '@/components/screens/MissionsScreen';
+import { MicroMissionsScreen } from '@/components/screens/MicroMissionsScreen';
 import { MissionPlayer } from '@/components/screens/MissionPlayer';
+import { TimerScreen } from '@/components/screens/TimerScreen';
+import { LeaderboardScreen } from '@/components/screens/LeaderboardScreen';
 import { useApp, actions, AppScreen, AppProvider } from '@/lib/store';
 import {
   Emissary,
@@ -18,6 +23,7 @@ import {
   getWalletEmissaries,
   getPyreBalance,
   getActiveMicroMission,
+  getMicroMissionDetail,
   updateProfile,
 } from '@/lib/api';
 
@@ -149,13 +155,21 @@ function AppContent() {
   // Emissary handlers
   const handleSelectEmissary = (emissary: Emissary) => {
     dispatch(actions.selectEmissary(emissary));
-    dispatch(actions.setScreen('mission-select'));
+    dispatch(actions.setScreen('emissary-detail'));
+  };
+
+  const handleStartMission = () => {
+    dispatch(actions.setScreen('missions'));
+  };
+
+  const handleStartMicroMission = () => {
+    dispatch(actions.setScreen('micro-missions'));
   };
 
   // Mission handlers
   const handleSelectMission = (mission: MicroMission) => {
     if (!state.selectedEmissary) {
-      dispatch(actions.setScreen('emissary-detail'));
+      dispatch(actions.setScreen('play'));
       return;
     }
     dispatch(actions.selectMission(mission.id));
@@ -222,16 +236,37 @@ function AppContent() {
 
         {/* Play Section */}
         {state.currentScreen === 'play' && (
-          <EmissaryList
-            emissaries={state.emissaries}
-            onSelect={handleSelectEmissary}
+          <PlayScreen
+            emissaryCount={state.emissaries.length}
+            activeMission={state.activeMission}
+            onNavigate={handleNavigate}
             onBack={handleBack}
-            isLoading={state.isLoading}
+          />
+        )}
+
+        {state.currentScreen === 'emissary-detail' && state.selectedEmissary && (
+          <EmissaryDetail
+            emissary={state.selectedEmissary}
+            onStartMission={handleStartMission}
+            onStartMicroMission={handleStartMicroMission}
+            onBack={handleBack}
+          />
+        )}
+
+        {state.currentScreen === 'missions' && (
+          <MissionsScreen
+            emissary={state.selectedEmissary}
+            onSelectMission={(mission) => {
+              // Normal missions handled differently - future implementation
+              console.log('Selected mission:', mission);
+            }}
+            onSelectEmissary={() => handleNavigate('emissary-list')}
+            onBack={handleBack}
           />
         )}
 
         {state.currentScreen === 'micro-missions' && (
-          <MissionSelect
+          <MicroMissionsScreen
             selectedEmissary={state.selectedEmissary}
             onSelectMission={handleSelectMission}
             onBack={handleBack}
@@ -246,6 +281,33 @@ function AppContent() {
             wallet={state.wallet}
             onComplete={handleMissionComplete}
             onCancel={handleBack}
+          />
+        )}
+
+        {state.currentScreen === 'timer' && state.activeMission && state.selectedEmissary && state.wallet && !state.selectedMissionId && (
+          <TimerScreen
+            emissary={state.selectedEmissary}
+            activeMission={state.activeMission}
+            wallet={state.wallet}
+            onComplete={handleMissionComplete}
+            onBack={handleBack}
+          />
+        )}
+
+        {state.currentScreen === 'leaderboard' && (
+          <LeaderboardScreen
+            currentWallet={state.wallet}
+            onBack={handleBack}
+          />
+        )}
+
+        {/* Emissary List (for selecting emissary) */}
+        {state.currentScreen === 'emissary-list' && (
+          <EmissaryList
+            emissaries={state.emissaries}
+            onSelect={handleSelectEmissary}
+            onBack={handleBack}
+            isLoading={state.isLoading}
           />
         )}
 
@@ -280,10 +342,6 @@ function AppContent() {
 
         {state.currentScreen === 'chat' && (
           <PlaceholderScreen title="CHAT" onBack={handleBack} />
-        )}
-
-        {state.currentScreen === 'leaderboard' && (
-          <PlaceholderScreen title="LEADERBOARD" onBack={handleBack} />
         )}
 
         {state.currentScreen === 'pyre-guide' && (

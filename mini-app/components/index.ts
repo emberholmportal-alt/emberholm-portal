@@ -10,10 +10,18 @@ export { PortalEntry } from './screens/PortalEntry';
 
 // Main Screens
 export { MainMenu } from './screens/MainMenu';
-export { EmissaryList } from './screens/EmissaryList';
-export { MissionSelect } from './screens/MissionSelect';
-export { MissionPlayer } from './screens/MissionPlayer';
 
-// Legacy (for backwards compatibility during migration)
+// Play Screens
+export { PlayScreen } from './screens/PlayScreen';
+export { EmissaryList } from './screens/EmissaryList';
+export { EmissaryDetail } from './screens/EmissaryDetail';
+export { MissionsScreen } from './screens/MissionsScreen';
+export { MicroMissionsScreen } from './screens/MicroMissionsScreen';
+export { MissionPlayer } from './screens/MissionPlayer';
+export { TimerScreen } from './screens/TimerScreen';
+export { LeaderboardScreen } from './screens/LeaderboardScreen';
+
+// Legacy (for backwards compatibility)
+export { MissionSelect } from './screens/MissionSelect';
 export { EnterPortal } from './screens/EnterPortal';
 export { WelcomeOperator } from './screens/WelcomeOperator';

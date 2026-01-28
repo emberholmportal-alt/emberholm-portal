@@ -23,7 +23,8 @@ export type AppScreen =
   | 'social-users'      // Users list from a country
   | 'chat'              // 1:1 chat screen
   // Play
-  | 'play'              // Tabs: Emissaries/Missions/Micro
+  | 'play'              // Play submenu (4 options)
+  | 'emissary-list'     // Emissary list for selection
   | 'emissary-detail'   // Emissary detail + inventory
   | 'inventory'         // Full inventory view
   | 'missions'          // Normal missions list
