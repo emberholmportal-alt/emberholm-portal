@@ -2319,6 +2319,8 @@ def update_guild_stats(guild_name, xp_gain, aura_gain, stats_obj, success=True):
 
     # 1) Actualizar stats["guild_ranking"] (para success rate)
     guild_ranking = stats_obj.get("guild_ranking", {})
+    if not isinstance(guild_ranking, dict):
+        guild_ranking = {}
     if guild_name not in guild_ranking:
         guild_ranking[guild_name] = {
             "xp": 0,
@@ -4431,6 +4433,8 @@ def api_mission_start():
 
         # Check mission cooldown (72h)
         mission_hist = ds.get("mission_history", {})
+        if not isinstance(mission_hist, dict):
+            mission_hist = {}
         last_run_ts = mission_hist.get(mission_id)
         if last_run_ts and hours_since(last_run_ts) < ROTATION_HOURS:
             hours_left = ROTATION_HOURS - hours_since(last_run_ts)
