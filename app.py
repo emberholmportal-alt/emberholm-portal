@@ -4781,7 +4781,7 @@ def handle_party_mission_complete(wallet, party_mission):
             ds["total_missions_completed"] = ds.get("total_missions_completed", 0) + 1
 
             # Update mission history
-            if "mission_history" not in ds:
+            if "mission_history" not in ds or not isinstance(ds["mission_history"], dict):
                 ds["mission_history"] = {}
             ds["mission_history"][mission_id] = now_utc_str()
 
@@ -4807,7 +4807,7 @@ def handle_party_mission_complete(wallet, party_mission):
             ds["total_missions_failed"] = ds.get("total_missions_failed", 0) + 1
 
             # Update mission history (even on failure, still cooldown)
-            if "mission_history" not in ds:
+            if "mission_history" not in ds or not isinstance(ds["mission_history"], dict):
                 ds["mission_history"] = {}
             ds["mission_history"][mission_id] = now_utc_str()
 
@@ -4824,7 +4824,7 @@ def handle_party_mission_complete(wallet, party_mission):
             ds["total_missions_failed"] = ds.get("total_missions_failed", 0) + 1
 
             # Update mission history (even on death, still cooldown)
-            if "mission_history" not in ds:
+            if "mission_history" not in ds or not isinstance(ds["mission_history"], dict):
                 ds["mission_history"] = {}
             ds["mission_history"][mission_id] = now_utc_str()
 
@@ -5185,6 +5185,8 @@ def api_mission_complete():
 
             # Update mission history
             mission_hist = ds.get("mission_history", {})
+            if not isinstance(mission_hist, dict):
+                mission_hist = {}
             mission_hist[mission_id] = now_utc_str()
             ds["mission_history"] = mission_hist
 
@@ -9669,6 +9671,8 @@ def complete_mission_with_lock(wallet, hero_id):
 
                 # Update mission history
                 mission_hist = ds.get('mission_history', {})
+                if not isinstance(mission_hist, dict):
+                    mission_hist = {}
                 mission_hist[mission_id] = now_utc_str()
                 ds['mission_history'] = mission_hist
 
@@ -9891,6 +9895,8 @@ def start_mission_with_lock(wallet, hero_id, mission_id, equipment_bonuses=None)
 
                 # Step 5: Check mission cooldown
                 mission_hist = ds.get('mission_history', {})
+                if not isinstance(mission_hist, dict):
+                    mission_hist = {}
                 last_run_ts = mission_hist.get(mission_id)
                 if last_run_ts and hours_since(last_run_ts) < ROTATION_HOURS:
                     hours_left = ROTATION_HOURS - hours_since(last_run_ts)
