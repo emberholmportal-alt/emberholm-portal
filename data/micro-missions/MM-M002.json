@@ -69,5 +69,9 @@
     }
   },
   "lore_connection": "The six guilds of Emberholm have a long and complicated history. Though they work together to maintain the realm, old rivalries never truly die - they merely smolder.",
-  "is_active": true
+  "is_active": true,
+  "ember_reward": {
+    "min": 3,
+    "max": 10
+  }
 }
