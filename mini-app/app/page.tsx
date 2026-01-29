@@ -19,6 +19,7 @@ import { LeaderboardScreen } from '@/components/screens/LeaderboardScreen';
 import { SocialGlobe } from '@/components/screens/SocialGlobe';
 import { SocialUsers } from '@/components/screens/SocialUsers';
 import { ChatScreen } from '@/components/screens/ChatScreen';
+import { GlobalChatScreen } from '@/components/screens/GlobalChatScreen';
 import { VaultScreen } from '@/components/screens/VaultScreen';
 import { MintScreen } from '@/components/screens/MintScreen';
 import { EventsScreen } from '@/components/screens/EventsScreen';
@@ -362,6 +363,7 @@ function AppContent() {
         {state.currentScreen === 'social-globe' && (
           <SocialGlobe
             onSelectCountry={handleSelectCountry}
+            onGlobalChat={() => handleNavigate('global-chat')}
             onBack={handleBack}
           />
         )}
@@ -379,6 +381,13 @@ function AppContent() {
           <ChatScreen
             wallet={state.wallet}
             otherWallet={state.currentChatWallet}
+            onBack={handleBack}
+          />
+        )}
+
+        {state.currentScreen === 'global-chat' && (
+          <GlobalChatScreen
+            wallet={state.wallet}
             onBack={handleBack}
           />
         )}

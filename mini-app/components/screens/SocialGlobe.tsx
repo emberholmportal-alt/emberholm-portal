@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import dynamic from 'next/dynamic';
+import Image from 'next/image';
 import { getCountries, getOnlineStats, CountryStats, OnlineStats } from '@/lib/api';
 import { getCountryName } from '@/lib/hooks/useGlobe';
 
@@ -22,10 +23,11 @@ const Globe3D = dynamic(() => import('@/components/Globe3D'), {
 
 interface SocialGlobeProps {
   onSelectCountry: (countryCode: string) => void;
+  onGlobalChat: () => void;
   onBack: () => void;
 }
 
-export function SocialGlobe({ onSelectCountry, onBack }: SocialGlobeProps) {
+export function SocialGlobe({ onSelectCountry, onGlobalChat, onBack }: SocialGlobeProps) {
   const [countries, setCountries] = useState<CountryStats[]>([]);
   const [stats, setStats] = useState<OnlineStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -164,6 +166,21 @@ export function SocialGlobe({ onSelectCountry, onBack }: SocialGlobeProps) {
             ))}
           </div>
         </div>
+
+        {/* Global Chat Button */}
+        <button
+          onClick={onGlobalChat}
+          className="w-full btn large flex items-center justify-center gap-2"
+        >
+          <Image
+            src="/icons/fire.png"
+            alt=""
+            width={20}
+            height={20}
+            className="pixel-icon"
+          />
+          GLOBAL CHAT
+        </button>
 
         {/* Instructions */}
         <div className="text-center text-xs text-amber-dim">
