@@ -2,9 +2,11 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import Image from 'next/image';
 
 /**
  * TutorialScreen - Game guide
+ * Content from portal web tutorial sections
  */
 
 interface TutorialScreenProps {
@@ -15,6 +17,7 @@ interface TutorialSection {
   id: string;
   title: string;
   icon: string;
+  iconSrc?: string;
   summary: string;
   content: string[];
 }
@@ -23,7 +26,8 @@ const TUTORIAL_SECTIONS: TutorialSection[] = [
   {
     id: 'getting-started',
     title: 'GETTING STARTED',
-    icon: '🎮',
+    icon: '',
+    iconSrc: '/icons/Sparkles.png',
     summary: 'Your first steps in Emberholm',
     content: [
       '1. MINT YOUR EMISSARY: Get your first Emissary by minting from the portal. Each one is unique!',
@@ -36,7 +40,8 @@ const TUTORIAL_SECTIONS: TutorialSection[] = [
   {
     id: 'missions',
     title: 'MISSIONS',
-    icon: '⚔️',
+    icon: '',
+    iconSrc: '/icons/Swords.png',
     summary: 'Long adventures with high rewards',
     content: [
       'DURATION: Missions last 1-24 hours depending on difficulty.',
@@ -50,7 +55,8 @@ const TUTORIAL_SECTIONS: TutorialSection[] = [
   {
     id: 'micro-missions',
     title: 'MICRO-MISSIONS',
-    icon: '⚡',
+    icon: '',
+    iconSrc: '/icons/Lightning.png',
     summary: 'Quick 1-5 minute adventures',
     content: [
       'DURATION: 1-5 minutes. Perfect for quick play sessions.',
@@ -64,7 +70,8 @@ const TUTORIAL_SECTIONS: TutorialSection[] = [
   {
     id: 'economy',
     title: 'ECONOMY',
-    icon: '💰',
+    icon: '',
+    iconSrc: '/icons/moneybag.png',
     summary: 'Understanding $EMBER, $ASH, and $PYRE',
     content: [
       '$EMBER: Main currency. Earned from missions. Used to buy items, upgrade gear, and more.',
@@ -78,7 +85,8 @@ const TUTORIAL_SECTIONS: TutorialSection[] = [
   {
     id: 'equipment',
     title: 'EQUIPMENT',
-    icon: '🛡️',
+    icon: '',
+    iconSrc: '/icons/shield.png',
     summary: 'Gear up for battle',
     content: [
       'SLOTS: Weapon, Armor, Accessory, and 3 Rune slots.',
@@ -92,7 +100,8 @@ const TUTORIAL_SECTIONS: TutorialSection[] = [
   {
     id: 'survival',
     title: 'SURVIVAL TIPS',
-    icon: '💀',
+    icon: '',
+    iconSrc: '/icons/skull.png',
     summary: 'Stay alive in a dangerous world',
     content: [
       '1. CHECK DEATH CHANCE: Always review the death % before starting a mission.',
@@ -140,7 +149,17 @@ export function TutorialScreen({ onBack }: TutorialScreenProps) {
                        hover:border-amber"
             >
               <div className="flex items-start gap-3">
-                <span className="text-2xl">{section.icon}</span>
+                {section.iconSrc ? (
+                  <Image
+                    src={section.iconSrc}
+                    alt=""
+                    width={24}
+                    height={24}
+                    className="pixel-icon mt-1"
+                  />
+                ) : (
+                  <span className="text-2xl">{section.icon}</span>
+                )}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between">
                     <span className="text-amber-bright font-semibold">

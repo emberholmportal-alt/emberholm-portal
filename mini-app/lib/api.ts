@@ -448,3 +448,56 @@ export async function markMessagesRead(wallet: string, fromWallet: string): Prom
   });
   return data.marked_read;
 }
+
+// =========================================
+// Social - Global Chat
+// =========================================
+
+export interface GlobalMessage {
+  id: number;
+  wallet: string;
+  display_name: string | null;
+  farcaster_username: string | null;
+  farcaster_pfp_url: string | null;
+  message: string;
+  created_at: string;
+}
+
+export async function getGlobalMessages(limit = 100, before_id?: number): Promise<GlobalMessage[]> {
+  const params = new URLSearchParams({ limit: String(limit) });
+  if (before_id) params.append('before_id', String(before_id));
+
+  try {
+    const data = await fetchAPI<{ success: boolean; messages: GlobalMessage[] }>(
+      `/api/social/global-chat?${params}`
+    );
+    return data.messages;
+  } catch {
+    // Return mock data if endpoint doesn't exist yet
+    return [];
+  }
+}
+
+export async function sendGlobalMessage(wallet: string, message: string): Promise<GlobalMessage> {
+  const data = await fetchAPI<{ success: boolean; message: GlobalMessage }>('/api/social/global-chat', {
+    method: 'POST',
+    body: JSON.stringify({ wallet, message }),
+  });
+  return data.message;
+}
+
+// =========================================
+// Social - All Operators (NFT Holders)
+// =========================================
+
+export async function getAllOperators(limit = 100, offset = 0): Promise<CountryUser[]> {
+  try {
+    const data = await fetchAPI<{ success: boolean; users: CountryUser[] }>(
+      `/api/social/operators?limit=${limit}&offset=${offset}`
+    );
+    return data.users;
+  } catch {
+    // Return mock data if endpoint doesn't exist yet
+    return [];
+  }
+}

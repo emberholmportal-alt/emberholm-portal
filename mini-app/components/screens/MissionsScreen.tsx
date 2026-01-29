@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import Image from 'next/image';
 import { Emissary } from '@/lib/api';
 
 /**
@@ -110,15 +111,17 @@ export function MissionsScreen({
                     className="w-full h-full object-cover"
                   />
                 ) : (
-                  <span>⚔️</span>
+                  <Image src="/icons/Swords.png" alt="" width={24} height={24} className="pixel-icon" />
                 )}
               </div>
               <div>
                 <p className="text-amber text-sm font-semibold">
                   {emissary.name || `#${emissary.token_id}`}
                 </p>
-                <p className="text-xs text-amber-dim">
-                  LVL {emissary.stats.level} · ⚡{emissary.stats.energy_current}
+                <p className="text-xs text-amber-dim flex items-center gap-1">
+                  LVL {emissary.stats.level} ·
+                  <Image src="/icons/Lightning.png" alt="" width={12} height={12} className="pixel-icon inline" />
+                  {emissary.stats.energy_current}
                 </p>
               </div>
             </div>
@@ -167,7 +170,13 @@ export function MissionsScreen({
       {isLoading && (
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
-            <div className="text-3xl animate-pulse mb-2">🗺️</div>
+            <Image
+              src="/icons/map.gif"
+              alt=""
+              width={32}
+              height={32}
+              className="pixel-icon mx-auto animate-pulse mb-2"
+            />
             <p className="text-amber-dim text-sm">Loading missions...</p>
           </div>
         </div>
@@ -222,8 +231,9 @@ export function MissionsScreen({
                     </div>
                     <div>
                       <span className="text-amber-darker">Energy</span>
-                      <p className={hasEnergy ? 'text-amber' : 'text-red'}>
-                        ⚡{mission.energy_cost}
+                      <p className={`flex items-center gap-1 ${hasEnergy ? 'text-amber' : 'text-red'}`}>
+                        <Image src="/icons/Lightning.png" alt="" width={12} height={12} className="pixel-icon" />
+                        {mission.energy_cost}
                       </p>
                     </div>
                     <div>

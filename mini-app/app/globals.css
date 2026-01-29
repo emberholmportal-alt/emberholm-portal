@@ -1014,3 +1014,44 @@ body {
 
 .border-amber { border-color: var(--amber); }
 .border-amber-dark { border-color: var(--amber-dark); }
+
+/* ═══════════════════════════════════════════════════════════
+   MENU CONTAINER
+   ═══════════════════════════════════════════════════════════ */
+.menu-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+  padding: 10px 0;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   PIXEL ICONS (CSS Filter for amber color)
+   ═══════════════════════════════════════════════════════════ */
+.pixel-icon {
+  width: 20px;
+  height: 20px;
+  filter: brightness(0) saturate(100%) invert(60%) sepia(95%) saturate(500%) hue-rotate(5deg) brightness(105%);
+  image-rendering: pixelated;
+}
+
+.pixel-icon-large {
+  width: 32px;
+  height: 32px;
+}
+
+.pixel-icon-small {
+  width: 16px;
+  height: 16px;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   LOGO IMAGE
+   ═══════════════════════════════════════════════════════════ */
+.logo-image {
+  max-width: 200px;
+  height: auto;
+  margin: 0 auto;
+  display: block;
+}

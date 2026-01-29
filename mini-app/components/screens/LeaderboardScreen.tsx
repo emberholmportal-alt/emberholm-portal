@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import Image from 'next/image';
 
 /**
  * LeaderboardScreen - Player rankings
@@ -54,7 +55,7 @@ export function LeaderboardScreen({
           xp_total: 10000 - i * 150,
           pyre_total: 5000 - i * 80,
           missions_completed: 100 - i * 2,
-          is_current_user: currentWallet && i === 15, // Mock: current user at position 16
+          is_current_user: !!currentWallet && i === 15, // Mock: current user at position 16
         }));
 
         // Sort based on active tab
@@ -102,11 +103,19 @@ export function LeaderboardScreen({
     return 'text-amber-darker';
   };
 
-  // Get rank icon
-  const getRankIcon = (rank: number) => {
-    if (rank === 1) return '🥇';
-    if (rank === 2) return '🥈';
-    if (rank === 3) return '🥉';
+  // Get rank icon - returns JSX
+  const getRankDisplay = (rank: number) => {
+    if (rank <= 3) {
+      return (
+        <Image
+          src={rank === 1 ? '/icons/crown.png' : '/icons/trophy.png'}
+          alt=""
+          width={16}
+          height={16}
+          className={`pixel-icon inline-block ${rank === 1 ? 'brightness-125' : rank === 2 ? '' : 'brightness-75'}`}
+        />
+      );
+    }
     return `#${rank}`;
   };
 
@@ -165,7 +174,13 @@ export function LeaderboardScreen({
       {isLoading && (
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
-            <div className="text-3xl animate-pulse mb-2">🏆</div>
+            <Image
+              src="/icons/trophy.png"
+              alt=""
+              width={32}
+              height={32}
+              className="pixel-icon mx-auto animate-pulse mb-2"
+            />
             <p className="text-amber-dim text-sm">Loading rankings...</p>
           </div>
         </div>
@@ -185,7 +200,7 @@ export function LeaderboardScreen({
               <div className="flex items-center gap-3">
                 {/* Rank */}
                 <div className={`w-10 text-center font-semibold ${getRankColor(entry.rank)}`}>
-                  {getRankIcon(entry.rank)}
+                  {getRankDisplay(entry.rank)}
                 </div>
 
                 {/* Player info */}

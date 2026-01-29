@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import dynamic from 'next/dynamic';
+import Image from 'next/image';
 import { getCountries, getOnlineStats, CountryStats, OnlineStats } from '@/lib/api';
 import { getCountryName } from '@/lib/hooks/useGlobe';
 
@@ -22,10 +23,11 @@ const Globe3D = dynamic(() => import('@/components/Globe3D'), {
 
 interface SocialGlobeProps {
   onSelectCountry: (countryCode: string) => void;
+  onGlobalChat: () => void;
   onBack: () => void;
 }
 
-export function SocialGlobe({ onSelectCountry, onBack }: SocialGlobeProps) {
+export function SocialGlobe({ onSelectCountry, onGlobalChat, onBack }: SocialGlobeProps) {
   const [countries, setCountries] = useState<CountryStats[]>([]);
   const [stats, setStats] = useState<OnlineStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -72,12 +74,15 @@ export function SocialGlobe({ onSelectCountry, onBack }: SocialGlobeProps) {
         <p className="subtitle">Operators across the Realm</p>
       </motion.div>
 
-      {/* Globe Container */}
+      {/* Globe Container - amber radial gradient background */}
       <motion.div
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ delay: 0.1 }}
         className="flex-1 min-h-[300px] max-h-[400px] relative"
+        style={{
+          background: 'radial-gradient(ellipse at center, #1a0f05 0%, #0a0705 70%)',
+        }}
       >
         {!isLoading && (
           <Globe3D
@@ -161,6 +166,21 @@ export function SocialGlobe({ onSelectCountry, onBack }: SocialGlobeProps) {
             ))}
           </div>
         </div>
+
+        {/* Global Chat Button */}
+        <button
+          onClick={onGlobalChat}
+          className="w-full btn large flex items-center justify-center gap-2"
+        >
+          <Image
+            src="/icons/fire.png"
+            alt=""
+            width={20}
+            height={20}
+            className="pixel-icon"
+          />
+          GLOBAL CHAT
+        </button>
 
         {/* Instructions */}
         <div className="text-center text-xs text-amber-dim">

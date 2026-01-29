@@ -1,6 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
+import Image from 'next/image';
 import { AppScreen } from '@/lib/store';
 import { ActiveMicroMission } from '@/lib/api';
 
@@ -20,7 +21,7 @@ interface MenuItem {
   id: AppScreen | 'emissary-list';
   title: string;
   subtitle: string;
-  icon: string;
+  iconSrc: string;
   description: string;
 }
 
@@ -37,28 +38,28 @@ export function PlayScreen({
       id: 'missions',
       title: 'MISSIONS',
       subtitle: 'Full adventures',
-      icon: '🗺️',
+      iconSrc: '/icons/map.gif',
       description: 'Long quests with rare rewards and risks',
     },
     {
       id: 'micro-missions',
       title: 'MICRO-MISSIONS',
       subtitle: 'Quick adventures',
-      icon: '⚡',
+      iconSrc: '/icons/Lightning.png',
       description: 'Short 1-5 min quests for $PYRE rewards',
     },
     {
       id: 'emissary-list',
       title: 'EMISSARIES',
       subtitle: `${emissaryCount} owned`,
-      icon: '⚔️',
+      iconSrc: '/icons/Swords.png',
       description: 'View and manage your Emissaries',
     },
     {
       id: 'leaderboard',
       title: 'LEADERBOARDS',
       subtitle: 'Rankings',
-      icon: '🏆',
+      iconSrc: '/icons/trophy.png',
       description: 'Global rankings and guild standings',
     },
   ];
@@ -84,7 +85,13 @@ export function PlayScreen({
         >
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <span className="animate-pulse">🔥</span>
+              <Image
+                src="/icons/fire.png"
+                alt=""
+                width={20}
+                height={20}
+                className="pixel-icon animate-pulse"
+              />
               <span className="text-amber text-sm">
                 Active: {activeMission?.name || 'Micro-Mission'}
               </span>
@@ -112,7 +119,13 @@ export function PlayScreen({
                        hover:border-amber active:scale-[0.98]"
           >
             <div className="flex items-start gap-3">
-              <span className="text-2xl">{item.icon}</span>
+              <Image
+                src={item.iconSrc}
+                alt=""
+                width={24}
+                height={24}
+                className="pixel-icon mt-1"
+              />
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between gap-2">
                   <h3 className="text-amber-bright font-semibold">

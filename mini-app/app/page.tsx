@@ -19,6 +19,7 @@ import { LeaderboardScreen } from '@/components/screens/LeaderboardScreen';
 import { SocialGlobe } from '@/components/screens/SocialGlobe';
 import { SocialUsers } from '@/components/screens/SocialUsers';
 import { ChatScreen } from '@/components/screens/ChatScreen';
+import { GlobalChatScreen } from '@/components/screens/GlobalChatScreen';
 import { VaultScreen } from '@/components/screens/VaultScreen';
 import { MintScreen } from '@/components/screens/MintScreen';
 import { EventsScreen } from '@/components/screens/EventsScreen';
@@ -26,13 +27,14 @@ import { LoreScreen } from '@/components/screens/LoreScreen';
 import { TutorialScreen } from '@/components/screens/TutorialScreen';
 import { PyreGuide } from '@/components/screens/PyreGuide';
 import { useApp, actions, AppScreen, AppProvider } from '@/lib/store';
+import { SoundProvider } from '@/lib/SoundContext';
+import { WalletProvider, useWallet } from '@/lib/WalletContext';
 import {
   Emissary,
   MicroMission,
   getWalletEmissaries,
   getPyreBalance,
   getActiveMicroMission,
-  getMicroMissionDetail,
   updateProfile,
 } from '@/lib/api';
 
@@ -43,22 +45,25 @@ import {
 
 function AppContent() {
   const { state, dispatch } = useApp();
+  const wallet = useWallet();
 
-  // Check for existing wallet connection on mount
+  // Sync wallet context with app store
   useEffect(() => {
-    const savedWallet = localStorage.getItem('emberholm_wallet');
+    if (wallet.address && wallet.address !== state.wallet) {
+      dispatch(actions.setWallet(wallet.address));
+    }
+  }, [wallet.address, state.wallet, dispatch]);
+
+  // Check for existing session on mount
+  useEffect(() => {
     const savedCountry = localStorage.getItem('emberholm_country');
     const skipIntro = localStorage.getItem('emberholm_skip_intro');
 
-    if (savedWallet) {
-      dispatch(actions.setWallet(savedWallet));
-    }
-
     // If returning user with saved data, skip to menu
-    if (skipIntro === 'true' && savedCountry) {
+    if (skipIntro === 'true' && savedCountry && wallet.isConnected) {
       dispatch(actions.setScreen('menu'));
     }
-  }, [dispatch]);
+  }, [dispatch, wallet.isConnected]);
 
   // Load data when wallet is connected
   useEffect(() => {
@@ -96,29 +101,10 @@ function AppContent() {
     loadData();
   }, [state.wallet, dispatch]);
 
-  // Wallet connection handler
+  // Wallet connection handler - uses WalletContext
   const handleConnect = useCallback(async () => {
-    try {
-      if (typeof window !== 'undefined' && (window as any).ethereum) {
-        const accounts = await (window as any).ethereum.request({
-          method: 'eth_requestAccounts',
-        });
-        if (accounts[0]) {
-          const wallet = accounts[0].toLowerCase();
-          dispatch(actions.setWallet(wallet));
-          localStorage.setItem('emberholm_wallet', wallet);
-        }
-      } else {
-        // Demo mode - use a placeholder wallet
-        const demoWallet = '0x0000000000000000000000000000000000000000';
-        dispatch(actions.setWallet(demoWallet));
-        localStorage.setItem('emberholm_wallet', demoWallet);
-      }
-    } catch (error) {
-      console.error('Failed to connect:', error);
-      dispatch(actions.setError('Failed to connect wallet'));
-    }
-  }, [dispatch]);
+    await wallet.connect();
+  }, [wallet]);
 
   // Navigation handlers
   const handleNavigate = (screen: AppScreen) => {
@@ -131,7 +117,8 @@ function AppContent() {
 
   // Intro flow handlers
   const handleWelcomeEnter = () => {
-    dispatch(actions.setScreen('country-select'));
+    // Go to Welcome Operator (boot sequence) first
+    dispatch(actions.setScreen('welcome-operator'));
   };
 
   const handleBootComplete = () => {
@@ -213,7 +200,7 @@ function AppContent() {
   };
 
   // Determine which screens should show the top bar
-  const showTopBar = !['welcome', 'country-select', 'portal-entry', 'chat'].includes(state.currentScreen);
+  const showTopBar = !['welcome', 'welcome-operator', 'country-select', 'portal-entry', 'chat'].includes(state.currentScreen);
 
   return (
     <main className="crt-screen relative">
@@ -228,6 +215,10 @@ function AppContent() {
         {/* Intro Flow */}
         {state.currentScreen === 'welcome' && (
           <WelcomeScreen onEnter={handleWelcomeEnter} />
+        )}
+
+        {state.currentScreen === 'welcome-operator' && (
+          <BootSequence onComplete={handleBootComplete} />
         )}
 
         {state.currentScreen === 'country-select' && (
@@ -267,8 +258,7 @@ function AppContent() {
         {state.currentScreen === 'emissary-detail' && state.selectedEmissary && (
           <EmissaryDetail
             emissary={state.selectedEmissary}
-            onStartMission={handleStartMission}
-            onStartMicroMission={handleStartMicroMission}
+            onNavigate={handleNavigate}
             onBack={handleBack}
           />
         )}
@@ -277,8 +267,7 @@ function AppContent() {
           <MissionsScreen
             emissary={state.selectedEmissary}
             onSelectMission={(mission) => {
-              // Normal missions handled differently - future implementation
-              console.log('Selected mission:', mission);
+              // Normal missions - future implementation
             }}
             onSelectEmissary={() => handleNavigate('emissary-list')}
             onBack={handleBack}
@@ -287,10 +276,10 @@ function AppContent() {
 
         {state.currentScreen === 'micro-missions' && (
           <MicroMissionsScreen
-            selectedEmissary={state.selectedEmissary}
+            emissary={state.selectedEmissary}
             onSelectMission={handleSelectMission}
-            onBack={handleBack}
             onSelectEmissary={() => handleNavigate('play')}
+            onBack={handleBack}
           />
         )}
 
@@ -374,6 +363,7 @@ function AppContent() {
         {state.currentScreen === 'social-globe' && (
           <SocialGlobe
             onSelectCountry={handleSelectCountry}
+            onGlobalChat={() => handleNavigate('global-chat')}
             onBack={handleBack}
           />
         )}
@@ -395,6 +385,13 @@ function AppContent() {
           />
         )}
 
+        {state.currentScreen === 'global-chat' && (
+          <GlobalChatScreen
+            wallet={state.wallet}
+            onBack={handleBack}
+          />
+        )}
+
         {state.currentScreen === 'pyre-guide' && (
           <PyreGuide onBack={handleBack} />
         )}
@@ -403,30 +400,15 @@ function AppContent() {
   );
 }
 
-// Placeholder component for screens not yet implemented
-function PlaceholderScreen({ title, onBack }: { title: string; onBack: () => void }) {
-  return (
-    <div className="screen-view flex flex-col min-h-screen p-4">
-      <div className="flex-1 flex items-center justify-center">
-        <div className="portal-box">
-          <div className="ornament">═══ ◈ ═══</div>
-          <h2 className="title text-xl my-6">{title}</h2>
-          <p className="text-amber-dim text-sm">Coming soon...</p>
-          <div className="ornament mt-4">═══ ◈ ═══</div>
-        </div>
-      </div>
-      <button onClick={onBack} className="back-btn">
-        ← BACK
-      </button>
-    </div>
-  );
-}
-
-// Wrap with AppProvider
+// Wrap with Providers
 export default function Home() {
   return (
-    <AppProvider>
-      <AppContent />
-    </AppProvider>
+    <WalletProvider>
+      <SoundProvider>
+        <AppProvider>
+          <AppContent />
+        </AppProvider>
+      </SoundProvider>
+    </WalletProvider>
   );
 }
