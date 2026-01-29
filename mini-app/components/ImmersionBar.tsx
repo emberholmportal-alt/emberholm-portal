@@ -2,11 +2,13 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import Image from 'next/image';
 import { getRealmStatus, RealmStatus } from '@/lib/api';
+import { useSoundContextOptional } from '@/lib/SoundContext';
 
 /**
  * ImmersionBar - Top bar showing realm status
- * Displays: Sound toggle, Flame state, Time/Date, Weather
+ * Displays: Sound toggle, Music toggle, Flame state, Time/Date, Weather
  */
 
 // Weather icons mapping
@@ -43,20 +45,17 @@ const FLAME_COLORS: Record<string, { text: string; glow: string }> = {
 
 export function ImmersionBar() {
   const [realm, setRealm] = useState<RealmStatus | null>(null);
-  const [soundEnabled, setSoundEnabled] = useState(true);
   const [showFlameTooltip, setShowFlameTooltip] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(false);
 
-  // Load sound preference from localStorage
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('emberholm_sound');
-      if (saved !== null) {
-        setSoundEnabled(saved !== 'false');
-      }
-    }
-  }, []);
+  // Get sound context (optional - may not be available during SSR)
+  const soundContext = useSoundContextOptional();
+  const soundEnabled = soundContext?.soundEnabled ?? true;
+  const musicEnabled = soundContext?.musicEnabled ?? true;
+  const toggleSound = soundContext?.toggleSound ?? (() => {});
+  const toggleMusic = soundContext?.toggleMusic ?? (() => {});
+  const playClick = soundContext?.playClick ?? (() => {});
 
   // Fetch realm status
   useEffect(() => {
@@ -80,14 +79,16 @@ export function ImmersionBar() {
     return () => clearInterval(interval);
   }, []);
 
-  // Toggle sound
-  const toggleSound = useCallback(() => {
-    const newValue = !soundEnabled;
-    setSoundEnabled(newValue);
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('emberholm_sound', String(newValue));
-    }
-  }, [soundEnabled]);
+  // Handle toggle with click sound
+  const handleToggleSound = () => {
+    playClick();
+    toggleSound();
+  };
+
+  const handleToggleMusic = () => {
+    playClick();
+    toggleMusic();
+  };
 
   // Get weather icon
   const getWeatherIcon = (iconName?: string): string => {
@@ -103,15 +104,39 @@ export function ImmersionBar() {
     return FLAME_COLORS[normalized] || FLAME_COLORS.STEADY;
   };
 
+  // Sound/Music toggle buttons component
+  const AudioControls = () => (
+    <div className="top-bar-left flex gap-2">
+      <button
+        onClick={handleToggleSound}
+        className={`p-1 rounded hover:bg-amber-dark/20 transition-colors ${!soundEnabled ? 'opacity-50' : ''}`}
+        aria-label={soundEnabled ? 'Mute sounds' : 'Enable sounds'}
+        title={soundEnabled ? 'Sounds ON' : 'Sounds OFF'}
+      >
+        <Image
+          src={soundEnabled ? '/icons/Sparkles.png' : '/icons/skull.png'}
+          alt=""
+          width={16}
+          height={16}
+          className="pixel-icon-small"
+        />
+      </button>
+      <button
+        onClick={handleToggleMusic}
+        className={`p-1 rounded hover:bg-amber-dark/20 transition-colors ${!musicEnabled ? 'opacity-50' : ''}`}
+        aria-label={musicEnabled ? 'Mute music' : 'Enable music'}
+        title={musicEnabled ? 'Music ON' : 'Music OFF'}
+      >
+        <span className="text-sm">{musicEnabled ? '♪' : '♪̸'}</span>
+      </button>
+    </div>
+  );
+
   // Loading state
   if (isLoading) {
     return (
       <div className="top-bar">
-        <div className="top-bar-left">
-          <button onClick={toggleSound} className="p-1 rounded hover:bg-amber-dark/20 transition-colors">
-            {soundEnabled ? '🔊' : '🔇'}
-          </button>
-        </div>
+        <AudioControls />
         <div className="top-bar-center">
           <motion.span
             animate={{ opacity: [0.5, 1, 0.5] }}
@@ -122,7 +147,7 @@ export function ImmersionBar() {
           </motion.span>
         </div>
         <div className="top-bar-right">
-          <span className="text-lg">🔥</span>
+          <Image src="/icons/fire.png" alt="" width={20} height={20} className="pixel-icon" />
         </div>
       </div>
     );
@@ -132,16 +157,12 @@ export function ImmersionBar() {
   if (error || !realm) {
     return (
       <div className="top-bar">
-        <div className="top-bar-left">
-          <button onClick={toggleSound} className="p-1 rounded hover:bg-amber-dark/20 transition-colors">
-            {soundEnabled ? '🔊' : '🔇'}
-          </button>
-        </div>
+        <AudioControls />
         <div className="top-bar-center">
           <span className="text-amber-dim text-xs">Era of the Flame</span>
         </div>
         <div className="top-bar-right">
-          <span className="text-lg">🔥</span>
+          <Image src="/icons/fire.png" alt="" width={20} height={20} className="pixel-icon" />
         </div>
       </div>
     );
@@ -152,20 +173,8 @@ export function ImmersionBar() {
 
   return (
     <div className="top-bar">
-      {/* Left: Sound toggle */}
-      <div className="top-bar-left">
-        <button
-          onClick={toggleSound}
-          className={`
-            p-1 rounded transition-all duration-200
-            hover:bg-amber-dark/20 active:scale-95
-            ${!soundEnabled ? 'opacity-50' : ''}
-          `}
-          aria-label={soundEnabled ? 'Mute sound' : 'Enable sound'}
-        >
-          {soundEnabled ? '🔊' : '🔇'}
-        </button>
-      </div>
+      {/* Left: Sound/Music toggles */}
+      <AudioControls />
 
       {/* Center: Flame state + Time/Date */}
       <div className="top-bar-center relative">
@@ -176,16 +185,16 @@ export function ImmersionBar() {
           onMouseLeave={() => setShowFlameTooltip(false)}
           onTouchStart={() => setShowFlameTooltip(!showFlameTooltip)}
         >
-          <motion.span
+          <motion.div
             animate={realm.flame?.name === 'FLICKERING' || realm.flame?.name === 'WEAK'
               ? { opacity: [1, 0.6, 1] }
               : {}
             }
             transition={{ duration: 0.5, repeat: Infinity }}
-            className={`text-lg ${flameStyle.text} ${flameStyle.glow}`}
+            className={flameStyle.glow}
           >
-            🔥
-          </motion.span>
+            <Image src="/icons/fire.png" alt="" width={20} height={20} className="pixel-icon" />
+          </motion.div>
 
           {/* Flame tooltip */}
           <AnimatePresence>

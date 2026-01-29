@@ -13,7 +13,8 @@ import { Emissary, RealmStatus, ActiveMicroMission, UserProfile, Conversation, P
 
 export type AppScreen =
   // Intro Flow
-  | 'welcome'           // "Enter the Portal" screen
+  | 'welcome'           // "Enter the Portal" initial screen
+  | 'welcome-operator'  // "WELCOME OPERATOR" screen (after enter portal)
   | 'country-select'    // Country selector
   | 'portal-entry'      // "Accessing Emberholm..." animation
   // Main Navigation
@@ -21,6 +22,8 @@ export type AppScreen =
   // Social
   | 'social-globe'      // 3D Globe with countries
   | 'social-users'      // Users list from a country
+  | 'global-chat'       // Global chat room
+  | 'inbox'             // Private messages inbox
   | 'chat'              // 1:1 chat screen
   // Play
   | 'play'              // Play submenu (4 options)
@@ -78,6 +81,8 @@ export interface AppState {
   isLoading: boolean;
   error: string | null;
   soundEnabled: boolean;
+  musicEnabled: boolean;
+  musicVolume: number;
 }
 
 // =========================================
@@ -115,6 +120,8 @@ type AppAction =
   | { type: 'SET_LOADING'; isLoading: boolean }
   | { type: 'SET_ERROR'; error: string | null }
   | { type: 'TOGGLE_SOUND' }
+  | { type: 'TOGGLE_MUSIC' }
+  | { type: 'SET_MUSIC_VOLUME'; volume: number }
   | { type: 'RESET' };
 
 // =========================================
@@ -159,6 +166,8 @@ const initialState: AppState = {
   isLoading: false,
   error: null,
   soundEnabled: true,
+  musicEnabled: true,
+  musicVolume: 0.5,
 };
 
 // =========================================
@@ -319,6 +328,18 @@ function appReducer(state: AppState, action: AppAction): AppState {
         soundEnabled: !state.soundEnabled,
       };
 
+    case 'TOGGLE_MUSIC':
+      return {
+        ...state,
+        musicEnabled: !state.musicEnabled,
+      };
+
+    case 'SET_MUSIC_VOLUME':
+      return {
+        ...state,
+        musicVolume: action.volume,
+      };
+
     case 'RESET':
       return {
         ...initialState,
@@ -411,5 +432,7 @@ export const actions = {
   setLoading: (isLoading: boolean): AppAction => ({ type: 'SET_LOADING', isLoading }),
   setError: (error: string | null): AppAction => ({ type: 'SET_ERROR', error }),
   toggleSound: (): AppAction => ({ type: 'TOGGLE_SOUND' }),
+  toggleMusic: (): AppAction => ({ type: 'TOGGLE_MUSIC' }),
+  setMusicVolume: (volume: number): AppAction => ({ type: 'SET_MUSIC_VOLUME', volume }),
   reset: (): AppAction => ({ type: 'RESET' }),
 };

@@ -54,7 +54,7 @@ export function LeaderboardScreen({
           xp_total: 10000 - i * 150,
           pyre_total: 5000 - i * 80,
           missions_completed: 100 - i * 2,
-          is_current_user: currentWallet && i === 15, // Mock: current user at position 16
+          is_current_user: !!currentWallet && i === 15, // Mock: current user at position 16
         }));
 
         // Sort based on active tab

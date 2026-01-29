@@ -26,6 +26,7 @@ import { LoreScreen } from '@/components/screens/LoreScreen';
 import { TutorialScreen } from '@/components/screens/TutorialScreen';
 import { PyreGuide } from '@/components/screens/PyreGuide';
 import { useApp, actions, AppScreen, AppProvider } from '@/lib/store';
+import { SoundProvider, useSoundContext } from '@/lib/SoundContext';
 import {
   Emissary,
   MicroMission,
@@ -131,7 +132,8 @@ function AppContent() {
 
   // Intro flow handlers
   const handleWelcomeEnter = () => {
-    dispatch(actions.setScreen('country-select'));
+    // Go to Welcome Operator (boot sequence) first
+    dispatch(actions.setScreen('welcome-operator'));
   };
 
   const handleBootComplete = () => {
@@ -213,7 +215,7 @@ function AppContent() {
   };
 
   // Determine which screens should show the top bar
-  const showTopBar = !['welcome', 'country-select', 'portal-entry', 'chat'].includes(state.currentScreen);
+  const showTopBar = !['welcome', 'welcome-operator', 'country-select', 'portal-entry', 'chat'].includes(state.currentScreen);
 
   return (
     <main className="crt-screen relative">
@@ -228,6 +230,10 @@ function AppContent() {
         {/* Intro Flow */}
         {state.currentScreen === 'welcome' && (
           <WelcomeScreen onEnter={handleWelcomeEnter} />
+        )}
+
+        {state.currentScreen === 'welcome-operator' && (
+          <BootSequence onComplete={handleBootComplete} />
         )}
 
         {state.currentScreen === 'country-select' && (
@@ -267,8 +273,7 @@ function AppContent() {
         {state.currentScreen === 'emissary-detail' && state.selectedEmissary && (
           <EmissaryDetail
             emissary={state.selectedEmissary}
-            onStartMission={handleStartMission}
-            onStartMicroMission={handleStartMicroMission}
+            onNavigate={handleNavigate}
             onBack={handleBack}
           />
         )}
@@ -286,10 +291,10 @@ function AppContent() {
 
         {state.currentScreen === 'micro-missions' && (
           <MicroMissionsScreen
-            selectedEmissary={state.selectedEmissary}
+            emissary={state.selectedEmissary}
             onSelectMission={handleSelectMission}
-            onBack={handleBack}
             onSelectEmissary={() => handleNavigate('play')}
+            onBack={handleBack}
           />
         )}
 
@@ -402,11 +407,13 @@ function AppContent() {
   );
 }
 
-// Wrap with AppProvider
+// Wrap with Providers
 export default function Home() {
   return (
-    <AppProvider>
-      <AppContent />
-    </AppProvider>
+    <SoundProvider>
+      <AppProvider>
+        <AppContent />
+      </AppProvider>
+    </SoundProvider>
   );
 }
