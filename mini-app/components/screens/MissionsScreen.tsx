@@ -13,11 +13,13 @@ import { Emissary } from '@/lib/api';
 interface Mission {
   id: string;
   name: string;
-  difficulty: 'EASY' | 'MEDIUM' | 'HARD' | 'LEGENDARY';
+  difficulty: 'EASY' | 'MEDIUM' | 'HARD';
   duration_hours: number;
   energy_cost: number;
   reward_xp: number;
   reward_aura: number;
+  reward_ember_min?: number;
+  reward_ember_max?: number;
   success_rate: number;
   death_chance: number;
   favored_guild: string;
@@ -36,7 +38,6 @@ const DIFFICULTY_STYLES: Record<string, { color: string; label: string }> = {
   EASY: { color: 'text-green', label: 'EASY' },
   MEDIUM: { color: 'text-amber', label: 'MEDIUM' },
   HARD: { color: 'text-red', label: 'HARD' },
-  LEGENDARY: { color: 'text-cyan', label: 'LEGENDARY' },
 };
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || '';
@@ -51,7 +52,20 @@ export function MissionsScreen({
   const [isLoading, setIsLoading] = useState(true);
   const [filter, setFilter] = useState<string>('ALL');
 
-  // Load missions from portal API
+  // Static missions data as fallback (from missions_config.json)
+  const STATIC_MISSIONS: Mission[] = [
+    { id: '001', name: 'The Lost Forge', difficulty: 'EASY', duration_hours: 3, energy_cost: 10, reward_xp: 60, reward_aura: 4, reward_ember_min: 10, reward_ember_max: 50, success_rate: 92, death_chance: 0, favored_guild: 'Forge Legion', description: 'Ancient forges rumble beneath the mountains. Reclaim lost smithing knowledge from the depths.' },
+    { id: '002', name: 'Circle Interference Node', difficulty: 'EASY', duration_hours: 3, energy_cost: 10, reward_xp: 60, reward_aura: 4, reward_ember_min: 10, reward_ember_max: 50, success_rate: 92, death_chance: 0, favored_guild: 'Circle of Mist', description: 'Arcane nodes malfunction across the realm. Stabilize the magical interference before it spreads.' },
+    { id: '003', name: 'Dawn Patrol', difficulty: 'EASY', duration_hours: 3, energy_cost: 10, reward_xp: 60, reward_aura: 4, reward_ember_min: 10, reward_ember_max: 50, success_rate: 92, death_chance: 0, favored_guild: 'Order of Dawn', description: 'Patrol the eastern borders as the sun rises. Defend settlements from nocturnal threats.', party_size: 5 },
+    { id: '004', name: 'Shadow Infiltration', difficulty: 'MEDIUM', duration_hours: 6, energy_cost: 18, reward_xp: 150, reward_aura: 10, reward_ember_min: 25, reward_ember_max: 100, success_rate: 78, death_chance: 0.5, favored_guild: 'Shadow Guild', description: 'Infiltrate enemy strongholds under cover of darkness. Gather intelligence without being detected.' },
+    { id: '005', name: 'Horizon Survey', difficulty: 'MEDIUM', duration_hours: 6, energy_cost: 18, reward_xp: 150, reward_aura: 10, reward_ember_min: 25, reward_ember_max: 100, success_rate: 78, death_chance: 0.5, favored_guild: 'Horizon Watch', description: 'Scout the uncharted territories beyond the known world. Map new routes and discover hidden dangers.' },
+    { id: '006', name: 'Veil Breach Containment', difficulty: 'MEDIUM', duration_hours: 6, energy_cost: 18, reward_xp: 150, reward_aura: 10, reward_ember_min: 25, reward_ember_max: 100, success_rate: 78, death_chance: 0.5, favored_guild: 'Void Echoes', description: 'Reality tears open. Seal the breach before void entities pour through into our realm.', party_size: 5 },
+    { id: '007', name: 'Dragons Crucible', difficulty: 'HARD', duration_hours: 12, energy_cost: 25, reward_xp: 350, reward_aura: 25, reward_ember_min: 50, reward_ember_max: 250, success_rate: 60, death_chance: 2.0, favored_guild: 'Forge Legion', description: 'Face the ancient dragon that guards the legendary forge. Only the strongest survive.' },
+    { id: '008', name: 'Void Descent', difficulty: 'HARD', duration_hours: 12, energy_cost: 25, reward_xp: 350, reward_aura: 25, reward_ember_min: 50, reward_ember_max: 250, success_rate: 60, death_chance: 2.0, favored_guild: 'Void Echoes', description: 'Descend into the Void itself. Confront entities that should not exist. Few return unchanged.' },
+    { id: '009', name: 'Eclipse Ritual', difficulty: 'HARD', duration_hours: 12, energy_cost: 25, reward_xp: 350, reward_aura: 25, reward_ember_min: 50, reward_ember_max: 250, success_rate: 60, death_chance: 2.0, favored_guild: 'Circle of Mist', description: 'Harness the power of a total eclipse. The ritual is dangerous, but the rewards transcendent.', party_size: 5 },
+  ];
+
+  // Load missions from portal API with static fallback
   useEffect(() => {
     async function loadMissions() {
       try {
@@ -59,10 +73,16 @@ export function MissionsScreen({
         const response = await fetch(`${API_BASE}/api/missions`);
         if (response.ok) {
           const data = await response.json();
-          setMissions(data.missions || []);
+          const loadedMissions = data.missions || [];
+          // Only use API data if we got missions, otherwise use static
+          setMissions(loadedMissions.length > 0 ? loadedMissions : STATIC_MISSIONS);
+        } else {
+          // API not available, use static data
+          setMissions(STATIC_MISSIONS);
         }
       } catch (error) {
-        console.error('Failed to load missions:', error);
+        console.error('Failed to load missions, using static data:', error);
+        setMissions(STATIC_MISSIONS);
       } finally {
         setIsLoading(false);
       }
@@ -155,7 +175,7 @@ export function MissionsScreen({
         transition={{ delay: 0.1 }}
         className="flex gap-2 mb-4 overflow-x-auto"
       >
-        {['ALL', 'EASY', 'MEDIUM', 'HARD', 'LEGENDARY'].map((diff) => (
+        {['ALL', 'EASY', 'MEDIUM', 'HARD'].map((diff) => (
           <button
             key={diff}
             onClick={() => setFilter(diff)}
