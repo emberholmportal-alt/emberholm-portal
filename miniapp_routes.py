@@ -1135,7 +1135,8 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
             "display_name": "Player123",
             "farcaster_fid": 12345,
             "farcaster_username": "player123",
-            "farcaster_pfp_url": "https://..."
+            "farcaster_pfp_url": "https://...",
+            "wallet_type": "farcaster|metamask|coinbase|phantom|rabby|other|demo"
         }
         """
         data = request.get_json() or {}
@@ -1145,6 +1146,7 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
         fid = data.get('farcaster_fid')
         username = data.get('farcaster_username', '')
         pfp_url = data.get('farcaster_pfp_url', '')
+        wallet_type = data.get('wallet_type', '')
 
         if not wallet:
             return jsonify({"error": "Wallet required"}), 400
@@ -1157,17 +1159,18 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
                 with conn.cursor() as cur:
                     cur.execute("""
                         INSERT INTO user_profiles
-                        (wallet, country_code, display_name, farcaster_fid, farcaster_username, farcaster_pfp_url)
-                        VALUES (%s, %s, %s, %s, %s, %s)
+                        (wallet, country_code, display_name, farcaster_fid, farcaster_username, farcaster_pfp_url, wallet_type)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s)
                         ON CONFLICT (wallet) DO UPDATE SET
                             country_code = COALESCE(EXCLUDED.country_code, user_profiles.country_code),
                             display_name = COALESCE(EXCLUDED.display_name, user_profiles.display_name),
                             farcaster_fid = COALESCE(EXCLUDED.farcaster_fid, user_profiles.farcaster_fid),
                             farcaster_username = COALESCE(EXCLUDED.farcaster_username, user_profiles.farcaster_username),
                             farcaster_pfp_url = COALESCE(EXCLUDED.farcaster_pfp_url, user_profiles.farcaster_pfp_url),
+                            wallet_type = COALESCE(EXCLUDED.wallet_type, user_profiles.wallet_type),
                             last_seen = NOW()
-                        RETURNING id, wallet, country_code, display_name, farcaster_username
-                    """, (wallet, country_code or None, display_name or None, fid, username or None, pfp_url or None))
+                        RETURNING id, wallet, country_code, display_name, farcaster_username, wallet_type
+                    """, (wallet, country_code or None, display_name or None, fid, username or None, pfp_url or None, wallet_type or None))
                     row = cur.fetchone()
 
                     return jsonify({
@@ -1177,7 +1180,8 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
                             "wallet": row[1],
                             "country_code": row[2],
                             "display_name": row[3],
-                            "farcaster_username": row[4]
+                            "farcaster_username": row[4],
+                            "wallet_type": row[5]
                         }
                     })
 

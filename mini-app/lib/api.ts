@@ -379,6 +379,7 @@ export async function updateProfile(params: {
   farcaster_fid?: number;
   farcaster_username?: string;
   farcaster_pfp_url?: string;
+  wallet_type?: string;
 }): Promise<UserProfile> {
   const data = await fetchAPI<{ success: boolean; profile: UserProfile }>('/api/social/profile', {
     method: 'POST',

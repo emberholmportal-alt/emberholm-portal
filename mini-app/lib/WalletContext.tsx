@@ -9,6 +9,7 @@ import {
   ReactNode,
 } from 'react';
 import sdk from '@farcaster/miniapp-sdk';
+import { updateProfile } from '@/lib/api';
 
 /**
  * WalletContext - Unified wallet connection for Farcaster Mini App + Browser
@@ -19,11 +20,14 @@ import sdk from '@farcaster/miniapp-sdk';
  * 3. Demo mode (for testing)
  */
 
+type WalletType = 'farcaster' | 'metamask' | 'coinbase' | 'phantom' | 'rabby' | 'other' | 'demo';
+
 interface WalletState {
   address: string | null;
   isConnected: boolean;
   isConnecting: boolean;
   isFarcaster: boolean;
+  walletType: WalletType | null;
   farcasterUser: {
     fid: number | null;
     username: string | null;
@@ -41,12 +45,38 @@ interface WalletContextType extends WalletState {
 
 const WalletContext = createContext<WalletContextType | null>(null);
 
+// Helper to detect browser wallet type
+function detectBrowserWalletType(): WalletType {
+  if (typeof window === 'undefined' || !(window as any).ethereum) {
+    return 'other';
+  }
+
+  const ethereum = (window as any).ethereum;
+
+  // Check for specific wallet providers
+  if (ethereum.isMetaMask && !ethereum.isCoinbaseWallet && !ethereum.isRabby) {
+    return 'metamask';
+  }
+  if (ethereum.isCoinbaseWallet) {
+    return 'coinbase';
+  }
+  if (ethereum.isPhantom) {
+    return 'phantom';
+  }
+  if (ethereum.isRabby) {
+    return 'rabby';
+  }
+
+  return 'other';
+}
+
 export function WalletProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<WalletState>({
     address: null,
     isConnected: false,
     isConnecting: false,
     isFarcaster: false,
+    walletType: null,
     farcasterUser: null,
     error: null,
   });
@@ -90,16 +120,28 @@ export function WalletProvider({ children }: { children: ReactNode }) {
 
     // Check for saved wallet on mount
     const savedWallet = localStorage.getItem('emberholm_wallet');
+    const savedWalletType = localStorage.getItem('emberholm_wallet_type') as WalletType | null;
     if (savedWallet) {
       setState(prev => ({
         ...prev,
         address: savedWallet,
         isConnected: true,
+        walletType: savedWalletType,
+        isFarcaster: savedWalletType === 'farcaster',
       }));
     }
 
     initFrame();
   }, []);
+
+  // Helper to save wallet type to profile
+  const saveWalletTypeToProfile = async (wallet: string, walletType: WalletType) => {
+    try {
+      await updateProfile({ wallet, wallet_type: walletType });
+    } catch (error) {
+      console.log('Failed to save wallet type to profile:', error);
+    }
+  };
 
   // Connect wallet
   const connect = useCallback(async () => {
@@ -116,14 +158,19 @@ export function WalletProvider({ children }: { children: ReactNode }) {
 
           if (result && result[0]) {
             const address = result[0].toLowerCase();
+            const walletType: WalletType = 'farcaster';
             localStorage.setItem('emberholm_wallet', address);
+            localStorage.setItem('emberholm_wallet_type', walletType);
             setState(prev => ({
               ...prev,
               address,
               isConnected: true,
               isConnecting: false,
               isFarcaster: true,
+              walletType,
             }));
+            // Save wallet type to profile
+            saveWalletTypeToProfile(address, walletType);
             return;
           }
         } catch (frameError) {
@@ -139,14 +186,19 @@ export function WalletProvider({ children }: { children: ReactNode }) {
 
         if (accounts && accounts[0]) {
           const address = accounts[0].toLowerCase();
+          const walletType = detectBrowserWalletType();
           localStorage.setItem('emberholm_wallet', address);
+          localStorage.setItem('emberholm_wallet_type', walletType);
           setState(prev => ({
             ...prev,
             address,
             isConnected: true,
             isConnecting: false,
             isFarcaster: false,
+            walletType,
           }));
+          // Save wallet type to profile
+          saveWalletTypeToProfile(address, walletType);
           return;
         }
       }
@@ -154,13 +206,16 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       // Method 3: Demo mode (no wallet available)
       console.log('No wallet detected, using demo mode');
       const demoWallet = '0x0000000000000000000000000000000000000000';
+      const walletType: WalletType = 'demo';
       localStorage.setItem('emberholm_wallet', demoWallet);
+      localStorage.setItem('emberholm_wallet_type', walletType);
       setState(prev => ({
         ...prev,
         address: demoWallet,
         isConnected: true,
         isConnecting: false,
         isFarcaster: false,
+        walletType,
       }));
 
     } catch (error: any) {
@@ -176,11 +231,13 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   // Disconnect wallet
   const disconnect = useCallback(() => {
     localStorage.removeItem('emberholm_wallet');
+    localStorage.removeItem('emberholm_wallet_type');
     setState({
       address: null,
       isConnected: false,
       isConnecting: false,
       isFarcaster: false,
+      walletType: null,
       farcasterUser: null,
       error: null,
     });
