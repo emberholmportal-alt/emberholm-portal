@@ -58,6 +58,10 @@ def seed_micro_mission(conn, mission_data):
     xp_reward_min = xp_reward.get('min', 0)
     xp_reward_max = xp_reward.get('max', 0)
 
+    ember_reward = mission_data.get('ember_reward', {})
+    ember_reward_min = ember_reward.get('min', 0)
+    ember_reward_max = ember_reward.get('max', 0)
+
     aura_chance = mission_data.get('aura_chance', 0)
     cooldown_minutes = mission_data.get('cooldown_minutes', 0)
     is_active = mission_data.get('is_active', True)
@@ -73,14 +77,14 @@ def seed_micro_mission(conn, mission_data):
             INSERT INTO micro_missions (
                 id, name, description, difficulty, duration_seconds,
                 energy_cost, pyre_reward_min, pyre_reward_max,
-                xp_reward_min, xp_reward_max, aura_chance,
-                narrative_intro, narrative_choices, narrative_outcomes,
+                xp_reward_min, xp_reward_max, ember_reward_min, ember_reward_max,
+                aura_chance, narrative_intro, narrative_choices, narrative_outcomes,
                 cooldown_minutes, is_active
             ) VALUES (
                 %s, %s, %s, %s, %s,
                 %s, %s, %s,
-                %s, %s, %s,
-                %s, %s, %s,
+                %s, %s, %s, %s,
+                %s, %s, %s, %s,
                 %s, %s
             )
             ON CONFLICT (id) DO UPDATE SET
@@ -93,6 +97,8 @@ def seed_micro_mission(conn, mission_data):
                 pyre_reward_max = EXCLUDED.pyre_reward_max,
                 xp_reward_min = EXCLUDED.xp_reward_min,
                 xp_reward_max = EXCLUDED.xp_reward_max,
+                ember_reward_min = EXCLUDED.ember_reward_min,
+                ember_reward_max = EXCLUDED.ember_reward_max,
                 aura_chance = EXCLUDED.aura_chance,
                 narrative_intro = EXCLUDED.narrative_intro,
                 narrative_choices = EXCLUDED.narrative_choices,
@@ -102,8 +108,8 @@ def seed_micro_mission(conn, mission_data):
         """, (
             mission_id, name, description, difficulty, duration_seconds,
             energy_cost, pyre_reward_min, pyre_reward_max,
-            xp_reward_min, xp_reward_max, aura_chance,
-            narrative_intro, Json(narrative_choices), Json(narrative_outcomes),
+            xp_reward_min, xp_reward_max, ember_reward_min, ember_reward_max,
+            aura_chance, narrative_intro, Json(narrative_choices), Json(narrative_outcomes),
             cooldown_minutes, is_active
         ))
 

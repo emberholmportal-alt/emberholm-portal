@@ -763,6 +763,56 @@ def get_or_create_user_balance(wallet):
         print(f"❌ Error getting user balance: {e}")
         return default
 
+
+def update_user_ember_balance(wallet, amount, source="mission"):
+    """
+    Add EMBER to user's claimable balance.
+
+    Args:
+        wallet: User wallet address
+        amount: Amount of EMBER to add (must be positive)
+        source: Source of EMBER (mission, micro_mission, social, etc.)
+
+    Returns:
+        dict with success status and new balance, or None on error
+    """
+    if not is_postgresql_available() or amount <= 0:
+        return None
+
+    wallet = wallet.lower()
+
+    try:
+        with get_db() as conn:
+            with conn.cursor() as cur:
+                # Upsert: Insert if not exists, otherwise update
+                cur.execute("""
+                    INSERT INTO user_balances (wallet, ember_balance, total_ember_earned, created_at, last_update)
+                    VALUES (%s, %s, %s, NOW(), NOW())
+                    ON CONFLICT (wallet) DO UPDATE SET
+                        ember_balance = user_balances.ember_balance + EXCLUDED.ember_balance,
+                        total_ember_earned = COALESCE(user_balances.total_ember_earned, 0) + EXCLUDED.total_ember_earned,
+                        last_update = NOW()
+                    RETURNING ember_balance, total_ember_earned
+                """, (wallet, amount, amount))
+
+                result = cur.fetchone()
+
+        if result:
+            print(f"🔥 EMBER +{amount} for {wallet} (source: {source}) → Balance: {result[0]}")
+            return {
+                "success": True,
+                "amount_added": amount,
+                "new_balance": result[0],
+                "total_earned": result[1]
+            }
+        return None
+    except Exception as e:
+        print(f"❌ Error updating ember balance: {e}")
+        import traceback
+        traceback.print_exc()
+        return None
+
+
 # =========================================================================
 # INICIALIZACIÓN
 # =========================================================================

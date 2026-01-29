@@ -1347,6 +1347,15 @@ def roll_mission_outcome(hero, mission, equipment_death_protection=0):
         xp_reward = int(mission["reward_xp"] * reward_multiplier)
         aura_reward = int(mission["reward_aura"] * reward_multiplier)
 
+        # 🔥 EMBER REWARD: Calculate base ember from mission config
+        ember_min = mission.get("reward_ember_min", 0)
+        ember_max = mission.get("reward_ember_max", 0)
+        if ember_min > 0 and ember_max > 0:
+            ember_reward = random.randint(ember_min, ember_max)
+            ember_reward = int(ember_reward * reward_multiplier)
+        else:
+            ember_reward = 0
+
         # 🔮 EMBER ROLL BUFF: XP bonus
         ds = hero.get("dynamic_state", {})
         buff = ds.get("ember_roll_buff")
@@ -1366,12 +1375,13 @@ def roll_mission_outcome(hero, mission, equipment_death_protection=0):
                 except Exception as e:
                     print(f"⚠️ Error parsing buff expiration: {e}")
 
-        # ⚔️ EQUIPMENT BOOSTS: Apply XP and Aura boosts from items
+        # ⚔️ EQUIPMENT BOOSTS: Apply XP, Aura and EMBER boosts from items
         hero_token_id = hero.get("token_id")
         if hero_token_id:
             equipment_stats = get_equipment_stats(hero_token_id)
             xp_boost = equipment_stats.get("xp_boost", 0) + equipment_stats.get("all_boost", 0)
             aura_boost = equipment_stats.get("aura_boost", 0) + equipment_stats.get("all_boost", 0)
+            ember_equip_boost = equipment_stats.get("ember_boost", 0) + equipment_stats.get("all_boost", 0)
 
             if xp_boost > 0:
                 original_xp = xp_reward
@@ -1383,9 +1393,28 @@ def roll_mission_outcome(hero, mission, equipment_death_protection=0):
                 aura_reward = int(aura_reward * (100 + aura_boost) / 100)
                 print(f"⚔️ EQUIPMENT Aura boost: {original_aura} → {aura_reward} (+{aura_boost}%)")
 
+            if ember_equip_boost > 0 and ember_reward > 0:
+                original_ember = ember_reward
+                ember_reward = int(ember_reward * (100 + ember_equip_boost) / 100)
+                print(f"⚔️ EQUIPMENT EMBER boost: {original_ember} → {ember_reward} (+{ember_equip_boost}%)")
+
+        # 🏆 RANK BONUS: Apply ember bonus from Emissary rank
+        if ember_reward > 0:
+            ds = hero.get("dynamic_state", {})
+            xp_total = ds.get("xp_total", 0)
+            aura_level = ds.get("aura_level", 0)
+            missions_completed = ds.get("missions_completed", 0)
+            rank_bonuses = get_rank_bonuses(xp_total, aura_level, missions_completed)
+            rank_ember_bonus = rank_bonuses.get("ember_bonus", 0)
+            if rank_ember_bonus > 0:
+                original_ember = ember_reward
+                ember_reward = int(ember_reward * (100 + rank_ember_bonus) / 100)
+                print(f"🏆 RANK EMBER bonus: {original_ember} → {ember_reward} (+{rank_ember_bonus}%)")
+
         return ("SUCCESS", {
             "xp_gain": xp_reward,
             "aura_gain": aura_reward,
+            "ember_gain": ember_reward,
             "perfect_alignment": perfect_alignment,
             "success_rate": success_rate,
             "roll": roll
@@ -4808,17 +4837,23 @@ def handle_party_mission_complete(wallet, party_mission):
         # Extract values from details dictionary
         xp_gain = details.get("xp_gain", 0)
         aura_gain = details.get("aura_gain", 0)
+        ember_gain = details.get("ember_gain", 0)
         xp_loss = details.get("xp_loss", 0)
 
         # Apply party bonus if success
         if outcome == "SUCCESS":
             xp_gain = int(xp_gain * party_bonus_multiplier)
             aura_gain = int(aura_gain * party_bonus_multiplier)
+            ember_gain = int(ember_gain * party_bonus_multiplier)
 
             ds["xp_total"] = ds.get("xp_total", 0) + xp_gain
             ds["aura_level"] = ds.get("aura_level", 0) + aura_gain
             ds["state"] = "READY"
             ds["total_missions_completed"] = ds.get("total_missions_completed", 0) + 1
+
+            # 🔥 UPDATE EMBER BALANCE: Add ember to user's claimable balance
+            if ember_gain > 0:
+                db.update_user_ember_balance(wallet, ember_gain, source="party_mission")
 
             # Update mission history
             if "mission_history" not in ds or not isinstance(ds["mission_history"], dict):
@@ -5198,23 +5233,19 @@ def api_mission_complete():
             print("   Processing SUCCESS...")
             xp_gain = details["xp_gain"]
             aura_gain = details["aura_gain"]
+            ember_gain = details.get("ember_gain", 0)
 
-            # ⚔️ APPLY STORED EQUIPMENT BONUSES (EMBER→aura, XP→xp)
-            # Note: Equipment bonuses from mission start are applied here
-            xp_bonus = stored_equipment_bonuses.get('xp', 0)
-            ember_bonus = stored_equipment_bonuses.get('ember', 0)
+            # Note: Equipment bonuses and rank bonuses are already applied in roll_mission_outcome()
+            # stored_equipment_bonuses are from mission start, kept for backward compatibility
+            # but main bonuses are now applied during outcome calculation
 
-            if xp_bonus > 0:
-                original_xp = xp_gain
-                xp_gain = int(xp_gain * (100 + xp_bonus) / 100)
-                print(f"   ⚔️ Equipment XP bonus: {original_xp} → {xp_gain} (+{xp_bonus}%)")
+            print(f"   Final XP gain: {xp_gain}, Final Aura gain: {aura_gain}, Final EMBER gain: {ember_gain}")
 
-            if ember_bonus > 0:
-                original_aura = aura_gain
-                aura_gain = int(aura_gain * (100 + ember_bonus) / 100)
-                print(f"   ⚔️ Equipment EMBER bonus: {original_aura} → {aura_gain} (+{ember_bonus}%)")
-
-            print(f"   Final XP gain: {xp_gain}, Final Aura gain: {aura_gain}")
+            # 🔥 UPDATE EMBER BALANCE: Add ember to user's claimable balance
+            if ember_gain > 0:
+                ember_result = db.update_user_ember_balance(wallet, ember_gain, source="mission")
+                if ember_result:
+                    print(f"   🔥 EMBER updated: +{ember_gain} → New balance: {ember_result['new_balance']}")
 
             ds["xp_total"] = ds.get("xp_total", 0) + xp_gain
             ds["aura_level"] = ds.get("aura_level", 0) + aura_gain
@@ -5341,6 +5372,7 @@ def api_mission_complete():
                 "mission_name": mission["name"],
                 "xp_gained": xp_gain,
                 "aura_gained": aura_gain,
+                "ember_gained": ember_gain,
                 "perfect_alignment": details.get("perfect_alignment", False),
                 "hero_xp_now": ds["xp_total"],
                 "hero_aura_now": ds["aura_level"],
@@ -9671,9 +9703,12 @@ def complete_mission_with_lock(wallet, hero_id):
                 aura_gained = 0
                 xp_lost = 0
 
+                ember_gained = 0  # Initialize for all outcomes
+
                 if outcome == 'SUCCESS':
                     xp_gained = details.get('xp_gain', 0)
                     aura_gained = details.get('aura_gain', 0)
+                    ember_gained = details.get('ember_gain', 0)
 
                     # Apply equipment bonuses
                     xp_bonus = equipment_bonuses.get('xp', 0)
@@ -9681,13 +9716,25 @@ def complete_mission_with_lock(wallet, hero_id):
 
                     if xp_bonus > 0:
                         xp_gained = int(xp_gained * (100 + xp_bonus) / 100)
-                    if ember_bonus > 0:
-                        aura_gained = int(aura_gained * (100 + ember_bonus) / 100)
+                    if ember_bonus > 0 and ember_gained > 0:
+                        ember_gained = int(ember_gained * (100 + ember_bonus) / 100)
 
                     ds['xp_total'] = ds.get('xp_total', 0) + xp_gained
                     ds['aura_level'] = ds.get('aura_level', 0) + aura_gained
                     ds['state'] = 'READY'
                     ds['total_missions_completed'] = ds.get('total_missions_completed', 0) + 1
+
+                    # 🔥 UPDATE EMBER BALANCE: Add ember to user's claimable balance
+                    if ember_gained > 0:
+                        cur.execute("""
+                            INSERT INTO user_balances (wallet, ember_balance, total_ember_earned, created_at, last_update)
+                            VALUES (%s, %s, %s, NOW(), NOW())
+                            ON CONFLICT (wallet) DO UPDATE SET
+                                ember_balance = user_balances.ember_balance + EXCLUDED.ember_balance,
+                                total_ember_earned = COALESCE(user_balances.total_ember_earned, 0) + EXCLUDED.total_ember_earned,
+                                last_update = NOW()
+                        """, (wallet, ember_gained, ember_gained))
+                        logger.info(f"🔥 EMBER +{ember_gained} for {wallet} (mission complete with lock)")
 
                 elif outcome == 'FAILURE':
                     xp_lost = details.get('xp_loss', 0)
@@ -9758,6 +9805,7 @@ def complete_mission_with_lock(wallet, hero_id):
         if outcome == 'SUCCESS':
             response['xp_gained'] = xp_gained
             response['aura_gained'] = aura_gained
+            response['ember_gained'] = ember_gained
             response['hero_xp_now'] = ds['xp_total']
             response['hero_aura_now'] = ds['aura_level']
             response['message'] = f"🎉 SUCCESS! Completed {mission_config['name']}!"
@@ -9823,14 +9871,24 @@ def roll_mission_outcome_simple(hero_ds, mission_config, death_protection=0):
 
     if roll <= success_rate:
         # Success
-        base_xp = mission_config.get('xp_reward', 50)
-        base_aura = mission_config.get('aura_reward', 10)
+        base_xp = mission_config.get('xp_reward', mission_config.get('reward_xp', 50))
+        base_aura = mission_config.get('aura_reward', mission_config.get('reward_aura', 10))
 
         # Randomize slightly
         xp_gain = int(base_xp * random.uniform(0.9, 1.2))
         aura_gain = int(base_aura * random.uniform(0.9, 1.2))
 
-        return 'SUCCESS', {'xp_gain': xp_gain, 'aura_gain': aura_gain}
+        # 🔥 EMBER REWARD: Calculate ember from mission config
+        ember_min = mission_config.get('reward_ember_min', 0)
+        ember_max = mission_config.get('reward_ember_max', 0)
+        if ember_min > 0 and ember_max > 0:
+            ember_gain = random.randint(ember_min, ember_max)
+            # Apply slight randomization like XP/Aura
+            ember_gain = int(ember_gain * random.uniform(0.9, 1.2))
+        else:
+            ember_gain = 0
+
+        return 'SUCCESS', {'xp_gain': xp_gain, 'aura_gain': aura_gain, 'ember_gain': ember_gain}
 
     else:
         # Failed - check for death

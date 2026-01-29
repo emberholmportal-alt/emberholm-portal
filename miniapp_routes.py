@@ -823,13 +823,14 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
         try:
             with get_db_connection() as conn:
                 with conn.cursor() as cur:
-                    # Get active mission details
+                    # Get active mission details (including ember_reward fields)
                     cur.execute("""
                         SELECT amm.id, amm.status, amm.emissary_token_id, amm.ends_at,
                                amm.choice_made, amm.outcome_text,
                                mm.pyre_reward_min, mm.pyre_reward_max,
                                mm.xp_reward_min, mm.xp_reward_max,
-                               mm.aura_chance, mm.name, mm.narrative_outcomes
+                               mm.aura_chance, mm.name, mm.narrative_outcomes,
+                               COALESCE(mm.ember_reward_min, 0), COALESCE(mm.ember_reward_max, 0)
                         FROM active_micro_missions amm
                         JOIN micro_missions mm ON amm.micro_mission_id = mm.id
                         WHERE amm.id = %s AND amm.wallet = %s
@@ -859,12 +860,20 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
                     xp_earned = random.randint(row[8], row[9])     # xp_reward_min/max
                     aura_earned = 1 if random.random() * 100 < float(row[10] or 0) else 0
 
+                    # 🔥 EMBER REWARD: Calculate ember from micro-mission
+                    ember_min = row[13] or 0  # ember_reward_min
+                    ember_max = row[14] or 0  # ember_reward_max
+                    ember_earned = random.randint(ember_min, ember_max) if ember_min > 0 and ember_max > 0 else 0
+
                     # Apply choice modifier if applicable
                     choice = row[4]
                     outcomes = row[12] or {}
                     if choice and choice in outcomes:
                         modifier = outcomes[choice].get('pyre_modifier', 1.0)
                         pyre_earned = int(pyre_earned * modifier)
+                        # Also apply modifier to ember if specified
+                        ember_modifier = outcomes[choice].get('ember_modifier', 1.0)
+                        ember_earned = int(ember_earned * ember_modifier)
 
                     token_id = row[2]
                     mission_name = row[11]
@@ -910,6 +919,18 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
                             updated_at = NOW()
                     """, (wallet, pyre_earned, pyre_earned, pyre_earned, pyre_earned))
 
+                    # 🔥 Add $EMBER to wallet (if earned)
+                    if ember_earned > 0:
+                        cur.execute("""
+                            INSERT INTO user_balances (wallet, ember_balance, total_ember_earned, created_at, last_update)
+                            VALUES (%s, %s, %s, NOW(), NOW())
+                            ON CONFLICT (wallet) DO UPDATE SET
+                                ember_balance = user_balances.ember_balance + EXCLUDED.ember_balance,
+                                total_ember_earned = COALESCE(user_balances.total_ember_earned, 0) + EXCLUDED.total_ember_earned,
+                                last_update = NOW()
+                        """, (wallet, ember_earned, ember_earned))
+                        print(f"🔥 EMBER +{ember_earned} for {wallet} (micro-mission complete)")
+
                     # Record transaction
                     cur.execute("""
                         INSERT INTO pyre_transactions
@@ -923,7 +944,8 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
                         "rewards": {
                             "pyre": pyre_earned,
                             "xp": xp_earned,
-                            "aura": aura_earned
+                            "aura": aura_earned,
+                            "ember": ember_earned
                         },
                         "mission_name": mission_name,
                         "outcome_text": outcome_text,
@@ -1575,6 +1597,627 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
 
         except Exception as e:
             print(f"Error getting online stats: {e}")
+            return jsonify({"error": str(e)}), 500
+
+    # =========================================================================
+    # SOCIAL REWARDS ENDPOINTS ($EMBER rewards for social actions)
+    # =========================================================================
+
+    # Social reward amounts (in $EMBER)
+    SOCIAL_REWARDS = {
+        'daily_login': 0.5,
+        'streak_7': 5.0,
+        'streak_30': 25.0,
+        'referral': 2.0,
+        'share': 0.1,
+        'tutorial': 3.0,
+        'first_mint': 5.0
+    }
+
+    # Daily limits
+    SOCIAL_LIMITS = {
+        'referral': 10,  # max referrals per day
+        'share': 5       # max shares per day
+    }
+
+    @app.route('/api/social/daily-login', methods=['POST'])
+    def api_social_daily_login():
+        """
+        Process daily login and award EMBER.
+        Also handles streak tracking and streak milestone rewards.
+
+        Body: { "wallet": "0x..." }
+        """
+        data = request.get_json() or {}
+        wallet = data.get('wallet', '').lower()
+
+        if not wallet:
+            return jsonify({"error": "Missing wallet"}), 400
+
+        if not POSTGRESQL_AVAILABLE:
+            return jsonify({"error": "Database not available"}), 503
+
+        try:
+            with get_db_connection() as conn:
+                with conn.cursor() as cur:
+                    today = datetime.now(timezone.utc).date()
+
+                    # Get or create user streak record
+                    cur.execute("""
+                        INSERT INTO user_streaks (wallet, current_streak, last_login_date, created_at)
+                        VALUES (%s, 0, NULL, NOW())
+                        ON CONFLICT (wallet) DO NOTHING
+                    """, (wallet,))
+
+                    cur.execute("""
+                        SELECT current_streak, last_login_date, streak_7_claimed_at, streak_30_claimed_at
+                        FROM user_streaks WHERE wallet = %s
+                    """, (wallet,))
+                    streak_row = cur.fetchone()
+
+                    current_streak = streak_row[0] or 0
+                    last_login = streak_row[1]
+                    streak_7_claimed = streak_row[2]
+                    streak_30_claimed = streak_row[3]
+
+                    total_ember_earned = 0
+                    rewards_given = []
+
+                    # Check if already logged in today
+                    if last_login == today:
+                        return jsonify({
+                            "success": True,
+                            "already_claimed": True,
+                            "current_streak": current_streak,
+                            "ember_earned": 0,
+                            "message": "Already claimed today's login reward"
+                        })
+
+                    # Calculate new streak
+                    yesterday = today - timedelta(days=1)
+                    if last_login == yesterday:
+                        # Consecutive day
+                        new_streak = current_streak + 1
+                    elif last_login is None:
+                        # First login ever
+                        new_streak = 1
+                    else:
+                        # Streak broken
+                        new_streak = 1
+
+                    # Award daily login EMBER
+                    daily_ember = SOCIAL_REWARDS['daily_login']
+                    total_ember_earned += daily_ember
+                    rewards_given.append({'type': 'daily_login', 'ember': daily_ember})
+
+                    # Check for streak 7 milestone
+                    if new_streak >= 7:
+                        # Check if already claimed this week
+                        week_ago = datetime.now(timezone.utc) - timedelta(days=7)
+                        if streak_7_claimed is None or streak_7_claimed < week_ago:
+                            streak_7_ember = SOCIAL_REWARDS['streak_7']
+                            total_ember_earned += streak_7_ember
+                            rewards_given.append({'type': 'streak_7', 'ember': streak_7_ember})
+                            cur.execute("""
+                                UPDATE user_streaks SET streak_7_claimed_at = NOW() WHERE wallet = %s
+                            """, (wallet,))
+
+                    # Check for streak 30 milestone
+                    if new_streak >= 30:
+                        # Check if already claimed this month
+                        month_ago = datetime.now(timezone.utc) - timedelta(days=30)
+                        if streak_30_claimed is None or streak_30_claimed < month_ago:
+                            streak_30_ember = SOCIAL_REWARDS['streak_30']
+                            total_ember_earned += streak_30_ember
+                            rewards_given.append({'type': 'streak_30', 'ember': streak_30_ember})
+                            cur.execute("""
+                                UPDATE user_streaks SET streak_30_claimed_at = NOW() WHERE wallet = %s
+                            """, (wallet,))
+
+                    # Update streak
+                    cur.execute("""
+                        UPDATE user_streaks SET
+                            current_streak = %s,
+                            longest_streak = GREATEST(longest_streak, %s),
+                            last_login_date = %s,
+                            updated_at = NOW()
+                        WHERE wallet = %s
+                    """, (new_streak, new_streak, today, wallet))
+
+                    # Add EMBER to balance
+                    if total_ember_earned > 0:
+                        cur.execute("""
+                            INSERT INTO user_balances (wallet, ember_balance, total_ember_earned, created_at, last_update)
+                            VALUES (%s, %s, %s, NOW(), NOW())
+                            ON CONFLICT (wallet) DO UPDATE SET
+                                ember_balance = user_balances.ember_balance + EXCLUDED.ember_balance,
+                                total_ember_earned = COALESCE(user_balances.total_ember_earned, 0) + EXCLUDED.total_ember_earned,
+                                last_update = NOW()
+                        """, (wallet, total_ember_earned, total_ember_earned))
+
+                        # Log each reward
+                        for reward in rewards_given:
+                            cur.execute("""
+                                INSERT INTO social_rewards_log (wallet, action_type, ember_earned, description)
+                                VALUES (%s, %s, %s, %s)
+                            """, (wallet, reward['type'], reward['ember'], f"Streak day {new_streak}"))
+
+                    # Calculate next milestone
+                    if new_streak < 7:
+                        next_milestone = 7
+                        days_to_next = 7 - new_streak
+                    elif new_streak < 30:
+                        next_milestone = 30
+                        days_to_next = 30 - new_streak
+                    else:
+                        next_milestone = new_streak + (30 - (new_streak % 30))
+                        days_to_next = next_milestone - new_streak
+
+                    return jsonify({
+                        "success": True,
+                        "current_streak": new_streak,
+                        "ember_earned": total_ember_earned,
+                        "rewards": rewards_given,
+                        "next_milestone": next_milestone,
+                        "days_to_next": days_to_next,
+                        "message": "The Flame welcomes you back, Operator."
+                    })
+
+        except Exception as e:
+            print(f"Error processing daily login: {e}")
+            import traceback
+            traceback.print_exc()
+            return jsonify({"error": str(e)}), 500
+
+    @app.route('/api/social/tutorial-complete', methods=['POST'])
+    def api_social_tutorial_complete():
+        """
+        Award EMBER for completing the tutorial.
+        Can only be claimed once per wallet.
+
+        Body: {
+            "wallet": "0x...",
+            "sections_completed": ["intro", "missions", "vault", "emissary", "pyre", "lore"]
+        }
+        """
+        data = request.get_json() or {}
+        wallet = data.get('wallet', '').lower()
+        sections = data.get('sections_completed', [])
+
+        if not wallet:
+            return jsonify({"error": "Missing wallet"}), 400
+
+        # Required sections to complete tutorial
+        required_sections = {'intro', 'missions', 'vault', 'emissary', 'pyre', 'lore'}
+        completed_sections = set(sections)
+
+        if not required_sections.issubset(completed_sections):
+            missing = required_sections - completed_sections
+            return jsonify({
+                "error": "Tutorial not complete",
+                "missing_sections": list(missing)
+            }), 400
+
+        if not POSTGRESQL_AVAILABLE:
+            return jsonify({"error": "Database not available"}), 503
+
+        try:
+            with get_db_connection() as conn:
+                with conn.cursor() as cur:
+                    # Check if already completed
+                    cur.execute("""
+                        SELECT tutorial_completed FROM user_streaks WHERE wallet = %s
+                    """, (wallet,))
+                    row = cur.fetchone()
+
+                    if row and row[0]:
+                        return jsonify({
+                            "success": True,
+                            "already_completed": True,
+                            "ember_earned": 0,
+                            "message": "Tutorial already completed"
+                        })
+
+                    # Award EMBER
+                    ember_reward = SOCIAL_REWARDS['tutorial']
+
+                    # Update/create streak record
+                    cur.execute("""
+                        INSERT INTO user_streaks (wallet, tutorial_completed, created_at)
+                        VALUES (%s, TRUE, NOW())
+                        ON CONFLICT (wallet) DO UPDATE SET
+                            tutorial_completed = TRUE,
+                            updated_at = NOW()
+                    """, (wallet,))
+
+                    # Add EMBER to balance
+                    cur.execute("""
+                        INSERT INTO user_balances (wallet, ember_balance, total_ember_earned, created_at, last_update)
+                        VALUES (%s, %s, %s, NOW(), NOW())
+                        ON CONFLICT (wallet) DO UPDATE SET
+                            ember_balance = user_balances.ember_balance + EXCLUDED.ember_balance,
+                            total_ember_earned = COALESCE(user_balances.total_ember_earned, 0) + EXCLUDED.total_ember_earned,
+                            last_update = NOW()
+                    """, (wallet, ember_reward, ember_reward))
+
+                    # Log reward
+                    cur.execute("""
+                        INSERT INTO social_rewards_log (wallet, action_type, ember_earned, description)
+                        VALUES (%s, 'tutorial', %s, 'Completed all tutorial sections')
+                    """, (wallet, ember_reward))
+
+                    return jsonify({
+                        "success": True,
+                        "ember_earned": ember_reward,
+                        "message": "Knowledge is the first spark."
+                    })
+
+        except Exception as e:
+            print(f"Error processing tutorial complete: {e}")
+            import traceback
+            traceback.print_exc()
+            return jsonify({"error": str(e)}), 500
+
+    @app.route('/api/social/first-mint-reward', methods=['POST'])
+    def api_social_first_mint_reward():
+        """
+        Award EMBER for first mint in the mini app.
+        Can only be claimed once per wallet.
+
+        Body: { "wallet": "0x..." }
+        """
+        data = request.get_json() or {}
+        wallet = data.get('wallet', '').lower()
+
+        if not wallet:
+            return jsonify({"error": "Missing wallet"}), 400
+
+        if not POSTGRESQL_AVAILABLE:
+            return jsonify({"error": "Database not available"}), 503
+
+        try:
+            with get_db_connection() as conn:
+                with conn.cursor() as cur:
+                    # Check if already rewarded
+                    cur.execute("""
+                        SELECT first_mint_rewarded FROM user_streaks WHERE wallet = %s
+                    """, (wallet,))
+                    row = cur.fetchone()
+
+                    if row and row[0]:
+                        return jsonify({
+                            "success": True,
+                            "already_rewarded": True,
+                            "ember_earned": 0,
+                            "message": "First mint reward already claimed"
+                        })
+
+                    # Award EMBER
+                    ember_reward = SOCIAL_REWARDS['first_mint']
+
+                    # Update/create streak record
+                    cur.execute("""
+                        INSERT INTO user_streaks (wallet, first_mint_rewarded, created_at)
+                        VALUES (%s, TRUE, NOW())
+                        ON CONFLICT (wallet) DO UPDATE SET
+                            first_mint_rewarded = TRUE,
+                            updated_at = NOW()
+                    """, (wallet,))
+
+                    # Add EMBER to balance
+                    cur.execute("""
+                        INSERT INTO user_balances (wallet, ember_balance, total_ember_earned, created_at, last_update)
+                        VALUES (%s, %s, %s, NOW(), NOW())
+                        ON CONFLICT (wallet) DO UPDATE SET
+                            ember_balance = user_balances.ember_balance + EXCLUDED.ember_balance,
+                            total_ember_earned = COALESCE(user_balances.total_ember_earned, 0) + EXCLUDED.total_ember_earned,
+                            last_update = NOW()
+                    """, (wallet, ember_reward, ember_reward))
+
+                    # Log reward
+                    cur.execute("""
+                        INSERT INTO social_rewards_log (wallet, action_type, ember_earned, description)
+                        VALUES (%s, 'first_mint', %s, 'First Emissary minted in mini app')
+                    """, (wallet, ember_reward))
+
+                    return jsonify({
+                        "success": True,
+                        "ember_earned": ember_reward,
+                        "message": "Your journey begins, Operator."
+                    })
+
+        except Exception as e:
+            print(f"Error processing first mint reward: {e}")
+            import traceback
+            traceback.print_exc()
+            return jsonify({"error": str(e)}), 500
+
+    @app.route('/api/social/share-reward', methods=['POST'])
+    def api_social_share_reward():
+        """
+        Award EMBER for sharing on Farcaster.
+        Limited to 5 shares per day per wallet.
+
+        Body: {
+            "wallet": "0x...",
+            "cast_hash": "0x..."  # Farcaster cast hash
+        }
+        """
+        data = request.get_json() or {}
+        wallet = data.get('wallet', '').lower()
+        cast_hash = data.get('cast_hash', '')
+
+        if not wallet or not cast_hash:
+            return jsonify({"error": "Missing required fields"}), 400
+
+        if not POSTGRESQL_AVAILABLE:
+            return jsonify({"error": "Database not available"}), 503
+
+        try:
+            with get_db_connection() as conn:
+                with conn.cursor() as cur:
+                    today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+
+                    # Check if this cast was already rewarded
+                    cur.execute("""
+                        SELECT id FROM social_rewards_log
+                        WHERE wallet = %s AND action_type = 'share' AND reference_id = %s
+                    """, (wallet, cast_hash))
+                    if cur.fetchone():
+                        return jsonify({
+                            "success": True,
+                            "already_rewarded": True,
+                            "ember_earned": 0,
+                            "message": "This cast was already rewarded"
+                        })
+
+                    # Check daily limit
+                    cur.execute("""
+                        SELECT COUNT(*) FROM social_rewards_log
+                        WHERE wallet = %s AND action_type = 'share' AND created_at >= %s
+                    """, (wallet, today_start))
+                    shares_today = cur.fetchone()[0]
+
+                    if shares_today >= SOCIAL_LIMITS['share']:
+                        return jsonify({
+                            "success": True,
+                            "limit_reached": True,
+                            "ember_earned": 0,
+                            "shares_today": shares_today,
+                            "max_shares": SOCIAL_LIMITS['share'],
+                            "message": "Daily share limit reached"
+                        })
+
+                    # Award EMBER
+                    ember_reward = SOCIAL_REWARDS['share']
+
+                    # Add EMBER to balance
+                    cur.execute("""
+                        INSERT INTO user_balances (wallet, ember_balance, total_ember_earned, created_at, last_update)
+                        VALUES (%s, %s, %s, NOW(), NOW())
+                        ON CONFLICT (wallet) DO UPDATE SET
+                            ember_balance = user_balances.ember_balance + EXCLUDED.ember_balance,
+                            total_ember_earned = COALESCE(user_balances.total_ember_earned, 0) + EXCLUDED.total_ember_earned,
+                            last_update = NOW()
+                    """, (wallet, ember_reward, ember_reward))
+
+                    # Log reward
+                    cur.execute("""
+                        INSERT INTO social_rewards_log (wallet, action_type, ember_earned, reference_id, description)
+                        VALUES (%s, 'share', %s, %s, 'Farcaster share')
+                    """, (wallet, ember_reward, cast_hash))
+
+                    return jsonify({
+                        "success": True,
+                        "ember_earned": ember_reward,
+                        "shares_today": shares_today + 1,
+                        "max_shares": SOCIAL_LIMITS['share'],
+                        "message": "The word spreads across the realm."
+                    })
+
+        except Exception as e:
+            print(f"Error processing share reward: {e}")
+            import traceback
+            traceback.print_exc()
+            return jsonify({"error": str(e)}), 500
+
+    @app.route('/api/social/referral-reward', methods=['POST'])
+    def api_social_referral_reward():
+        """
+        Award EMBER for referring a new user who mints.
+        Limited to 10 referrals per day per referrer.
+
+        Body: {
+            "referrer_wallet": "0x...",  # The person who referred
+            "referred_wallet": "0x..."   # The new user who minted
+        }
+        """
+        data = request.get_json() or {}
+        referrer = data.get('referrer_wallet', '').lower()
+        referred = data.get('referred_wallet', '').lower()
+
+        if not referrer or not referred:
+            return jsonify({"error": "Missing required fields"}), 400
+
+        if referrer == referred:
+            return jsonify({"error": "Cannot refer yourself"}), 400
+
+        if not POSTGRESQL_AVAILABLE:
+            return jsonify({"error": "Database not available"}), 503
+
+        try:
+            with get_db_connection() as conn:
+                with conn.cursor() as cur:
+                    today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+
+                    # Check if this referred wallet was already rewarded
+                    cur.execute("""
+                        SELECT id FROM social_rewards_log
+                        WHERE wallet = %s AND action_type = 'referral' AND reference_id = %s
+                    """, (referrer, referred))
+                    if cur.fetchone():
+                        return jsonify({
+                            "success": True,
+                            "already_rewarded": True,
+                            "ember_earned": 0,
+                            "message": "This referral was already rewarded"
+                        })
+
+                    # Check daily limit
+                    cur.execute("""
+                        SELECT COUNT(*) FROM social_rewards_log
+                        WHERE wallet = %s AND action_type = 'referral' AND created_at >= %s
+                    """, (referrer, today_start))
+                    referrals_today = cur.fetchone()[0]
+
+                    if referrals_today >= SOCIAL_LIMITS['referral']:
+                        return jsonify({
+                            "success": True,
+                            "limit_reached": True,
+                            "ember_earned": 0,
+                            "referrals_today": referrals_today,
+                            "max_referrals": SOCIAL_LIMITS['referral'],
+                            "message": "Daily referral limit reached"
+                        })
+
+                    # Award EMBER to referrer
+                    ember_reward = SOCIAL_REWARDS['referral']
+
+                    # Add EMBER to referrer's balance
+                    cur.execute("""
+                        INSERT INTO user_balances (wallet, ember_balance, total_ember_earned, created_at, last_update)
+                        VALUES (%s, %s, %s, NOW(), NOW())
+                        ON CONFLICT (wallet) DO UPDATE SET
+                            ember_balance = user_balances.ember_balance + EXCLUDED.ember_balance,
+                            total_ember_earned = COALESCE(user_balances.total_ember_earned, 0) + EXCLUDED.total_ember_earned,
+                            last_update = NOW()
+                    """, (referrer, ember_reward, ember_reward))
+
+                    # Log reward
+                    cur.execute("""
+                        INSERT INTO social_rewards_log (wallet, action_type, ember_earned, reference_id, description)
+                        VALUES (%s, 'referral', %s, %s, 'Referred new user who minted')
+                    """, (referrer, ember_reward, referred))
+
+                    return jsonify({
+                        "success": True,
+                        "ember_earned": ember_reward,
+                        "referrals_today": referrals_today + 1,
+                        "max_referrals": SOCIAL_LIMITS['referral'],
+                        "message": "New blood joins the cause."
+                    })
+
+        except Exception as e:
+            print(f"Error processing referral reward: {e}")
+            import traceback
+            traceback.print_exc()
+            return jsonify({"error": str(e)}), 500
+
+    @app.route('/api/social/rewards-history/<wallet>', methods=['GET'])
+    def api_social_rewards_history(wallet):
+        """Get social rewards history for a wallet"""
+        wallet = wallet.lower()
+
+        if not POSTGRESQL_AVAILABLE:
+            return jsonify({"error": "Database not available"}), 503
+
+        try:
+            with get_db_connection() as conn:
+                with conn.cursor() as cur:
+                    cur.execute("""
+                        SELECT action_type, ember_earned, reference_id, description, created_at
+                        FROM social_rewards_log
+                        WHERE wallet = %s
+                        ORDER BY created_at DESC
+                        LIMIT 50
+                    """, (wallet,))
+                    rows = cur.fetchall()
+
+                    history = [{
+                        "action_type": row[0],
+                        "ember_earned": float(row[1]),
+                        "reference_id": row[2],
+                        "description": row[3],
+                        "created_at": row[4].isoformat() if row[4] else None
+                    } for row in rows]
+
+                    # Get totals
+                    cur.execute("""
+                        SELECT action_type, SUM(ember_earned) as total
+                        FROM social_rewards_log
+                        WHERE wallet = %s
+                        GROUP BY action_type
+                    """, (wallet,))
+                    totals_rows = cur.fetchall()
+                    totals = {row[0]: float(row[1]) for row in totals_rows}
+
+                    return jsonify({
+                        "success": True,
+                        "history": history,
+                        "totals": totals
+                    })
+
+        except Exception as e:
+            print(f"Error getting rewards history: {e}")
+            return jsonify({"error": str(e)}), 500
+
+    @app.route('/api/social/streak/<wallet>', methods=['GET'])
+    def api_social_streak(wallet):
+        """Get streak information for a wallet"""
+        wallet = wallet.lower()
+
+        if not POSTGRESQL_AVAILABLE:
+            return jsonify({"error": "Database not available"}), 503
+
+        try:
+            with get_db_connection() as conn:
+                with conn.cursor() as cur:
+                    cur.execute("""
+                        SELECT current_streak, longest_streak, last_login_date,
+                               tutorial_completed, first_mint_rewarded
+                        FROM user_streaks WHERE wallet = %s
+                    """, (wallet,))
+                    row = cur.fetchone()
+
+                    if not row:
+                        return jsonify({
+                            "success": True,
+                            "current_streak": 0,
+                            "longest_streak": 0,
+                            "last_login": None,
+                            "tutorial_completed": False,
+                            "first_mint_rewarded": False
+                        })
+
+                    today = datetime.now(timezone.utc).date()
+                    last_login = row[2]
+
+                    # Check if login today
+                    logged_in_today = last_login == today if last_login else False
+
+                    # Calculate next milestone
+                    streak = row[0] or 0
+                    if streak < 7:
+                        next_milestone = 7
+                    elif streak < 30:
+                        next_milestone = 30
+                    else:
+                        next_milestone = streak + (30 - (streak % 30))
+
+                    return jsonify({
+                        "success": True,
+                        "current_streak": streak,
+                        "longest_streak": row[1] or 0,
+                        "last_login": last_login.isoformat() if last_login else None,
+                        "logged_in_today": logged_in_today,
+                        "next_milestone": next_milestone,
+                        "days_to_next": next_milestone - streak,
+                        "tutorial_completed": row[3] or False,
+                        "first_mint_rewarded": row[4] or False
+                    })
+
+        except Exception as e:
+            print(f"Error getting streak: {e}")
             return jsonify({"error": str(e)}), 500
 
     print("✅ Mini App routes registered successfully")

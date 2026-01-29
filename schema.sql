@@ -486,6 +486,8 @@ CREATE TABLE IF NOT EXISTS micro_missions (
     pyre_reward_max INTEGER NOT NULL,
     xp_reward_min INTEGER DEFAULT 0,
     xp_reward_max INTEGER DEFAULT 0,
+    ember_reward_min INTEGER DEFAULT 0,               -- $EMBER reward min
+    ember_reward_max INTEGER DEFAULT 0,               -- $EMBER reward max
     aura_chance DECIMAL(5,2) DEFAULT 0,               -- Probabilidad de +1 aura (0-100)
     narrative_intro TEXT,                             -- Texto inicial
     narrative_choices JSONB DEFAULT '[]'::jsonb,      -- Array de opciones con textos
@@ -494,6 +496,10 @@ CREATE TABLE IF NOT EXISTS micro_missions (
     cooldown_minutes INTEGER DEFAULT 0,
     created_at TIMESTAMP DEFAULT NOW()
 );
+
+-- Add EMBER reward columns if they don't exist (for existing installations)
+ALTER TABLE micro_missions ADD COLUMN IF NOT EXISTS ember_reward_min INTEGER DEFAULT 0;
+ALTER TABLE micro_missions ADD COLUMN IF NOT EXISTS ember_reward_max INTEGER DEFAULT 0;
 
 -- Índices
 CREATE INDEX IF NOT EXISTS idx_micro_missions_difficulty ON micro_missions(difficulty);
@@ -664,6 +670,48 @@ SELECT DISTINCT
     MAX(created_at) as last_message_at
 FROM private_messages
 GROUP BY user1, user2;
+
+-- =========================================================================
+-- SOCIAL REWARDS SYSTEM
+-- =========================================================================
+
+-- -------------------------------------------------------------------------
+-- TABLA: SOCIAL REWARDS LOG (Historial de recompensas sociales)
+-- -------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS social_rewards_log (
+    id SERIAL PRIMARY KEY,
+    wallet VARCHAR(42) NOT NULL,
+    action_type VARCHAR(50) NOT NULL,             -- daily_login, streak_7, streak_30, referral, share, tutorial, first_mint
+    ember_earned DECIMAL(18,2) NOT NULL,
+    reference_id VARCHAR(100),                    -- fid del referido, cast_hash, etc.
+    description TEXT,
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Índices para verificar límites diarios
+CREATE INDEX IF NOT EXISTS idx_social_rewards_wallet ON social_rewards_log(wallet);
+CREATE INDEX IF NOT EXISTS idx_social_rewards_type ON social_rewards_log(action_type);
+CREATE INDEX IF NOT EXISTS idx_social_rewards_date ON social_rewards_log(created_at);
+CREATE INDEX IF NOT EXISTS idx_social_rewards_wallet_type_date ON social_rewards_log(wallet, action_type, created_at);
+
+-- -------------------------------------------------------------------------
+-- TABLA: USER STREAKS (Seguimiento de rachas de login)
+-- -------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS user_streaks (
+    wallet VARCHAR(42) PRIMARY KEY,
+    current_streak INTEGER DEFAULT 0,
+    longest_streak INTEGER DEFAULT 0,
+    last_login_date DATE,
+    streak_7_claimed_at TIMESTAMP,               -- Para no dar doble reward de streak 7
+    streak_30_claimed_at TIMESTAMP,              -- Para no dar doble reward de streak 30
+    tutorial_completed BOOLEAN DEFAULT FALSE,
+    first_mint_rewarded BOOLEAN DEFAULT FALSE,
+    updated_at TIMESTAMP DEFAULT NOW(),
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Índice
+CREATE INDEX IF NOT EXISTS idx_user_streaks_wallet ON user_streaks(wallet);
 
 -- =========================================================================
 -- SCHEMA COMPLETO
