@@ -665,6 +665,43 @@ SELECT DISTINCT
 FROM private_messages
 GROUP BY user1, user2;
 
+-- -------------------------------------------------------------------------
+-- EXTENSIÓN DE TABLA USER_PROFILES: Nuevas columnas
+-- -------------------------------------------------------------------------
+-- Añadir columnas si no existen
+ALTER TABLE user_profiles ADD COLUMN IF NOT EXISTS nft_count INTEGER DEFAULT 0;
+ALTER TABLE user_profiles ADD COLUMN IF NOT EXISTS wallet_type VARCHAR(20);  -- farcaster, metamask, coinbase, other
+
+-- -------------------------------------------------------------------------
+-- TABLA: GLOBAL MESSAGES (Chat global del Realm)
+-- -------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS global_messages (
+    id SERIAL PRIMARY KEY,
+    wallet VARCHAR(42) NOT NULL,
+    message TEXT NOT NULL,
+    pyre_earned INTEGER DEFAULT 0,                     -- PYRE ganado por este mensaje
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Índices para mensajes globales
+CREATE INDEX IF NOT EXISTS idx_global_messages_wallet ON global_messages(wallet);
+CREATE INDEX IF NOT EXISTS idx_global_messages_date ON global_messages(created_at);
+
+-- -------------------------------------------------------------------------
+-- VIEW: NFT Community Stats (para el panel de comunidad)
+-- -------------------------------------------------------------------------
+CREATE OR REPLACE VIEW nft_community_stats AS
+SELECT
+    (SELECT COUNT(*) FROM nfts) as total_minted,
+    (SELECT COUNT(*) FROM user_profiles WHERE country_code IS NOT NULL) as registered,
+    (SELECT COUNT(DISTINCT last_known_owner) FROM nfts) -
+        (SELECT COUNT(*) FROM user_profiles WHERE country_code IS NOT NULL) as unregistered,
+    (SELECT COUNT(DISTINCT country_code) FROM user_profiles WHERE country_code IS NOT NULL) as countries_count,
+    (SELECT COUNT(*) FROM user_profiles WHERE wallet_type = 'farcaster') as farcaster_users,
+    (SELECT COUNT(*) FROM user_profiles WHERE wallet_type = 'metamask') as metamask_users,
+    (SELECT COUNT(*) FROM user_profiles WHERE wallet_type = 'coinbase') as coinbase_users,
+    (SELECT COUNT(*) FROM user_profiles WHERE wallet_type = 'other' OR wallet_type IS NULL) as other_users;
+
 -- =========================================================================
 -- SCHEMA COMPLETO
 -- =========================================================================

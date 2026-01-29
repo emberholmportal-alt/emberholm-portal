@@ -1577,6 +1577,293 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
             print(f"Error getting online stats: {e}")
             return jsonify({"error": str(e)}), 500
 
+    @app.route('/api/social/nft-stats', methods=['GET'])
+    def api_social_nft_stats():
+        """Get NFT community statistics (minted, registered, unregistered)"""
+        if not POSTGRESQL_AVAILABLE:
+            return jsonify({"error": "Database not available"}), 503
+
+        try:
+            with get_db_connection() as conn:
+                with conn.cursor() as cur:
+                    # Total minted NFTs
+                    cur.execute("SELECT COUNT(*) FROM nfts")
+                    total_minted = cur.fetchone()[0]
+
+                    # Registered users (have country_code = have completed registration)
+                    cur.execute("SELECT COUNT(*) FROM user_profiles WHERE country_code IS NOT NULL")
+                    registered = cur.fetchone()[0]
+
+                    # Unique NFT owners
+                    cur.execute("SELECT COUNT(DISTINCT last_known_owner) FROM nfts WHERE last_known_owner IS NOT NULL")
+                    unique_owners = cur.fetchone()[0]
+
+                    # Countries count
+                    cur.execute("SELECT COUNT(DISTINCT country_code) FROM user_profiles WHERE country_code IS NOT NULL")
+                    countries_count = cur.fetchone()[0]
+
+                    # Wallet types count
+                    cur.execute("""
+                        SELECT
+                            COUNT(CASE WHEN wallet_type = 'farcaster' THEN 1 END) as farcaster,
+                            COUNT(CASE WHEN wallet_type = 'metamask' THEN 1 END) as metamask,
+                            COUNT(CASE WHEN wallet_type = 'coinbase' THEN 1 END) as coinbase,
+                            COUNT(CASE WHEN wallet_type = 'other' OR wallet_type IS NULL THEN 1 END) as other
+                        FROM user_profiles
+                    """)
+                    wallet_types = cur.fetchone()
+
+                    # Unregistered = unique owners who haven't registered
+                    unregistered = max(0, unique_owners - registered)
+
+                    return jsonify({
+                        "success": True,
+                        "stats": {
+                            "total_minted": total_minted,
+                            "registered": registered,
+                            "unregistered": unregistered,
+                            "countries_count": countries_count,
+                            "wallet_types": {
+                                "farcaster": wallet_types[0] if wallet_types else 0,
+                                "metamask": wallet_types[1] if wallet_types else 0,
+                                "coinbase": wallet_types[2] if wallet_types else 0,
+                                "other": wallet_types[3] if wallet_types else 0
+                            }
+                        }
+                    })
+
+        except Exception as e:
+            print(f"Error getting NFT stats: {e}")
+            return jsonify({"error": str(e)}), 500
+
+    # =====================================================================
+    # GLOBAL CHAT ENDPOINTS
+    # =====================================================================
+
+    @app.route('/api/social/global-chat', methods=['GET'])
+    def api_social_global_chat_get():
+        """Get global chat messages"""
+        limit = request.args.get('limit', 50, type=int)
+        before_id = request.args.get('before', type=int)
+
+        if not POSTGRESQL_AVAILABLE:
+            return jsonify({"error": "Database not available"}), 503
+
+        try:
+            with get_db_connection() as conn:
+                with conn.cursor() as cur:
+                    if before_id:
+                        cur.execute("""
+                            SELECT gm.id, gm.wallet, gm.message, gm.pyre_earned, gm.created_at,
+                                   up.display_name, up.farcaster_username, up.farcaster_pfp_url, up.country_code
+                            FROM global_messages gm
+                            LEFT JOIN user_profiles up ON gm.wallet = up.wallet
+                            WHERE gm.id < %s
+                            ORDER BY gm.created_at DESC
+                            LIMIT %s
+                        """, (before_id, limit))
+                    else:
+                        cur.execute("""
+                            SELECT gm.id, gm.wallet, gm.message, gm.pyre_earned, gm.created_at,
+                                   up.display_name, up.farcaster_username, up.farcaster_pfp_url, up.country_code
+                            FROM global_messages gm
+                            LEFT JOIN user_profiles up ON gm.wallet = up.wallet
+                            ORDER BY gm.created_at DESC
+                            LIMIT %s
+                        """, (limit,))
+                    rows = cur.fetchall()
+
+                    messages = []
+                    for row in rows:
+                        messages.append({
+                            "id": row[0],
+                            "wallet": row[1],
+                            "message": row[2],
+                            "pyre_earned": row[3] or 0,
+                            "created_at": row[4].isoformat() if row[4] else None,
+                            "user": {
+                                "display_name": row[5],
+                                "farcaster_username": row[6],
+                                "farcaster_pfp_url": row[7],
+                                "country_code": row[8]
+                            }
+                        })
+
+                    return jsonify({
+                        "success": True,
+                        "messages": messages,
+                        "count": len(messages)
+                    })
+
+        except Exception as e:
+            print(f"Error getting global chat: {e}")
+            return jsonify({"error": str(e)}), 500
+
+    @app.route('/api/social/global-chat', methods=['POST'])
+    def api_social_global_chat_send():
+        """
+        Send a global chat message and earn PYRE
+
+        Body: {
+            "wallet": "0x...",
+            "message": "Hello realm!"
+        }
+        """
+        data = request.get_json() or {}
+        wallet = data.get('wallet', '').lower()
+        message = data.get('message', '').strip()
+
+        if not wallet:
+            return jsonify({"error": "Wallet required"}), 400
+
+        if not message:
+            return jsonify({"error": "Message cannot be empty"}), 400
+
+        if len(message) > 500:
+            return jsonify({"error": "Message too long (max 500 chars)"}), 400
+
+        if not POSTGRESQL_AVAILABLE:
+            return jsonify({"error": "Database not available"}), 503
+
+        try:
+            with get_db_connection() as conn:
+                with conn.cursor() as cur:
+                    # Check daily message limit for PYRE rewards (max 50/day)
+                    cur.execute("""
+                        SELECT COUNT(*) FROM global_messages
+                        WHERE wallet = %s
+                        AND created_at > NOW() - INTERVAL '24 hours'
+                        AND pyre_earned > 0
+                    """, (wallet,))
+                    daily_count = cur.fetchone()[0]
+
+                    pyre_earned = 5 if daily_count < 50 else 0
+
+                    # Insert message
+                    cur.execute("""
+                        INSERT INTO global_messages (wallet, message, pyre_earned)
+                        VALUES (%s, %s, %s)
+                        RETURNING id, created_at
+                    """, (wallet, message, pyre_earned))
+                    row = cur.fetchone()
+                    msg_id = row[0]
+                    created_at = row[1]
+
+                    # Add PYRE if earned
+                    if pyre_earned > 0:
+                        cur.execute("""
+                            INSERT INTO pyre_balances (wallet, balance, total_earned)
+                            VALUES (%s, %s, %s)
+                            ON CONFLICT (wallet) DO UPDATE SET
+                                balance = pyre_balances.balance + %s,
+                                total_earned = pyre_balances.total_earned + %s,
+                                updated_at = NOW()
+                        """, (wallet, pyre_earned, pyre_earned, pyre_earned, pyre_earned))
+
+                        cur.execute("""
+                            INSERT INTO pyre_transactions
+                            (wallet, amount, transaction_type, reference_id, description)
+                            VALUES (%s, %s, 'global_chat', %s, 'Global chat message')
+                        """, (wallet, pyre_earned, str(msg_id)))
+
+                    # Update last_seen
+                    cur.execute("""
+                        UPDATE user_profiles SET last_seen = NOW()
+                        WHERE wallet = %s
+                    """, (wallet,))
+
+                    # Get user profile for response
+                    cur.execute("""
+                        SELECT display_name, farcaster_username, farcaster_pfp_url, country_code
+                        FROM user_profiles WHERE wallet = %s
+                    """, (wallet,))
+                    profile = cur.fetchone()
+
+                    return jsonify({
+                        "success": True,
+                        "pyre_earned": pyre_earned,
+                        "message": {
+                            "id": msg_id,
+                            "wallet": wallet,
+                            "message": message,
+                            "pyre_earned": pyre_earned,
+                            "created_at": created_at.isoformat() if created_at else None,
+                            "user": {
+                                "display_name": profile[0] if profile else None,
+                                "farcaster_username": profile[1] if profile else None,
+                                "farcaster_pfp_url": profile[2] if profile else None,
+                                "country_code": profile[3] if profile else None
+                            }
+                        }
+                    })
+
+        except Exception as e:
+            print(f"Error sending global chat: {e}")
+            return jsonify({"error": str(e)}), 500
+
+    @app.route('/api/social/operators', methods=['GET'])
+    def api_social_operators():
+        """Get list of all operators (NFT holders)"""
+        limit = request.args.get('limit', 100, type=int)
+        offset = request.args.get('offset', 0, type=int)
+
+        if not POSTGRESQL_AVAILABLE:
+            return jsonify({"error": "Database not available"}), 503
+
+        try:
+            with get_db_connection() as conn:
+                with conn.cursor() as cur:
+                    # Get total count
+                    cur.execute("SELECT COUNT(DISTINCT last_known_owner) FROM nfts WHERE last_known_owner IS NOT NULL")
+                    total = cur.fetchone()[0]
+
+                    # Get operators with their profiles and NFT counts
+                    cur.execute("""
+                        SELECT
+                            n.last_known_owner as wallet,
+                            COUNT(n.token_id) as emissary_count,
+                            up.display_name,
+                            up.farcaster_username,
+                            up.farcaster_pfp_url,
+                            up.country_code,
+                            COALESCE(pb.balance, 0) as pyre_balance,
+                            up.last_seen,
+                            (up.last_seen > NOW() - INTERVAL '15 minutes') as is_online
+                        FROM nfts n
+                        LEFT JOIN user_profiles up ON n.last_known_owner = up.wallet
+                        LEFT JOIN pyre_balances pb ON n.last_known_owner = pb.wallet
+                        WHERE n.last_known_owner IS NOT NULL
+                        GROUP BY n.last_known_owner, up.display_name, up.farcaster_username,
+                                 up.farcaster_pfp_url, up.country_code, pb.balance, up.last_seen
+                        ORDER BY emissary_count DESC, pyre_balance DESC
+                        LIMIT %s OFFSET %s
+                    """, (limit, offset))
+                    rows = cur.fetchall()
+
+                    operators = []
+                    for row in rows:
+                        operators.append({
+                            "wallet": row[0],
+                            "emissary_count": row[1],
+                            "display_name": row[2],
+                            "farcaster_username": row[3],
+                            "farcaster_pfp_url": row[4],
+                            "country_code": row[5],
+                            "pyre_balance": row[6],
+                            "last_seen": row[7].isoformat() if row[7] else None,
+                            "is_online": row[8] or False
+                        })
+
+                    return jsonify({
+                        "success": True,
+                        "operators": operators,
+                        "total": total
+                    })
+
+        except Exception as e:
+            print(f"Error getting operators: {e}")
+            return jsonify({"error": str(e)}), 500
+
     print("✅ Mini App routes registered successfully")
     print("   - GET  /api/realm-status")
     print("   - GET  /api/pyre/<wallet>")
@@ -1599,3 +1886,7 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
     print("   - POST /api/social/message")
     print("   - POST /api/social/message/read")
     print("   - GET  /api/social/online-stats")
+    print("   - GET  /api/social/nft-stats")
+    print("   - GET  /api/social/global-chat")
+    print("   - POST /api/social/global-chat")
+    print("   - GET  /api/social/operators")

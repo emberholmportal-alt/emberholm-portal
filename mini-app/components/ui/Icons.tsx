@@ -556,6 +556,67 @@ export function ChatIcon({ className = '', size = 24 }: IconProps) {
   );
 }
 
+// Ghost icon - for unregistered/unknown users
+export function GhostIcon({ className = '', size = 24 }: IconProps) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      className={className}
+    >
+      <path
+        d="M12 2C7 2 3 6 3 11v9c0 1 1 2 2 2 1 0 1.5-.5 2-1s1.5-1 2-1 1.5.5 2 1 1 1 2 1 1.5-.5 2-1 1.5-1 2-1 1.5.5 2 1 1 1 2 1c1 0 2-1 2-2v-9c0-5-4-9-9-9z"
+        fill="currentColor"
+        opacity="0.3"
+      />
+      <path
+        d="M12 3C8 3 5 6.5 5 11v8c0 .5.5 1 1 1 .5 0 1-.5 1.5-1s1.5-1 2.5-1 2 .5 2.5 1 1 1 1.5 1 1-.5 1.5-1 1.5-1 2.5-1 2 .5 2.5 1 1 1 1.5 1c.5 0 1-.5 1-1v-8c0-4.5-3-8-7-8z"
+        fill="currentColor"
+      />
+      <circle cx="9" cy="11" r="2" fill="#0a0a0a" />
+      <circle cx="15" cy="11" r="2" fill="#0a0a0a" />
+    </svg>
+  );
+}
+
+// Wallet icon - for wallet connection
+export function WalletIcon({ className = '', size = 24 }: IconProps) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      className={className}
+    >
+      <rect x="2" y="6" width="20" height="14" rx="2" fill="currentColor" opacity="0.3" />
+      <rect x="3" y="7" width="18" height="12" rx="1.5" fill="currentColor" />
+      <rect x="14" y="11" width="6" height="4" rx="1" fill="#0a0a0a" />
+      <circle cx="17" cy="13" r="1" fill="currentColor" />
+      <path d="M4 6V5a2 2 0 012-2h10a2 2 0 012 2v1" stroke="currentColor" strokeWidth="2" />
+    </svg>
+  );
+}
+
+// NFT/Token icon
+export function NftIcon({ className = '', size = 24 }: IconProps) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      className={className}
+    >
+      <rect x="3" y="3" width="18" height="18" rx="2" fill="currentColor" opacity="0.3" />
+      <rect x="4" y="4" width="16" height="16" rx="1.5" fill="currentColor" />
+      <path d="M8 12l3 3 5-6" stroke="#0a0a0a" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 // Export all icons as a map for easy access
 export const Icons = {
   fire: FireIcon,
@@ -584,6 +645,9 @@ export const Icons = {
   play: PlayIcon,
   gem: GemIcon,
   chat: ChatIcon,
+  ghost: GhostIcon,
+  wallet: WalletIcon,
+  nft: NftIcon,
 };
 
 export default Icons;

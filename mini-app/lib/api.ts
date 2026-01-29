@@ -516,3 +516,27 @@ export async function getAllOperators(limit = 100, offset = 0): Promise<{
   );
   return { operators: data.operators, total: data.total };
 }
+
+// =========================================
+// Social - NFT Community Stats
+// =========================================
+
+export interface NftStats {
+  total_minted: number;       // Total NFTs minted on-chain
+  registered: number;         // NFTs with registered profiles (have country)
+  unregistered: number;       // NFTs without profiles (ghosts)
+  countries_count: number;    // Number of unique countries
+  wallet_types: {
+    farcaster: number;        // Connected via Farcaster
+    metamask: number;         // Connected via MetaMask
+    coinbase: number;         // Connected via Coinbase Wallet
+    other: number;            // Other wallet types
+  };
+}
+
+export async function getNftStats(): Promise<NftStats> {
+  const data = await fetchAPI<{ success: boolean; stats: NftStats }>(
+    '/api/social/nft-stats'
+  );
+  return data.stats;
+}

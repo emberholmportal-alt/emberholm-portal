@@ -10,11 +10,14 @@ import React, { createContext, useContext, useState, useEffect, useCallback, Rea
  * 3. Demo mode for testing
  */
 
+export type WalletType = 'farcaster' | 'metamask' | 'coinbase' | 'other' | null;
+
 interface WalletState {
   address: string | null;
   isConnected: boolean;
   isConnecting: boolean;
   isFarcaster: boolean;
+  walletType: WalletType;
   farcasterUser: FarcasterUser | null;
   error: string | null;
 }
@@ -78,6 +81,7 @@ export function WalletProvider({ children }: WalletProviderProps) {
     isConnected: false,
     isConnecting: false,
     isFarcaster: false,
+    walletType: null,
     farcasterUser: null,
     error: null,
   });
@@ -110,6 +114,7 @@ export function WalletProvider({ children }: WalletProviderProps) {
           address,
           isConnected: !!address,
           isFarcaster: true,
+          walletType: 'farcaster',
           farcasterUser: {
             fid: user.fid,
             username: user.username || null,
@@ -128,6 +133,14 @@ export function WalletProvider({ children }: WalletProviderProps) {
     return false;
   }, []);
 
+  // Detect wallet type from browser provider
+  const detectWalletType = useCallback((): WalletType => {
+    if (!window.ethereum) return null;
+    if (window.ethereum.isCoinbaseWallet) return 'coinbase';
+    if (window.ethereum.isMetaMask) return 'metamask';
+    return 'other';
+  }, []);
+
   // Connect to browser wallet
   const connectBrowserWallet = useCallback(async () => {
     if (!window.ethereum) {
@@ -139,17 +152,19 @@ export function WalletProvider({ children }: WalletProviderProps) {
     });
 
     if (accounts[0]) {
+      const detectedWalletType = detectWalletType();
       setState(prev => ({
         ...prev,
         address: accounts[0],
         isConnected: true,
         isFarcaster: false,
+        walletType: detectedWalletType,
         error: null,
       }));
     } else {
       throw new Error('No accounts found');
     }
-  }, []);
+  }, [detectWalletType]);
 
   // Main connect function
   const connect = useCallback(async () => {
@@ -182,6 +197,7 @@ export function WalletProvider({ children }: WalletProviderProps) {
       isConnected: false,
       isConnecting: false,
       isFarcaster: false,
+      walletType: null,
       farcasterUser: null,
       error: null,
     });
@@ -195,6 +211,7 @@ export function WalletProvider({ children }: WalletProviderProps) {
       isConnected: true,
       isConnecting: false,
       isFarcaster: false,
+      walletType: 'other',
       farcasterUser: null,
       error: null,
     });
@@ -251,5 +268,5 @@ export function useWallet(): WalletContextType {
   return context;
 }
 
-// Export types
+// Export types (WalletType is already exported at the top)
 export type { WalletState, FarcasterUser, WalletContextType };
