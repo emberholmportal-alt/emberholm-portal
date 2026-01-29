@@ -501,3 +501,23 @@ export async function getAllOperators(limit = 100, offset = 0): Promise<CountryU
     return [];
   }
 }
+
+// =========================================
+// Social - NFT Stats (Emissary Census)
+// =========================================
+
+export interface NftStats {
+  total_minted: number;
+  registered: number;
+  unregistered: number;
+}
+
+export async function getNftStats(): Promise<NftStats> {
+  try {
+    const data = await fetchAPI<{ success: boolean; stats: NftStats }>('/api/social/nft-stats');
+    return data.stats;
+  } catch {
+    // Return default stats if endpoint fails
+    return { total_minted: 0, registered: 0, unregistered: 0 };
+  }
+}

@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import dynamic from 'next/dynamic';
 import Image from 'next/image';
-import { getCountries, getOnlineStats, CountryStats, OnlineStats } from '@/lib/api';
+import { getCountries, getOnlineStats, getNftStats, CountryStats, OnlineStats, NftStats } from '@/lib/api';
 import { getCountryName } from '@/lib/hooks/useGlobe';
 
 // Dynamically import Globe3D to avoid SSR issues with Three.js
@@ -27,23 +27,36 @@ interface SocialGlobeProps {
   onBack: () => void;
 }
 
+// Flavor texts for the census panel
+const CENSUS_FLAVOR = [
+  'Emissaries await their Operators in the void...',
+  'Unregistered souls wander the mist...',
+  'The void calls to the unclaimed...',
+  'Ember-less shadows drift between worlds...',
+  'Lost ones seek their destined Operators...',
+];
+
 export function SocialGlobe({ onSelectCountry, onGlobalChat, onBack }: SocialGlobeProps) {
   const [countries, setCountries] = useState<CountryStats[]>([]);
   const [stats, setStats] = useState<OnlineStats | null>(null);
+  const [nftStats, setNftStats] = useState<NftStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [hoveredCountry, setHoveredCountry] = useState<string | null>(null);
+  const [censusFlavor, setCensusFlavor] = useState(CENSUS_FLAVOR[0]);
 
   // Load data
   useEffect(() => {
     async function loadData() {
       setIsLoading(true);
       try {
-        const [countriesData, statsData] = await Promise.all([
+        const [countriesData, statsData, nftData] = await Promise.all([
           getCountries(),
           getOnlineStats(),
+          getNftStats(),
         ]);
         setCountries(countriesData);
         setStats(statsData);
+        setNftStats(nftData);
       } catch (error) {
         console.error('Error loading social data:', error);
       } finally {
@@ -51,6 +64,14 @@ export function SocialGlobe({ onSelectCountry, onGlobalChat, onBack }: SocialGlo
       }
     }
     loadData();
+  }, []);
+
+  // Rotate census flavor text
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCensusFlavor(CENSUS_FLAVOR[Math.floor(Math.random() * CENSUS_FLAVOR.length)]);
+    }, 8000);
+    return () => clearInterval(interval);
   }, []);
 
   const handleCountryHover = (code: string | null) => {
@@ -166,6 +187,70 @@ export function SocialGlobe({ onSelectCountry, onGlobalChat, onBack }: SocialGlo
             ))}
           </div>
         </div>
+
+        {/* Emissary Census Panel */}
+        {nftStats && (
+          <div className="data-box">
+            <div className="ornament text-xs mb-3">═══ EMISSARY CENSUS ═══</div>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Image
+                    src="/icons/fire.png"
+                    alt=""
+                    width={16}
+                    height={16}
+                    className="pixel-icon"
+                  />
+                  <span className="text-amber-dim text-sm">Total Minted</span>
+                </div>
+                <span className="text-amber-bright font-bold">
+                  {nftStats.total_minted.toLocaleString()}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Image
+                    src="/icons/crystalball.png"
+                    alt=""
+                    width={16}
+                    height={16}
+                    className="pixel-icon"
+                  />
+                  <span className="text-amber-dim text-sm">Registered</span>
+                </div>
+                <span className="text-green font-bold">
+                  {nftStats.registered.toLocaleString()}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Image
+                    src="/icons/skull.png"
+                    alt=""
+                    width={16}
+                    height={16}
+                    className="pixel-icon"
+                  />
+                  <span className="text-amber-dim text-sm">Unregistered</span>
+                </div>
+                <span className="text-cyan font-bold">
+                  {nftStats.unregistered.toLocaleString()}
+                </span>
+              </div>
+            </div>
+            {nftStats.unregistered > 0 && (
+              <motion.div
+                key={censusFlavor}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="text-xs text-amber-dim text-center mt-3 italic"
+              >
+                "{nftStats.unregistered.toLocaleString()} {censusFlavor}"
+              </motion.div>
+            )}
+          </div>
+        )}
 
         {/* Global Chat Button */}
         <button
