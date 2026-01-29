@@ -26,14 +26,14 @@ import { LoreScreen } from '@/components/screens/LoreScreen';
 import { TutorialScreen } from '@/components/screens/TutorialScreen';
 import { PyreGuide } from '@/components/screens/PyreGuide';
 import { useApp, actions, AppScreen, AppProvider } from '@/lib/store';
-import { SoundProvider, useSoundContext } from '@/lib/SoundContext';
+import { SoundProvider } from '@/lib/SoundContext';
+import { WalletProvider, useWallet } from '@/lib/WalletContext';
 import {
   Emissary,
   MicroMission,
   getWalletEmissaries,
   getPyreBalance,
   getActiveMicroMission,
-  getMicroMissionDetail,
   updateProfile,
 } from '@/lib/api';
 
@@ -44,22 +44,25 @@ import {
 
 function AppContent() {
   const { state, dispatch } = useApp();
+  const wallet = useWallet();
 
-  // Check for existing wallet connection on mount
+  // Sync wallet context with app store
   useEffect(() => {
-    const savedWallet = localStorage.getItem('emberholm_wallet');
+    if (wallet.address && wallet.address !== state.wallet) {
+      dispatch(actions.setWallet(wallet.address));
+    }
+  }, [wallet.address, state.wallet, dispatch]);
+
+  // Check for existing session on mount
+  useEffect(() => {
     const savedCountry = localStorage.getItem('emberholm_country');
     const skipIntro = localStorage.getItem('emberholm_skip_intro');
 
-    if (savedWallet) {
-      dispatch(actions.setWallet(savedWallet));
-    }
-
     // If returning user with saved data, skip to menu
-    if (skipIntro === 'true' && savedCountry) {
+    if (skipIntro === 'true' && savedCountry && wallet.isConnected) {
       dispatch(actions.setScreen('menu'));
     }
-  }, [dispatch]);
+  }, [dispatch, wallet.isConnected]);
 
   // Load data when wallet is connected
   useEffect(() => {
@@ -97,29 +100,10 @@ function AppContent() {
     loadData();
   }, [state.wallet, dispatch]);
 
-  // Wallet connection handler
+  // Wallet connection handler - uses WalletContext
   const handleConnect = useCallback(async () => {
-    try {
-      if (typeof window !== 'undefined' && (window as any).ethereum) {
-        const accounts = await (window as any).ethereum.request({
-          method: 'eth_requestAccounts',
-        });
-        if (accounts[0]) {
-          const wallet = accounts[0].toLowerCase();
-          dispatch(actions.setWallet(wallet));
-          localStorage.setItem('emberholm_wallet', wallet);
-        }
-      } else {
-        // Demo mode - use a placeholder wallet
-        const demoWallet = '0x0000000000000000000000000000000000000000';
-        dispatch(actions.setWallet(demoWallet));
-        localStorage.setItem('emberholm_wallet', demoWallet);
-      }
-    } catch (error) {
-      console.error('Failed to connect:', error);
-      dispatch(actions.setError('Failed to connect wallet'));
-    }
-  }, [dispatch]);
+    await wallet.connect();
+  }, [wallet]);
 
   // Navigation handlers
   const handleNavigate = (screen: AppScreen) => {
@@ -410,10 +394,12 @@ function AppContent() {
 // Wrap with Providers
 export default function Home() {
   return (
-    <SoundProvider>
-      <AppProvider>
-        <AppContent />
-      </AppProvider>
-    </SoundProvider>
+    <WalletProvider>
+      <SoundProvider>
+        <AppProvider>
+          <AppContent />
+        </AppProvider>
+      </SoundProvider>
+    </WalletProvider>
   );
 }

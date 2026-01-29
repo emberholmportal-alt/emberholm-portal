@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@farcaster/miniapp-sdk": "^0.2.2",
     "@rainbow-me/rainbowkit": "^2.1.3",
     "@react-three/drei": "^9.122.0",
     "@react-three/fiber": "^8.18.0",
