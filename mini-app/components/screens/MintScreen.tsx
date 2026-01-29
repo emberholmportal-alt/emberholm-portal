@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FireIcon, SwordsIcon, SparkleIcon } from '@/components/ui/Icons';
+import Image from 'next/image';
 
 /**
  * MintScreen - Mint new Emissary
@@ -29,6 +29,7 @@ interface MintedEmissary {
 }
 
 export function MintScreen({ wallet, onMintSuccess, onBack }: MintScreenProps) {
+  const videoRef = useRef<HTMLVideoElement>(null);
   const [stats, setStats] = useState<MintStats>({
     totalMinted: 12847,
     maxSupply: 35000,
@@ -38,7 +39,7 @@ export function MintScreen({ wallet, onMintSuccess, onBack }: MintScreenProps) {
   const [quantity, setQuantity] = useState(1);
   const [isMinting, setIsMinting] = useState(false);
   const [mintedEmissary, setMintedEmissary] = useState<MintedEmissary | null>(null);
-  const [revealPhase, setRevealPhase] = useState<'idle' | 'minting' | 'revealing' | 'complete'>('idle');
+  const [revealPhase, setRevealPhase] = useState<'idle' | 'minting' | 'video' | 'revealing' | 'complete'>('idle');
   const [error, setError] = useState<string | null>(null);
 
   // Load mint stats
@@ -57,23 +58,12 @@ export function MintScreen({ wallet, onMintSuccess, onBack }: MintScreenProps) {
   const canAfford = ethBalance >= totalCost;
   const remainingSupply = stats.maxSupply - stats.totalMinted;
 
-  // Handle mint
-  const handleMint = async () => {
-    if (!wallet || !canAfford || quantity > remainingSupply) return;
+  // Handle video end - proceed to reveal
+  const handleVideoEnd = () => {
+    setRevealPhase('revealing');
 
-    setIsMinting(true);
-    setError(null);
-    setRevealPhase('minting');
-
-    try {
-      // Simulate minting delay
-      await new Promise(resolve => setTimeout(resolve, 2000));
-
-      setRevealPhase('revealing');
-
-      // Simulate reveal delay
-      await new Promise(resolve => setTimeout(resolve, 1500));
-
+    // After reveal animation, show complete
+    setTimeout(() => {
       // Mock minted emissary
       const minted: MintedEmissary = {
         token_id: `${stats.totalMinted + 1}`,
@@ -88,12 +78,27 @@ export function MintScreen({ wallet, onMintSuccess, onBack }: MintScreenProps) {
       setMintedEmissary(minted);
       setRevealPhase('complete');
       setStats(prev => ({ ...prev, totalMinted: prev.totalMinted + quantity }));
-
       onMintSuccess?.(minted.token_id);
+    }, 1500);
+  };
+
+  // Handle mint
+  const handleMint = async () => {
+    if (!wallet || !canAfford || quantity > remainingSupply) return;
+
+    setIsMinting(true);
+    setError(null);
+    setRevealPhase('minting');
+
+    try {
+      // Simulate minting transaction delay
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
+      // Start video reveal
+      setRevealPhase('video');
     } catch (err: any) {
       setError(err.message || 'Mint failed');
       setRevealPhase('idle');
-    } finally {
       setIsMinting(false);
     }
   };
@@ -103,6 +108,7 @@ export function MintScreen({ wallet, onMintSuccess, onBack }: MintScreenProps) {
     setMintedEmissary(null);
     setRevealPhase('idle');
     setQuantity(1);
+    setIsMinting(false);
   };
 
   // Progress percentage
@@ -237,13 +243,44 @@ export function MintScreen({ wallet, onMintSuccess, onBack }: MintScreenProps) {
               <motion.div
                 animate={{ rotate: 360 }}
                 transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
-                className="mb-4 flex justify-center"
+                className="mb-4"
               >
-                <FireIcon size={64} className="text-amber" />
+                <Image
+                  src="/icons/fire.png"
+                  alt=""
+                  width={64}
+                  height={64}
+                  className="pixel-icon mx-auto"
+                />
               </motion.div>
               <div className="text-amber-bright text-xl">Minting...</div>
               <div className="text-amber-dim text-sm mt-2">
                 Confirm transaction in your wallet
+              </div>
+            </motion.div>
+          )}
+
+          {revealPhase === 'video' && (
+            <motion.div
+              key="video"
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              className="relative w-full max-w-sm aspect-square rounded-lg overflow-hidden"
+            >
+              <video
+                ref={videoRef}
+                src="/videos/portal.mp4"
+                autoPlay
+                muted
+                playsInline
+                onEnded={handleVideoEnd}
+                className="w-full h-full object-cover"
+              />
+              <div className="absolute bottom-4 left-0 right-0 text-center">
+                <div className="text-amber-bright text-lg animate-pulse">
+                  Opening the Portal...
+                </div>
               </div>
             </motion.div>
           )}
@@ -259,9 +296,15 @@ export function MintScreen({ wallet, onMintSuccess, onBack }: MintScreenProps) {
               <motion.div
                 animate={{ scale: [1, 1.2, 1] }}
                 transition={{ duration: 0.5, repeat: Infinity }}
-                className="mb-4 flex justify-center"
+                className="mb-4"
               >
-                <SparkleIcon size={64} className="text-cyan" />
+                <Image
+                  src="/icons/Sparkles.png"
+                  alt=""
+                  width={64}
+                  height={64}
+                  className="pixel-icon mx-auto"
+                />
               </motion.div>
               <div className="text-amber-bright text-xl">Revealing...</div>
               <div className="text-amber-dim text-sm mt-2">
@@ -292,7 +335,13 @@ export function MintScreen({ wallet, onMintSuccess, onBack }: MintScreenProps) {
                       className="w-full h-full object-cover rounded-lg"
                     />
                   ) : (
-                    <SwordsIcon size={64} className="text-amber" />
+                    <Image
+                      src="/icons/Swords.png"
+                      alt=""
+                      width={64}
+                      height={64}
+                      className="pixel-icon"
+                    />
                   )}
                 </div>
 

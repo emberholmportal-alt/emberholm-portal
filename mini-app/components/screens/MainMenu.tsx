@@ -1,19 +1,20 @@
 'use client';
 
 import { motion } from 'framer-motion';
+import Image from 'next/image';
 import { AppScreen } from '@/lib/store';
-import { PlayIcon, GemIcon, GlobeIcon, VaultIcon, CalendarIcon, ScrollIcon, HelpIcon, FireIcon } from '@/components/ui/Icons';
 
 /**
  * MainMenu - Main dashboard / command center
- * Shows: Title, 7 menu buttons, bottom stats
+ * Shows: Logo, 7 menu buttons, bottom stats
  * Buttons: PLAY, MINT EMISSARY, SOCIAL, VAULT, EVENTS, LORE, TUTORIAL
  */
 
 interface MenuItem {
   id: AppScreen;
   title: string;
-  icon: React.ReactNode;
+  icon: string;
+  iconSrc?: string;
   badge?: number;
 }
 
@@ -34,51 +35,62 @@ export function MainMenu({
     {
       id: 'play',
       title: 'PLAY',
-      icon: <PlayIcon size={20} className="text-amber" />,
+      icon: '▶',
     },
     {
       id: 'mint',
       title: 'MINT EMISSARY',
-      icon: <GemIcon size={20} className="text-cyan" />,
+      icon: '◈',
     },
     {
       id: 'social-globe',
       title: 'SOCIAL',
-      icon: <GlobeIcon size={20} className="text-amber" />,
+      icon: '',
+      iconSrc: '/icons/crystalball.png',
       badge: unreadMessages,
     },
     {
       id: 'vault',
       title: 'VAULT',
-      icon: <VaultIcon size={20} className="text-amber" />,
+      icon: '',
+      iconSrc: '/icons/moneybag.png',
     },
     {
       id: 'events',
       title: 'EVENTS',
-      icon: <CalendarIcon size={20} className="text-amber" />,
+      icon: '',
+      iconSrc: '/icons/scroll.png',
     },
     {
       id: 'lore',
       title: 'LORE',
-      icon: <ScrollIcon size={20} className="text-amber" />,
+      icon: '',
+      iconSrc: '/icons/EternalTorch.png',
     },
     {
       id: 'tutorial',
       title: 'TUTORIAL',
-      icon: <HelpIcon size={20} className="text-amber" />,
+      icon: '?',
     },
   ];
 
   return (
     <div className="screen-view flex flex-col min-h-screen p-4">
-      {/* Header */}
+      {/* Header with Logo */}
       <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
         className="text-center mb-4"
       >
-        <h1 className="title text-3xl">EMBERHOLM</h1>
-        <p className="subtitle">PORTAL</p>
+        <Image
+          src="/logo.png"
+          alt="Emberholm"
+          width={180}
+          height={60}
+          className="logo-image mx-auto"
+          priority
+        />
+        <p className="subtitle mt-2">MINI APP</p>
       </motion.div>
 
       {/* Menu buttons */}
@@ -92,7 +104,19 @@ export function MainMenu({
             onClick={() => onNavigate(item.id)}
             className={`menu-btn ${index === 0 ? 'selected' : ''}`}
           >
-            <span className="icon">{item.icon}</span>
+            <span className="icon">
+              {item.iconSrc ? (
+                <Image
+                  src={item.iconSrc}
+                  alt=""
+                  width={20}
+                  height={20}
+                  className="pixel-icon"
+                />
+              ) : (
+                item.icon
+              )}
+            </span>
             <span className="flex-1 text-left">{item.title}</span>
             {item.badge && item.badge > 0 && (
               <span className="notif-badge">{item.badge}</span>
@@ -114,12 +138,16 @@ export function MainMenu({
         </div>
         <div className="stat-item">
           <div className="stat-value cyan">{pyreBalance.toLocaleString()}</div>
-          <div className="stat-label">◈ PYRE</div>
+          <div className="stat-label flex items-center justify-center gap-1">
+            <Image src="/icons/Sparkles.png" alt="" width={12} height={12} className="pixel-icon-small" />
+            PYRE
+          </div>
         </div>
         <div className="stat-item">
           <div className="stat-value">0</div>
           <div className="stat-label flex items-center justify-center gap-1">
-            <FireIcon size={12} className="text-amber" /> EMBER
+            <Image src="/icons/fire.png" alt="" width={12} height={12} className="pixel-icon-small" />
+            EMBER
           </div>
         </div>
       </motion.div>

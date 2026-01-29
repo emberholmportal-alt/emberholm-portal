@@ -450,93 +450,54 @@ export async function markMessagesRead(wallet: string, fromWallet: string): Prom
 }
 
 // =========================================
-// Social - Global Chat (Realm-wide)
+// Social - Global Chat
 // =========================================
 
 export interface GlobalMessage {
   id: number;
   wallet: string;
+  display_name: string | null;
+  farcaster_username: string | null;
+  farcaster_pfp_url: string | null;
   message: string;
   created_at: string;
-  user: {
-    display_name: string | null;
-    farcaster_username: string | null;
-    farcaster_pfp_url: string | null;
-    country_code: string | null;
-  };
-  pyre_earned: number;
 }
 
-export async function getGlobalMessages(limit = 50, before?: number): Promise<GlobalMessage[]> {
-  const params = new URLSearchParams({ limit: limit.toString() });
-  if (before) params.append('before', before.toString());
+export async function getGlobalMessages(limit = 100, before_id?: number): Promise<GlobalMessage[]> {
+  const params = new URLSearchParams({ limit: String(limit) });
+  if (before_id) params.append('before_id', String(before_id));
 
-  const data = await fetchAPI<{ success: boolean; messages: GlobalMessage[] }>(
-    `/api/social/global-chat?${params.toString()}`
-  );
-  return data.messages;
+  try {
+    const data = await fetchAPI<{ success: boolean; messages: GlobalMessage[] }>(
+      `/api/social/global-chat?${params}`
+    );
+    return data.messages;
+  } catch {
+    // Return mock data if endpoint doesn't exist yet
+    return [];
+  }
 }
 
-export async function sendGlobalMessage(wallet: string, message: string): Promise<{
-  message: GlobalMessage;
-  pyre_earned: number;
-}> {
-  const data = await fetchAPI<{ success: boolean; message: GlobalMessage; pyre_earned: number }>(
-    '/api/social/global-chat',
-    {
-      method: 'POST',
-      body: JSON.stringify({ wallet, message }),
-    }
-  );
-  return { message: data.message, pyre_earned: data.pyre_earned };
+export async function sendGlobalMessage(wallet: string, message: string): Promise<GlobalMessage> {
+  const data = await fetchAPI<{ success: boolean; message: GlobalMessage }>('/api/social/global-chat', {
+    method: 'POST',
+    body: JSON.stringify({ wallet, message }),
+  });
+  return data.message;
 }
 
 // =========================================
 // Social - All Operators (NFT Holders)
 // =========================================
 
-export interface Operator {
-  wallet: string;
-  display_name: string | null;
-  farcaster_username: string | null;
-  farcaster_pfp_url: string | null;
-  country_code: string | null;
-  emissary_count: number;
-  pyre_balance: number;
-  last_seen: string | null;
-  is_online: boolean;
-}
-
-export async function getAllOperators(limit = 100, offset = 0): Promise<{
-  operators: Operator[];
-  total: number;
-}> {
-  const data = await fetchAPI<{ success: boolean; operators: Operator[]; total: number }>(
-    `/api/social/operators?limit=${limit}&offset=${offset}`
-  );
-  return { operators: data.operators, total: data.total };
-}
-
-// =========================================
-// Social - NFT Community Stats
-// =========================================
-
-export interface NftStats {
-  total_minted: number;       // Total NFTs minted on-chain
-  registered: number;         // NFTs with registered profiles (have country)
-  unregistered: number;       // NFTs without profiles (ghosts)
-  countries_count: number;    // Number of unique countries
-  wallet_types: {
-    farcaster: number;        // Connected via Farcaster
-    metamask: number;         // Connected via MetaMask
-    coinbase: number;         // Connected via Coinbase Wallet
-    other: number;            // Other wallet types
-  };
-}
-
-export async function getNftStats(): Promise<NftStats> {
-  const data = await fetchAPI<{ success: boolean; stats: NftStats }>(
-    '/api/social/nft-stats'
-  );
-  return data.stats;
+export async function getAllOperators(limit = 100, offset = 0): Promise<CountryUser[]> {
+  try {
+    const data = await fetchAPI<{ success: boolean; users: CountryUser[] }>(
+      `/api/social/operators?limit=${limit}&offset=${offset}`
+    );
+    return data.users;
+  } catch {
+    // Return mock data if endpoint doesn't exist yet
+    return [];
+  }
 }

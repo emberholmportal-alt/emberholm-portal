@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import Image from 'next/image';
 import { Emissary, MicroMission, getMicroMissions } from '@/lib/api';
-import { SwordsIcon, LightningIcon, HourglassIcon } from '@/components/ui/Icons';
 
 /**
  * MicroMissionsScreen - Micro-missions list
@@ -97,7 +97,7 @@ export function MicroMissionsScreen({
                     className="w-full h-full object-cover"
                   />
                 ) : (
-                  <SwordsIcon size={20} className="text-amber" />
+                  <Image src="/icons/Swords.png" alt="" width={24} height={24} className="pixel-icon" />
                 )}
               </div>
               <div>
@@ -105,7 +105,9 @@ export function MicroMissionsScreen({
                   {emissary.name || `#${emissary.token_id}`}
                 </p>
                 <p className="text-xs text-amber-dim flex items-center gap-1">
-                  LVL {emissary.stats.level} · <LightningIcon size={10} className="text-cyan" />{emissary.stats.energy_current}
+                  LVL {emissary.stats.level} ·
+                  <Image src="/icons/Lightning.png" alt="" width={12} height={12} className="pixel-icon inline" />
+                  {emissary.stats.energy_current}
                 </p>
               </div>
             </div>
@@ -154,7 +156,13 @@ export function MicroMissionsScreen({
       {isLoading && (
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
-            <LightningIcon size={48} className="text-cyan animate-pulse mx-auto mb-2" />
+            <Image
+              src="/icons/Lightning.png"
+              alt=""
+              width={32}
+              height={32}
+              className="pixel-icon mx-auto animate-pulse mb-2"
+            />
             <p className="text-amber-dim text-sm">Loading micro-missions...</p>
           </div>
         </div>
@@ -227,7 +235,8 @@ export function MicroMissionsScreen({
                   <div className="flex justify-between items-center text-xs mt-2">
                     <div className="flex gap-4">
                       <span className={`flex items-center gap-1 ${hasEnergy ? 'text-amber' : 'text-red'}`}>
-                        <LightningIcon size={12} className={hasEnergy ? 'text-cyan' : 'text-red'} /> {mission.energy_cost} Energy
+                        <Image src="/icons/Lightning.png" alt="" width={12} height={12} className="pixel-icon" />
+                        {mission.energy_cost} Energy
                       </span>
                       <span className="text-amber-dim">
                         +{mission.xp_reward.min}-{mission.xp_reward.max} XP
@@ -241,7 +250,8 @@ export function MicroMissionsScreen({
                   {/* Cooldown warning if applicable */}
                   {mission.cooldown_minutes > 0 && (
                     <p className="text-xs text-amber-darker mt-2 flex items-center gap-1">
-                      <HourglassIcon size={12} className="text-amber-dark" /> {mission.cooldown_minutes}min cooldown after completion
+                      <Image src="/icons/hourglass.png" alt="" width={12} height={12} className="pixel-icon" />
+                      {mission.cooldown_minutes}min cooldown after completion
                     </p>
                   )}
                 </button>

@@ -3,9 +3,9 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import dynamic from 'next/dynamic';
-import { getCountries, getOnlineStats, getNftStats, CountryStats, OnlineStats, NftStats } from '@/lib/api';
+import Image from 'next/image';
+import { getCountries, getOnlineStats, CountryStats, OnlineStats } from '@/lib/api';
 import { getCountryName } from '@/lib/hooks/useGlobe';
-import { ChatIcon, GemIcon, NftIcon, GhostIcon, UsersIcon } from '@/components/ui/Icons';
 
 // Dynamically import Globe3D to avoid SSR issues with Three.js
 const Globe3D = dynamic(() => import('@/components/Globe3D'), {
@@ -23,14 +23,13 @@ const Globe3D = dynamic(() => import('@/components/Globe3D'), {
 
 interface SocialGlobeProps {
   onSelectCountry: (countryCode: string) => void;
-  onGlobalChat?: () => void;
+  onGlobalChat: () => void;
   onBack: () => void;
 }
 
 export function SocialGlobe({ onSelectCountry, onGlobalChat, onBack }: SocialGlobeProps) {
   const [countries, setCountries] = useState<CountryStats[]>([]);
   const [stats, setStats] = useState<OnlineStats | null>(null);
-  const [nftStats, setNftStats] = useState<NftStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [hoveredCountry, setHoveredCountry] = useState<string | null>(null);
 
@@ -39,14 +38,12 @@ export function SocialGlobe({ onSelectCountry, onGlobalChat, onBack }: SocialGlo
     async function loadData() {
       setIsLoading(true);
       try {
-        const [countriesData, statsData, nftStatsData] = await Promise.all([
+        const [countriesData, statsData] = await Promise.all([
           getCountries(),
           getOnlineStats(),
-          getNftStats(),
         ]);
         setCountries(countriesData);
         setStats(statsData);
-        setNftStats(nftStatsData);
       } catch (error) {
         console.error('Error loading social data:', error);
       } finally {
@@ -77,12 +74,15 @@ export function SocialGlobe({ onSelectCountry, onGlobalChat, onBack }: SocialGlo
         <p className="subtitle">Operators across the Realm</p>
       </motion.div>
 
-      {/* Globe Container */}
+      {/* Globe Container - amber radial gradient background */}
       <motion.div
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ delay: 0.1 }}
         className="flex-1 min-h-[300px] max-h-[400px] relative"
+        style={{
+          background: 'radial-gradient(ellipse at center, #1a0f05 0%, #0a0705 70%)',
+        }}
       >
         {!isLoading && (
           <Globe3D
@@ -133,60 +133,6 @@ export function SocialGlobe({ onSelectCountry, onGlobalChat, onBack }: SocialGlo
           </div>
         </div>
 
-        {/* NFT Community Stats */}
-        {nftStats && (
-          <div className="data-box">
-            <div className="ornament text-xs mb-2">═══ EMISSARY CENSUS ═══</div>
-            <div className="grid grid-cols-3 gap-2 text-center">
-              <div>
-                <div className="flex items-center justify-center gap-1">
-                  <NftIcon size={16} className="text-amber" />
-                  <span className="text-xl text-amber-bright font-bold">
-                    {nftStats.total_minted}
-                  </span>
-                </div>
-                <div className="text-xs text-amber-dim">Minted</div>
-              </div>
-              <div>
-                <div className="flex items-center justify-center gap-1">
-                  <UsersIcon size={16} className="text-green" />
-                  <span className="text-xl text-green font-bold">
-                    {nftStats.registered}
-                  </span>
-                </div>
-                <div className="text-xs text-amber-dim">Registered</div>
-              </div>
-              <div>
-                <div className="flex items-center justify-center gap-1">
-                  <GhostIcon size={16} className="text-amber-dark" />
-                  <span className="text-xl text-amber-dark font-bold">
-                    {nftStats.unregistered}
-                  </span>
-                </div>
-                <div className="text-xs text-amber-dim">Unregistered</div>
-              </div>
-            </div>
-            {/* Progress bar showing registration percentage */}
-            <div className="mt-3">
-              <div className="h-2 bg-bg-dark rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-gradient-to-r from-amber to-green transition-all duration-500"
-                  style={{
-                    width: `${nftStats.total_minted > 0
-                      ? (nftStats.registered / nftStats.total_minted) * 100
-                      : 0}%`
-                  }}
-                />
-              </div>
-              <p className="text-xs text-amber-dim text-center mt-1">
-                {nftStats.total_minted > 0
-                  ? Math.round((nftStats.registered / nftStats.total_minted) * 100)
-                  : 0}% of Emissaries have joined the Realm
-              </p>
-            </div>
-          </div>
-        )}
-
         {/* Top Countries */}
         <div className="data-box">
           <div className="ornament text-xs mb-2">═══ TOP NATIONS ═══</div>
@@ -222,24 +168,19 @@ export function SocialGlobe({ onSelectCountry, onGlobalChat, onBack }: SocialGlo
         </div>
 
         {/* Global Chat Button */}
-        {onGlobalChat && (
-          <button
-            onClick={onGlobalChat}
-            className="w-full data-box flex items-center justify-between hover:border-amber transition-colors"
-          >
-            <div className="flex items-center gap-3">
-              <ChatIcon size={24} className="text-cyan" />
-              <div className="text-left">
-                <div className="text-amber-bright font-semibold">GLOBAL CHAT</div>
-                <div className="text-xs text-amber-dim">Chat with all operators</div>
-              </div>
-            </div>
-            <div className="flex items-center gap-1 text-cyan text-xs">
-              <GemIcon size={12} className="text-cyan" />
-              +5 PYRE
-            </div>
-          </button>
-        )}
+        <button
+          onClick={onGlobalChat}
+          className="w-full btn large flex items-center justify-center gap-2"
+        >
+          <Image
+            src="/icons/fire.png"
+            alt=""
+            width={20}
+            height={20}
+            className="pixel-icon"
+          />
+          GLOBAL CHAT
+        </button>
 
         {/* Instructions */}
         <div className="text-center text-xs text-amber-dim">

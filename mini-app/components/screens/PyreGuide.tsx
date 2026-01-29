@@ -1,7 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { FireIcon, CoinIcon, LightningIcon, ChartIcon, PinIcon, CheckIcon } from '@/components/ui/Icons';
+import Image from 'next/image';
 
 /**
  * PyreGuide - $PYRE token guide
@@ -78,7 +78,8 @@ export function PyreGuide({ onBack }: PyreGuideProps) {
           animate={{ opacity: 1, y: 0 }}
         >
           <h2 className="text-amber-bright font-semibold mb-3 flex items-center gap-2">
-            <FireIcon size={20} className="text-amber" /> WHAT IS $PYRE?
+            <Image src="/icons/fire.png" alt="" width={20} height={20} className="pixel-icon" />
+            WHAT IS $PYRE?
           </h2>
           <div className="portal-box">
             <p className="text-amber-dim text-sm leading-relaxed">
@@ -105,7 +106,8 @@ export function PyreGuide({ onBack }: PyreGuideProps) {
           transition={{ delay: 0.1 }}
         >
           <h2 className="text-amber-bright font-semibold mb-3 flex items-center gap-2">
-            <CoinIcon size={20} className="text-amber" /> HOW TO EARN
+            <Image src="/icons/moneybag.png" alt="" width={20} height={20} className="pixel-icon" />
+            HOW TO EARN
           </h2>
           <div className="data-box">
             <table className="w-full text-sm">
@@ -136,7 +138,8 @@ export function PyreGuide({ onBack }: PyreGuideProps) {
           transition={{ delay: 0.2 }}
         >
           <h2 className="text-amber-bright font-semibold mb-3 flex items-center gap-2">
-            <LightningIcon size={20} className="text-cyan" /> HOW TO USE
+            <Image src="/icons/Lightning.png" alt="" width={20} height={20} className="pixel-icon" />
+            HOW TO USE
           </h2>
           <div className="space-y-2">
             {USE_CASES.map((useCase, i) => (
@@ -158,7 +161,8 @@ export function PyreGuide({ onBack }: PyreGuideProps) {
           transition={{ delay: 0.3 }}
         >
           <h2 className="text-amber-bright font-semibold mb-3 flex items-center gap-2">
-            <ChartIcon size={20} className="text-amber" /> TOKENOMICS
+            <Image src="/icons/dice.png" alt="" width={20} height={20} className="pixel-icon" />
+            TOKENOMICS
           </h2>
           <div className="portal-box">
             <div className="space-y-3">
@@ -201,27 +205,28 @@ export function PyreGuide({ onBack }: PyreGuideProps) {
           transition={{ delay: 0.4 }}
         >
           <h2 className="text-amber-bright font-semibold mb-3 flex items-center gap-2">
-            <PinIcon size={20} className="text-amber" /> KEY POINTS
+            <Image src="/icons/scroll.png" alt="" width={20} height={20} className="pixel-icon" />
+            KEY POINTS
           </h2>
           <div className="data-box space-y-2">
             <div className="flex items-start gap-2">
-              <CheckIcon size={16} className="text-green flex-shrink-0 mt-0.5" />
+              <span className="text-green">✓</span>
               <span className="text-amber-dim text-sm">$PYRE is soulbound (non-transferable)</span>
             </div>
             <div className="flex items-start gap-2">
-              <CheckIcon size={16} className="text-green flex-shrink-0 mt-0.5" />
+              <span className="text-green">✓</span>
               <span className="text-amber-dim text-sm">Earned through gameplay and social activity</span>
             </div>
             <div className="flex items-start gap-2">
-              <CheckIcon size={16} className="text-green flex-shrink-0 mt-0.5" />
+              <span className="text-green">✓</span>
               <span className="text-amber-dim text-sm">Used for boosts, unlocks, and cosmetics</span>
             </div>
             <div className="flex items-start gap-2">
-              <CheckIcon size={16} className="text-green flex-shrink-0 mt-0.5" />
+              <span className="text-green">✓</span>
               <span className="text-amber-dim text-sm">No purchase required—100% earned</span>
             </div>
             <div className="flex items-start gap-2">
-              <CheckIcon size={16} className="text-green flex-shrink-0 mt-0.5" />
+              <span className="text-green">✓</span>
               <span className="text-amber-dim text-sm">Higher $PYRE = more privileges</span>
             </div>
           </div>

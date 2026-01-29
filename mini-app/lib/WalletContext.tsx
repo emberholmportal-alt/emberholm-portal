@@ -1,272 +1,211 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import {
+  createContext,
+  useContext,
+  useState,
+  useCallback,
+  useEffect,
+  ReactNode,
+} from 'react';
+import sdk from '@farcaster/miniapp-sdk';
 
 /**
- * WalletContext - Unified wallet connection for Emberholm Portal
- * Supports:
- * 1. Farcaster Frame SDK (when running as a miniapp)
- * 2. Browser wallets (MetaMask, Coinbase Wallet, etc.)
- * 3. Demo mode for testing
+ * WalletContext - Unified wallet connection for Farcaster Mini App + Browser
+ *
+ * Priority:
+ * 1. Farcaster Frame SDK (when running inside Warpcast)
+ * 2. Injected wallet (MetaMask, Coinbase, etc.)
+ * 3. Demo mode (for testing)
  */
-
-export type WalletType = 'farcaster' | 'metamask' | 'coinbase' | 'other' | null;
 
 interface WalletState {
   address: string | null;
   isConnected: boolean;
   isConnecting: boolean;
   isFarcaster: boolean;
-  walletType: WalletType;
-  farcasterUser: FarcasterUser | null;
+  farcasterUser: {
+    fid: number | null;
+    username: string | null;
+    displayName: string | null;
+    pfpUrl: string | null;
+  } | null;
   error: string | null;
-}
-
-interface FarcasterUser {
-  fid: number;
-  username: string | null;
-  displayName: string | null;
-  pfpUrl: string | null;
 }
 
 interface WalletContextType extends WalletState {
   connect: () => Promise<void>;
   disconnect: () => void;
-  enableDemoMode: () => void;
+  isFrameReady: boolean;
 }
 
-const WalletContext = createContext<WalletContextType | undefined>(undefined);
+const WalletContext = createContext<WalletContextType | null>(null);
 
-// Farcaster Frame SDK types (simplified)
-interface FarcasterSDK {
-  context?: {
-    user?: {
-      fid: number;
-      username?: string;
-      displayName?: string;
-      pfpUrl?: string;
-    };
-  };
-  actions?: {
-    ready: () => void;
-    openUrl: (url: string) => void;
-  };
-  wallet?: {
-    ethProvider?: {
-      request: (args: { method: string; params?: any[] }) => Promise<any>;
-    };
-  };
-}
-
-declare global {
-  interface Window {
-    ethereum?: {
-      request: (args: { method: string; params?: any[] }) => Promise<any>;
-      on: (event: string, callback: (...args: any[]) => void) => void;
-      removeListener: (event: string, callback: (...args: any[]) => void) => void;
-      isMetaMask?: boolean;
-      isCoinbaseWallet?: boolean;
-    };
-    farcaster?: FarcasterSDK;
-  }
-}
-
-interface WalletProviderProps {
-  children: ReactNode;
-}
-
-export function WalletProvider({ children }: WalletProviderProps) {
+export function WalletProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<WalletState>({
     address: null,
     isConnected: false,
     isConnecting: false,
     isFarcaster: false,
-    walletType: null,
     farcasterUser: null,
     error: null,
   });
+  const [isFrameReady, setIsFrameReady] = useState(false);
+  const [isInFrame, setIsInFrame] = useState(false);
 
-  // Check if running in Farcaster Frame
-  const checkFarcasterContext = useCallback(async () => {
-    try {
-      // Try to import the Farcaster miniapp SDK dynamically
-      // This allows the app to work even if the SDK is not available
-      const sdk = window.farcaster;
+  // Initialize - detect if we're in a Farcaster frame
+  useEffect(() => {
+    async function initFrame() {
+      try {
+        // Check if we're in a Farcaster frame context
+        const context = await sdk.context;
 
-      if (sdk?.context?.user) {
-        const user = sdk.context.user;
+        if (context) {
+          setIsInFrame(true);
 
-        // Get wallet address from Farcaster
-        let address: string | null = null;
-        if (sdk.wallet?.ethProvider) {
-          try {
-            const accounts = await sdk.wallet.ethProvider.request({
-              method: 'eth_requestAccounts',
-            });
-            address = accounts[0] || null;
-          } catch (err) {
-            console.warn('Failed to get Farcaster wallet:', err);
+          // Get user info from Farcaster
+          if (context.user) {
+            setState(prev => ({
+              ...prev,
+              isFarcaster: true,
+              farcasterUser: {
+                fid: context.user?.fid || null,
+                username: context.user?.username || null,
+                displayName: context.user?.displayName || null,
+                pfpUrl: context.user?.pfpUrl || null,
+              },
+            }));
           }
+
+          // Mark frame as ready (shows the UI in Warpcast)
+          await sdk.actions.ready();
         }
 
-        setState(prev => ({
-          ...prev,
-          address,
-          isConnected: !!address,
-          isFarcaster: true,
-          walletType: 'farcaster',
-          farcasterUser: {
-            fid: user.fid,
-            username: user.username || null,
-            displayName: user.displayName || null,
-            pfpUrl: user.pfpUrl || null,
-          },
-        }));
-
-        // Signal ready to Farcaster
-        sdk.actions?.ready();
-        return true;
+        setIsFrameReady(true);
+      } catch (error) {
+        console.log('Not in Farcaster frame, using browser wallet mode');
+        setIsFrameReady(true);
       }
-    } catch (err) {
-      console.warn('Not running in Farcaster context:', err);
-    }
-    return false;
-  }, []);
-
-  // Detect wallet type from browser provider
-  const detectWalletType = useCallback((): WalletType => {
-    if (!window.ethereum) return null;
-    if (window.ethereum.isCoinbaseWallet) return 'coinbase';
-    if (window.ethereum.isMetaMask) return 'metamask';
-    return 'other';
-  }, []);
-
-  // Connect to browser wallet
-  const connectBrowserWallet = useCallback(async () => {
-    if (!window.ethereum) {
-      throw new Error('No wallet detected. Please install MetaMask or another wallet.');
     }
 
-    const accounts = await window.ethereum.request({
-      method: 'eth_requestAccounts',
-    });
-
-    if (accounts[0]) {
-      const detectedWalletType = detectWalletType();
+    // Check for saved wallet on mount
+    const savedWallet = localStorage.getItem('emberholm_wallet');
+    if (savedWallet) {
       setState(prev => ({
         ...prev,
-        address: accounts[0],
+        address: savedWallet,
         isConnected: true,
-        isFarcaster: false,
-        walletType: detectedWalletType,
-        error: null,
       }));
-    } else {
-      throw new Error('No accounts found');
     }
-  }, [detectWalletType]);
 
-  // Main connect function
+    initFrame();
+  }, []);
+
+  // Connect wallet
   const connect = useCallback(async () => {
     setState(prev => ({ ...prev, isConnecting: true, error: null }));
 
     try {
-      // First, try Farcaster
-      const isFarcaster = await checkFarcasterContext();
-      if (isFarcaster && state.isConnected) {
-        setState(prev => ({ ...prev, isConnecting: false }));
-        return;
+      // Method 1: Farcaster Frame SDK
+      if (isInFrame) {
+        try {
+          // Request wallet connection through Farcaster
+          const result = await sdk.wallet.ethProvider.request({
+            method: 'eth_requestAccounts',
+          });
+
+          if (result && result[0]) {
+            const address = result[0].toLowerCase();
+            localStorage.setItem('emberholm_wallet', address);
+            setState(prev => ({
+              ...prev,
+              address,
+              isConnected: true,
+              isConnecting: false,
+              isFarcaster: true,
+            }));
+            return;
+          }
+        } catch (frameError) {
+          console.log('Farcaster wallet connection failed, trying browser wallet');
+        }
       }
 
-      // Fall back to browser wallet
-      await connectBrowserWallet();
-    } catch (err: any) {
+      // Method 2: Browser injected wallet (MetaMask, Coinbase, etc.)
+      if (typeof window !== 'undefined' && (window as any).ethereum) {
+        const accounts = await (window as any).ethereum.request({
+          method: 'eth_requestAccounts',
+        });
+
+        if (accounts && accounts[0]) {
+          const address = accounts[0].toLowerCase();
+          localStorage.setItem('emberholm_wallet', address);
+          setState(prev => ({
+            ...prev,
+            address,
+            isConnected: true,
+            isConnecting: false,
+            isFarcaster: false,
+          }));
+          return;
+        }
+      }
+
+      // Method 3: Demo mode (no wallet available)
+      console.log('No wallet detected, using demo mode');
+      const demoWallet = '0x0000000000000000000000000000000000000000';
+      localStorage.setItem('emberholm_wallet', demoWallet);
       setState(prev => ({
         ...prev,
-        error: err.message || 'Failed to connect wallet',
+        address: demoWallet,
+        isConnected: true,
+        isConnecting: false,
+        isFarcaster: false,
       }));
-    } finally {
-      setState(prev => ({ ...prev, isConnecting: false }));
-    }
-  }, [checkFarcasterContext, connectBrowserWallet, state.isConnected]);
 
-  // Disconnect
+    } catch (error: any) {
+      console.error('Wallet connection failed:', error);
+      setState(prev => ({
+        ...prev,
+        isConnecting: false,
+        error: error.message || 'Failed to connect wallet',
+      }));
+    }
+  }, [isInFrame]);
+
+  // Disconnect wallet
   const disconnect = useCallback(() => {
+    localStorage.removeItem('emberholm_wallet');
     setState({
       address: null,
       isConnected: false,
       isConnecting: false,
       isFarcaster: false,
-      walletType: null,
       farcasterUser: null,
       error: null,
     });
   }, []);
-
-  // Enable demo mode for testing
-  const enableDemoMode = useCallback(() => {
-    const demoAddress = '0xDEMO' + Math.random().toString(16).slice(2, 10).toUpperCase().padEnd(36, '0');
-    setState({
-      address: demoAddress,
-      isConnected: true,
-      isConnecting: false,
-      isFarcaster: false,
-      walletType: 'other',
-      farcasterUser: null,
-      error: null,
-    });
-  }, []);
-
-  // Listen for account changes
-  useEffect(() => {
-    const handleAccountsChanged = (accounts: string[]) => {
-      if (accounts.length === 0) {
-        disconnect();
-      } else if (accounts[0] !== state.address) {
-        setState(prev => ({
-          ...prev,
-          address: accounts[0],
-          isConnected: true,
-        }));
-      }
-    };
-
-    if (window.ethereum) {
-      window.ethereum.on('accountsChanged', handleAccountsChanged);
-      return () => {
-        window.ethereum?.removeListener('accountsChanged', handleAccountsChanged);
-      };
-    }
-  }, [state.address, disconnect]);
-
-  // Auto-connect on mount
-  useEffect(() => {
-    // Check Farcaster context on mount
-    checkFarcasterContext();
-  }, [checkFarcasterContext]);
-
-  const value: WalletContextType = {
-    ...state,
-    connect,
-    disconnect,
-    enableDemoMode,
-  };
 
   return (
-    <WalletContext.Provider value={value}>
+    <WalletContext.Provider
+      value={{
+        ...state,
+        connect,
+        disconnect,
+        isFrameReady,
+      }}
+    >
       {children}
     </WalletContext.Provider>
   );
 }
 
-// Hook for using wallet context
-export function useWallet(): WalletContextType {
+export function useWallet() {
   const context = useContext(WalletContext);
-  if (context === undefined) {
-    throw new Error('useWallet must be used within a WalletProvider');
+  if (!context) {
+    throw new Error('useWallet must be used within WalletProvider');
   }
   return context;
 }
 
-// Export types (WalletType is already exported at the top)
-export type { WalletState, FarcasterUser, WalletContextType };
+export default WalletContext;

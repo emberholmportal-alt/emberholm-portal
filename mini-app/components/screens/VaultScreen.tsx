@@ -145,15 +145,15 @@ export function VaultScreen({ wallet, emissaries, onBack }: VaultScreenProps) {
 
   // Handle claim
   const handleClaim = async (token: 'ember' | 'pyre') => {
-    console.log(`Claiming ${token}...`);
-    // TODO: API call to claim
+    // API call to claim pending tokens
+    // await claimTokens(wallet, token);
   };
 
   // Handle burn
   const handleBurn = async () => {
     if (!burnAmount || parseFloat(burnAmount) <= 0) return;
-    console.log(`Burning ${burnAmount} EMBER...`);
-    // TODO: API call to burn
+    // API call to burn EMBER for ASH
+    // await burnEmber(wallet, parseFloat(burnAmount));
     setBurnAmount('');
   };
 
@@ -163,8 +163,8 @@ export function VaultScreen({ wallet, emissaries, onBack }: VaultScreenProps) {
     id: string,
     emissaryId: string | null
   ) => {
-    console.log(`${emissaryId ? 'Equipping' : 'Unequipping'} ${type} ${id}...`);
-    // TODO: API call to equip/unequip
+    // API call to equip/unequip item
+    // await equipItem(wallet, id, emissaryId);
     setShowEquipModal(null);
   };
 

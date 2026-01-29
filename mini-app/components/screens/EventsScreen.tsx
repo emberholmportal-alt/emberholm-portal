@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FireIcon, TrophyIcon, CrownIcon, Medal1Icon, Medal2Icon, Medal3Icon } from '@/components/ui/Icons';
+import Image from 'next/image';
 
 /**
  * EventsScreen - Active and past events
@@ -146,7 +146,13 @@ export function EventsScreen({ wallet, onBack }: EventsScreenProps) {
                 animate={{ opacity: 1, y: 0 }}
               >
                 <h2 className="text-amber-bright font-semibold mb-3 flex items-center gap-2">
-                  <FireIcon className="text-amber animate-pulse" size={20} />
+                  <Image
+                    src="/icons/fire.png"
+                    alt=""
+                    width={20}
+                    height={20}
+                    className="pixel-icon animate-pulse"
+                  />
                   ACTIVE EVENT
                 </h2>
 
@@ -216,15 +222,17 @@ export function EventsScreen({ wallet, onBack }: EventsScreenProps) {
                           className="flex items-center justify-between text-sm py-1"
                         >
                           <div className="flex items-center gap-2">
-                            <span className={
-                              i === 0 ? 'text-amber-bright' :
-                              i === 1 ? 'text-gray-300' :
-                              i === 2 ? 'text-amber-dark' : 'text-amber-dim'
-                            }>
-                              {i === 0 ? <CrownIcon size={16} className="inline text-amber-bright" /> :
-                               i === 1 ? <Medal2Icon size={16} className="inline text-gray-300" /> :
-                               i === 2 ? <Medal3Icon size={16} className="inline text-amber-dark" /> : `#${i + 1}`}
-                            </span>
+                            {i < 3 ? (
+                              <Image
+                                src={i === 0 ? '/icons/crown.png' : '/icons/trophy.png'}
+                                alt=""
+                                width={16}
+                                height={16}
+                                className={`pixel-icon ${i === 0 ? 'brightness-125' : i === 1 ? 'brightness-100' : 'brightness-75'}`}
+                              />
+                            ) : (
+                              <span className="text-amber-dim w-4 text-center">#{i + 1}</span>
+                            )}
                             <span className="text-amber">{entry.name}</span>
                           </div>
                           <span className="text-amber-dim">{entry.score.toLocaleString()}</span>
@@ -285,10 +293,17 @@ export function EventsScreen({ wallet, onBack }: EventsScreenProps) {
                             className="overflow-hidden"
                           >
                             <div className="pt-3 mt-3 border-t border-amber-dark/30">
-                              <div className="flex justify-between text-sm">
+                              <div className="flex justify-between text-sm items-center">
                                 <span className="text-amber-dim">Winner:</span>
                                 <span className="text-amber-bright flex items-center gap-1">
-                                  <TrophyIcon size={14} className="inline" /> {event.winner.name}
+                                  <Image
+                                    src="/icons/trophy.png"
+                                    alt=""
+                                    width={14}
+                                    height={14}
+                                    className="pixel-icon"
+                                  />
+                                  {event.winner.name}
                                 </span>
                               </div>
                               {event.userRank && (

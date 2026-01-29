@@ -75,7 +75,7 @@ export function WelcomeScreen({ onEnter }: WelcomeScreenProps) {
           className="my-6"
         >
           <Image
-            src="/static/img/logo-site2.png"
+            src="/logo.png"
             alt="Emberholm"
             width={200}
             height={80}

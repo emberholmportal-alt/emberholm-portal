@@ -54,37 +54,37 @@ function GlobeWireframe() {
 
   return (
     <group>
-      {/* Base sphere - subtle fill */}
+      {/* Base sphere - dark amber fill (prototype v8 style) */}
       <Sphere args={[RADIUS * 0.99, SEGMENTS, SEGMENTS]}>
         <meshBasicMaterial
-          color="#0a1520"
+          color="#0a0502"
           transparent
-          opacity={0.8}
+          opacity={0.9}
           side={THREE.BackSide}
         />
       </Sphere>
 
-      {/* Wireframe lines */}
+      {/* Wireframe lines - amber tinted */}
       {latLines.map((points, i) => (
         <Line
           key={i}
           points={points}
-          color="#1a4a5a"
+          color="#1a0f05"
           lineWidth={0.5}
           transparent
-          opacity={0.4}
+          opacity={0.5}
         />
       ))}
 
-      {/* Equator highlight */}
+      {/* Equator highlight - amber glow */}
       <Line
         points={Array.from({ length: 73 }, (_, i) =>
           latLngToVector3(0, i * 5 - 180, RADIUS)
         )}
-        color="#2dd4bf"
-        lineWidth={1}
+        color="#ff9500"
+        lineWidth={1.5}
         transparent
-        opacity={0.6}
+        opacity={0.7}
       />
     </group>
   );
@@ -134,9 +134,9 @@ function CountryMarkers({
         // Size based on user count (min 0.04, max 0.15)
         const size = Math.min(0.15, Math.max(0.04, country.user_count * 0.01));
 
-        // Color based on online status
+        // Color based on online status (amber theme from prototype v8)
         const hasOnline = country.online_count > 0;
-        const color = hasOnline ? '#f59e0b' : '#2dd4bf';
+        const color = hasOnline ? '#ffb340' : '#ff9500'; // amber-bright : amber
 
         return (
           <mesh
@@ -191,9 +191,9 @@ function GlowRings({ countries }: { countries: CountryStats[] }) {
           <mesh key={`ring-${country.country_code}`} position={position}>
             <ringGeometry args={[0.08, 0.12, 32]} />
             <meshBasicMaterial
-              color="#f59e0b"
+              color="#ff9500"
               transparent
-              opacity={0.3}
+              opacity={0.4}
               side={THREE.DoubleSide}
             />
           </mesh>
