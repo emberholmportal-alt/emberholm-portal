@@ -21,7 +21,6 @@ type VaultTab = 'tokens' | 'items' | 'runes';
 interface TokenBalances {
   ember: { balance: number; pending: number };
   ash: { balance: number };
-  pyre: { balance: number; pending: number; dailyAvailable: boolean };
 }
 
 // Item interface
@@ -60,7 +59,6 @@ export function VaultScreen({ wallet, emissaries, onBack }: VaultScreenProps) {
   const [balances, setBalances] = useState<TokenBalances>({
     ember: { balance: 0, pending: 0 },
     ash: { balance: 0 },
-    pyre: { balance: 0, pending: 0, dailyAvailable: true },
   });
   const [items, setItems] = useState<VaultItem[]>([]);
   const [runes, setRunes] = useState<VaultRune[]>([]);
@@ -80,7 +78,6 @@ export function VaultScreen({ wallet, emissaries, onBack }: VaultScreenProps) {
         setBalances({
           ember: { balance: 125.5, pending: 12.3 },
           ash: { balance: 45.2 },
-          pyre: { balance: 1250, pending: 50, dailyAvailable: true },
         });
 
         setItems([
@@ -144,7 +141,7 @@ export function VaultScreen({ wallet, emissaries, onBack }: VaultScreenProps) {
   }, [wallet, emissaries]);
 
   // Handle claim
-  const handleClaim = async (token: 'ember' | 'pyre') => {
+  const handleClaim = async (token: 'ember') => {
     // API call to claim pending tokens
     // await claimTokens(wallet, token);
   };
@@ -277,30 +274,6 @@ export function VaultScreen({ wallet, emissaries, onBack }: VaultScreenProps) {
                   </div>
                 </div>
 
-                {/* $PYRE */}
-                <div className="data-box">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-amber-bright font-semibold">$PYRE</span>
-                    <span className="text-lg text-amber">
-                      {balances.pyre.balance.toLocaleString()}
-                    </span>
-                  </div>
-                  {balances.pyre.pending > 0 && (
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs text-amber-dim">
-                        Pending: {balances.pyre.pending}
-                      </span>
-                      <button onClick={() => handleClaim('pyre')} className="btn small">
-                        CLAIM
-                      </button>
-                    </div>
-                  )}
-                  {balances.pyre.dailyAvailable && (
-                    <div className="text-xs text-green mt-2">
-                      Daily bonus available!
-                    </div>
-                  )}
-                </div>
               </motion.div>
             )}
 

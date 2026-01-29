@@ -60,11 +60,11 @@ const TUTORIAL_SECTIONS: TutorialSection[] = [
     summary: 'Quick 1-5 minute adventures',
     content: [
       'DURATION: 1-5 minutes. Perfect for quick play sessions.',
-      'REWARDS: Earn $PYRE (reputation tokens) instead of $EMBER.',
+      'REWARDS: Earn small amounts of $EMBER and XP.',
       'NO DEATH: Micro-missions are safe—no permadeath risk!',
       'NARRATIVE: Each micro-mission has a story with choices that affect your rewards.',
       'DAILY LIMIT: Some micro-missions have cooldowns. Check back often for new ones!',
-      'TIP: Great way to earn $PYRE while your main Emissary is on a long mission.',
+      'TIP: Great way to earn $EMBER while your main Emissary is on a long mission.',
     ],
   },
   {
@@ -72,11 +72,10 @@ const TUTORIAL_SECTIONS: TutorialSection[] = [
     title: 'ECONOMY',
     icon: '',
     iconSrc: '/icons/moneybag.png',
-    summary: 'Understanding $EMBER, $ASH, and $PYRE',
+    summary: 'Understanding $EMBER and $ASH',
     content: [
       '$EMBER: Main currency. Earned from missions. Used to buy items, upgrade gear, and more.',
       '$ASH: Created by burning $EMBER (10:1 ratio). Needed for certain rituals and rare items.',
-      '$PYRE: Reputation tokens. Earned from micro-missions and social activities. Non-tradeable.',
       'CLAIMING: Pending rewards must be claimed. Check your Vault regularly!',
       'BURNING: Convert EMBER to ASH in the Vault. Think carefully—it\'s one-way!',
       'TIP: Balance your economy. Don\'t burn all your EMBER unless you need ASH.',

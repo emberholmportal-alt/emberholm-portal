@@ -7,7 +7,7 @@ import { GlobalMessage, getGlobalMessages, sendGlobalMessage } from '@/lib/api';
 
 /**
  * GlobalChatScreen - Global chat room for all operators
- * Earns $PYRE for participation
+ * Community hub for all Emberholm players
  */
 
 interface GlobalChatScreenProps {
@@ -15,17 +15,12 @@ interface GlobalChatScreenProps {
   onBack: () => void;
 }
 
-// Daily message rewards
-const PYRE_PER_MESSAGE = 5;
-const MAX_DAILY_MESSAGES = 50;
-
 export function GlobalChatScreen({ wallet, onBack }: GlobalChatScreenProps) {
   const [messages, setMessages] = useState<GlobalMessage[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [dailyMessageCount, setDailyMessageCount] = useState(0);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Load messages
@@ -70,16 +65,12 @@ export function GlobalChatScreen({ wallet, onBack }: GlobalChatScreenProps) {
       const newMessage = await sendGlobalMessage(wallet, inputValue.trim());
       setMessages(prev => [...prev, newMessage]);
       setInputValue('');
-
-      if (dailyMessageCount < MAX_DAILY_MESSAGES) {
-        setDailyMessageCount(prev => prev + 1);
-      }
     } catch (err) {
       setError('Failed to send message');
     } finally {
       setIsSending(false);
     }
-  }, [inputValue, wallet, isSending, dailyMessageCount]);
+  }, [inputValue, wallet, isSending]);
 
   // Handle Enter key
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -88,8 +79,6 @@ export function GlobalChatScreen({ wallet, onBack }: GlobalChatScreenProps) {
       handleSend();
     }
   };
-
-  const canEarnReward = dailyMessageCount < MAX_DAILY_MESSAGES;
 
   return (
     <div className="screen-view flex flex-col h-screen">
@@ -116,14 +105,6 @@ export function GlobalChatScreen({ wallet, onBack }: GlobalChatScreenProps) {
               {messages.length} messages • All operators welcome
             </p>
           </div>
-
-          {/* Reward indicator */}
-          {canEarnReward && wallet && (
-            <div className="text-xs text-amber-dim text-right">
-              <span className="text-amber">+{PYRE_PER_MESSAGE}</span>
-              <span className="text-amber-dark"> PYRE/msg</span>
-            </div>
-          )}
         </div>
       </motion.div>
 
@@ -233,40 +214,28 @@ export function GlobalChatScreen({ wallet, onBack }: GlobalChatScreenProps) {
             Connect wallet to chat
           </div>
         ) : (
-          <>
-            {/* Daily reward progress */}
-            {canEarnReward && (
-              <div className="text-xs text-amber-dim mb-2 flex justify-between">
-                <span>Daily messages: {dailyMessageCount}/{MAX_DAILY_MESSAGES}</span>
-                <span className="text-amber">
-                  Earn {(MAX_DAILY_MESSAGES - dailyMessageCount) * PYRE_PER_MESSAGE} more PYRE today
-                </span>
-              </div>
-            )}
-
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder="Type a message..."
-                disabled={isSending}
-                maxLength={500}
-                className="flex-1 bg-dark/50 border border-amber-dark/50 rounded px-3 py-2
-                         text-amber placeholder:text-amber-dark/50
-                         focus:outline-none focus:border-amber
-                         disabled:opacity-50"
-              />
-              <button
-                onClick={handleSend}
-                disabled={!inputValue.trim() || isSending}
-                className="btn px-4 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isSending ? '...' : 'SEND'}
-              </button>
-            </div>
-          </>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="Type a message..."
+              disabled={isSending}
+              maxLength={500}
+              className="flex-1 bg-dark/50 border border-amber-dark/50 rounded px-3 py-2
+                       text-amber placeholder:text-amber-dark/50
+                       focus:outline-none focus:border-amber
+                       disabled:opacity-50"
+            />
+            <button
+              onClick={handleSend}
+              disabled={!inputValue.trim() || isSending}
+              className="btn px-4 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isSending ? '...' : 'SEND'}
+            </button>
+          </div>
         )}
       </motion.div>
     </div>
