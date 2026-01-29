@@ -1,13 +1,32 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Emissary } from '@/lib/api';
+import { createPublicClient, http, formatEther, parseEther, parseAbi } from 'viem';
+import { base } from 'viem/chains';
+import { Emissary, getPyreBalance } from '@/lib/api';
+import { CONTRACT_CONFIG } from '@/lib/contracts';
 
 /**
  * VaultScreen - Tokens + Inventory
  * TABS: TOKENS | ITEMS | RUNES
+ * Now with real contract/API integration!
  */
+
+// Create public client for reading contract data
+const publicClient = createPublicClient({
+  chain: base,
+  transport: http(CONTRACT_CONFIG.RPC_URL),
+});
+
+// Contract addresses
+const EMBER_TOKEN = CONTRACT_CONFIG.CONTRACTS.EmberToken as `0x${string}`;
+const ASH_TOKEN = CONTRACT_CONFIG.CONTRACTS.AshToken as `0x${string}`;
+
+// ERC20 ABI for balance checking
+const ERC20_ABI = parseAbi([
+  'function balanceOf(address account) view returns (uint256)',
+]);
 
 interface VaultScreenProps {
   wallet: string | null;
@@ -69,6 +88,55 @@ export function VaultScreen({ wallet, emissaries, onBack }: VaultScreenProps) {
   const [showEquipModal, setShowEquipModal] = useState<string | null>(null);
   const [equipType, setEquipType] = useState<'item' | 'rune'>('item');
 
+  // Load token balances from contracts and API
+  const loadTokenBalances = useCallback(async () => {
+    if (!wallet) return;
+
+    try {
+      // Load EMBER balance from contract
+      const emberBalance = await publicClient.readContract({
+        address: EMBER_TOKEN,
+        abi: ERC20_ABI,
+        functionName: 'balanceOf',
+        args: [wallet as `0x${string}`],
+      });
+
+      // Load ASH balance from contract
+      const ashBalance = await publicClient.readContract({
+        address: ASH_TOKEN,
+        abi: ERC20_ABI,
+        functionName: 'balanceOf',
+        args: [wallet as `0x${string}`],
+      });
+
+      // Load PYRE balance from API
+      const pyreData = await getPyreBalance(wallet);
+
+      setBalances({
+        ember: {
+          balance: Number(formatEther(emberBalance as bigint)),
+          pending: 0, // TODO: Add pending claims API
+        },
+        ash: {
+          balance: Number(formatEther(ashBalance as bigint)),
+        },
+        pyre: {
+          balance: pyreData.balance,
+          pending: 0,
+          dailyAvailable: pyreData.daily_available,
+        },
+      });
+    } catch (error) {
+      console.error('Error loading token balances:', error);
+      // Fallback to zeros on error
+      setBalances({
+        ember: { balance: 0, pending: 0 },
+        ash: { balance: 0 },
+        pyre: { balance: 0, pending: 0, dailyAvailable: true },
+      });
+    }
+  }, [wallet]);
+
   // Load vault data
   useEffect(() => {
     if (!wallet) return;
@@ -76,13 +144,11 @@ export function VaultScreen({ wallet, emissaries, onBack }: VaultScreenProps) {
     async function loadVaultData() {
       setIsLoading(true);
       try {
-        // Mock data - replace with actual API calls
-        setBalances({
-          ember: { balance: 125.5, pending: 12.3 },
-          ash: { balance: 45.2 },
-          pyre: { balance: 1250, pending: 50, dailyAvailable: true },
-        });
+        // Load real token balances
+        await loadTokenBalances();
 
+        // Items and runes - using placeholder data for now
+        // TODO: Add real API endpoints for items/runes when available
         setItems([
           {
             id: 'item-1',
@@ -141,7 +207,7 @@ export function VaultScreen({ wallet, emissaries, onBack }: VaultScreenProps) {
     }
 
     loadVaultData();
-  }, [wallet, emissaries]);
+  }, [wallet, emissaries, loadTokenBalances]);
 
   // Handle claim
   const handleClaim = async (token: 'ember' | 'pyre') => {
