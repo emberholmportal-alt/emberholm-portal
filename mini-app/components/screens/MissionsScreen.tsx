@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Emissary } from '@/lib/api';
+import { SwordsIcon, LightningIcon, MapIcon, UsersIcon } from '@/components/ui/Icons';
 
 /**
  * MissionsScreen - Normal missions list
@@ -110,15 +111,15 @@ export function MissionsScreen({
                     className="w-full h-full object-cover"
                   />
                 ) : (
-                  <span>⚔️</span>
+                  <SwordsIcon size={20} className="text-amber" />
                 )}
               </div>
               <div>
                 <p className="text-amber text-sm font-semibold">
                   {emissary.name || `#${emissary.token_id}`}
                 </p>
-                <p className="text-xs text-amber-dim">
-                  LVL {emissary.stats.level} · ⚡{emissary.stats.energy_current}
+                <p className="text-xs text-amber-dim flex items-center gap-1">
+                  LVL {emissary.stats.level} · <LightningIcon size={10} className="text-cyan" />{emissary.stats.energy_current}
                 </p>
               </div>
             </div>
@@ -167,7 +168,7 @@ export function MissionsScreen({
       {isLoading && (
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
-            <div className="text-3xl animate-pulse mb-2">🗺️</div>
+            <MapIcon size={48} className="text-amber animate-pulse mx-auto mb-2" />
             <p className="text-amber-dim text-sm">Loading missions...</p>
           </div>
         </div>
@@ -203,8 +204,8 @@ export function MissionsScreen({
                       </span>
                     </div>
                     {mission.party_size && (
-                      <span className="text-xs text-cyan">
-                        👥 {mission.party_size}
+                      <span className="text-xs text-cyan flex items-center gap-1">
+                        <UsersIcon size={12} className="text-cyan" /> {mission.party_size}
                       </span>
                     )}
                   </div>
@@ -222,8 +223,8 @@ export function MissionsScreen({
                     </div>
                     <div>
                       <span className="text-amber-darker">Energy</span>
-                      <p className={hasEnergy ? 'text-amber' : 'text-red'}>
-                        ⚡{mission.energy_cost}
+                      <p className={`flex items-center gap-0.5 ${hasEnergy ? 'text-amber' : 'text-red'}`}>
+                        <LightningIcon size={10} className={hasEnergy ? 'text-cyan' : 'text-red'} />{mission.energy_cost}
                       </p>
                     </div>
                     <div>

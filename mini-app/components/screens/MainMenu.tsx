@@ -2,6 +2,7 @@
 
 import { motion } from 'framer-motion';
 import { AppScreen } from '@/lib/store';
+import { PlayIcon, GemIcon, GlobeIcon, VaultIcon, CalendarIcon, ScrollIcon, HelpIcon, FireIcon } from '@/components/ui/Icons';
 
 /**
  * MainMenu - Main dashboard / command center
@@ -12,7 +13,7 @@ import { AppScreen } from '@/lib/store';
 interface MenuItem {
   id: AppScreen;
   title: string;
-  icon: string;
+  icon: React.ReactNode;
   badge?: number;
 }
 
@@ -33,38 +34,38 @@ export function MainMenu({
     {
       id: 'play',
       title: 'PLAY',
-      icon: '▶',
+      icon: <PlayIcon size={20} className="text-amber" />,
     },
     {
       id: 'mint',
       title: 'MINT EMISSARY',
-      icon: '◈',
+      icon: <GemIcon size={20} className="text-cyan" />,
     },
     {
       id: 'social-globe',
       title: 'SOCIAL',
-      icon: '🌍',
+      icon: <GlobeIcon size={20} className="text-amber" />,
       badge: unreadMessages,
     },
     {
       id: 'vault',
       title: 'VAULT',
-      icon: '🏦',
+      icon: <VaultIcon size={20} className="text-amber" />,
     },
     {
       id: 'events',
       title: 'EVENTS',
-      icon: '📅',
+      icon: <CalendarIcon size={20} className="text-amber" />,
     },
     {
       id: 'lore',
       title: 'LORE',
-      icon: '📜',
+      icon: <ScrollIcon size={20} className="text-amber" />,
     },
     {
       id: 'tutorial',
       title: 'TUTORIAL',
-      icon: '❓',
+      icon: <HelpIcon size={20} className="text-amber" />,
     },
   ];
 
@@ -117,7 +118,9 @@ export function MainMenu({
         </div>
         <div className="stat-item">
           <div className="stat-value">0</div>
-          <div className="stat-label">🔥 EMBER</div>
+          <div className="stat-label flex items-center justify-center gap-1">
+            <FireIcon size={12} className="text-amber" /> EMBER
+          </div>
         </div>
       </motion.div>
     </div>

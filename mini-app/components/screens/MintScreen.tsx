@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { FireIcon, SwordsIcon, SparkleIcon } from '@/components/ui/Icons';
 
 /**
  * MintScreen - Mint new Emissary
@@ -236,9 +237,9 @@ export function MintScreen({ wallet, onMintSuccess, onBack }: MintScreenProps) {
               <motion.div
                 animate={{ rotate: 360 }}
                 transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
-                className="text-6xl mb-4"
+                className="mb-4 flex justify-center"
               >
-                🔥
+                <FireIcon size={64} className="text-amber" />
               </motion.div>
               <div className="text-amber-bright text-xl">Minting...</div>
               <div className="text-amber-dim text-sm mt-2">
@@ -258,9 +259,9 @@ export function MintScreen({ wallet, onMintSuccess, onBack }: MintScreenProps) {
               <motion.div
                 animate={{ scale: [1, 1.2, 1] }}
                 transition={{ duration: 0.5, repeat: Infinity }}
-                className="text-6xl mb-4"
+                className="mb-4 flex justify-center"
               >
-                ✨
+                <SparkleIcon size={64} className="text-cyan" />
               </motion.div>
               <div className="text-amber-bright text-xl">Revealing...</div>
               <div className="text-amber-dim text-sm mt-2">
@@ -291,7 +292,7 @@ export function MintScreen({ wallet, onMintSuccess, onBack }: MintScreenProps) {
                       className="w-full h-full object-cover rounded-lg"
                     />
                   ) : (
-                    <span className="text-6xl">⚔️</span>
+                    <SwordsIcon size={64} className="text-amber" />
                   )}
                 </div>
 

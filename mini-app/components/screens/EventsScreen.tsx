@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { FireIcon, TrophyIcon, CrownIcon, Medal1Icon, Medal2Icon, Medal3Icon } from '@/components/ui/Icons';
 
 /**
  * EventsScreen - Active and past events
@@ -145,7 +146,7 @@ export function EventsScreen({ wallet, onBack }: EventsScreenProps) {
                 animate={{ opacity: 1, y: 0 }}
               >
                 <h2 className="text-amber-bright font-semibold mb-3 flex items-center gap-2">
-                  <span className="animate-pulse">🔥</span>
+                  <FireIcon className="text-amber animate-pulse" size={20} />
                   ACTIVE EVENT
                 </h2>
 
@@ -220,7 +221,9 @@ export function EventsScreen({ wallet, onBack }: EventsScreenProps) {
                               i === 1 ? 'text-gray-300' :
                               i === 2 ? 'text-amber-dark' : 'text-amber-dim'
                             }>
-                              {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `#${i + 1}`}
+                              {i === 0 ? <CrownIcon size={16} className="inline text-amber-bright" /> :
+                               i === 1 ? <Medal2Icon size={16} className="inline text-gray-300" /> :
+                               i === 2 ? <Medal3Icon size={16} className="inline text-amber-dark" /> : `#${i + 1}`}
                             </span>
                             <span className="text-amber">{entry.name}</span>
                           </div>
@@ -284,8 +287,8 @@ export function EventsScreen({ wallet, onBack }: EventsScreenProps) {
                             <div className="pt-3 mt-3 border-t border-amber-dark/30">
                               <div className="flex justify-between text-sm">
                                 <span className="text-amber-dim">Winner:</span>
-                                <span className="text-amber-bright">
-                                  🏆 {event.winner.name}
+                                <span className="text-amber-bright flex items-center gap-1">
+                                  <TrophyIcon size={14} className="inline" /> {event.winner.name}
                                 </span>
                               </div>
                               {event.userRank && (

@@ -2,6 +2,7 @@
 
 import { motion } from 'framer-motion';
 import { Emissary } from '@/lib/api';
+import { FireIcon, SwordsIcon, LightningIcon, StarIcon, PowerIcon } from '@/components/ui/Icons';
 
 /**
  * EmissaryList - Shows all user's emissaries
@@ -47,7 +48,9 @@ export function EmissaryList({
         <div className="flex-1 flex items-center justify-center">
           <div className="portal-box">
             <div className="ornament">═══ ◈ ═══</div>
-            <div className="text-3xl animate-pulse my-6">🔥</div>
+            <div className="my-6 flex justify-center">
+              <FireIcon size={48} className="text-amber animate-pulse" />
+            </div>
             <p className="text-amber-dim text-sm">Loading emissaries...</p>
             <div className="ornament mt-4">═══ ◈ ═══</div>
           </div>
@@ -59,7 +62,9 @@ export function EmissaryList({
         <div className="flex-1 flex items-center justify-center">
           <div className="portal-box">
             <div className="ornament">═══ ◈ ═══</div>
-            <div className="text-4xl my-4">⚔️</div>
+            <div className="my-4 flex justify-center">
+              <SwordsIcon size={48} className="text-amber" />
+            </div>
             <h3 className="text-amber-bright font-semibold mb-2">No Emissaries Found</h3>
             <p className="text-amber-dim text-sm mb-4">
               Mint your first Emissary to begin
@@ -110,7 +115,7 @@ export function EmissaryList({
                           style={{ imageRendering: 'pixelated' }}
                         />
                       ) : (
-                        <span className="text-2xl">⚔️</span>
+                        <SwordsIcon size={28} className="text-amber" />
                       )}
                     </div>
 
@@ -123,9 +128,18 @@ export function EmissaryList({
                       {/* Stats row */}
                       <div className="data-row text-xs mt-2">
                         <span>LVL {emissary.stats.level}</span>
-                        <span>⚡ {emissary.stats.energy_current}/{emissary.stats.energy_max}</span>
-                        <span>✧ {emissary.stats.aura_level}</span>
-                        <span>⚔ {emissary.stats.power}</span>
+                        <span className="flex items-center gap-0.5">
+                          <LightningIcon size={10} className="text-cyan" />
+                          {emissary.stats.energy_current}/{emissary.stats.energy_max}
+                        </span>
+                        <span className="flex items-center gap-0.5">
+                          <StarIcon size={10} className="text-amber" />
+                          {emissary.stats.aura_level}
+                        </span>
+                        <span className="flex items-center gap-0.5">
+                          <PowerIcon size={10} className="text-amber" />
+                          {emissary.stats.power}
+                        </span>
                       </div>
 
                       {/* Active mission indicator */}

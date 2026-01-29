@@ -3,6 +3,7 @@
 import { motion } from 'framer-motion';
 import { AppScreen } from '@/lib/store';
 import { ActiveMicroMission } from '@/lib/api';
+import { MapIcon, LightningIcon, SwordsIcon, TrophyIcon, FireIcon } from '@/components/ui/Icons';
 
 /**
  * PlayScreen - Play submenu with 4 options
@@ -20,7 +21,7 @@ interface MenuItem {
   id: AppScreen | 'emissary-list';
   title: string;
   subtitle: string;
-  icon: string;
+  icon: React.ReactNode;
   description: string;
 }
 
@@ -37,28 +38,28 @@ export function PlayScreen({
       id: 'missions',
       title: 'MISSIONS',
       subtitle: 'Full adventures',
-      icon: '🗺️',
+      icon: <MapIcon size={24} className="text-amber" />,
       description: 'Long quests with rare rewards and risks',
     },
     {
       id: 'micro-missions',
       title: 'MICRO-MISSIONS',
       subtitle: 'Quick adventures',
-      icon: '⚡',
+      icon: <LightningIcon size={24} className="text-cyan" />,
       description: 'Short 1-5 min quests for $PYRE rewards',
     },
     {
       id: 'emissary-list',
       title: 'EMISSARIES',
       subtitle: `${emissaryCount} owned`,
-      icon: '⚔️',
+      icon: <SwordsIcon size={24} className="text-amber" />,
       description: 'View and manage your Emissaries',
     },
     {
       id: 'leaderboard',
       title: 'LEADERBOARDS',
       subtitle: 'Rankings',
-      icon: '🏆',
+      icon: <TrophyIcon size={24} className="text-amber-bright" />,
       description: 'Global rankings and guild standings',
     },
   ];
@@ -84,7 +85,7 @@ export function PlayScreen({
         >
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <span className="animate-pulse">🔥</span>
+              <FireIcon size={20} className="text-amber animate-pulse" />
               <span className="text-amber text-sm">
                 Active: {activeMission?.name || 'Micro-Mission'}
               </span>
@@ -112,7 +113,7 @@ export function PlayScreen({
                        hover:border-amber active:scale-[0.98]"
           >
             <div className="flex items-start gap-3">
-              <span className="text-2xl">{item.icon}</span>
+              <span className="flex-shrink-0">{item.icon}</span>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between gap-2">
                   <h3 className="text-amber-bright font-semibold">

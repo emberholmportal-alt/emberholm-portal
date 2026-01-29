@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { TrophyIcon, CrownIcon, Medal1Icon, Medal2Icon, Medal3Icon } from '@/components/ui/Icons';
 
 /**
  * LeaderboardScreen - Player rankings
@@ -104,9 +105,9 @@ export function LeaderboardScreen({
 
   // Get rank icon
   const getRankIcon = (rank: number) => {
-    if (rank === 1) return '🥇';
-    if (rank === 2) return '🥈';
-    if (rank === 3) return '🥉';
+    if (rank === 1) return <CrownIcon size={18} className="text-amber-bright" />;
+    if (rank === 2) return <Medal2Icon size={18} className="text-gray-300" />;
+    if (rank === 3) return <Medal3Icon size={18} className="text-amber-dark" />;
     return `#${rank}`;
   };
 
@@ -165,7 +166,7 @@ export function LeaderboardScreen({
       {isLoading && (
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
-            <div className="text-3xl animate-pulse mb-2">🏆</div>
+            <TrophyIcon size={48} className="text-amber animate-pulse mx-auto mb-2" />
             <p className="text-amber-dim text-sm">Loading rankings...</p>
           </div>
         </div>

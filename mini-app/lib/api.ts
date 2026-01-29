@@ -448,3 +448,71 @@ export async function markMessagesRead(wallet: string, fromWallet: string): Prom
   });
   return data.marked_read;
 }
+
+// =========================================
+// Social - Global Chat (Realm-wide)
+// =========================================
+
+export interface GlobalMessage {
+  id: number;
+  wallet: string;
+  message: string;
+  created_at: string;
+  user: {
+    display_name: string | null;
+    farcaster_username: string | null;
+    farcaster_pfp_url: string | null;
+    country_code: string | null;
+  };
+  pyre_earned: number;
+}
+
+export async function getGlobalMessages(limit = 50, before?: number): Promise<GlobalMessage[]> {
+  const params = new URLSearchParams({ limit: limit.toString() });
+  if (before) params.append('before', before.toString());
+
+  const data = await fetchAPI<{ success: boolean; messages: GlobalMessage[] }>(
+    `/api/social/global-chat?${params.toString()}`
+  );
+  return data.messages;
+}
+
+export async function sendGlobalMessage(wallet: string, message: string): Promise<{
+  message: GlobalMessage;
+  pyre_earned: number;
+}> {
+  const data = await fetchAPI<{ success: boolean; message: GlobalMessage; pyre_earned: number }>(
+    '/api/social/global-chat',
+    {
+      method: 'POST',
+      body: JSON.stringify({ wallet, message }),
+    }
+  );
+  return { message: data.message, pyre_earned: data.pyre_earned };
+}
+
+// =========================================
+// Social - All Operators (NFT Holders)
+// =========================================
+
+export interface Operator {
+  wallet: string;
+  display_name: string | null;
+  farcaster_username: string | null;
+  farcaster_pfp_url: string | null;
+  country_code: string | null;
+  emissary_count: number;
+  pyre_balance: number;
+  last_seen: string | null;
+  is_online: boolean;
+}
+
+export async function getAllOperators(limit = 100, offset = 0): Promise<{
+  operators: Operator[];
+  total: number;
+}> {
+  const data = await fetchAPI<{ success: boolean; operators: Operator[]; total: number }>(
+    `/api/social/operators?limit=${limit}&offset=${offset}`
+  );
+  return { operators: data.operators, total: data.total };
+}

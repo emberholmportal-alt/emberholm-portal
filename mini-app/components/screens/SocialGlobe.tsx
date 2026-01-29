@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import dynamic from 'next/dynamic';
 import { getCountries, getOnlineStats, CountryStats, OnlineStats } from '@/lib/api';
 import { getCountryName } from '@/lib/hooks/useGlobe';
+import { ChatIcon, GemIcon } from '@/components/ui/Icons';
 
 // Dynamically import Globe3D to avoid SSR issues with Three.js
 const Globe3D = dynamic(() => import('@/components/Globe3D'), {
@@ -22,10 +23,11 @@ const Globe3D = dynamic(() => import('@/components/Globe3D'), {
 
 interface SocialGlobeProps {
   onSelectCountry: (countryCode: string) => void;
+  onGlobalChat?: () => void;
   onBack: () => void;
 }
 
-export function SocialGlobe({ onSelectCountry, onBack }: SocialGlobeProps) {
+export function SocialGlobe({ onSelectCountry, onGlobalChat, onBack }: SocialGlobeProps) {
   const [countries, setCountries] = useState<CountryStats[]>([]);
   const [stats, setStats] = useState<OnlineStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -161,6 +163,26 @@ export function SocialGlobe({ onSelectCountry, onBack }: SocialGlobeProps) {
             ))}
           </div>
         </div>
+
+        {/* Global Chat Button */}
+        {onGlobalChat && (
+          <button
+            onClick={onGlobalChat}
+            className="w-full data-box flex items-center justify-between hover:border-amber transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <ChatIcon size={24} className="text-cyan" />
+              <div className="text-left">
+                <div className="text-amber-bright font-semibold">GLOBAL CHAT</div>
+                <div className="text-xs text-amber-dim">Chat with all operators</div>
+              </div>
+            </div>
+            <div className="flex items-center gap-1 text-cyan text-xs">
+              <GemIcon size={12} className="text-cyan" />
+              +5 PYRE
+            </div>
+          </button>
+        )}
 
         {/* Instructions */}
         <div className="text-center text-xs text-amber-dim">
