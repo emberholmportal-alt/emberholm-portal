@@ -1,6 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
+import Image from 'next/image';
 
 /**
  * PyreGuide - $PYRE token guide
@@ -77,7 +78,8 @@ export function PyreGuide({ onBack }: PyreGuideProps) {
           animate={{ opacity: 1, y: 0 }}
         >
           <h2 className="text-amber-bright font-semibold mb-3 flex items-center gap-2">
-            <span>🔥</span> WHAT IS $PYRE?
+            <Image src="/icons/fire.png" alt="" width={20} height={20} className="pixel-icon" />
+            WHAT IS $PYRE?
           </h2>
           <div className="portal-box">
             <p className="text-amber-dim text-sm leading-relaxed">
@@ -104,7 +106,8 @@ export function PyreGuide({ onBack }: PyreGuideProps) {
           transition={{ delay: 0.1 }}
         >
           <h2 className="text-amber-bright font-semibold mb-3 flex items-center gap-2">
-            <span>💰</span> HOW TO EARN
+            <Image src="/icons/moneybag.png" alt="" width={20} height={20} className="pixel-icon" />
+            HOW TO EARN
           </h2>
           <div className="data-box">
             <table className="w-full text-sm">
@@ -135,7 +138,8 @@ export function PyreGuide({ onBack }: PyreGuideProps) {
           transition={{ delay: 0.2 }}
         >
           <h2 className="text-amber-bright font-semibold mb-3 flex items-center gap-2">
-            <span>⚡</span> HOW TO USE
+            <Image src="/icons/Lightning.png" alt="" width={20} height={20} className="pixel-icon" />
+            HOW TO USE
           </h2>
           <div className="space-y-2">
             {USE_CASES.map((useCase, i) => (
@@ -157,7 +161,8 @@ export function PyreGuide({ onBack }: PyreGuideProps) {
           transition={{ delay: 0.3 }}
         >
           <h2 className="text-amber-bright font-semibold mb-3 flex items-center gap-2">
-            <span>📊</span> TOKENOMICS
+            <Image src="/icons/dice.png" alt="" width={20} height={20} className="pixel-icon" />
+            TOKENOMICS
           </h2>
           <div className="portal-box">
             <div className="space-y-3">
@@ -200,7 +205,8 @@ export function PyreGuide({ onBack }: PyreGuideProps) {
           transition={{ delay: 0.4 }}
         >
           <h2 className="text-amber-bright font-semibold mb-3 flex items-center gap-2">
-            <span>📌</span> KEY POINTS
+            <Image src="/icons/scroll.png" alt="" width={20} height={20} className="pixel-icon" />
+            KEY POINTS
           </h2>
           <div className="data-box space-y-2">
             <div className="flex items-start gap-2">
