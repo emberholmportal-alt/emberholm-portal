@@ -277,8 +277,7 @@ function AppContent() {
           <MissionsScreen
             emissary={state.selectedEmissary}
             onSelectMission={(mission) => {
-              // Normal missions handled differently - future implementation
-              console.log('Selected mission:', mission);
+              // Normal missions - future implementation
             }}
             onSelectEmissary={() => handleNavigate('emissary-list')}
             onBack={handleBack}
@@ -400,25 +399,6 @@ function AppContent() {
         )}
       </div>
     </main>
-  );
-}
-
-// Placeholder component for screens not yet implemented
-function PlaceholderScreen({ title, onBack }: { title: string; onBack: () => void }) {
-  return (
-    <div className="screen-view flex flex-col min-h-screen p-4">
-      <div className="flex-1 flex items-center justify-center">
-        <div className="portal-box">
-          <div className="ornament">═══ ◈ ═══</div>
-          <h2 className="title text-xl my-6">{title}</h2>
-          <p className="text-amber-dim text-sm">Coming soon...</p>
-          <div className="ornament mt-4">═══ ◈ ═══</div>
-        </div>
-      </div>
-      <button onClick={onBack} className="back-btn">
-        ← BACK
-      </button>
-    </div>
   );
 }
 
