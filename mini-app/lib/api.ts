@@ -212,12 +212,57 @@ async function fetchAPI<T>(endpoint: string, options?: RequestInit): Promise<T> 
   return response.json();
 }
 
+// Fetch with fallback for offline/error scenarios
+async function fetchWithFallback<T>(endpoint: string, fallback: T, options?: RequestInit): Promise<T> {
+  try {
+    const response = await fetch(`${API_BASE}${endpoint}`, {
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options?.headers,
+      },
+    });
+    if (!response.ok) throw new Error('API unavailable');
+    return await response.json();
+  } catch (error) {
+    console.warn(`API offline: ${endpoint}`);
+    return fallback;
+  }
+}
+
+// =========================================
+// Fallback Data for Offline Mode
+// =========================================
+
+const REALM_STATUS_FALLBACK: { success: boolean; realm: RealmStatus } = {
+  success: true,
+  realm: {
+    date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+    time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+    era: 'Era of the Flame',
+    year: 1247,
+    weather: {
+      name: 'Clear',
+      icon: 'sun',
+      description: 'The skies are clear over Emberholm',
+    },
+    flame: {
+      name: 'Steady',
+      color: 'green',
+      description: 'The Eternal Flame burns steadily',
+    },
+  },
+};
+
 // =========================================
 // Realm Status
 // =========================================
 
 export async function getRealmStatus(): Promise<RealmStatus> {
-  const data = await fetchAPI<{ success: boolean; realm: RealmStatus }>('/api/realm-status');
+  const data = await fetchWithFallback<{ success: boolean; realm: RealmStatus }>(
+    '/api/realm-status',
+    REALM_STATUS_FALLBACK
+  );
   return data.realm;
 }
 

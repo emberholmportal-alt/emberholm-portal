@@ -31,16 +31,20 @@ export function MainMenu({
   unreadMessages = 0,
   onNavigate,
 }: MainMenuProps) {
+  // Menu items - using PNG icons with orange filter (per prototype v8 spec)
+  // Simple ASCII fallbacks: ▶ ◈ only
   const menuItems: MenuItem[] = [
     {
       id: 'play',
       title: 'PLAY',
       icon: '▶',
+      iconSrc: '/icons/Swords.png',
     },
     {
       id: 'mint',
       title: 'MINT EMISSARY',
       icon: '◈',
+      iconSrc: '/icons/Sparkles.png',
     },
     {
       id: 'social-globe',
@@ -71,6 +75,7 @@ export function MainMenu({
       id: 'tutorial',
       title: 'TUTORIAL',
       icon: '?',
+      iconSrc: '/icons/Lightning.png',
     },
   ];
 

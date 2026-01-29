@@ -92,16 +92,20 @@ export function SocialGlobe({ onSelectCountry, onGlobalChat, onBack }: SocialGlo
         className="text-center p-4 pb-2"
       >
         <h1 className="title text-2xl">WORLD MAP</h1>
-        <p className="subtitle">Operators across the Realm</p>
+        <p className="text-amber-dim text-xs">
+          DRAG TO ROTATE · TAP MARKER FOR DETAILS
+        </p>
       </motion.div>
 
-      {/* Globe Container - amber radial gradient background */}
+      {/* Globe Container - 280px height per spec */}
       <motion.div
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ delay: 0.1 }}
-        className="flex-1 min-h-[300px] max-h-[400px] relative"
+        className="relative mx-4"
         style={{
+          height: '280px',
+          border: '1px solid var(--amber-dark, #804d00)',
           background: 'radial-gradient(ellipse at center, #1a0f05 0%, #0a0705 70%)',
         }}
       >
@@ -121,6 +125,22 @@ export function SocialGlobe({ onSelectCountry, onGlobalChat, onBack }: SocialGlo
           </div>
         )}
       </motion.div>
+
+      {/* Stats Footer - 3 columns */}
+      <div className="stats-footer mx-4 mt-2" style={{ borderTop: 'none', padding: '5px 0' }}>
+        <div className="stat-item">
+          <div className="stat-value">{stats?.countries_represented || 0}</div>
+          <div className="stat-label">COUNTRIES</div>
+        </div>
+        <div className="stat-item">
+          <div className="stat-value cyan">{stats?.online_now || 0}</div>
+          <div className="stat-label">ONLINE</div>
+        </div>
+        <div className="stat-item">
+          <div className="stat-value">{nftStats?.total_minted?.toLocaleString() || 0}</div>
+          <div className="stat-label">HOLDERS</div>
+        </div>
+      </div>
 
       {/* Stats Panel */}
       <motion.div
@@ -252,31 +272,35 @@ export function SocialGlobe({ onSelectCountry, onGlobalChat, onBack }: SocialGlo
           </div>
         )}
 
+        {/* Messages Button */}
+        <button
+          onClick={() => {}}
+          className="menu-btn w-full"
+          style={{ marginTop: '5px' }}
+        >
+          <span className="icon">
+            <Image src="/icons/scroll.png" alt="" width={20} height={20} className="pixel-icon" />
+          </span>
+          <span className="flex-1 text-left">MESSAGES</span>
+          <span className="notif-badge">3</span>
+        </button>
+
         {/* Global Chat Button */}
         <button
           onClick={onGlobalChat}
-          className="w-full btn large flex items-center justify-center gap-2"
+          className="menu-btn w-full"
         >
-          <Image
-            src="/icons/fire.png"
-            alt=""
-            width={20}
-            height={20}
-            className="pixel-icon"
-          />
-          GLOBAL CHAT
+          <span className="icon">
+            <Image src="/icons/fire.png" alt="" width={20} height={20} className="pixel-icon" />
+          </span>
+          <span className="flex-1 text-left">GLOBAL CHAT</span>
         </button>
-
-        {/* Instructions */}
-        <div className="text-center text-xs text-amber-dim">
-          Tap a glowing marker to view operators
-        </div>
       </motion.div>
 
       {/* Back button */}
-      <div className="p-4 pt-0">
+      <div className="p-4 pt-2">
         <button onClick={onBack} className="back-btn">
-          ← BACK TO MENU
+          ◄ BACK TO MENU
         </button>
       </div>
     </div>
