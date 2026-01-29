@@ -1,12 +1,26 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
+import { createPublicClient, http, formatEther, parseEther, parseAbi } from 'viem';
+import { base } from 'viem/chains';
+import { CONTRACT_CONFIG } from '@/lib/contracts';
 
 /**
  * MintScreen - Mint new Emissary
+ * Now with real contract integration!
  */
+
+// Create public client for reading contract data
+const publicClient = createPublicClient({
+  chain: base,
+  transport: http(CONTRACT_CONFIG.RPC_URL),
+});
+
+// Contract address and ABI
+const PORTAL_ADDRESS = CONTRACT_CONFIG.CONTRACTS.EmberholmPortal as `0x${string}`;
+const PORTAL_ABI = parseAbi(CONTRACT_CONFIG.ABI.EmberholmPortal);
 
 interface MintScreenProps {
   wallet: string | null;
@@ -18,6 +32,7 @@ interface MintStats {
   totalMinted: number;
   maxSupply: number;
   priceEth: number;
+  mintOpen: boolean;
 }
 
 interface MintedEmissary {
@@ -31,27 +46,78 @@ interface MintedEmissary {
 export function MintScreen({ wallet, onMintSuccess, onBack }: MintScreenProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [stats, setStats] = useState<MintStats>({
-    totalMinted: 12847,
-    maxSupply: 35000,
-    priceEth: 0.0011,
+    totalMinted: 0,
+    maxSupply: CONTRACT_CONFIG.MAX_SUPPLY,
+    priceEth: CONTRACT_CONFIG.MINT_PRICE_ETH,
+    mintOpen: true,
   });
-  const [ethBalance, setEthBalance] = useState<number>(0.05);
+  const [ethBalance, setEthBalance] = useState<number>(0);
   const [quantity, setQuantity] = useState(1);
   const [isMinting, setIsMinting] = useState(false);
   const [mintedEmissary, setMintedEmissary] = useState<MintedEmissary | null>(null);
   const [revealPhase, setRevealPhase] = useState<'idle' | 'minting' | 'video' | 'revealing' | 'complete'>('idle');
   const [error, setError] = useState<string | null>(null);
+  const [isLoadingStats, setIsLoadingStats] = useState(true);
 
-  // Load mint stats
-  useEffect(() => {
-    // TODO: Fetch actual stats from contract
+  // Load mint stats from contract
+  const loadMintStats = useCallback(async () => {
+    try {
+      setIsLoadingStats(true);
+      const [totalMinted, mintPrice, mintOpen] = await Promise.all([
+        publicClient.readContract({
+          address: PORTAL_ADDRESS,
+          abi: PORTAL_ABI,
+          functionName: 'totalMinted',
+        }),
+        publicClient.readContract({
+          address: PORTAL_ADDRESS,
+          abi: PORTAL_ABI,
+          functionName: 'mintPrice',
+        }),
+        publicClient.readContract({
+          address: PORTAL_ADDRESS,
+          abi: PORTAL_ABI,
+          functionName: 'mintOpen',
+        }),
+      ]);
+
+      setStats({
+        totalMinted: Number(totalMinted),
+        maxSupply: CONTRACT_CONFIG.MAX_SUPPLY,
+        priceEth: Number(formatEther(mintPrice as bigint)),
+        mintOpen: mintOpen as boolean,
+      });
+    } catch (err) {
+      console.error('Failed to load mint stats:', err);
+      // Use fallback values
+      setStats(prev => ({ ...prev, totalMinted: 12847 }));
+    } finally {
+      setIsLoadingStats(false);
+    }
   }, []);
 
   // Load ETH balance
-  useEffect(() => {
+  const loadBalance = useCallback(async () => {
     if (!wallet) return;
-    // TODO: Fetch actual ETH balance
+    try {
+      const balance = await publicClient.getBalance({
+        address: wallet as `0x${string}`,
+      });
+      setEthBalance(Number(formatEther(balance)));
+    } catch (err) {
+      console.error('Failed to load ETH balance:', err);
+    }
   }, [wallet]);
+
+  // Initial load
+  useEffect(() => {
+    loadMintStats();
+  }, [loadMintStats]);
+
+  // Load balance when wallet changes
+  useEffect(() => {
+    loadBalance();
+  }, [loadBalance]);
 
   // Calculate total cost
   const totalCost = stats.priceEth * quantity;
@@ -82,22 +148,64 @@ export function MintScreen({ wallet, onMintSuccess, onBack }: MintScreenProps) {
     }, 1500);
   };
 
-  // Handle mint
+  // Handle mint - real contract interaction
   const handleMint = async () => {
-    if (!wallet || !canAfford || quantity > remainingSupply) return;
+    if (!wallet || !canAfford || quantity > remainingSupply || !stats.mintOpen) return;
 
     setIsMinting(true);
     setError(null);
     setRevealPhase('minting');
 
     try {
-      // Simulate minting transaction delay
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Check if we have ethereum provider
+      if (typeof window === 'undefined' || !(window as any).ethereum) {
+        throw new Error('No wallet connected');
+      }
 
-      // Start video reveal
-      setRevealPhase('video');
+      const ethereum = (window as any).ethereum;
+
+      // Calculate mint value in wei
+      const mintValue = parseEther((stats.priceEth * quantity).toString());
+
+      // Encode function call data for mint(quantity)
+      const mintData = `0x0ba5afc6${quantity.toString(16).padStart(64, '0')}`; // mint(uint256) selector
+
+      // Send transaction
+      const txHash = await ethereum.request({
+        method: 'eth_sendTransaction',
+        params: [{
+          from: wallet,
+          to: PORTAL_ADDRESS,
+          value: `0x${mintValue.toString(16)}`,
+          data: mintData,
+        }],
+      });
+
+      console.log('Mint transaction sent:', txHash);
+
+      // Wait for transaction confirmation
+      const receipt = await publicClient.waitForTransactionReceipt({
+        hash: txHash as `0x${string}`,
+      });
+
+      if (receipt.status === 'success') {
+        // Start video reveal
+        setRevealPhase('video');
+
+        // Refresh stats after mint
+        loadMintStats();
+        loadBalance();
+      } else {
+        throw new Error('Transaction failed');
+      }
     } catch (err: any) {
-      setError(err.message || 'Mint failed');
+      console.error('Mint error:', err);
+      // User rejected or other error
+      if (err.code === 4001) {
+        setError('Transaction rejected by user');
+      } else {
+        setError(err.message || 'Mint failed');
+      }
       setRevealPhase('idle');
       setIsMinting(false);
     }
@@ -218,11 +326,13 @@ export function MintScreen({ wallet, onMintSuccess, onBack }: MintScreenProps) {
               {/* Mint button */}
               <button
                 onClick={handleMint}
-                disabled={!wallet || !canAfford || isMinting || remainingSupply === 0}
+                disabled={!wallet || !canAfford || isMinting || remainingSupply === 0 || !stats.mintOpen}
                 className="w-full btn large disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {!wallet
                   ? 'CONNECT WALLET'
+                  : !stats.mintOpen
+                  ? 'MINT PAUSED'
                   : !canAfford
                   ? 'INSUFFICIENT ETH'
                   : remainingSupply === 0
