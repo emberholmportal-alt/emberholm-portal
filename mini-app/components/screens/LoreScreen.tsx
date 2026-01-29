@@ -2,9 +2,11 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import Image from 'next/image';
 
 /**
  * LoreScreen - World lore and story
+ * Content from portal web lore sections
  */
 
 interface LoreScreenProps {
@@ -15,80 +17,83 @@ interface LoreSection {
   id: string;
   title: string;
   icon: string;
+  iconSrc?: string;
   content: string[];
 }
 
 const LORE_SECTIONS: LoreSection[] = [
   {
-    id: 'dying-flame',
-    title: 'THE DYING FLAME',
-    icon: '🔥',
+    id: 'beginning',
+    title: 'I. THE BEGINNING',
+    icon: '',
+    iconSrc: '/icons/scroll.png',
     content: [
-      'In the heart of Emberholm burns the Eternal Flame, the source of all magic and life in the realm. For millennia, it blazed with power unmatched, but now it flickers and fades.',
-      'The Ashen Blight spreads across the land, turning once-verdant forests into fields of grey dust. Villages fall silent, their inhabitants transformed into hollow husks.',
-      'Only the Emissaries, those chosen by the Flame itself, can venture into the corrupted zones and gather the Ember—fragments of pure flame energy—needed to restore the dying light.',
-      'Time is running out. Each day the Flame grows weaker, and the Blight grows stronger. The fate of Emberholm rests in the hands of the brave.',
+      'In the age before memory, when the world was young and formless, there existed only the Void—an endless expanse of nothingness where even time held no meaning.',
+      'From this primordial darkness emerged a single spark of consciousness, a fragment of pure creative essence that would come to be known as the Eternal Flame.',
+      'The Flame burned with an intensity that shattered the silence of eternity. Its light carved pathways through the Void, and from its heat, the first elements were forged.',
+      'Mountains rose from nothing, seas filled the valleys, and the sky stretched infinite above. This was the birth of Emberholm—a world shaped by fire and will.',
+    ],
+  },
+  {
+    id: 'eternal-flame',
+    title: 'II. THE ETERNAL FLAME',
+    icon: '',
+    iconSrc: '/icons/fire.png',
+    content: [
+      'At the heart of Emberholm burns the Eternal Flame, the source of all magic and life in the realm. For millennia, it blazed with power unmatched.',
+      'But now the Flame flickers and fades. The Ashen Blight spreads across the land, turning once-verdant forests into fields of grey dust.',
+      'The Flame\'s power is measured in states: BRIGHT when at full strength, STRONG during prosperous times, STEADY in balance, FLICKERING when threatened, WEAK when danger looms, and DYING when all hope seems lost.',
+      'Only through the efforts of Emissaries can the Flame be restored to its former glory.',
     ],
   },
   {
     id: 'emissaries',
-    title: 'THE EMISSARIES',
-    icon: '⚔️',
+    title: 'III. THE EMISSARIES',
+    icon: '',
+    iconSrc: '/icons/Swords.png',
     content: [
-      'Emissaries are chosen warriors marked by the Eternal Flame. Each bears a unique brand that grants them resistance to the Ashen Blight and the ability to channel Ember energy.',
+      'Emissaries are chosen warriors marked by the Eternal Flame. Each bears a unique brand that grants them resistance to the Ashen Blight.',
       'They are not born—they are made. In a ritual of fire and ash, ordinary mortals are transformed into vessels of flame, gaining powers beyond normal comprehension.',
-      'But this power comes at a cost. Emissaries are bound to the Flame. If they stray too far from its influence, or if the Flame dies, they too will be consumed.',
-      'Each Emissary is unique, with their own strengths, weaknesses, and destiny. Some will become legends. Others will fall, their stories lost to ash.',
+      'Each Emissary belongs to one of six races: Human, Elf, Orc, Halfling, Undead, or the rare Dragonborn. Their class determines their path: Warrior, Paladin, Wizard, Rogue, Ranger, or Necromancer.',
+      'Some will become legends. Others will fall, their stories lost to ash. Such is the way of Emberholm.',
     ],
   },
   {
     id: 'guilds',
-    title: 'THE SIX GUILDS',
-    icon: '🏰',
+    title: 'IV. THE SIX GUILDS',
+    icon: '',
+    iconSrc: '/icons/shield.png',
     content: [
-      'PYREGUARD: The defenders. Masters of protective magic and martial prowess. They guard the remaining sanctuaries of light.',
-      'ASHWALKERS: The explorers. Scouts who map the Blighted zones and recover lost artifacts from the ash.',
-      'EMBERCOURT: The diplomats. Noble houses that maintain order and broker peace between the guilds.',
-      'CINDERKIN: The rebels. Outcasts who believe the old ways must burn before new ones can rise.',
-      'FLAMEKEEPERS: The scholars. Keepers of ancient knowledge, seeking the secrets to restore the Flame.',
-      'SCORCHLORDS: The warriors. Elite combatants who lead the charge against the Blight\'s darkest creatures.',
-    ],
-  },
-  {
-    id: 'economy',
-    title: 'THE EMBER ECONOMY',
-    icon: '💰',
-    content: [
-      '$EMBER: The primary currency of Emberholm. Fragments of the Eternal Flame crystallized into tradeable tokens. Earned through missions and quests.',
-      '$ASH: Created by burning $EMBER. While less valuable, $ASH has unique properties—it can unlock certain ancient artifacts and is required for dark rituals.',
-      '$PYRE: Reputation tokens earned through social interaction and community participation. Cannot be traded, but grants access to exclusive rewards.',
-      'The economy is cyclical: Ember is gathered, some is burned to create Ash, and both flow back into the system through trade and tribute to the Flame.',
-    ],
-  },
-  {
-    id: 'ranks',
-    title: 'THE RANKS',
-    icon: '📊',
-    content: [
-      'Emissaries progress through ranks as they gain experience and prove their worth:',
-      'KINDLING (Levels 1-5): New Emissaries learning the basics of survival.',
-      'SPARK (Levels 6-15): Competent warriors capable of standard missions.',
-      'FLAME (Levels 16-30): Experienced fighters who can tackle dangerous zones.',
-      'BLAZE (Levels 31-50): Elite Emissaries known throughout the realm.',
-      'INFERNO (Levels 51-75): Legendary warriors whose names are spoken with reverence.',
-      'ETERNAL (Levels 76+): The rarest rank. Those who have touched the Flame itself.',
+      'FORGE LEGION: Masters of metal and fire. Warriors who forge their own destiny in the heat of battle.',
+      'CIRCLE OF MIST: Keepers of arcane secrets. Wizards who harness the mystical energies of the realm.',
+      'ORDER OF DAWN: Champions of light. Paladins who stand as bulwarks against the encroaching darkness.',
+      'SHADOW GUILD: Masters of stealth. Rogues who move unseen and strike from the shadows.',
+      'HORIZON WATCH: Wardens of the wild. Rangers who patrol the boundaries between civilization and chaos.',
+      'VOID ECHOES: Speakers of death. Necromancers who commune with the spirits beyond the veil.',
     ],
   },
   {
     id: 'permadeath',
-    title: 'PERMADEATH',
-    icon: '💀',
+    title: 'V. PERMADEATH',
+    icon: '',
+    iconSrc: '/icons/skull.png',
     content: [
-      'In Emberholm, death is real. When an Emissary falls in battle against the Blight, they do not simply respawn—they are consumed by the very darkness they fought against.',
-      'Permadeath is the ultimate risk. Your Emissary can die permanently, losing all progress, equipment, and accumulated Ember.',
-      'However, death is not the end. Fallen Emissaries leave behind their Legacy—a portion of their power that can be inherited by future warriors.',
-      'Choose your battles wisely. Know when to fight and when to retreat. The bravest are not always the ones who charge forward, but those who live to fight another day.',
-      'Some say the Fallen watch from the Ashlands, waiting for the day when the Flame is restored and they can rise again...',
+      'In Emberholm, death is real. When an Emissary falls in battle, they can be brought back through the Reinvocation ritual—but at great cost.',
+      'Each death weakens the connection to the Flame. The first death costs 500 XP and 100 Aura. The second demands 1,500 XP and 300 Aura. The third takes 5,000 XP and 1,000 Aura.',
+      'Beyond the third death, the price becomes astronomical: 10,000 XP and 2,500 Aura. Few can afford such tribute.',
+      'Choose your battles wisely. The bravest are not always those who charge forward, but those who live to fight another day.',
+    ],
+  },
+  {
+    id: 'ember-lands',
+    title: 'VI. THE EMBER LANDS',
+    icon: '',
+    iconSrc: '/icons/map.gif',
+    content: [
+      'Emberholm is vast, with territories waiting to be claimed. The Ember Lands system allows operators to conquer and control regions of the realm.',
+      'Each land generates resources, provides bonuses to missions, and can be upgraded with structures. Defend your territory from rivals or expand through conquest.',
+      'The great houses compete for dominance: whoever controls the most lands holds sway over the realm\'s destiny.',
+      'Will you build an empire of flame, or will your ambitions turn to ash?',
     ],
   },
 ];
@@ -128,7 +133,17 @@ export function LoreScreen({ onBack }: LoreScreenProps) {
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <span className="text-2xl">{section.icon}</span>
+                  {section.iconSrc ? (
+                    <Image
+                      src={section.iconSrc}
+                      alt=""
+                      width={24}
+                      height={24}
+                      className="pixel-icon"
+                    />
+                  ) : (
+                    <span className="text-2xl">{section.icon}</span>
+                  )}
                   <span className="text-amber-bright font-semibold">
                     {section.title}
                   </span>

@@ -72,12 +72,15 @@ export function SocialGlobe({ onSelectCountry, onBack }: SocialGlobeProps) {
         <p className="subtitle">Operators across the Realm</p>
       </motion.div>
 
-      {/* Globe Container */}
+      {/* Globe Container - amber radial gradient background */}
       <motion.div
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ delay: 0.1 }}
         className="flex-1 min-h-[300px] max-h-[400px] relative"
+        style={{
+          background: 'radial-gradient(ellipse at center, #1a0f05 0%, #0a0705 70%)',
+        }}
       >
         {!isLoading && (
           <Globe3D
