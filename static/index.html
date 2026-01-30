@@ -8194,7 +8194,8 @@ function parseErrorMessage(errorText) {
         'insufficient aura': '⚠️ Insufficient Aura for this action.',
         'hero is fallen': '⚠️ This emissary has fallen and must be reinvoked first.',
         'invalid hero': '⚠️ Invalid emissary selection.',
-        'invalid mission': '⚠️ Invalid mission selection.'
+        'invalid mission': '⚠️ Invalid mission selection.',
+        'rate limit exceeded': '⏳ Too many requests. Please wait 60 seconds before trying again.'
     };
 
     // Try to extract message from HTML response
@@ -8234,6 +8235,18 @@ This Emissary has recently served on "${missionName}" and requires recovery time
 📜 The Order's Protocol demands that each Emissary rest between identical deployments to maintain peak effectiveness.
 
 💡 Select a different mission from the available operations, or deploy another Emissary to this assignment.`;
+        }
+
+        // 🚦 Special handling for rate limit errors
+        if (jsonError.error && jsonError.error.toLowerCase().includes('rate limit')) {
+            const retryAfter = jsonError.retry_after || 60;
+            return `⏳ REQUEST LIMIT REACHED
+
+Too many requests in a short period. The realm needs a moment to process your commands.
+
+⏱️ Please wait ${retryAfter} seconds before trying again.
+
+💡 Tip: Wait for the action to complete before clicking again.`;
         }
 
         if (jsonError.error) message = jsonError.error;

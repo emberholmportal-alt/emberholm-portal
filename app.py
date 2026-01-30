@@ -4337,7 +4337,7 @@ def handle_party_mission_start(wallet, hero_ids, mission_id):
         return jsonify({"error": f"Party mission start failed: {str(e)}"}), 500
 
 @app.route("/api/mission/start", methods=["POST"])
-@rate_limit(requests_per_minute=10)
+@rate_limit(requests_per_minute=30)
 def api_mission_start():
     """
     Start a mission (solo or party).
