@@ -49,12 +49,51 @@ function AppContent() {
   const { state, dispatch } = useApp();
   const wallet = useWallet();
 
-  // Sync wallet context with app store
+  // Load all player data
+  const loadPlayerData = useCallback(async (walletAddress: string) => {
+    if (!walletAddress || walletAddress === '0x0000000000000000000000000000000000000000') {
+      return;
+    }
+
+    try {
+      dispatch(actions.setLoading(true));
+      dispatch(actions.setError(null));
+
+      // Load emissaries
+      const emissaries = await getWalletEmissaries(walletAddress);
+      dispatch(actions.setEmissaries(emissaries));
+      console.debug(`Loaded ${emissaries.length} emissaries`);
+
+      // Load EMBER balance
+      const emberData = await getEmberBalance(walletAddress);
+      dispatch(actions.setEmberBalance(
+        emberData.balance,
+        emberData.total_earned
+      ));
+      console.debug(`Loaded EMBER balance: ${emberData.balance}`);
+
+      // Check for active micro-mission
+      const activeMission = await getActiveMicroMission(walletAddress);
+      if (activeMission) {
+        dispatch(actions.setActiveMission(activeMission));
+        console.debug('Found active mission');
+      }
+    } catch (error) {
+      console.error('Failed to load player data:', error);
+      dispatch(actions.setError('Failed to load data'));
+    } finally {
+      dispatch(actions.setLoading(false));
+    }
+  }, [dispatch]);
+
+  // Sync wallet context with app store and load data
   useEffect(() => {
     if (wallet.address && wallet.address !== state.wallet) {
       dispatch(actions.setWallet(wallet.address));
+      // Immediately load data when wallet changes
+      loadPlayerData(wallet.address);
     }
-  }, [wallet.address, state.wallet, dispatch]);
+  }, [wallet.address, state.wallet, dispatch, loadPlayerData]);
 
   // Check for existing session on mount
   useEffect(() => {
@@ -67,45 +106,26 @@ function AppContent() {
     }
   }, [dispatch, wallet.isConnected]);
 
-  // Load data when wallet is connected
+  // Reload data when returning to app or on initial mount with existing wallet
   useEffect(() => {
-    if (!state.wallet) return;
-
-    async function loadData() {
-      try {
-        dispatch(actions.setLoading(true));
-
-        // Load emissaries
-        const emissaries = await getWalletEmissaries(state.wallet!);
-        dispatch(actions.setEmissaries(emissaries));
-
-        // Load EMBER balance
-        const emberData = await getEmberBalance(state.wallet!);
-        dispatch(actions.setEmberBalance(
-          emberData.balance,
-          emberData.total_earned
-        ));
-
-        // Check for active micro-mission
-        const activeMission = await getActiveMicroMission(state.wallet!);
-        if (activeMission) {
-          dispatch(actions.setActiveMission(activeMission));
-        }
-      } catch (error) {
-        console.error('Failed to load data:', error);
-        dispatch(actions.setError('Failed to load data'));
-      } finally {
-        dispatch(actions.setLoading(false));
-      }
+    if (state.wallet && state.emissaries.length === 0 && !state.isLoading) {
+      loadPlayerData(state.wallet);
     }
-
-    loadData();
-  }, [state.wallet, dispatch]);
+  }, [state.wallet, state.emissaries.length, state.isLoading, loadPlayerData]);
 
   // Wallet connection handler - uses WalletContext
   const handleConnect = useCallback(async () => {
-    await wallet.connect();
+    const result = await wallet.connect();
+    // Data will be loaded automatically by the wallet sync useEffect
+    return result;
   }, [wallet]);
+
+  // Refresh data handler for manual refresh
+  const handleRefreshData = useCallback(async () => {
+    if (state.wallet) {
+      await loadPlayerData(state.wallet);
+    }
+  }, [state.wallet, loadPlayerData]);
 
   // Navigation handlers
   const handleNavigate = (screen: AppScreen) => {

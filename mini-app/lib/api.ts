@@ -237,9 +237,88 @@ export async function getEmberBalance(wallet: string): Promise<EmberBalance> {
 // Micro-Missions
 // =========================================
 
+// Fallback micro-missions for when API is unavailable
+const FALLBACK_MICRO_MISSIONS: MicroMission[] = [
+  {
+    id: 'patrol_perimeter',
+    name: 'Patrol the Perimeter',
+    description: 'Scout the outer walls of Emberholm for signs of trouble.',
+    difficulty: 'EASY',
+    duration_seconds: 60,
+    energy_cost: 5,
+    ember_reward: { min: 3, max: 8 },
+    xp_reward: { min: 5, max: 10 },
+    aura_chance: 5,
+    narrative_intro: 'The walls of Emberholm grow cold...',
+    cooldown_minutes: 5,
+  },
+  {
+    id: 'gather_ember_shards',
+    name: 'Gather Ember Shards',
+    description: 'Collect glowing ember shards from the Ashen Fields.',
+    difficulty: 'EASY',
+    duration_seconds: 90,
+    energy_cost: 8,
+    ember_reward: { min: 5, max: 12 },
+    xp_reward: { min: 8, max: 15 },
+    aura_chance: 8,
+    narrative_intro: 'The Ashen Fields shimmer with residual energy...',
+    cooldown_minutes: 10,
+  },
+  {
+    id: 'shadow_reconnaissance',
+    name: 'Shadow Reconnaissance',
+    description: 'Investigate reports of shadow creatures near the village.',
+    difficulty: 'MEDIUM',
+    duration_seconds: 180,
+    energy_cost: 15,
+    ember_reward: { min: 10, max: 25 },
+    xp_reward: { min: 15, max: 30 },
+    aura_chance: 15,
+    narrative_intro: 'Darkness gathers at the edge of town...',
+    cooldown_minutes: 15,
+  },
+  {
+    id: 'flame_ritual',
+    name: 'The Flame Ritual',
+    description: 'Assist the elders in maintaining the Dying Flame.',
+    difficulty: 'MEDIUM',
+    duration_seconds: 240,
+    energy_cost: 20,
+    ember_reward: { min: 15, max: 35 },
+    xp_reward: { min: 20, max: 40 },
+    aura_chance: 20,
+    narrative_intro: 'The sacred flame flickers dangerously low...',
+    cooldown_minutes: 20,
+  },
+  {
+    id: 'void_descent',
+    name: 'Void Descent',
+    description: 'Brave the depths beneath Emberholm to recover lost artifacts.',
+    difficulty: 'HARD',
+    duration_seconds: 300,
+    energy_cost: 30,
+    ember_reward: { min: 25, max: 50 },
+    xp_reward: { min: 35, max: 60 },
+    aura_chance: 30,
+    narrative_intro: 'The void calls to those brave enough to answer...',
+    cooldown_minutes: 30,
+  },
+];
+
 export async function getMicroMissions(): Promise<MicroMission[]> {
-  const data = await fetchAPI<{ success: boolean; missions: MicroMission[] }>('/api/micro-missions');
-  return data.missions;
+  try {
+    const data = await fetchAPI<{ success: boolean; missions: MicroMission[] }>('/api/micro-missions');
+    if (data.missions && data.missions.length > 0) {
+      return data.missions;
+    }
+    // Return fallback if API returns empty
+    console.debug('API returned empty missions, using fallback data');
+    return FALLBACK_MICRO_MISSIONS;
+  } catch (error) {
+    console.debug('Failed to load micro-missions from API, using fallback:', error);
+    return FALLBACK_MICRO_MISSIONS;
+  }
 }
 
 export async function getMicroMissionDetail(id: string): Promise<MicroMissionDetail> {
@@ -320,35 +399,54 @@ export async function getEmissaryFullStatus(tokenId: string): Promise<Emissary> 
 }
 
 export async function getWalletEmissaries(wallet: string): Promise<Emissary[]> {
+  if (!wallet || wallet === '0x0000000000000000000000000000000000000000') {
+    console.debug('No valid wallet provided for emissaries');
+    return [];
+  }
+
   try {
     const data = await fetchAPI<any>(`/api/player/${wallet}`);
-    const heroes = data.player?.heroes || [];
+
+    // Handle different API response structures
+    let heroes: any[] = [];
+
+    if (data.player?.heroes) {
+      heroes = data.player.heroes;
+    } else if (data.heroes) {
+      heroes = data.heroes;
+    } else if (data.emissaries) {
+      heroes = data.emissaries;
+    } else if (Array.isArray(data)) {
+      heroes = data;
+    }
+
+    console.debug(`Found ${heroes.length} emissaries for wallet ${wallet.slice(0, 8)}...`);
 
     return heroes.map((hero: any) => ({
-      token_id: hero.token_id,
-      name: hero.name || `Emissary #${hero.token_id}`,
-      guild: hero.guild || 'Unknown',
-      race_class: hero.race_class || 'Unknown',
+      token_id: hero.token_id || hero.tokenId || hero.id?.toString() || '0',
+      name: hero.name || `Emissary #${hero.token_id || hero.tokenId || '?'}`,
+      guild: hero.guild || hero.faction || 'Unknown',
+      race_class: hero.race_class || hero.raceClass || hero.class || 'Unknown',
       owner: wallet,
-      image_url: hero.image_url || '',
+      image_url: hero.image_url || hero.imageUrl || hero.image || '',
       stats: {
-        level: hero.dynamic_state?.xp_level || 1,
-        xp_total: hero.dynamic_state?.xp_total || 0,
-        aura_level: hero.dynamic_state?.aura_level || 0,
-        energy_current: hero.dynamic_state?.energy_current || 100,
-        energy_max: hero.dynamic_state?.energy_max || 100,
-        power: hero.dynamic_state?.power_current || 10,
-        death_count: hero.dynamic_state?.death_count || 0,
+        level: hero.dynamic_state?.xp_level || hero.level || hero.stats?.level || 1,
+        xp_total: hero.dynamic_state?.xp_total || hero.xp || hero.stats?.xp || 0,
+        aura_level: hero.dynamic_state?.aura_level || hero.aura || hero.stats?.aura || 0,
+        energy_current: hero.dynamic_state?.energy_current || hero.energy || hero.stats?.energy || 100,
+        energy_max: hero.dynamic_state?.energy_max || hero.maxEnergy || hero.stats?.maxEnergy || 100,
+        power: hero.dynamic_state?.power_current || hero.power || hero.stats?.power || 10,
+        death_count: hero.dynamic_state?.death_count || hero.deaths || hero.stats?.deaths || 0,
       },
-      current_state: hero.dynamic_state?.state || 'READY',
-      active_mission: null,
-      active_micro_mission: null,
-      equipment: {},
+      current_state: hero.dynamic_state?.state || hero.state || hero.status || 'READY',
+      active_mission: hero.active_mission || null,
+      active_micro_mission: hero.active_micro_mission || null,
+      equipment: hero.equipment || {},
       chronicle: {
-        total_missions: hero.dynamic_state?.total_missions_completed || 0,
-        total_deaths: hero.dynamic_state?.death_count || 0,
-        items_found: hero.dynamic_state?.items_found || 0,
-        runes_found: hero.dynamic_state?.runes_found || 0,
+        total_missions: hero.dynamic_state?.total_missions_completed || hero.missions || 0,
+        total_deaths: hero.dynamic_state?.death_count || hero.deaths || 0,
+        items_found: hero.dynamic_state?.items_found || hero.items || 0,
+        runes_found: hero.dynamic_state?.runes_found || hero.runes || 0,
       },
     }));
   } catch (error) {
