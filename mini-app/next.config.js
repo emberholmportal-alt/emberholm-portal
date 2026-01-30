@@ -11,6 +11,27 @@ const nextConfig = {
       },
     ];
   },
+
+  // Headers for CORS and caching (required for Farcaster)
+  async headers() {
+    return [
+      {
+        source: '/.well-known/:path*',
+        headers: [
+          { key: 'Access-Control-Allow-Origin', value: '*' },
+          { key: 'Access-Control-Allow-Methods', value: 'GET' },
+          { key: 'Cache-Control', value: 'public, max-age=3600' },
+        ],
+      },
+      {
+        source: '/:path*.png',
+        headers: [
+          { key: 'Cache-Control', value: 'public, max-age=86400' },
+        ],
+      },
+    ];
+  },
+
   images: {
     remotePatterns: [
       {
@@ -21,7 +42,17 @@ const nextConfig = {
         protocol: 'https',
         hostname: '*.pinata.cloud',
       },
+      {
+        protocol: 'https',
+        hostname: 'arweave.net',
+      },
+      {
+        protocol: 'https',
+        hostname: 'raw.githubusercontent.com',
+      },
     ],
+    // Disable image optimization for static exports
+    unoptimized: true,
   },
 };
 

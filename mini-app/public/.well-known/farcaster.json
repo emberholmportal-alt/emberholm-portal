@@ -1,0 +1,16 @@
+{
+  "accountAssociation": {
+    "header": "eyJmaWQiOjEyMzQ1LCJ0eXBlIjoiY3VzdG9keSIsImtleSI6IjB4Li4uIn0",
+    "payload": "eyJkb21haW4iOiJtaW5pYXBwLmVtYmVyaG9sbXBvcnRhbC54eXoifQ",
+    "signature": "PLACEHOLDER_SIGNATURE_FILL_FROM_DEVELOPER_HUB"
+  },
+  "frame": {
+    "version": "1",
+    "name": "Emberholm Portal",
+    "iconUrl": "https://miniapp.emberholmportal.xyz/icon-1024.png",
+    "homeUrl": "https://miniapp.emberholmportal.xyz",
+    "splashImageUrl": "https://miniapp.emberholmportal.xyz/splash.png",
+    "splashBackgroundColor": "#0a0705",
+    "webhookUrl": ""
+  }
+}

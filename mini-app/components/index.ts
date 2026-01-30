@@ -32,7 +32,6 @@ export { MintScreen } from './screens/MintScreen';
 export { EventsScreen } from './screens/EventsScreen';
 export { LoreScreen } from './screens/LoreScreen';
 export { TutorialScreen } from './screens/TutorialScreen';
-export { PyreGuide } from './screens/PyreGuide';
 
 // UI Components
 export {
