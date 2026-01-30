@@ -2400,17 +2400,28 @@ app = Flask(
     static_url_path=""  # sirve /img/... /music/... directo
 )
 
-# Configure CORS to allow requests from www.emberholmportal.xyz
+# Configure CORS to allow requests from www.emberholmportal.xyz and Farcaster/Warpcast
 CORS(app, resources={
     r"/api/*": {
         "origins": [
+            # Main portal
             "https://www.emberholmportal.xyz",
             "https://emberholmportal.xyz",
+            # Farcaster/Warpcast domains (required for mini app)
+            "https://warpcast.com",
+            "https://www.warpcast.com",
+            "https://client.warpcast.com",
+            "https://frames.warpcast.com",
+            "https://farcaster.xyz",
+            "https://www.farcaster.xyz",
+            # Vercel deployments (common for Next.js mini apps)
+            "https://*.vercel.app",
+            # Development
             "http://localhost:*",
             "http://127.0.0.1:*"
         ],
         "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-        "allow_headers": ["Content-Type", "Authorization"],
+        "allow_headers": ["Content-Type", "Authorization", "X-Requested-With"],
         "expose_headers": ["Content-Type"],
         "supports_credentials": True
     }

@@ -4,7 +4,14 @@
  * Includes: Realm Status, $EMBER, Micro-Missions, Social Chat
  */
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || '';
+// API Base URL - CRITICAL: Must be set in production!
+// If NEXT_PUBLIC_API_URL is not set, use production backend as fallback
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://emberholmportal.xyz';
+
+// Log warning if using fallback (only in development)
+if (typeof window !== 'undefined' && !process.env.NEXT_PUBLIC_API_URL) {
+  console.warn('[API] NEXT_PUBLIC_API_URL not set, using fallback:', API_BASE);
+}
 
 // =========================================
 // Types - Realm

@@ -6,10 +6,11 @@ import dynamic from 'next/dynamic';
 import Image from 'next/image';
 import { getCountries, getOnlineStats, CountryStats, OnlineStats } from '@/lib/api';
 import { getCountryName } from '@/lib/hooks/useGlobe';
+import { CONTRACT_CONFIG } from '@/lib/contracts';
 
-// Emberholm Portal contract on Base
-const CONTRACT_ADDRESS = '0xdec2c65ab1fb32cd7a5fa828d0d7799bf5b0e666';
-const RPC_URL = 'https://mainnet.base.org';
+// Use contract address from centralized config (Base Mainnet)
+const CONTRACT_ADDRESS = CONTRACT_CONFIG.CONTRACTS.EmberholmPortal;
+const RPC_URL = CONTRACT_CONFIG.RPC_URL;
 
 // Dynamically import Globe3D to avoid SSR issues with Three.js
 const Globe3D = dynamic(() => import('@/components/Globe3D'), {
@@ -110,13 +111,17 @@ export function SocialGlobe({ onSelectCountry, onGlobalChat, onBack }: SocialGlo
       </motion.div>
 
       {/* Globe Container - amber radial gradient background */}
+      {/* FIX: Changed max-h to aspect-ratio for better responsiveness and no clipping */}
       <motion.div
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ delay: 0.1 }}
-        className="flex-1 min-h-[300px] max-h-[400px] relative"
+        className="relative w-full overflow-hidden"
         style={{
           background: 'radial-gradient(ellipse at center, #1a0f05 0%, #0a0705 70%)',
+          aspectRatio: '1 / 0.85',
+          maxHeight: '45vh',
+          minHeight: '280px',
         }}
       >
         {!isLoading && (
