@@ -1032,8 +1032,17 @@ body {
 .pixel-icon {
   width: 20px;
   height: 20px;
-  filter: brightness(0) saturate(100%) invert(60%) sepia(95%) saturate(500%) hue-rotate(5deg) brightness(105%);
+  /* Reduced filter intensity for better icon visibility */
+  filter: brightness(0) saturate(100%) invert(58%) sepia(70%) saturate(300%) hue-rotate(5deg) brightness(115%);
   image-rendering: pixelated;
+}
+
+/* No filter variant for icons that should keep original colors */
+.pixel-icon-original {
+  width: 20px;
+  height: 20px;
+  image-rendering: pixelated;
+  /* No filter - keeps original PNG colors */
 }
 
 .pixel-icon-large {

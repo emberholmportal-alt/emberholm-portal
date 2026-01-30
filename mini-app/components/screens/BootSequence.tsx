@@ -1,187 +1,161 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion } from 'framer-motion';
 
 /**
  * BootSequence - Welcome Operator typewriter screen
  * Shows terminal-style boot messages with typewriter effect
- * Matches portal web design exactly
  */
 
 interface BootSequenceProps {
   onComplete: () => void;
 }
 
+const WELCOME_TEXT = `════════════════════════════════════════
+WELCOME, OPERATOR.
+The Dying Flame grows weaker.
+This terminal is your gateway to save Emberholm.
+Summon Emissaries. Send them on missions.
+Earn $EMBER. Rise in rank. Conquer lands.
+Collect runes and legendary items to aid your quest.
+But beware — death can be permanent.
+════════════════════════════════════════`;
+
 export function BootSequence({ onComplete }: BootSequenceProps) {
-  const [bootLines, setBootLines] = useState<string[]>([]);
-  const [showWelcome, setShowWelcome] = useState(false);
-  const [showButton, setShowButton] = useState(false);
-  const [currentText, setCurrentText] = useState('');
-  const [isTyping, setIsTyping] = useState(false);
-  const bootIndexRef = useRef(0);
+  const [phase, setPhase] = useState<'connecting' | 'welcome' | 'ready'>('connecting');
+  const [displayedText, setDisplayedText] = useState('');
+  const [showContinue, setShowContinue] = useState(false);
+  const typewriterRef = useRef<NodeJS.Timeout | null>(null);
 
-  const BOOT_MESSAGES = [
-    "INITIALIZING EMBERHOLM PORTAL...",
-    "CONNECTING TO ETERNAL FLAME...",
-    "SYNCING REALM STATUS...",
-    "LOADING EMISSARY DATABASE...",
-    "CALIBRATING $EMBER RESONANCE...",
-    "ESTABLISHING GUILD LINKS...",
-    "",
-    "CONNECTION ESTABLISHED",
-  ];
-
-  // Typewriter effect for a single line
-  const typewriterEffect = (text: string, callback: () => void) => {
-    if (!text) {
-      callback();
-      return;
-    }
-
-    setIsTyping(true);
-    setCurrentText('');
+  // Typewriter effect
+  const typeText = useCallback((text: string, speed: number, onDone: () => void) => {
     let i = 0;
+    setDisplayedText('');
 
-    const typeChar = () => {
+    const type = () => {
       if (i < text.length) {
-        setCurrentText(prev => prev + text.charAt(i));
+        setDisplayedText(prev => prev + text.charAt(i));
         i++;
-        // Random speed between 30-50ms for more natural feel
-        const speed = 30 + Math.random() * 20;
-        setTimeout(typeChar, speed);
+        typewriterRef.current = setTimeout(type, speed);
       } else {
-        setIsTyping(false);
-        callback();
+        onDone();
       }
     };
 
-    typeChar();
-  };
+    type();
+  }, []);
 
   // Boot sequence
   useEffect(() => {
-    const runBootSequence = () => {
-      if (bootIndexRef.current >= BOOT_MESSAGES.length) {
-        // All messages done, show welcome
-        setTimeout(() => {
-          setShowWelcome(true);
-          setTimeout(() => setShowButton(true), 800);
+    // Phase 1: Show header and "CONNECTING..."
+    const timer1 = setTimeout(() => {
+      setDisplayedText('CONNECTING TO EMBERHOLM... ');
+
+      // Phase 2: Show OK
+      const timer2 = setTimeout(() => {
+        setDisplayedText('CONNECTING TO EMBERHOLM... OK');
+
+        // Phase 3: Start welcome text
+        const timer3 = setTimeout(() => {
+          setPhase('welcome');
+          typeText(WELCOME_TEXT, 25, () => {
+            setPhase('ready');
+            setShowContinue(true);
+          });
         }, 500);
-        return;
-      }
 
-      const message = BOOT_MESSAGES[bootIndexRef.current];
+        return () => clearTimeout(timer3);
+      }, 1000);
 
-      if (message === '') {
-        // Empty line - just add it
-        setBootLines(prev => [...prev, '']);
-        bootIndexRef.current++;
-        setTimeout(runBootSequence, 300);
-      } else {
-        typewriterEffect(message, () => {
-          setBootLines(prev => [...prev, message]);
-          setCurrentText('');
-          bootIndexRef.current++;
-          setTimeout(runBootSequence, 400);
-        });
+      return () => clearTimeout(timer2);
+    }, 500);
+
+    return () => {
+      clearTimeout(timer1);
+      if (typewriterRef.current) clearTimeout(typewriterRef.current);
+    };
+  }, [typeText]);
+
+  // Handle skip (any key press)
+  useEffect(() => {
+    const handleKeyPress = () => {
+      if (phase === 'welcome' && typewriterRef.current) {
+        // Skip to end
+        clearTimeout(typewriterRef.current);
+        setDisplayedText(WELCOME_TEXT);
+        setPhase('ready');
+        setShowContinue(true);
+      } else if (phase === 'ready') {
+        onComplete();
       }
     };
 
-    // Start boot sequence after a short delay
-    const timer = setTimeout(runBootSequence, 500);
-    return () => clearTimeout(timer);
-  }, []);
+    window.addEventListener('keydown', handleKeyPress);
+    window.addEventListener('click', handleKeyPress);
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyPress);
+      window.removeEventListener('click', handleKeyPress);
+    };
+  }, [phase, onComplete]);
 
   return (
-    <div className="screen-view flex flex-col min-h-screen p-4 pt-8">
+    <div className="screen-view flex flex-col min-h-screen p-4 pt-6">
       {/* Terminal header */}
-      <div className="mb-4 border-b border-amber-dark pb-2">
-        <p className="text-xs text-amber-dim font-mono">
-          EMBERHOLM TERMINAL v2.1.4
+      <div className="text-center mb-4">
+        <p className="text-amber font-mono text-sm tracking-wider">
+          [EMBER PROTOCOL v0.1978 // INITIALIZING...]
         </p>
       </div>
 
-      {/* Boot messages */}
-      <div className="flex-1 font-mono text-sm space-y-1 overflow-y-auto">
-        {bootLines.map((line, index) => (
-          <div key={index} className="flex items-center gap-2">
-            {line ? (
-              <>
-                <span className="text-amber-dim">&gt;</span>
-                <span className={
-                  line === "CONNECTION ESTABLISHED"
-                    ? "text-green"
-                    : "text-amber"
-                }>
-                  {line}
-                </span>
-                {line !== "CONNECTION ESTABLISHED" && (
-                  <span className="text-green ml-1">OK</span>
-                )}
-              </>
-            ) : (
-              <span>&nbsp;</span>
-            )}
+      {/* Content */}
+      <div className="flex-1 font-mono text-sm">
+        {phase === 'connecting' && (
+          <div className="text-amber">
+            {displayedText}
+            <span className="inline-block w-2 h-4 bg-amber animate-blink ml-1" />
           </div>
-        ))}
+        )}
 
-        {/* Current typing line */}
-        {isTyping && currentText && (
-          <div className="flex items-center gap-2">
-            <span className="text-amber-dim">&gt;</span>
-            <span className="text-amber">{currentText}</span>
-            <span className="inline-block w-2 h-4 bg-amber animate-blink" />
+        {(phase === 'welcome' || phase === 'ready') && (
+          <div>
+            <div className="text-green mb-4">
+              CONNECTING TO EMBERHOLM... OK
+            </div>
+            <pre className="text-amber whitespace-pre-wrap leading-relaxed">
+              {displayedText}
+              {phase === 'welcome' && (
+                <span className="inline-block w-2 h-4 bg-amber animate-blink" />
+              )}
+            </pre>
           </div>
         )}
       </div>
 
-      {/* Welcome message */}
-      {showWelcome && (
+      {/* Continue prompt */}
+      {showContinue && (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ duration: 0.5 }}
-          className="py-6"
+          className="text-center py-6"
         >
-          <div className="portal-box mx-auto">
-            <div className="ornament">═══ ◈ ═══</div>
-            <p className="text-amber-dim text-sm mt-4">TERMINAL ONLINE</p>
-            <h1 className="title text-2xl mt-2">WELCOME</h1>
-            <h1 className="title text-3xl">OPERATOR</h1>
-            <p className="text-amber-dim text-xs mt-4">
-              Initializing portal connection...<br />
-              Emissary detected.
-            </p>
-            <div className="ornament mt-4">═══ ◈ ═══</div>
-          </div>
+          <p className="text-amber-dim text-sm animate-pulse">
+            [PRESS ANY KEY TO CONTINUE]
+          </p>
         </motion.div>
       )}
 
-      {/* Continue button */}
-      {showButton && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3 }}
-          className="pb-6"
-        >
-          <button
-            onClick={onComplete}
-            className="btn w-full"
-          >
-            [ CONTINUE ]
-          </button>
-        </motion.div>
-      )}
-
-      {/* Blinking cursor when not showing button */}
-      {!showButton && !isTyping && bootLines.length < BOOT_MESSAGES.length && (
-        <div className="pb-6 flex items-center gap-2">
-          <span className="text-amber-dim">&gt;</span>
-          <span className="inline-block w-2 h-4 bg-amber animate-blink" />
+      {/* Skip hint during typing */}
+      {phase === 'welcome' && !showContinue && (
+        <div className="text-center py-4">
+          <p className="text-amber-dark text-xs">
+            [TAP TO SKIP]
+          </p>
         </div>
       )}
     </div>
   );
 }
+
+export default BootSequence;
