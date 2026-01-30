@@ -322,7 +322,7 @@ export function VaultScreen({ wallet, emissaries, onBack }: VaultScreenProps) {
                               setShowEquipModal(item.id);
                             }
                           }}
-                          className="btn small"
+                          className="btn tiny"
                         >
                           {item.equippedTo ? 'UNEQUIP' : 'EQUIP'}
                         </button>
@@ -377,7 +377,7 @@ export function VaultScreen({ wallet, emissaries, onBack }: VaultScreenProps) {
                               setShowEquipModal(rune.id);
                             }
                           }}
-                          className="btn small"
+                          className="btn tiny"
                         >
                           {rune.equippedTo ? 'UNEQUIP' : 'EQUIP'}
                         </button>
