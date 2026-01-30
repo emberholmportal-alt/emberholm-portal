@@ -7,6 +7,10 @@ import Image from 'next/image';
 import { getCountries, getOnlineStats, CountryStats, OnlineStats } from '@/lib/api';
 import { getCountryName } from '@/lib/hooks/useGlobe';
 
+// Emberholm Portal contract on Base
+const CONTRACT_ADDRESS = '0xdec2c65ab1fb32cd7a5fa828d0d7799bf5b0e666';
+const RPC_URL = 'https://mainnet.base.org';
+
 // Dynamically import Globe3D to avoid SSR issues with Three.js
 const Globe3D = dynamic(() => import('@/components/Globe3D'), {
   ssr: false,
@@ -30,6 +34,7 @@ interface SocialGlobeProps {
 export function SocialGlobe({ onSelectCountry, onGlobalChat, onBack }: SocialGlobeProps) {
   const [countries, setCountries] = useState<CountryStats[]>([]);
   const [stats, setStats] = useState<OnlineStats | null>(null);
+  const [totalEmissaries, setTotalEmissaries] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [hoveredCountry, setHoveredCountry] = useState<string | null>(null);
 
@@ -51,6 +56,36 @@ export function SocialGlobe({ onSelectCountry, onGlobalChat, onBack }: SocialGlo
       }
     }
     loadData();
+  }, []);
+
+  // Load totalSupply from contract
+  useEffect(() => {
+    async function loadContractStats() {
+      try {
+        // Call totalSupply() on the contract
+        const response = await fetch(RPC_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            jsonrpc: '2.0',
+            method: 'eth_call',
+            params: [{
+              to: CONTRACT_ADDRESS,
+              data: '0x18160ddd', // totalSupply() selector
+            }, 'latest'],
+            id: 1,
+          }),
+        });
+        const data = await response.json();
+        if (data.result) {
+          const supply = parseInt(data.result, 16);
+          setTotalEmissaries(supply);
+        }
+      } catch (error) {
+        console.error('Error loading contract stats:', error);
+      }
+    }
+    loadContractStats();
   }, []);
 
   const handleCountryHover = (code: string | null) => {
@@ -110,25 +145,33 @@ export function SocialGlobe({ onSelectCountry, onGlobalChat, onBack }: SocialGlo
       >
         {/* Global Stats */}
         <div className="data-box">
-          <div className="ornament text-xs mb-2">═══ GLOBAL STATS ═══</div>
-          <div className="grid grid-cols-3 gap-2 text-center">
+          <div className="ornament text-xs mb-2">═══ REALM STATS ═══</div>
+          <div className="grid grid-cols-2 gap-2 text-center mb-3">
             <div>
               <div className="text-xl text-amber-bright font-bold">
-                {stats?.total_users || 0}
+                {totalEmissaries !== null ? totalEmissaries.toLocaleString() : '...'}
               </div>
-              <div className="text-xs text-amber-dim">Total</div>
-            </div>
-            <div>
-              <div className="text-xl text-green font-bold">
-                {stats?.online_now || 0}
-              </div>
-              <div className="text-xs text-amber-dim">Online</div>
+              <div className="text-xs text-amber-dim">Emissaries</div>
             </div>
             <div>
               <div className="text-xl text-cyan font-bold">
                 {stats?.countries_represented || 0}
               </div>
               <div className="text-xs text-amber-dim">Nations</div>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-2 text-center">
+            <div>
+              <div className="text-lg text-amber font-bold">
+                {stats?.total_users || 0}
+              </div>
+              <div className="text-xs text-amber-dim">Operators</div>
+            </div>
+            <div>
+              <div className="text-lg text-green font-bold">
+                {stats?.online_now || 0}
+              </div>
+              <div className="text-xs text-amber-dim">Online</div>
             </div>
           </div>
         </div>

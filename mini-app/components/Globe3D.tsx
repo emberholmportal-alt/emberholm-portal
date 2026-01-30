@@ -27,12 +27,12 @@ function GlobeWireframe() {
   const RADIUS = 2;
   const SEGMENTS = 32;
 
-  // Create latitude/longitude lines
+  // Create latitude/longitude lines - denser grid
   const latLines = useMemo(() => {
     const lines: THREE.Vector3[][] = [];
 
-    // Latitude lines
-    for (let lat = -60; lat <= 60; lat += 30) {
+    // Latitude lines (every 15 degrees for more definition)
+    for (let lat = -75; lat <= 75; lat += 15) {
       const points: THREE.Vector3[] = [];
       for (let lng = 0; lng <= 360; lng += 5) {
         points.push(latLngToVector3(lat, lng - 180, RADIUS));
@@ -40,8 +40,8 @@ function GlobeWireframe() {
       lines.push(points);
     }
 
-    // Longitude lines
-    for (let lng = 0; lng < 360; lng += 30) {
+    // Longitude lines (every 20 degrees)
+    for (let lng = 0; lng < 360; lng += 20) {
       const points: THREE.Vector3[] = [];
       for (let lat = -90; lat <= 90; lat += 5) {
         points.push(latLngToVector3(lat, lng - 180, RADIUS));
@@ -52,14 +52,39 @@ function GlobeWireframe() {
     return lines;
   }, []);
 
+  // Tropic lines for geographic reference
+  const tropicLines = useMemo(() => {
+    const lines: { lat: number; color: string }[] = [
+      { lat: 23.5, color: '#2a1505' },   // Tropic of Cancer
+      { lat: -23.5, color: '#2a1505' },  // Tropic of Capricorn
+      { lat: 66.5, color: '#1a0f05' },   // Arctic Circle
+      { lat: -66.5, color: '#1a0f05' },  // Antarctic Circle
+    ];
+    return lines.map(({ lat, color }) => ({
+      points: Array.from({ length: 73 }, (_, i) =>
+        latLngToVector3(lat, i * 5 - 180, RADIUS)
+      ),
+      color,
+    }));
+  }, []);
+
   return (
     <group>
+      {/* Outer glow sphere */}
+      <Sphere args={[RADIUS * 1.02, SEGMENTS, SEGMENTS]}>
+        <meshBasicMaterial
+          color="#ff9500"
+          transparent
+          opacity={0.03}
+        />
+      </Sphere>
+
       {/* Base sphere - dark amber fill (prototype v8 style) */}
       <Sphere args={[RADIUS * 0.99, SEGMENTS, SEGMENTS]}>
         <meshBasicMaterial
           color="#0a0502"
           transparent
-          opacity={0.9}
+          opacity={0.95}
           side={THREE.BackSide}
         />
       </Sphere>
@@ -71,6 +96,18 @@ function GlobeWireframe() {
           points={points}
           color="#1a0f05"
           lineWidth={0.5}
+          transparent
+          opacity={0.4}
+        />
+      ))}
+
+      {/* Tropic and polar lines */}
+      {tropicLines.map((line, i) => (
+        <Line
+          key={`tropic-${i}`}
+          points={line.points}
+          color={line.color}
+          lineWidth={0.8}
           transparent
           opacity={0.5}
         />
@@ -85,6 +122,17 @@ function GlobeWireframe() {
         lineWidth={1.5}
         transparent
         opacity={0.7}
+      />
+
+      {/* Prime Meridian highlight */}
+      <Line
+        points={Array.from({ length: 37 }, (_, i) =>
+          latLngToVector3(i * 5 - 90, 0, RADIUS)
+        )}
+        color="#ff9500"
+        lineWidth={1}
+        transparent
+        opacity={0.4}
       />
     </group>
   );
