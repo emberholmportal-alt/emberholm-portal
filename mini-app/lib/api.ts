@@ -351,6 +351,47 @@ export async function getActiveMicroMission(wallet: string): Promise<ActiveMicro
 // Emissaries
 // =========================================
 
+/**
+ * CRITICAL: Register wallet's NFT token_ids with the backend
+ * This must be called BEFORE getWalletEmissaries to sync blockchain data
+ * Replicates the portal web flow: POST token_ids -> GET heroes
+ */
+export async function registerWalletNFTs(
+  wallet: string,
+  tokenIds: string[],
+  totalSupply?: number
+): Promise<{ success: boolean; synced: number }> {
+  if (!wallet || wallet === '0x0000000000000000000000000000000000000000') {
+    console.debug('No valid wallet for NFT registration');
+    return { success: false, synced: 0 };
+  }
+
+  try {
+    console.debug(`[registerWalletNFTs] POSTing ${tokenIds.length} token_ids for ${wallet.slice(0, 8)}...`);
+
+    const data = await fetchAPI<{
+      success: boolean;
+      token_ids_cached?: number;
+      synced_to_database?: number;
+    }>(`/api/player/${wallet}`, {
+      method: 'POST',
+      body: JSON.stringify({
+        token_ids: tokenIds,
+        total_supply: totalSupply,
+      }),
+    });
+
+    console.debug(`[registerWalletNFTs] Backend response:`, data);
+    return {
+      success: data.success,
+      synced: data.synced_to_database || data.token_ids_cached || 0
+    };
+  } catch (error) {
+    console.error('[registerWalletNFTs] Error:', error);
+    return { success: false, synced: 0 };
+  }
+}
+
 export async function getEmissaryFullStatus(tokenId: string): Promise<Emissary> {
   const data = await fetchAPI<{ success: boolean; emissary: Emissary }>(`/api/emissary/${tokenId}/full-status`);
   return data.emissary;
@@ -366,6 +407,7 @@ export async function getWalletEmissaries(wallet: string): Promise<Emissary[]> {
   const normalizedWallet = wallet.toLowerCase();
 
   try {
+    // GET player data (should be called AFTER registerWalletNFTs syncs blockchain data)
     console.debug(`[Emissaries] Fetching for wallet ${normalizedWallet.slice(0, 8)}...`);
     const data = await fetchAPI<any>(`/api/player/${normalizedWallet}`);
 
