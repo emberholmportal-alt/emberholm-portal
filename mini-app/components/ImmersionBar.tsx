@@ -106,28 +106,25 @@ export function ImmersionBar() {
 
   // Sound/Music toggle buttons component
   const AudioControls = () => (
-    <div className="top-bar-left flex gap-2">
+    <div className="top-bar-left flex gap-1">
       <button
         onClick={handleToggleSound}
-        className={`p-1 rounded hover:bg-amber-dark/20 transition-colors ${!soundEnabled ? 'opacity-50' : ''}`}
+        className={`p-1.5 rounded hover:bg-amber-dark/30 transition-colors ${!soundEnabled ? 'opacity-40' : ''}`}
         aria-label={soundEnabled ? 'Mute sounds' : 'Enable sounds'}
         title={soundEnabled ? 'Sounds ON' : 'Sounds OFF'}
       >
-        <Image
-          src={soundEnabled ? '/icons/Sparkles.png' : '/icons/skull.png'}
-          alt=""
-          width={16}
-          height={16}
-          className="pixel-icon-small"
-        />
+        <span className="text-base">{soundEnabled ? '🔊' : '🔇'}</span>
       </button>
       <button
         onClick={handleToggleMusic}
-        className={`p-1 rounded hover:bg-amber-dark/20 transition-colors ${!musicEnabled ? 'opacity-50' : ''}`}
+        className={`p-1.5 rounded hover:bg-amber-dark/30 transition-colors relative ${!musicEnabled ? 'opacity-40' : ''}`}
         aria-label={musicEnabled ? 'Mute music' : 'Enable music'}
         title={musicEnabled ? 'Music ON' : 'Music OFF'}
       >
-        <span className="text-sm">{musicEnabled ? '♪' : '♪̸'}</span>
+        <span className="text-base">🎵</span>
+        {!musicEnabled && (
+          <span className="absolute inset-0 flex items-center justify-center text-red-400 text-sm font-bold">✕</span>
+        )}
       </button>
     </div>
   );
