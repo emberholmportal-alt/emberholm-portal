@@ -256,10 +256,25 @@ export async function getEmberBalance(wallet: string): Promise<EmberBalance> {
 
 export async function getMicroMissions(): Promise<MicroMission[]> {
   try {
-    const data = await fetchAPI<{ success: boolean; missions: MicroMission[] }>('/api/micro-missions');
-    return data.missions || [];
+    console.debug('[MicroMissions] Fetching available missions...');
+    const data = await fetchAPI<{ success: boolean; missions: any[]; count?: number }>('/api/micro-missions');
+
+    console.debug(`[MicroMissions] Received ${data.missions?.length || 0} missions`);
+
+    if (!data.missions || data.missions.length === 0) {
+      console.warn('[MicroMissions] No missions available from API');
+      return [];
+    }
+
+    // Map backend response to frontend interface
+    // Backend uses pyre_reward, frontend expects ember_reward
+    return data.missions.map(mission => ({
+      ...mission,
+      ember_reward: mission.ember_reward || mission.pyre_reward || { min: 0, max: 0 },
+      xp_reward: mission.xp_reward || { min: 0, max: 0 },
+    }));
   } catch (error) {
-    console.error('Failed to load micro-missions:', error);
+    console.error('[MicroMissions] Failed to load:', error);
     return [];
   }
 }
@@ -343,34 +358,51 @@ export async function getEmissaryFullStatus(tokenId: string): Promise<Emissary> 
 
 export async function getWalletEmissaries(wallet: string): Promise<Emissary[]> {
   if (!wallet || wallet === '0x0000000000000000000000000000000000000000') {
-    console.debug('No valid wallet provided for emissaries');
+    console.debug('[Emissaries] No valid wallet provided');
     return [];
   }
 
+  // Normalize wallet to lowercase (backend expects lowercase)
+  const normalizedWallet = wallet.toLowerCase();
+
   try {
-    const data = await fetchAPI<any>(`/api/player/${wallet}`);
+    console.debug(`[Emissaries] Fetching for wallet ${normalizedWallet.slice(0, 8)}...`);
+    const data = await fetchAPI<any>(`/api/player/${normalizedWallet}`);
+
+    // Debug: Log response structure
+    console.debug('[Emissaries] API response keys:', Object.keys(data || {}));
 
     // Handle different API response structures
     let heroes: any[] = [];
 
     if (data.player?.heroes) {
       heroes = data.player.heroes;
+      console.debug('[Emissaries] Found heroes in data.player.heroes');
     } else if (data.heroes) {
       heroes = data.heroes;
+      console.debug('[Emissaries] Found heroes in data.heroes');
     } else if (data.emissaries) {
       heroes = data.emissaries;
+      console.debug('[Emissaries] Found heroes in data.emissaries');
     } else if (Array.isArray(data)) {
       heroes = data;
+      console.debug('[Emissaries] Response is array');
+    } else {
+      console.warn('[Emissaries] No heroes found in response. Response:', JSON.stringify(data).slice(0, 500));
     }
 
-    console.debug(`Found ${heroes.length} emissaries for wallet ${wallet.slice(0, 8)}...`);
+    console.debug(`[Emissaries] Found ${heroes.length} emissaries for wallet ${normalizedWallet.slice(0, 8)}...`);
+
+    if (heroes.length === 0) {
+      return [];
+    }
 
     return heroes.map((hero: any) => ({
       token_id: hero.token_id || hero.tokenId || hero.id?.toString() || '0',
       name: hero.name || `Emissary #${hero.token_id || hero.tokenId || '?'}`,
       guild: hero.guild || hero.faction || 'Unknown',
       race_class: hero.race_class || hero.raceClass || hero.class || 'Unknown',
-      owner: wallet,
+      owner: normalizedWallet,
       image_url: hero.image_url || hero.imageUrl || hero.image || '',
       stats: {
         level: hero.dynamic_state?.xp_level || hero.level || hero.stats?.level || 1,
@@ -393,7 +425,7 @@ export async function getWalletEmissaries(wallet: string): Promise<Emissary[]> {
       },
     }));
   } catch (error) {
-    console.error('Error fetching emissaries:', error);
+    console.error('[Emissaries] Error fetching:', error);
     return [];
   }
 }
