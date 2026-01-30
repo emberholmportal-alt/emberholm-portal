@@ -22,6 +22,22 @@ interface Globe3DProps {
   onCountryHover?: (countryCode: string | null, userCount: number) => void;
 }
 
+// Simplified continent outlines (key points)
+const CONTINENT_OUTLINES: [number, number][][] = [
+  // North America
+  [[70, -170], [60, -140], [55, -130], [48, -125], [35, -120], [25, -110], [20, -105], [18, -95], [25, -80], [30, -82], [35, -75], [40, -74], [45, -70], [47, -65], [50, -55], [52, -58], [55, -60], [60, -65], [65, -70], [70, -80], [72, -100], [70, -140], [70, -170]],
+  // South America
+  [[12, -75], [10, -72], [5, -77], [-5, -80], [-15, -75], [-25, -70], [-35, -70], [-45, -75], [-55, -68], [-55, -65], [-50, -55], [-35, -55], [-25, -50], [-15, -40], [-5, -35], [0, -50], [5, -60], [10, -70], [12, -75]],
+  // Europe
+  [[36, -10], [38, -5], [43, -8], [48, -5], [50, 2], [52, 5], [55, 10], [58, 10], [60, 5], [60, 20], [55, 25], [50, 20], [45, 15], [40, 15], [38, 0], [36, -10]],
+  // Africa
+  [[35, -5], [30, -10], [25, -15], [15, -17], [5, -5], [0, 10], [-10, 15], [-20, 25], [-35, 20], [-35, 30], [-25, 35], [-15, 40], [-5, 42], [5, 45], [15, 50], [25, 35], [30, 32], [35, 10], [35, -5]],
+  // Asia
+  [[45, 30], [50, 40], [55, 60], [60, 80], [65, 100], [70, 120], [65, 140], [55, 140], [45, 135], [35, 130], [25, 120], [20, 110], [10, 105], [0, 100], [10, 80], [25, 70], [35, 55], [40, 45], [45, 30]],
+  // Australia
+  [[-15, 125], [-20, 115], [-30, 115], [-35, 120], [-38, 145], [-30, 150], [-25, 153], [-15, 145], [-12, 135], [-15, 125]],
+];
+
 // Globe wireframe component
 function GlobeWireframe() {
   const RADIUS = 2;
@@ -31,8 +47,8 @@ function GlobeWireframe() {
   const latLines = useMemo(() => {
     const lines: THREE.Vector3[][] = [];
 
-    // Latitude lines (every 15 degrees for more definition)
-    for (let lat = -75; lat <= 75; lat += 15) {
+    // Latitude lines (every 20 degrees for cleaner look)
+    for (let lat = -60; lat <= 60; lat += 20) {
       const points: THREE.Vector3[] = [];
       for (let lng = 0; lng <= 360; lng += 5) {
         points.push(latLngToVector3(lat, lng - 180, RADIUS));
@@ -40,8 +56,8 @@ function GlobeWireframe() {
       lines.push(points);
     }
 
-    // Longitude lines (every 20 degrees)
-    for (let lng = 0; lng < 360; lng += 20) {
+    // Longitude lines (every 30 degrees)
+    for (let lng = 0; lng < 360; lng += 30) {
       const points: THREE.Vector3[] = [];
       for (let lat = -90; lat <= 90; lat += 5) {
         points.push(latLngToVector3(lat, lng - 180, RADIUS));
@@ -50,6 +66,13 @@ function GlobeWireframe() {
     }
 
     return lines;
+  }, []);
+
+  // Convert continent outlines to 3D points
+  const continentLines = useMemo(() => {
+    return CONTINENT_OUTLINES.map(outline =>
+      outline.map(([lat, lng]) => latLngToVector3(lat, lng, RADIUS * 1.001))
+    );
   }, []);
 
   // Tropic lines for geographic reference
@@ -97,7 +120,19 @@ function GlobeWireframe() {
           color="#1a0f05"
           lineWidth={0.5}
           transparent
-          opacity={0.4}
+          opacity={0.3}
+        />
+      ))}
+
+      {/* Continent outlines - more visible amber */}
+      {continentLines.map((points, i) => (
+        <Line
+          key={`continent-${i}`}
+          points={points}
+          color="#ff9500"
+          lineWidth={1.2}
+          transparent
+          opacity={0.6}
         />
       ))}
 
@@ -322,11 +357,11 @@ export function Globe3D({
   }, [onCountryHover]);
 
   return (
-    <div className="relative w-full h-full">
+    <div className="relative w-full h-full" style={{ minHeight: '280px' }}>
       <Canvas
-        camera={{ position: [0, 0, 5], fov: 45 }}
+        camera={{ position: [0, 0, 3.2], fov: 50 }}
         gl={{ antialias: true, alpha: true }}
-        style={{ background: 'transparent' }}
+        style={{ background: 'transparent', width: '100%', height: '100%' }}
       >
         <GlobeScene
           countries={countries}
