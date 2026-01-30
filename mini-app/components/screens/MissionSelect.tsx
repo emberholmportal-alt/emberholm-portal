@@ -167,8 +167,8 @@ export function MissionSelect({
                       ⚡ {mission.energy_cost}
                     </span>
                   )}
-                  <span className="text-pyre">
-                    ◈ {mission.pyre_reward.min}-{mission.pyre_reward.max}
+                  <span className="text-amber-bright">
+                    ◈ {mission.ember_reward?.min || mission.pyre_reward?.min || 0}-{mission.ember_reward?.max || mission.pyre_reward?.max || 0}
                   </span>
                   {mission.xp_reward.max > 0 && (
                     <span className="text-blue-400">

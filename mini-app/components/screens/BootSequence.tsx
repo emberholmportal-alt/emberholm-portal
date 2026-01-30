@@ -26,7 +26,7 @@ export function BootSequence({ onComplete }: BootSequenceProps) {
     "CONNECTING TO ETERNAL FLAME...",
     "SYNCING REALM STATUS...",
     "LOADING EMISSARY DATABASE...",
-    "CALIBRATING $PYRE RESONANCE...",
+    "CALIBRATING $EMBER RESONANCE...",
     "ESTABLISHING GUILD LINKS...",
     "",
     "CONNECTION ESTABLISHED",

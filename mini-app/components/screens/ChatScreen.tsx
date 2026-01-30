@@ -15,14 +15,9 @@ interface ChatScreenProps {
   onBack: () => void;
 }
 
-// Daily message rewards
-const PYRE_PER_MESSAGE = 5;
-const MAX_DAILY_MESSAGES = 50;
-
 export function ChatScreen({ wallet, otherWallet, onBack }: ChatScreenProps) {
   const [otherUser, setOtherUser] = useState<UserProfile | null>(null);
   const [inputValue, setInputValue] = useState('');
-  const [dailyMessageCount, setDailyMessageCount] = useState(0);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const {
@@ -58,11 +53,6 @@ export function ChatScreen({ wallet, otherWallet, onBack }: ChatScreenProps) {
     const success = await send(inputValue);
     if (success) {
       setInputValue('');
-
-      // Update daily message count for reward tracking
-      if (dailyMessageCount < MAX_DAILY_MESSAGES) {
-        setDailyMessageCount(prev => prev + 1);
-      }
     }
   };
 
@@ -78,9 +68,6 @@ export function ChatScreen({ wallet, otherWallet, onBack }: ChatScreenProps) {
   const otherDisplayName = otherUser?.farcaster_username ||
     otherUser?.display_name ||
     `${otherWallet.slice(0, 6)}...${otherWallet.slice(-4)}`;
-
-  // Can earn rewards
-  const canEarnReward = dailyMessageCount < MAX_DAILY_MESSAGES;
 
   return (
     <div className="screen-view flex flex-col h-screen">
@@ -124,14 +111,6 @@ export function ChatScreen({ wallet, otherWallet, onBack }: ChatScreenProps) {
               )}
             </div>
           </div>
-
-          {/* Reward indicator */}
-          {canEarnReward && (
-            <div className="text-xs text-amber-dim">
-              <span className="text-amber">+{PYRE_PER_MESSAGE} $PYRE</span>
-              <span className="text-amber-dark"> per msg</span>
-            </div>
-          )}
         </div>
       </motion.div>
 
@@ -153,7 +132,7 @@ export function ChatScreen({ wallet, otherWallet, onBack }: ChatScreenProps) {
           <div className="text-center py-8">
             <div className="text-amber-dim mb-2">No messages yet</div>
             <div className="text-xs text-amber-dark">
-              Start a conversation and earn $PYRE!
+              Start a conversation!
             </div>
           </div>
         )}
@@ -209,16 +188,6 @@ export function ChatScreen({ wallet, otherWallet, onBack }: ChatScreenProps) {
         animate={{ opacity: 1, y: 0 }}
         className="p-4 border-t border-amber-dark/30"
       >
-        {/* Daily reward progress */}
-        {canEarnReward && (
-          <div className="text-xs text-amber-dim mb-2 flex justify-between">
-            <span>Daily messages: {dailyMessageCount}/{MAX_DAILY_MESSAGES}</span>
-            <span className="text-amber">
-              Earn {(MAX_DAILY_MESSAGES - dailyMessageCount) * PYRE_PER_MESSAGE} more $PYRE today
-            </span>
-          </div>
-        )}
-
         <div className="flex gap-2">
           <input
             type="text"
