@@ -149,13 +149,13 @@ export function SocialGlobe({ onSelectCountry, onGlobalChat, onBack }: SocialGlo
           <div className="grid grid-cols-2 gap-2 text-center mb-3">
             <div>
               <div className="text-xl text-amber-bright font-bold">
-                {totalEmissaries !== null ? totalEmissaries.toLocaleString() : '...'}
+                {totalEmissaries !== null ? totalEmissaries.toLocaleString() : '--'}
               </div>
               <div className="text-xs text-amber-dim">Emissaries</div>
             </div>
             <div>
               <div className="text-xl text-cyan font-bold">
-                {stats?.countries_represented || 0}
+                {stats ? stats.countries_represented : '--'}
               </div>
               <div className="text-xs text-amber-dim">Nations</div>
             </div>
@@ -163,13 +163,13 @@ export function SocialGlobe({ onSelectCountry, onGlobalChat, onBack }: SocialGlo
           <div className="grid grid-cols-2 gap-2 text-center">
             <div>
               <div className="text-lg text-amber font-bold">
-                {stats?.total_users || 0}
+                {stats ? stats.total_users : '--'}
               </div>
               <div className="text-xs text-amber-dim">Operators</div>
             </div>
             <div>
               <div className="text-lg text-green font-bold">
-                {stats?.online_now || 0}
+                {stats ? stats.online_now : '--'}
               </div>
               <div className="text-xs text-amber-dim">Online</div>
             </div>
