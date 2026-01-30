@@ -1055,3 +1055,122 @@ body {
   margin: 0 auto;
   display: block;
 }
+
+/* ═══════════════════════════════════════════════════════════
+   LIVING WALLPAPER ANIMATIONS
+   ═══════════════════════════════════════════════════════════ */
+
+@keyframes gradient-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+@keyframes dot-pulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 0.2; }
+}
+
+@keyframes scroll-up {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(-100px); }
+}
+
+@keyframes scroll-left {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+@keyframes noise-shift {
+  0% { transform: translate(0, 0); }
+  25% { transform: translate(2px, 2px); }
+  50% { transform: translate(-2px, -2px); }
+  75% { transform: translate(2px, -2px); }
+  100% { transform: translate(-2px, 2px); }
+}
+
+@keyframes fall-down {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(100vh); }
+}
+
+@keyframes glitch-flash {
+  0% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+@keyframes crt-flicker {
+  0%, 100% { opacity: 0.02; }
+  50% { opacity: 0; }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   SETTINGS SCREEN STYLES
+   ═══════════════════════════════════════════════════════════ */
+
+/* Toggle Switch */
+.toggle-switch {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  width: 44px;
+  height: 24px;
+  background: var(--bg-dark);
+  border: 2px solid var(--amber-dark);
+  border-radius: 12px;
+  position: relative;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.toggle-switch.active {
+  background: var(--amber);
+  border-color: var(--amber);
+}
+
+/* Range Slider */
+.settings-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100px;
+  height: 6px;
+  background: var(--bg-dark);
+  border: 1px solid var(--amber-dark);
+  border-radius: 3px;
+  outline: none;
+}
+
+.settings-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  background: var(--amber);
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: 0 0 10px var(--amber);
+  transition: all 0.2s ease;
+}
+
+.settings-slider::-webkit-slider-thumb:hover {
+  background: var(--amber-bright);
+  box-shadow: 0 0 15px var(--amber);
+}
+
+.settings-slider::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  background: var(--amber);
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: 0 0 10px var(--amber);
+}
+
+.settings-slider:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.settings-slider:disabled::-webkit-slider-thumb {
+  cursor: not-allowed;
+}

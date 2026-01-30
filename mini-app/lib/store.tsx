@@ -40,7 +40,8 @@ export type AppScreen =
   | 'lore'              // Lore chapters
   | 'tutorial'          // Tutorial screen
   | 'leaderboard'       // Leaderboard
-  | 'mint';             // Mint new emissary
+  | 'mint'              // Mint new emissary
+  | 'settings';         // Settings screen
 
 export interface AppState {
   // Navigation

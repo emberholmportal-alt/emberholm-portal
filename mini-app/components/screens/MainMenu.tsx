@@ -109,12 +109,22 @@ export function MainMenu({
 
   return (
     <div className="screen-view flex flex-col min-h-screen p-4">
-      {/* Header with Logo */}
+      {/* Header with Logo and Settings */}
       <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="text-center mb-2"
+        className="text-center mb-2 relative"
       >
+        {/* Settings Button - Top Right */}
+        <button
+          onClick={() => onNavigate('settings')}
+          className="absolute top-0 right-0 w-10 h-10 flex items-center justify-center
+                   text-amber-dim hover:text-amber transition-colors"
+          title="Settings"
+        >
+          <span className="text-xl">⚙️</span>
+        </button>
+
         <Image
           src="/logo.png"
           alt="Emberholm"

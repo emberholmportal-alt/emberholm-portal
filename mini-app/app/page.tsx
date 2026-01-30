@@ -25,15 +25,17 @@ import { MintScreen } from '@/components/screens/MintScreen';
 import { EventsScreen } from '@/components/screens/EventsScreen';
 import { LoreScreen } from '@/components/screens/LoreScreen';
 import { TutorialScreen } from '@/components/screens/TutorialScreen';
-import { PyreGuide } from '@/components/screens/PyreGuide';
+import { SettingsScreen } from '@/components/screens/SettingsScreen';
 import { useApp, actions, AppScreen, AppProvider } from '@/lib/store';
 import { SoundProvider } from '@/lib/SoundContext';
 import { WalletProvider, useWallet } from '@/lib/WalletContext';
+import { WallpaperProvider } from '@/lib/WallpaperContext';
+import { LivingWallpaper } from '@/components/LivingWallpaper';
 import {
   Emissary,
   MicroMission,
   getWalletEmissaries,
-  getPyreBalance,
+  getEmberBalance,
   getActiveMicroMission,
   updateProfile,
 } from '@/lib/api';
@@ -77,12 +79,11 @@ function AppContent() {
         const emissaries = await getWalletEmissaries(state.wallet!);
         dispatch(actions.setEmissaries(emissaries));
 
-        // Load PYRE balance
-        const pyreData = await getPyreBalance(state.wallet!);
-        dispatch(actions.setPyreBalance(
-          pyreData.balance,
-          pyreData.total_earned,
-          pyreData.daily_available
+        // Load EMBER balance
+        const emberData = await getEmberBalance(state.wallet!);
+        dispatch(actions.setEmberBalance(
+          emberData.balance,
+          emberData.total_earned
         ));
 
         // Check for active micro-mission
@@ -172,9 +173,9 @@ function AppContent() {
     dispatch(actions.setScreen('timer'));
   };
 
-  const handleMissionComplete = async (rewards: { pyre: number; xp: number; aura: number }) => {
-    // Update PYRE balance
-    dispatch(actions.setPyreBalance(state.pyreBalance + rewards.pyre));
+  const handleMissionComplete = async (rewards: { ember: number; xp: number; aura: number }) => {
+    // Update EMBER balance
+    dispatch(actions.setEmberBalance(state.emberBalance + rewards.ember));
 
     // Refresh emissary data
     if (state.wallet) {
@@ -204,6 +205,9 @@ function AppContent() {
 
   return (
     <main className="crt-screen relative">
+      {/* Living Terminal Wallpaper - Background */}
+      <LivingWallpaper />
+
       {/* CRT Effects */}
       <CRTOverlay />
 
@@ -211,7 +215,7 @@ function AppContent() {
       {showTopBar && <ImmersionBar />}
 
       {/* Screen Content */}
-      <div className="screen-content">
+      <div className="screen-content relative z-10">
         {/* Intro Flow */}
         {state.currentScreen === 'welcome' && (
           <WelcomeScreen onEnter={handleWelcomeEnter} />
@@ -238,10 +242,13 @@ function AppContent() {
         {/* Main Menu */}
         {state.currentScreen === 'menu' && (
           <MainMenu
-            pyreBalance={state.pyreBalance}
+            wallet={state.wallet}
+            emberBalance={state.emberBalance}
             emissaryCount={state.emissaries.length}
             unreadMessages={state.unreadCount}
             onNavigate={handleNavigate}
+            onConnect={handleConnect}
+            onDisconnect={wallet.disconnect}
           />
         )}
 
@@ -356,7 +363,7 @@ function AppContent() {
         )}
 
         {state.currentScreen === 'tutorial' && (
-          <TutorialScreen onBack={handleBack} />
+          <TutorialScreen wallet={state.wallet} onBack={handleBack} />
         )}
 
         {/* Social Section */}
@@ -392,8 +399,9 @@ function AppContent() {
           />
         )}
 
-        {state.currentScreen === 'pyre-guide' && (
-          <PyreGuide onBack={handleBack} />
+        {/* Settings */}
+        {state.currentScreen === 'settings' && (
+          <SettingsScreen onBack={handleBack} />
         )}
       </div>
     </main>
@@ -403,12 +411,14 @@ function AppContent() {
 // Wrap with Providers
 export default function Home() {
   return (
-    <WalletProvider>
-      <SoundProvider>
-        <AppProvider>
-          <AppContent />
-        </AppProvider>
-      </SoundProvider>
-    </WalletProvider>
+    <WallpaperProvider>
+      <WalletProvider>
+        <SoundProvider>
+          <AppProvider>
+            <AppContent />
+          </AppProvider>
+        </SoundProvider>
+      </WalletProvider>
+    </WallpaperProvider>
   );
 }
