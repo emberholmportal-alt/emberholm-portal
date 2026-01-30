@@ -31,6 +31,7 @@ import { SoundProvider } from '@/lib/SoundContext';
 import { WalletProvider, useWallet } from '@/lib/WalletContext';
 import { WallpaperProvider } from '@/lib/WallpaperContext';
 import { LivingWallpaper } from '@/components/LivingWallpaper';
+import { RewardToastProvider, useRewardToastOptional } from '@/components/RewardToast';
 import {
   Emissary,
   MicroMission,
@@ -48,6 +49,7 @@ import {
 function AppContent() {
   const { state, dispatch } = useApp();
   const wallet = useWallet();
+  const rewardToast = useRewardToastOptional();
 
   // Load all player data
   const loadPlayerData = useCallback(async (walletAddress: string) => {
@@ -194,6 +196,19 @@ function AppContent() {
   };
 
   const handleMissionComplete = async (rewards: { ember: number; xp: number; aura: number }) => {
+    // Show reward toasts
+    if (rewardToast) {
+      if (rewards.ember > 0) {
+        rewardToast.showEmberReward(rewards.ember);
+      }
+      if (rewards.xp > 0) {
+        setTimeout(() => rewardToast.showXPReward(rewards.xp), 300);
+      }
+      if (rewards.aura > 0) {
+        setTimeout(() => rewardToast.showAuraReward(rewards.aura), 600);
+      }
+    }
+
     // Update EMBER balance
     dispatch(actions.setEmberBalance(state.emberBalance + rewards.ember));
 
@@ -434,9 +449,11 @@ export default function Home() {
     <WallpaperProvider>
       <WalletProvider>
         <SoundProvider>
-          <AppProvider>
-            <AppContent />
-          </AppProvider>
+          <RewardToastProvider>
+            <AppProvider>
+              <AppContent />
+            </AppProvider>
+          </RewardToastProvider>
         </SoundProvider>
       </WalletProvider>
     </WallpaperProvider>
