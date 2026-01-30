@@ -21,6 +21,8 @@ interface SoundContextType {
   toggleMusic: () => void;
   musicVolume: number;
   setMusicVolume: (volume: number) => void;
+  playMusic: () => void;
+  isMusicPlaying: boolean;
 }
 
 const SoundContext = createContext<SoundContextType | null>(null);
@@ -54,8 +56,10 @@ export function SoundProvider({ children }: SoundProviderProps) {
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [musicEnabled, setMusicEnabled] = useState(true);
   const [musicVolume, setMusicVolume] = useState(0.5);
+  const [isMusicPlaying, setIsMusicPlaying] = useState(false);
   const musicRef = useRef<HTMLAudioElement | null>(null);
   const currentTrackRef = useRef(0);
+  const autoplayBlockedRef = useRef(false);
 
   // Music tracks
   const MUSIC_TRACKS = [
@@ -94,6 +98,10 @@ export function SoundProvider({ children }: SoundProviderProps) {
     audio.loop = false;
     musicRef.current = audio;
 
+    // Track play/pause state
+    audio.addEventListener('play', () => setIsMusicPlaying(true));
+    audio.addEventListener('pause', () => setIsMusicPlaying(false));
+
     // Play next track when current ends
     audio.addEventListener('ended', () => {
       currentTrackRef.current = (currentTrackRef.current + 1) % MUSIC_TRACKS.length;
@@ -117,9 +125,23 @@ export function SoundProvider({ children }: SoundProviderProps) {
       musicRef.current.src = MUSIC_TRACKS[currentTrackRef.current];
       musicRef.current.play().catch(() => {
         // Autoplay blocked - will play on next user interaction
+        autoplayBlockedRef.current = true;
       });
     } else {
       musicRef.current.pause();
+    }
+  }, [musicEnabled]);
+
+  // Explicit play music function (call after user interaction)
+  const playMusic = useCallback(() => {
+    if (!musicRef.current || !musicEnabled) return;
+
+    // If not already playing, start music
+    if (musicRef.current.paused) {
+      musicRef.current.src = MUSIC_TRACKS[currentTrackRef.current];
+      musicRef.current.play().catch(() => {
+        // Still blocked, nothing we can do
+      });
     }
   }, [musicEnabled]);
 
@@ -220,6 +242,8 @@ export function SoundProvider({ children }: SoundProviderProps) {
         toggleMusic,
         musicVolume,
         setMusicVolume: handleSetMusicVolume,
+        playMusic,
+        isMusicPlaying,
       }}
     >
       {children}

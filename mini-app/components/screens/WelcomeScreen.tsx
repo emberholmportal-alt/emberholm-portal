@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
+import { useSoundContextOptional } from '@/lib/SoundContext';
 
 /**
  * WelcomeScreen - Initial splash screen
@@ -28,6 +29,7 @@ interface WelcomeScreenProps {
 export function WelcomeScreen({ onEnter }: WelcomeScreenProps) {
   const [phrase, setPhrase] = useState(LORE_PHRASES[0]);
   const [fadeKey, setFadeKey] = useState(0);
+  const soundContext = useSoundContextOptional();
 
   // Check for skip intro in localStorage
   useEffect(() => {
@@ -52,6 +54,12 @@ export function WelcomeScreen({ onEnter }: WelcomeScreenProps) {
   const handleEnter = () => {
     // Set skip intro for future visits
     localStorage.setItem('emberholm_skip_intro', 'true');
+
+    // Start music after user interaction (bypasses browser autoplay restrictions)
+    if (soundContext?.playMusic) {
+      soundContext.playMusic();
+    }
+
     onEnter();
   };
 

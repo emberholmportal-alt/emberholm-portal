@@ -497,3 +497,44 @@ export async function getAllOperators(limit = 100, offset = 0): Promise<CountryU
     return [];
   }
 }
+
+// =========================================
+// Events
+// =========================================
+
+export interface GameEvent {
+  id: string;
+  name: string;
+  difficulty: 'EASY' | 'MEDIUM' | 'HARD' | 'HEROIC' | 'LEGENDARY';
+  duration_hours: number;
+  energy_cost: number;
+  reward_xp: number;
+  reward_aura: number;
+  success_rate: number;
+  xp_loss_on_fail: number;
+  death_chance: number;
+  available_from: string;
+  available_until: string;
+  event_active: boolean;
+  favored_guild: string | null;
+  favored_class: string | null;
+  favored_race: string | null;
+  description: string;
+  lore: string;
+  time_remaining_hours?: number;
+}
+
+export interface EventSettings {
+  max_concurrent_events: number;
+  cooldown_hours: number;
+  bonus_multiplier: number;
+}
+
+export async function getEvents(): Promise<{ events: GameEvent[]; event_settings: EventSettings }> {
+  try {
+    const data = await fetchAPI<{ events: GameEvent[]; event_settings: EventSettings }>('/api/events');
+    return data;
+  } catch {
+    return { events: [], event_settings: { max_concurrent_events: 2, cooldown_hours: 72, bonus_multiplier: 2.5 } };
+  }
+}

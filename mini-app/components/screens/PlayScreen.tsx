@@ -46,7 +46,7 @@ export function PlayScreen({
       title: 'MICRO-MISSIONS',
       subtitle: 'Quick adventures',
       iconSrc: '/icons/Lightning.png',
-      description: 'Short 1-5 min quests for $PYRE rewards',
+      description: 'Short 1-5 min quests for $EMBER rewards',
     },
     {
       id: 'emissary-list',

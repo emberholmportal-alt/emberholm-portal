@@ -14,7 +14,7 @@ import {
 /**
  * MissionPlayer - Interactive micro-mission experience
  * Shows narrative with typewriter, choices, timer, and results
- * Uses $PYRE rewards
+ * Uses $EMBER rewards
  */
 
 type MissionPhase = 'starting' | 'narrative' | 'choosing' | 'waiting' | 'completing' | 'complete';
@@ -23,7 +23,7 @@ interface MissionPlayerProps {
   mission: MicroMission;
   emissary: Emissary;
   wallet: string;
-  onComplete: (rewards: { pyre: number; xp: number; aura: number }) => void;
+  onComplete: (rewards: { ember: number; xp: number; aura: number }) => void;
   onCancel: () => void;
 }
 
@@ -41,7 +41,7 @@ export function MissionPlayer({
   const [choices, setChoices] = useState<{ id: string; text: string; icon?: string }[]>([]);
   const [selectedChoice, setSelectedChoice] = useState<string | null>(null);
   const [outcomeText, setOutcomeText] = useState('');
-  const [rewards, setRewards] = useState<{ pyre: number; xp: number; aura: number } | null>(null);
+  const [rewards, setRewards] = useState<{ ember: number; xp: number; aura: number } | null>(null);
   const [timeRemaining, setTimeRemaining] = useState(mission.duration_seconds);
   const [error, setError] = useState<string | null>(null);
   const typewriterRef = useRef<NodeJS.Timeout | null>(null);
@@ -360,8 +360,8 @@ export function MissionPlayer({
                 <div className="section-title">REWARDS EARNED</div>
                 <div className="flex justify-center gap-8 mt-4">
                   <div className="text-center">
-                    <p className="text-2xl text-cyan font-bold">+{rewards.pyre}</p>
-                    <p className="text-xs text-amber-dim">◈ PYRE</p>
+                    <p className="text-2xl text-amber-bright font-bold">+{rewards.ember}</p>
+                    <p className="text-xs text-amber-dim">◈ EMBER</p>
                   </div>
                   {rewards.xp > 0 && (
                     <div className="text-center">

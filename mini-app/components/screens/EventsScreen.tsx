@@ -3,9 +3,11 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
+import { getEvents, GameEvent, EventSettings } from '@/lib/api';
 
 /**
- * EventsScreen - Active and past events
+ * EventsScreen - Active events from the backend
+ * Loads real events from /api/events endpoint
  */
 
 interface EventsScreenProps {
@@ -13,81 +15,29 @@ interface EventsScreenProps {
   onBack: () => void;
 }
 
-interface EventReward {
-  place: string;
-  reward: string;
-}
-
-interface ActiveEvent {
-  id: string;
-  name: string;
-  description: string;
-  endsAt: string;
-  rewards: EventReward[];
-  userProgress: number;
-  userRank: number;
-  totalParticipants: number;
-  leaderboard: { wallet: string; name: string; score: number }[];
-}
-
-interface PastEvent {
-  id: string;
-  name: string;
-  endedAt: string;
-  winner: { wallet: string; name: string };
-  userRank: number | null;
-}
+// Difficulty color mapping
+const DIFFICULTY_COLORS: Record<string, string> = {
+  EASY: 'text-green-400',
+  MEDIUM: 'text-amber',
+  HARD: 'text-orange-400',
+  HEROIC: 'text-purple-400',
+  LEGENDARY: 'text-amber-bright',
+};
 
 export function EventsScreen({ wallet, onBack }: EventsScreenProps) {
-  const [activeEvent, setActiveEvent] = useState<ActiveEvent | null>(null);
-  const [pastEvents, setPastEvents] = useState<PastEvent[]>([]);
+  const [events, setEvents] = useState<GameEvent[]>([]);
+  const [eventSettings, setEventSettings] = useState<EventSettings | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [expandedPastEvent, setExpandedPastEvent] = useState<string | null>(null);
+  const [expandedEvent, setExpandedEvent] = useState<string | null>(null);
 
-  // Load events
+  // Load events from API
   useEffect(() => {
     async function loadEvents() {
       setIsLoading(true);
       try {
-        // Mock data - replace with API calls
-        setActiveEvent({
-          id: 'event-1',
-          name: 'THE GREAT EMBER HUNT',
-          description: 'Collect the most $EMBER this week to win exclusive rewards!',
-          endsAt: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(),
-          rewards: [
-            { place: '1st', reward: '500 $EMBER + Legendary Rune' },
-            { place: '2nd', reward: '250 $EMBER + Epic Rune' },
-            { place: '3rd', reward: '100 $EMBER + Rare Rune' },
-          ],
-          userProgress: 67,
-          userRank: 42,
-          totalParticipants: 1234,
-          leaderboard: [
-            { wallet: '0x123...', name: 'DragonSlayer', score: 2450 },
-            { wallet: '0x456...', name: 'EmberLord', score: 2180 },
-            { wallet: '0x789...', name: 'FlameWarden', score: 1950 },
-            { wallet: '0xabc...', name: 'AshWalker', score: 1820 },
-            { wallet: '0xdef...', name: 'PyreKnight', score: 1750 },
-          ],
-        });
-
-        setPastEvents([
-          {
-            id: 'past-1',
-            name: 'SURVIVAL CHALLENGE',
-            endedAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-            winner: { wallet: '0x111...', name: 'IronWill' },
-            userRank: 15,
-          },
-          {
-            id: 'past-2',
-            name: 'GUILD WARS I',
-            endedAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
-            winner: { wallet: '0x222...', name: 'GuildMaster' },
-            userRank: null,
-          },
-        ]);
+        const data = await getEvents();
+        setEvents(data.events);
+        setEventSettings(data.event_settings);
       } catch (error) {
         console.error('Error loading events:', error);
       } finally {
@@ -96,20 +46,16 @@ export function EventsScreen({ wallet, onBack }: EventsScreenProps) {
     }
 
     loadEvents();
-  }, [wallet]);
+  }, []);
 
-  // Calculate countdown
-  const getCountdown = (endsAt: string): string => {
-    const diff = new Date(endsAt).getTime() - Date.now();
-    if (diff <= 0) return 'Ended';
-
-    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-
-    if (days > 0) return `${days}d ${hours}h remaining`;
-    if (hours > 0) return `${hours}h ${minutes}m remaining`;
-    return `${minutes}m remaining`;
+  // Format time remaining
+  const formatTimeRemaining = (hours: number): string => {
+    if (hours <= 0) return 'Ending soon';
+    if (hours < 1) return `${Math.round(hours * 60)}m remaining`;
+    if (hours < 24) return `${Math.round(hours)}h remaining`;
+    const days = Math.floor(hours / 24);
+    const remainingHours = Math.round(hours % 24);
+    return `${days}d ${remainingHours}h remaining`;
   };
 
   // Format date
@@ -117,7 +63,8 @@ export function EventsScreen({ wallet, onBack }: EventsScreenProps) {
     return new Date(dateStr).toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
-      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
     });
   };
 
@@ -130,197 +77,170 @@ export function EventsScreen({ wallet, onBack }: EventsScreenProps) {
         className="p-4 text-center"
       >
         <h1 className="title text-2xl">EVENTS</h1>
-        <p className="subtitle">Compete for glory and rewards</p>
+        <p className="subtitle">Active realm events</p>
       </motion.div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-6">
+      <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {isLoading ? (
           <div className="text-center py-8 text-amber-dim">Loading events...</div>
+        ) : events.length === 0 ? (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="portal-box text-center py-8"
+          >
+            <Image
+              src="/icons/scroll.png"
+              alt=""
+              width={48}
+              height={48}
+              className="pixel-icon mx-auto mb-4 opacity-50"
+            />
+            <div className="text-amber-dim mb-2">No Active Events</div>
+            <div className="text-xs text-amber-dark">
+              Check back soon for new realm events!
+            </div>
+          </motion.div>
         ) : (
           <>
-            {/* Active Event */}
-            {activeEvent ? (
+            {/* Event Settings Banner */}
+            {eventSettings && (
               <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="data-box text-center text-xs"
+              >
+                <span className="text-amber-dim">Bonus Multiplier: </span>
+                <span className="text-amber-bright">{eventSettings.bonus_multiplier}x</span>
+              </motion.div>
+            )}
+
+            {/* Events List */}
+            {events.map((event, index) => (
+              <motion.div
+                key={event.id}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.1 }}
               >
-                <h2 className="text-amber-bright font-semibold mb-3 flex items-center gap-2">
-                  <Image
-                    src="/icons/fire.png"
-                    alt=""
-                    width={20}
-                    height={20}
-                    className="pixel-icon animate-pulse"
-                  />
-                  ACTIVE EVENT
-                </h2>
-
                 <div className="portal-box">
                   <div className="ornament text-sm">═══ ◈ ═══</div>
 
-                  <h3 className="title text-lg my-3">{activeEvent.name}</h3>
-                  <p className="text-amber-dim text-sm mb-4">{activeEvent.description}</p>
+                  {/* Event Header */}
+                  <div className="my-3">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className={`text-xs font-semibold ${DIFFICULTY_COLORS[event.difficulty] || 'text-amber'}`}>
+                        {event.difficulty}
+                      </span>
+                      {event.time_remaining_hours !== undefined && (
+                        <span className="text-xs text-amber-dim">
+                          {formatTimeRemaining(event.time_remaining_hours)}
+                        </span>
+                      )}
+                    </div>
+                    <h3 className="title text-lg">{event.name}</h3>
+                  </div>
 
-                  {/* Countdown */}
-                  <div className="data-box mb-4">
-                    <div className="text-center">
-                      <div className="text-xs text-amber-dark uppercase mb-1">Ends in</div>
-                      <div className="text-amber-bright font-semibold">
-                        {getCountdown(activeEvent.endsAt)}
+                  {/* Description */}
+                  <p className="text-amber-dim text-sm mb-4">{event.description}</p>
+
+                  {/* Stats Grid */}
+                  <div className="grid grid-cols-2 gap-2 mb-4">
+                    <div className="data-box text-center">
+                      <div className="text-xs text-amber-dark">Duration</div>
+                      <div className="text-amber-bright font-semibold">{event.duration_hours}h</div>
+                    </div>
+                    <div className="data-box text-center">
+                      <div className="text-xs text-amber-dark">Energy</div>
+                      <div className="text-amber-bright font-semibold">{event.energy_cost}</div>
+                    </div>
+                    <div className="data-box text-center">
+                      <div className="text-xs text-amber-dark">XP Reward</div>
+                      <div className="text-green-400 font-semibold">+{event.reward_xp}</div>
+                    </div>
+                    <div className="data-box text-center">
+                      <div className="text-xs text-amber-dark">Aura Reward</div>
+                      <div className="text-cyan-400 font-semibold">+{event.reward_aura}</div>
+                    </div>
+                  </div>
+
+                  {/* Success Rate & Death Chance */}
+                  <div className="flex justify-between text-sm mb-2">
+                    <span className="text-amber-dim">Success Rate:</span>
+                    <span className="text-green-400">{event.success_rate}%</span>
+                  </div>
+                  {event.death_chance > 0 && (
+                    <div className="flex justify-between text-sm mb-2">
+                      <span className="text-amber-dim">Death Chance:</span>
+                      <span className="text-red-400">{event.death_chance}%</span>
+                    </div>
+                  )}
+
+                  {/* Favored Bonuses */}
+                  {(event.favored_guild || event.favored_class || event.favored_race) && (
+                    <div className="data-box mt-3">
+                      <div className="text-xs text-amber-dark uppercase mb-1">Favored Bonuses</div>
+                      <div className="space-y-1 text-sm">
+                        {event.favored_guild && (
+                          <div className="flex justify-between">
+                            <span className="text-amber-dim">Guild:</span>
+                            <span className="text-amber">{event.favored_guild}</span>
+                          </div>
+                        )}
+                        {event.favored_class && (
+                          <div className="flex justify-between">
+                            <span className="text-amber-dim">Class:</span>
+                            <span className="text-amber">{event.favored_class}</span>
+                          </div>
+                        )}
+                        {event.favored_race && (
+                          <div className="flex justify-between">
+                            <span className="text-amber-dim">Race:</span>
+                            <span className="text-amber">{event.favored_race}</span>
+                          </div>
+                        )}
                       </div>
                     </div>
-                  </div>
+                  )}
 
-                  {/* User Progress */}
-                  <div className="data-box mb-4">
-                    <div className="flex justify-between items-center mb-2">
-                      <span className="text-amber-dim text-sm">Your Progress</span>
-                      <span className="text-amber-bright font-semibold">
-                        {activeEvent.userProgress}%
-                      </span>
-                    </div>
-                    <div className="w-full h-2 bg-dark rounded-full overflow-hidden">
+                  {/* Expandable Lore Section */}
+                  <button
+                    onClick={() => setExpandedEvent(expandedEvent === event.id ? null : event.id)}
+                    className="w-full mt-4 text-amber-dim text-xs hover:text-amber transition-colors"
+                  >
+                    {expandedEvent === event.id ? '▲ Hide Lore' : '▼ Read Lore'}
+                  </button>
+
+                  <AnimatePresence>
+                    {expandedEvent === event.id && (
                       <motion.div
-                        initial={{ width: 0 }}
-                        animate={{ width: `${activeEvent.userProgress}%` }}
-                        className="h-full bg-gradient-to-r from-amber-dark to-amber"
-                      />
-                    </div>
-                    <div className="flex justify-between items-center mt-2 text-xs">
-                      <span className="text-amber-dim">
-                        Rank: #{activeEvent.userRank}
-                      </span>
-                      <span className="text-amber-dark">
-                        {activeEvent.totalParticipants} participants
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Rewards */}
-                  <div className="mb-4">
-                    <div className="text-xs text-amber-dark uppercase mb-2">Rewards</div>
-                    <div className="space-y-1">
-                      {activeEvent.rewards.map((reward, i) => (
-                        <div key={i} className="flex justify-between text-sm">
-                          <span className={i === 0 ? 'text-amber-bright' : 'text-amber-dim'}>
-                            {reward.place}
-                          </span>
-                          <span className="text-amber">{reward.reward}</span>
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        className="overflow-hidden"
+                      >
+                        <div className="pt-3 mt-3 border-t border-amber-dark/30">
+                          <p className="text-amber-dim text-sm italic leading-relaxed">
+                            "{event.lore}"
+                          </p>
                         </div>
-                      ))}
-                    </div>
-                  </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
 
-                  {/* Leaderboard */}
-                  <div>
-                    <div className="text-xs text-amber-dark uppercase mb-2">Leaderboard</div>
-                    <div className="space-y-1">
-                      {activeEvent.leaderboard.map((entry, i) => (
-                        <div
-                          key={entry.wallet}
-                          className="flex items-center justify-between text-sm py-1"
-                        >
-                          <div className="flex items-center gap-2">
-                            {i < 3 ? (
-                              <Image
-                                src={i === 0 ? '/icons/crown.png' : '/icons/trophy.png'}
-                                alt=""
-                                width={16}
-                                height={16}
-                                className={`pixel-icon ${i === 0 ? 'brightness-125' : i === 1 ? 'brightness-100' : 'brightness-75'}`}
-                              />
-                            ) : (
-                              <span className="text-amber-dim w-4 text-center">#{i + 1}</span>
-                            )}
-                            <span className="text-amber">{entry.name}</span>
-                          </div>
-                          <span className="text-amber-dim">{entry.score.toLocaleString()}</span>
-                        </div>
-                      ))}
+                  {/* Event Dates */}
+                  <div className="mt-4 pt-3 border-t border-amber-dark/30 text-xs text-amber-dark">
+                    <div className="flex justify-between">
+                      <span>Started: {formatDate(event.available_from)}</span>
+                      <span>Ends: {formatDate(event.available_until)}</span>
                     </div>
                   </div>
 
                   <div className="ornament text-sm mt-4">═══ ◈ ═══</div>
                 </div>
               </motion.div>
-            ) : (
-              <div className="data-box text-center py-6">
-                <div className="text-amber-dim">No active event</div>
-                <div className="text-xs text-amber-dark mt-1">
-                  Check back soon for new challenges!
-                </div>
-              </div>
-            )}
-
-            {/* Past Events */}
-            {pastEvents.length > 0 && (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 }}
-              >
-                <h2 className="text-amber-dim font-semibold mb-3">PAST EVENTS</h2>
-
-                <div className="space-y-2">
-                  {pastEvents.map(event => (
-                    <div key={event.id} className="data-box">
-                      <button
-                        onClick={() => setExpandedPastEvent(
-                          expandedPastEvent === event.id ? null : event.id
-                        )}
-                        className="w-full text-left"
-                      >
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <div className="text-amber font-semibold">{event.name}</div>
-                            <div className="text-xs text-amber-dark">
-                              Ended {formatDate(event.endedAt)}
-                            </div>
-                          </div>
-                          <span className="text-amber-dim">
-                            {expandedPastEvent === event.id ? '−' : '+'}
-                          </span>
-                        </div>
-                      </button>
-
-                      <AnimatePresence>
-                        {expandedPastEvent === event.id && (
-                          <motion.div
-                            initial={{ height: 0, opacity: 0 }}
-                            animate={{ height: 'auto', opacity: 1 }}
-                            exit={{ height: 0, opacity: 0 }}
-                            className="overflow-hidden"
-                          >
-                            <div className="pt-3 mt-3 border-t border-amber-dark/30">
-                              <div className="flex justify-between text-sm items-center">
-                                <span className="text-amber-dim">Winner:</span>
-                                <span className="text-amber-bright flex items-center gap-1">
-                                  <Image
-                                    src="/icons/trophy.png"
-                                    alt=""
-                                    width={14}
-                                    height={14}
-                                    className="pixel-icon"
-                                  />
-                                  {event.winner.name}
-                                </span>
-                              </div>
-                              {event.userRank && (
-                                <div className="flex justify-between text-sm mt-1">
-                                  <span className="text-amber-dim">Your Rank:</span>
-                                  <span className="text-amber">#{event.userRank}</span>
-                                </div>
-                              )}
-                            </div>
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
-                    </div>
-                  ))}
-                </div>
-              </motion.div>
-            )}
+            ))}
           </>
         )}
       </div>

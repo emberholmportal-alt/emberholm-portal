@@ -14,7 +14,7 @@ interface TimerScreenProps {
   emissary: Emissary;
   activeMission: ActiveMicroMission;
   wallet: string;
-  onComplete: (rewards: { pyre: number; xp: number; aura: number }) => void;
+  onComplete: (rewards: { ember: number; xp: number; aura: number }) => void;
   onBack: () => void;
 }
 

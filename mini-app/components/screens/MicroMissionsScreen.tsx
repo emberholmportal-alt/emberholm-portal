@@ -217,7 +217,7 @@ export function MicroMissionsScreen({
                     </div>
                     <div className="text-right">
                       <p className="text-amber-bright font-semibold">
-                        +{mission.pyre_reward.min}-{mission.pyre_reward.max}
+                        +{mission.ember_reward?.min || mission.pyre_reward?.min || 0}-{mission.ember_reward?.max || mission.pyre_reward?.max || 0}
                       </p>
                       <p className="text-xs text-amber">$EMBER</p>
                     </div>
