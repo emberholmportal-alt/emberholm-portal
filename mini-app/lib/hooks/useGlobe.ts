@@ -112,7 +112,86 @@ export function getCountryPosition(countryCode: string, radius: number): THREE.V
 
 // Get country name from code
 export function getCountryName(countryCode: string): string {
-  return COUNTRY_COORDS[countryCode.toUpperCase()]?.name || countryCode;
+  const code = countryCode.toUpperCase();
+  // Check ISO3 mapping first
+  const iso2 = ISO3_TO_ISO2[code];
+  if (iso2 && COUNTRY_COORDS[iso2]) {
+    return COUNTRY_COORDS[iso2].name;
+  }
+  return COUNTRY_COORDS[code]?.name || countryCode;
+}
+
+// Country flag emojis
+const COUNTRY_FLAGS: Record<string, string> = {
+  US: '🇺🇸', USA: '🇺🇸',
+  GB: '🇬🇧', GBR: '🇬🇧',
+  DE: '🇩🇪', DEU: '🇩🇪',
+  FR: '🇫🇷', FRA: '🇫🇷',
+  ES: '🇪🇸', ESP: '🇪🇸',
+  IT: '🇮🇹', ITA: '🇮🇹',
+  JP: '🇯🇵', JPN: '🇯🇵',
+  KR: '🇰🇷', KOR: '🇰🇷',
+  CN: '🇨🇳', CHN: '🇨🇳',
+  BR: '🇧🇷', BRA: '🇧🇷',
+  AR: '🇦🇷', ARG: '🇦🇷',
+  MX: '🇲🇽', MEX: '🇲🇽',
+  CA: '🇨🇦', CAN: '🇨🇦',
+  AU: '🇦🇺', AUS: '🇦🇺',
+  IN: '🇮🇳', IND: '🇮🇳',
+  RU: '🇷🇺', RUS: '🇷🇺',
+  NL: '🇳🇱', NLD: '🇳🇱',
+  PL: '🇵🇱', POL: '🇵🇱',
+  SE: '🇸🇪', SWE: '🇸🇪',
+  NO: '🇳🇴', NOR: '🇳🇴',
+  DK: '🇩🇰', DNK: '🇩🇰',
+  FI: '🇫🇮', FIN: '🇫🇮',
+  CH: '🇨🇭', CHE: '🇨🇭',
+  AT: '🇦🇹', AUT: '🇦🇹',
+  BE: '🇧🇪', BEL: '🇧🇪',
+  PT: '🇵🇹', PRT: '🇵🇹',
+  GR: '🇬🇷', GRC: '🇬🇷',
+  TR: '🇹🇷', TUR: '🇹🇷',
+  ZA: '🇿🇦', ZAF: '🇿🇦',
+  SG: '🇸🇬', SGP: '🇸🇬',
+  NZ: '🇳🇿', NZL: '🇳🇿',
+  IE: '🇮🇪', IRL: '🇮🇪',
+  IL: '🇮🇱', ISR: '🇮🇱',
+  AE: '🇦🇪', ARE: '🇦🇪',
+  SA: '🇸🇦', SAU: '🇸🇦',
+  TH: '🇹🇭', THA: '🇹🇭',
+  VN: '🇻🇳', VNM: '🇻🇳',
+  PH: '🇵🇭', PHL: '🇵🇭',
+  ID: '🇮🇩', IDN: '🇮🇩',
+  MY: '🇲🇾', MYS: '🇲🇾',
+  TW: '🇹🇼', TWN: '🇹🇼',
+  HK: '🇭🇰', HKG: '🇭🇰',
+  CO: '🇨🇴', COL: '🇨🇴',
+  CL: '🇨🇱', CHL: '🇨🇱',
+  PE: '🇵🇪', PER: '🇵🇪',
+  UA: '🇺🇦', UKR: '🇺🇦',
+  CZ: '🇨🇿', CZE: '🇨🇿',
+  EG: '🇪🇬', EGY: '🇪🇬',
+  NG: '🇳🇬', NGA: '🇳🇬',
+  KE: '🇰🇪', KEN: '🇰🇪',
+};
+
+// ISO3 to ISO2 mapping
+const ISO3_TO_ISO2: Record<string, string> = {
+  USA: 'US', GBR: 'GB', DEU: 'DE', FRA: 'FR', ESP: 'ES', ITA: 'IT',
+  JPN: 'JP', KOR: 'KR', CHN: 'CN', BRA: 'BR', ARG: 'AR', MEX: 'MX',
+  CAN: 'CA', AUS: 'AU', IND: 'IN', RUS: 'RU', NLD: 'NL', POL: 'PL',
+  SWE: 'SE', NOR: 'NO', DNK: 'DK', FIN: 'FI', CHE: 'CH', AUT: 'AT',
+  BEL: 'BE', PRT: 'PT', GRC: 'GR', TUR: 'TR', ZAF: 'ZA', SGP: 'SG',
+  NZL: 'NZ', IRL: 'IE', ISR: 'IL', ARE: 'AE', SAU: 'SA', THA: 'TH',
+  VNM: 'VN', PHL: 'PH', IDN: 'ID', MYS: 'MY', TWN: 'TW', HKG: 'HK',
+  COL: 'CO', CHL: 'CL', PER: 'PE', UKR: 'UA', CZE: 'CZ', EGY: 'EG',
+  NGA: 'NG', KEN: 'KE',
+};
+
+// Get country flag emoji from code
+export function getCountryFlag(countryCode: string): string {
+  const code = countryCode.toUpperCase();
+  return COUNTRY_FLAGS[code] || '🏳️';
 }
 
 // Hook for managing globe interactions

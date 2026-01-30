@@ -200,26 +200,6 @@ export function MainMenu({
         ))}
       </div>
 
-      {/* Stats footer - Only EMISSARIES and EMBER */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.4 }}
-        className="stats-footer"
-      >
-        <div className="stat-item">
-          <div className="stat-value">{emissaryCount}</div>
-          <div className="stat-label">EMISSARIES</div>
-        </div>
-        <div className="stat-item">
-          <div className="stat-value">{emberBalance.toLocaleString()}</div>
-          <div className="stat-label flex items-center justify-center gap-1">
-            <Image src="/icons/fire.png" alt="" width={12} height={12} className="pixel-icon-small" />
-            EMBER
-          </div>
-        </div>
-      </motion.div>
-
       {/* Wallet Connection Modal */}
       <AnimatePresence>
         {showWalletModal && (
