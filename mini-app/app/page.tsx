@@ -94,8 +94,16 @@ function AppContent() {
       dispatch(actions.setWallet(wallet.address));
       // Immediately load data when wallet changes
       loadPlayerData(wallet.address);
+
+      // Check if user has selected a country
+      // If not, redirect to country-select (for globe functionality)
+      const savedCountry = localStorage.getItem('emberholm_country');
+      if (!savedCountry && state.currentScreen === 'menu') {
+        console.log('[App] No country saved, redirecting to country-select');
+        dispatch(actions.setScreen('country-select'));
+      }
     }
-  }, [wallet.address, state.wallet, dispatch, loadPlayerData]);
+  }, [wallet.address, state.wallet, state.currentScreen, dispatch, loadPlayerData]);
 
   // Check for existing session on mount
   useEffect(() => {
@@ -151,13 +159,18 @@ function AppContent() {
   const handleCountrySelect = async (countryCode: string) => {
     dispatch(actions.selectCountry(countryCode));
 
-    // Update profile with country if wallet is connected
+    // Update profile with country and Farcaster data if available
     if (state.wallet) {
       try {
         await updateProfile({
           wallet: state.wallet,
           country_code: countryCode,
+          // Include Farcaster data from wallet context
+          farcaster_fid: wallet.farcasterUser?.fid || undefined,
+          farcaster_username: wallet.farcasterUser?.username || undefined,
+          farcaster_pfp_url: wallet.farcasterUser?.pfpUrl || undefined,
         });
+        console.log('[Profile] Updated with country:', countryCode);
       } catch (error) {
         console.error('Failed to update profile:', error);
       }

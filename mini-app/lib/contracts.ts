@@ -26,6 +26,15 @@ export const CONTRACT_CONFIG = {
   IPFS_METADATA_BASE: 'https://ipfs.io/ipfs/bafybeidd7wtx7izjgsociwe6ynjz6c3xslqmcedr7z4wojcxs4yd5u7pim/',
   IPFS_IMAGES_BASE: 'https://ipfs.io/ipfs/bafybeicnvc3zagcncablcovpxgt5mtuotowvuqom6kby754ve2gwbzdvkm/',
 
+  // ========== IPFS CIDs for Items & Runes (from portal web) ==========
+  IPFS: {
+    ITEMS_METADATA_CID: 'bafybeibs6mm5rghbpld7twbj35dbpryrfimmqkbnkev6ufs4kpbp343wfm',
+    ITEMS_IMAGES_CID: 'bafybeiegbqf3ypcn7uukahdf275yrmxu2g4zt4xmmrfwguufppbhzs4yx4',
+    RUNES_METADATA_CID: 'bafybeiajq22kxgm764srr55wsiz4t65so5laxe2nmrryzgailzpmfes3nq',
+    RUNES_IMAGES_CID: 'bafybeibmivzieas7beofrxspoqo5iughrzyvg3wgjibe626eqt37zg3sae',
+    GATEWAY: 'https://ipfs.io/ipfs/',
+  },
+
   // ========== MINT CONFIGURATION ==========
   MINT_PRICE_ETH: 0.0011,
   MAX_SUPPLY: 35000,

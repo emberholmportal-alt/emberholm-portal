@@ -1,13 +1,18 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import Image from 'next/image';
+import { createPublicClient, http, parseAbi } from 'viem';
+import { base } from 'viem/chains';
 import { Emissary } from '@/lib/api';
+import { CONTRACT_CONFIG } from '@/lib/contracts';
 
 /**
- * VaultScreen - Tokens + Inventory
+ * VaultScreen - Tokens + Inventory (Real blockchain data)
  * TABS: TOKENS | ITEMS | RUNES
+ *
+ * Fetches Items/Runes from blockchain using tokensOfOwner()
+ * Then loads metadata from IPFS
  */
 
 interface VaultScreenProps {
@@ -24,26 +29,27 @@ interface TokenBalances {
   ash: { balance: number };
 }
 
-// Item interface
+// Item interface (from IPFS metadata)
 interface VaultItem {
   id: string;
+  tokenId: string;
   name: string;
-  type: 'weapon' | 'armor' | 'accessory';
-  rarity: 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary';
-  icon: string;
-  benefits: string;
-  equippedTo: string | null; // Emissary token_id or null
+  type: string;
+  rarity: string;
+  image: string;
+  attributes: Record<string, string>;
+  equippedTo: string | null;
 }
 
-// Rune interface
+// Rune interface (from IPFS metadata)
 interface VaultRune {
   id: string;
+  tokenId: string;
   name: string;
-  symbol: string;
-  effect: string;
-  rarity: 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary';
+  image: string;
+  rarity: string;
+  attributes: Record<string, string>;
   equippedTo: string | null;
-  slot: 1 | 2 | 3;
 }
 
 // Rarity colors
@@ -53,7 +59,68 @@ const RARITY_COLORS: Record<string, string> = {
   rare: 'text-cyan',
   epic: 'text-purple-400',
   legendary: 'text-amber-bright',
+  mythic: 'text-red-400',
 };
+
+// Viem public client for blockchain queries
+const publicClient = createPublicClient({
+  chain: base,
+  transport: http(CONTRACT_CONFIG.RPC_URL),
+});
+
+// ABI for tokensOfOwner
+const NFT_ABI = parseAbi([
+  'function tokensOfOwner(address owner) view returns (uint256[])',
+  'function balanceOf(address owner) view returns (uint256)',
+]);
+
+// Fetch metadata from IPFS
+async function fetchIPFSMetadata(
+  type: 'item' | 'rune',
+  tokenId: string
+): Promise<any> {
+  const paddedId = tokenId.padStart(5, '0');
+  const cid = type === 'item'
+    ? CONTRACT_CONFIG.IPFS.ITEMS_METADATA_CID
+    : CONTRACT_CONFIG.IPFS.RUNES_METADATA_CID;
+
+  const url = `${CONTRACT_CONFIG.IPFS.GATEWAY}${cid}/${paddedId}.json`;
+
+  try {
+    const response = await fetch(url, { next: { revalidate: 3600 } });
+    if (!response.ok) {
+      console.warn(`[IPFS] Failed to fetch ${type} #${paddedId}: ${response.status}`);
+      return null;
+    }
+
+    const metadata = await response.json();
+
+    // Convert ipfs:// URLs to https://
+    if (metadata.image?.startsWith('ipfs://')) {
+      metadata.image = metadata.image.replace('ipfs://', CONTRACT_CONFIG.IPFS.GATEWAY);
+    }
+
+    // Fallback image if missing
+    if (!metadata.image) {
+      const imagesCid = type === 'item'
+        ? CONTRACT_CONFIG.IPFS.ITEMS_IMAGES_CID
+        : CONTRACT_CONFIG.IPFS.RUNES_IMAGES_CID;
+      metadata.image = `${CONTRACT_CONFIG.IPFS.GATEWAY}${imagesCid}/${paddedId}.png`;
+    }
+
+    return metadata;
+  } catch (error) {
+    console.error(`[IPFS] Error fetching ${type} #${paddedId}:`, error);
+    return null;
+  }
+}
+
+// Extract attribute value from NFT metadata
+function getAttribute(attributes: any[], traitType: string): string {
+  if (!Array.isArray(attributes)) return 'Unknown';
+  const attr = attributes.find((a: any) => a.trait_type === traitType);
+  return attr?.value || 'Unknown';
+}
 
 export function VaultScreen({ wallet, emissaries, onBack }: VaultScreenProps) {
   const [activeTab, setActiveTab] = useState<VaultTab>('tokens');
@@ -64,85 +131,165 @@ export function VaultScreen({ wallet, emissaries, onBack }: VaultScreenProps) {
   const [items, setItems] = useState<VaultItem[]>([]);
   const [runes, setRunes] = useState<VaultRune[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadingStatus, setLoadingStatus] = useState('');
   const [burnAmount, setBurnAmount] = useState('');
   const [showEquipModal, setShowEquipModal] = useState<string | null>(null);
   const [equipType, setEquipType] = useState<'item' | 'rune'>('item');
 
+  // Load Items from blockchain + IPFS
+  const loadItems = useCallback(async (walletAddress: string): Promise<VaultItem[]> => {
+    console.log('[Vault] Loading items from blockchain...');
+    setLoadingStatus('Querying Items contract...');
+
+    try {
+      const tokenIds = await publicClient.readContract({
+        address: CONTRACT_CONFIG.CONTRACTS.EmberItems as `0x${string}`,
+        abi: NFT_ABI,
+        functionName: 'tokensOfOwner',
+        args: [walletAddress as `0x${string}`],
+      });
+
+      const tokenIdStrings = (tokenIds as bigint[]).map(id => id.toString());
+      console.log(`[Vault] Found ${tokenIdStrings.length} items on blockchain`);
+
+      if (tokenIdStrings.length === 0) return [];
+
+      setLoadingStatus(`Loading ${tokenIdStrings.length} items from IPFS...`);
+
+      // Fetch metadata for each item (in parallel, max 5 concurrent)
+      const loadedItems: VaultItem[] = [];
+
+      for (let i = 0; i < tokenIdStrings.length; i += 5) {
+        const batch = tokenIdStrings.slice(i, i + 5);
+        const metadataPromises = batch.map(id => fetchIPFSMetadata('item', id));
+        const metadataResults = await Promise.all(metadataPromises);
+
+        metadataResults.forEach((metadata, idx) => {
+          const tokenId = batch[idx];
+          if (metadata) {
+            loadedItems.push({
+              id: `item-${tokenId}`,
+              tokenId,
+              name: metadata.name || `Item #${tokenId}`,
+              type: getAttribute(metadata.attributes, 'Type'),
+              rarity: getAttribute(metadata.attributes, 'Rarity').toLowerCase(),
+              image: metadata.image || '',
+              attributes: metadata.attributes?.reduce((acc: any, attr: any) => {
+                acc[attr.trait_type] = attr.value;
+                return acc;
+              }, {}) || {},
+              equippedTo: null, // TODO: Get from backend
+            });
+          }
+        });
+
+        setLoadingStatus(`Loaded ${loadedItems.length}/${tokenIdStrings.length} items...`);
+      }
+
+      return loadedItems;
+    } catch (error) {
+      console.error('[Vault] Error loading items:', error);
+      return [];
+    }
+  }, []);
+
+  // Load Runes from blockchain + IPFS
+  const loadRunes = useCallback(async (walletAddress: string): Promise<VaultRune[]> => {
+    console.log('[Vault] Loading runes from blockchain...');
+    setLoadingStatus('Querying Runes contract...');
+
+    try {
+      const tokenIds = await publicClient.readContract({
+        address: CONTRACT_CONFIG.CONTRACTS.EmberRunes as `0x${string}`,
+        abi: NFT_ABI,
+        functionName: 'tokensOfOwner',
+        args: [walletAddress as `0x${string}`],
+      });
+
+      const tokenIdStrings = (tokenIds as bigint[]).map(id => id.toString());
+      console.log(`[Vault] Found ${tokenIdStrings.length} runes on blockchain`);
+
+      if (tokenIdStrings.length === 0) return [];
+
+      setLoadingStatus(`Loading ${tokenIdStrings.length} runes from IPFS...`);
+
+      // Fetch metadata for each rune (in parallel, max 5 concurrent)
+      const loadedRunes: VaultRune[] = [];
+
+      for (let i = 0; i < tokenIdStrings.length; i += 5) {
+        const batch = tokenIdStrings.slice(i, i + 5);
+        const metadataPromises = batch.map(id => fetchIPFSMetadata('rune', id));
+        const metadataResults = await Promise.all(metadataPromises);
+
+        metadataResults.forEach((metadata, idx) => {
+          const tokenId = batch[idx];
+          if (metadata) {
+            loadedRunes.push({
+              id: `rune-${tokenId}`,
+              tokenId,
+              name: metadata.name || `Rune #${tokenId}`,
+              image: metadata.image || '',
+              rarity: getAttribute(metadata.attributes, 'Rarity').toLowerCase(),
+              attributes: metadata.attributes?.reduce((acc: any, attr: any) => {
+                acc[attr.trait_type] = attr.value;
+                return acc;
+              }, {}) || {},
+              equippedTo: null, // TODO: Get from backend
+            });
+          }
+        });
+
+        setLoadingStatus(`Loaded ${loadedRunes.length}/${tokenIdStrings.length} runes...`);
+      }
+
+      return loadedRunes;
+    } catch (error) {
+      console.error('[Vault] Error loading runes:', error);
+      return [];
+    }
+  }, []);
+
   // Load vault data
   useEffect(() => {
-    if (!wallet) return;
+    if (!wallet || wallet === '0x0000000000000000000000000000000000000000') {
+      setIsLoading(false);
+      return;
+    }
 
     async function loadVaultData() {
       setIsLoading(true);
+      setLoadingStatus('Connecting to blockchain...');
+
       try {
-        // Mock data - replace with actual API calls
+        // Load balances from API (mock for now, real API integration pending)
         setBalances({
-          ember: { balance: 125.5, pending: 12.3 },
-          ash: { balance: 45.2 },
+          ember: { balance: 0, pending: 0 },
+          ash: { balance: 0 },
         });
 
-        setItems([
-          {
-            id: 'item-1',
-            name: 'Flame Sword',
-            type: 'weapon',
-            rarity: 'rare',
-            icon: '/icons/Swords.png',
-            benefits: '+15 Power, +5% Crit',
-            equippedTo: null,
-          },
-          {
-            id: 'item-2',
-            name: 'Shadow Cloak',
-            type: 'armor',
-            rarity: 'epic',
-            icon: '/icons/Cloak.png',
-            benefits: '+20 Defense, +10% Dodge',
-            equippedTo: emissaries[0]?.token_id || null,
-          },
-          {
-            id: 'item-3',
-            name: 'Ember Ring',
-            type: 'accessory',
-            rarity: 'uncommon',
-            icon: '/icons/Sparkles.png',
-            benefits: '+5% $EMBER earned',
-            equippedTo: null,
-          },
+        // Load Items and Runes in parallel from blockchain
+        const [loadedItems, loadedRunes] = await Promise.all([
+          loadItems(wallet!),
+          loadRunes(wallet!),
         ]);
 
-        setRunes([
-          {
-            id: 'rune-1',
-            name: 'Rune of Vitality',
-            symbol: '/icons/Lightning.png',
-            effect: '+10 Max Energy',
-            rarity: 'uncommon',
-            equippedTo: null,
-            slot: 1,
-          },
-          {
-            id: 'rune-2',
-            name: 'Rune of Fortune',
-            symbol: '/icons/Sparkles.png',
-            effect: '+5% Loot Chance',
-            rarity: 'rare',
-            equippedTo: emissaries[0]?.token_id || null,
-            slot: 2,
-          },
-        ]);
+        setItems(loadedItems);
+        setRunes(loadedRunes);
+
+        console.log(`[Vault] Loaded ${loadedItems.length} items and ${loadedRunes.length} runes`);
       } catch (error) {
-        console.error('Error loading vault:', error);
+        console.error('[Vault] Error loading vault:', error);
       } finally {
         setIsLoading(false);
+        setLoadingStatus('');
       }
     }
 
     loadVaultData();
-  }, [wallet, emissaries]);
+  }, [wallet, loadItems, loadRunes]);
 
   // Handle claim
-  const handleClaim = async (token: 'ember') => {
+  const handleClaim = async () => {
     // API call to claim pending tokens
     // await claimTokens(wallet, token);
   };
@@ -169,10 +316,10 @@ export function VaultScreen({ wallet, emissaries, onBack }: VaultScreenProps) {
   // Calculate ASH from EMBER burn (1000:1 ratio)
   const ashPreview = burnAmount ? (parseFloat(burnAmount) / 1000).toFixed(4) : '0';
 
-  const tabs: { id: VaultTab; label: string }[] = [
+  const tabs: { id: VaultTab; label: string; count?: number }[] = [
     { id: 'tokens', label: 'TOKENS' },
-    { id: 'items', label: 'ITEMS' },
-    { id: 'runes', label: 'RUNES' },
+    { id: 'items', label: 'ITEMS', count: items.length },
+    { id: 'runes', label: 'RUNES', count: runes.length },
   ];
 
   return (
@@ -199,6 +346,9 @@ export function VaultScreen({ wallet, emissaries, onBack }: VaultScreenProps) {
                          : 'text-amber-dim hover:text-amber'}`}
           >
             {tab.label}
+            {tab.count !== undefined && tab.count > 0 && (
+              <span className="ml-1 text-xs text-amber-dim">({tab.count})</span>
+            )}
           </button>
         ))}
       </div>
@@ -206,7 +356,12 @@ export function VaultScreen({ wallet, emissaries, onBack }: VaultScreenProps) {
       {/* Content */}
       <div className="flex-1 overflow-y-auto p-4">
         {isLoading ? (
-          <div className="text-center py-8 text-amber-dim">Loading...</div>
+          <div className="text-center py-8">
+            <div className="text-amber-dim mb-2">Loading...</div>
+            {loadingStatus && (
+              <div className="text-xs text-amber-dark">{loadingStatus}</div>
+            )}
+          </div>
         ) : (
           <AnimatePresence mode="wait">
             {activeTab === 'tokens' && (
@@ -230,7 +385,7 @@ export function VaultScreen({ wallet, emissaries, onBack }: VaultScreenProps) {
                       <span className="text-xs text-amber-dim">
                         Pending: {balances.ember.pending.toFixed(2)}
                       </span>
-                      <button onClick={() => handleClaim('ember')} className="btn small">
+                      <button onClick={handleClaim} className="btn tiny">
                         CLAIM
                       </button>
                     </div>
@@ -262,7 +417,7 @@ export function VaultScreen({ wallet, emissaries, onBack }: VaultScreenProps) {
                       <button
                         onClick={handleBurn}
                         disabled={!burnAmount || parseFloat(burnAmount) <= 0}
-                        className="btn small disabled:opacity-50"
+                        className="btn tiny disabled:opacity-50"
                       >
                         BURN
                       </button>
@@ -291,28 +446,43 @@ export function VaultScreen({ wallet, emissaries, onBack }: VaultScreenProps) {
                     No items found. Complete missions to earn loot!
                   </div>
                 ) : (
-                  items.map(item => (
-                    <div key={item.id} className="data-box">
-                      <div className="flex items-start gap-3">
-                        <Image src={item.icon} alt={item.name} width={32} height={32} className="pixel-icon" />
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <span className={`font-semibold ${RARITY_COLORS[item.rarity]}`}>
-                              {item.name}
-                            </span>
-                            <span className="text-xs text-amber-dark uppercase">
-                              {item.type}
-                            </span>
-                          </div>
-                          <div className="text-xs text-amber-dim mt-1">
-                            {item.benefits}
-                          </div>
-                          {item.equippedTo && (
-                            <div className="text-xs text-cyan mt-1">
-                              Equipped to: {emissaries.find(e => e.token_id === item.equippedTo)?.name || item.equippedTo}
+                  <div className="grid grid-cols-2 gap-3">
+                    {items.map(item => (
+                      <div key={item.id} className="data-box flex flex-col">
+                        {/* Image */}
+                        <div className="relative w-full aspect-square mb-2 bg-dark/50 rounded overflow-hidden">
+                          {item.image ? (
+                            <img
+                              src={item.image}
+                              alt={item.name}
+                              className="w-full h-full object-contain"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).src = '/icons/Swords.png';
+                              }}
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-4xl">
+                              ⚔️
                             </div>
                           )}
                         </div>
+
+                        {/* Info */}
+                        <div className="flex-1 min-w-0">
+                          <div className={`font-semibold text-sm truncate ${RARITY_COLORS[item.rarity] || 'text-amber'}`}>
+                            {item.name}
+                          </div>
+                          <div className="text-xs text-amber-dark uppercase">
+                            {item.type}
+                          </div>
+                          {item.equippedTo && (
+                            <div className="text-xs text-cyan mt-1 truncate">
+                              → {emissaries.find(e => e.token_id === item.equippedTo)?.name || `#${item.equippedTo}`}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Equip Button */}
                         <button
                           onClick={() => {
                             if (item.equippedTo) {
@@ -322,13 +492,13 @@ export function VaultScreen({ wallet, emissaries, onBack }: VaultScreenProps) {
                               setShowEquipModal(item.id);
                             }
                           }}
-                          className="btn tiny"
+                          className="btn tiny w-full mt-2"
                         >
                           {item.equippedTo ? 'UNEQUIP' : 'EQUIP'}
                         </button>
                       </div>
-                    </div>
-                  ))
+                    ))}
+                  </div>
                 )}
               </motion.div>
             )}
@@ -346,28 +516,43 @@ export function VaultScreen({ wallet, emissaries, onBack }: VaultScreenProps) {
                     No runes found. Discover them in dangerous missions!
                   </div>
                 ) : (
-                  runes.map(rune => (
-                    <div key={rune.id} className="data-box">
-                      <div className="flex items-start gap-3">
-                        <Image src={rune.symbol} alt={rune.name} width={32} height={32} className="pixel-icon" />
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <span className={`font-semibold ${RARITY_COLORS[rune.rarity]}`}>
-                              {rune.name}
-                            </span>
-                            <span className="text-xs text-amber-dark">
-                              Slot {rune.slot}
-                            </span>
-                          </div>
-                          <div className="text-xs text-amber-dim mt-1">
-                            {rune.effect}
-                          </div>
-                          {rune.equippedTo && (
-                            <div className="text-xs text-cyan mt-1">
-                              Equipped to: {emissaries.find(e => e.token_id === rune.equippedTo)?.name || rune.equippedTo}
+                  <div className="grid grid-cols-2 gap-3">
+                    {runes.map(rune => (
+                      <div key={rune.id} className="data-box flex flex-col">
+                        {/* Image */}
+                        <div className="relative w-full aspect-square mb-2 bg-dark/50 rounded overflow-hidden">
+                          {rune.image ? (
+                            <img
+                              src={rune.image}
+                              alt={rune.name}
+                              className="w-full h-full object-contain"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).src = '/icons/Sparkles.png';
+                              }}
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-4xl">
+                              🔮
                             </div>
                           )}
                         </div>
+
+                        {/* Info */}
+                        <div className="flex-1 min-w-0">
+                          <div className={`font-semibold text-sm truncate ${RARITY_COLORS[rune.rarity] || 'text-amber'}`}>
+                            {rune.name}
+                          </div>
+                          <div className="text-xs text-amber-dark">
+                            {rune.attributes['Effect'] || 'Mysterious power'}
+                          </div>
+                          {rune.equippedTo && (
+                            <div className="text-xs text-cyan mt-1 truncate">
+                              → {emissaries.find(e => e.token_id === rune.equippedTo)?.name || `#${rune.equippedTo}`}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Equip Button */}
                         <button
                           onClick={() => {
                             if (rune.equippedTo) {
@@ -377,13 +562,13 @@ export function VaultScreen({ wallet, emissaries, onBack }: VaultScreenProps) {
                               setShowEquipModal(rune.id);
                             }
                           }}
-                          className="btn tiny"
+                          className="btn tiny w-full mt-2"
                         >
                           {rune.equippedTo ? 'UNEQUIP' : 'EQUIP'}
                         </button>
                       </div>
-                    </div>
-                  ))
+                    ))}
+                  </div>
                 )}
               </motion.div>
             )}
