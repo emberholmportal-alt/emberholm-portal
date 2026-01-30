@@ -1,11 +1,13 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
+import { CONTRACT_CONFIG } from '@/lib/contracts';
 
 /**
  * MintScreen - Mint new Emissary
+ * Reads totalSupply from EmberholmPortal contract on Base
  */
 
 interface MintScreenProps {
@@ -18,6 +20,7 @@ interface MintStats {
   totalMinted: number;
   maxSupply: number;
   priceEth: number;
+  isLoading: boolean;
 }
 
 interface MintedEmissary {
@@ -31,27 +34,94 @@ interface MintedEmissary {
 export function MintScreen({ wallet, onMintSuccess, onBack }: MintScreenProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [stats, setStats] = useState<MintStats>({
-    totalMinted: 12847,
-    maxSupply: 35000,
-    priceEth: 0.0011,
+    totalMinted: 0,
+    maxSupply: CONTRACT_CONFIG.MAX_SUPPLY,
+    priceEth: CONTRACT_CONFIG.MINT_PRICE_ETH,
+    isLoading: true,
   });
-  const [ethBalance, setEthBalance] = useState<number>(0.05);
+  const [ethBalance, setEthBalance] = useState<number>(0);
+  const [isLoadingBalance, setIsLoadingBalance] = useState(false);
   const [quantity, setQuantity] = useState(1);
   const [isMinting, setIsMinting] = useState(false);
-  const [mintedEmissary, setMintedEmissary] = useState<MintedEmissary | null>(null);
+  const [mintedEmissaries, setMintedEmissaries] = useState<MintedEmissary[]>([]);
   const [revealPhase, setRevealPhase] = useState<'idle' | 'minting' | 'video' | 'revealing' | 'complete'>('idle');
   const [error, setError] = useState<string | null>(null);
 
-  // Load mint stats
-  useEffect(() => {
-    // TODO: Fetch actual stats from contract
+  // Load mint stats from contract
+  const loadContractStats = useCallback(async () => {
+    try {
+      // Use JSON-RPC to call totalSupply on the contract
+      const response = await fetch(CONTRACT_CONFIG.RPC_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          jsonrpc: '2.0',
+          id: 1,
+          method: 'eth_call',
+          params: [{
+            to: CONTRACT_CONFIG.CONTRACTS.EmberholmPortal,
+            data: '0x18160ddd', // totalSupply() selector
+          }, 'latest'],
+        }),
+      });
+
+      const data = await response.json();
+      if (data.result) {
+        const totalMinted = parseInt(data.result, 16);
+        setStats(prev => ({
+          ...prev,
+          totalMinted,
+          isLoading: false,
+        }));
+      } else {
+        setStats(prev => ({ ...prev, isLoading: false }));
+      }
+    } catch (err) {
+      console.error('Failed to load contract stats:', err);
+      setStats(prev => ({ ...prev, isLoading: false }));
+    }
   }, []);
 
   // Load ETH balance
-  useEffect(() => {
-    if (!wallet) return;
-    // TODO: Fetch actual ETH balance
+  const loadEthBalance = useCallback(async () => {
+    if (!wallet || wallet === '0x0000000000000000000000000000000000000000') {
+      setEthBalance(0);
+      return;
+    }
+
+    setIsLoadingBalance(true);
+    try {
+      const response = await fetch(CONTRACT_CONFIG.RPC_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          jsonrpc: '2.0',
+          id: 1,
+          method: 'eth_getBalance',
+          params: [wallet, 'latest'],
+        }),
+      });
+
+      const data = await response.json();
+      if (data.result) {
+        const balanceWei = BigInt(data.result);
+        const balanceEth = Number(balanceWei) / 1e18;
+        setEthBalance(balanceEth);
+      }
+    } catch (err) {
+      console.error('Failed to load ETH balance:', err);
+    } finally {
+      setIsLoadingBalance(false);
+    }
   }, [wallet]);
+
+  useEffect(() => {
+    loadContractStats();
+  }, [loadContractStats]);
+
+  useEffect(() => {
+    loadEthBalance();
+  }, [loadEthBalance]);
 
   // Calculate total cost
   const totalCost = stats.priceEth * quantity;
@@ -62,23 +132,32 @@ export function MintScreen({ wallet, onMintSuccess, onBack }: MintScreenProps) {
   const handleVideoEnd = () => {
     setRevealPhase('revealing');
 
-    // After reveal animation, show complete
-    setTimeout(() => {
-      // Mock minted emissary
-      const minted: MintedEmissary = {
-        token_id: `${stats.totalMinted + 1}`,
-        name: `Emissary #${stats.totalMinted + 1}`,
-        guild: ['Pyreguard', 'Ashwalkers', 'Embercourt', 'Cinderkin', 'Flamekeepers', 'Scorchlords'][
-          Math.floor(Math.random() * 6)
-        ],
-        race_class: 'Human Warrior',
-        image_url: '',
-      };
+    // After reveal animation, show complete with minted emissaries
+    setTimeout(async () => {
+      // Generate minted emissary cards based on quantity
+      const guilds = ['Forge Legion', 'Circle of Mist', 'Order of Dawn', 'Shadow Guild', 'Horizon Watch', 'Void Echoes'];
+      const newEmissaries: MintedEmissary[] = [];
 
-      setMintedEmissary(minted);
+      for (let i = 0; i < quantity; i++) {
+        const tokenId = stats.totalMinted + i + 1;
+        newEmissaries.push({
+          token_id: `${tokenId}`,
+          name: `Emissary #${tokenId}`,
+          guild: guilds[Math.floor(Math.random() * guilds.length)],
+          race_class: 'Awaiting Reveal...',
+          image_url: `${CONTRACT_CONFIG.IPFS_IMAGES_BASE}${tokenId}.png`,
+        });
+      }
+
+      setMintedEmissaries(newEmissaries);
       setRevealPhase('complete');
-      setStats(prev => ({ ...prev, totalMinted: prev.totalMinted + quantity }));
-      onMintSuccess?.(minted.token_id);
+
+      // Refresh contract stats to get updated totalMinted
+      await loadContractStats();
+
+      if (newEmissaries.length > 0) {
+        onMintSuccess?.(newEmissaries[0].token_id);
+      }
     }, 1500);
   };
 
@@ -91,12 +170,68 @@ export function MintScreen({ wallet, onMintSuccess, onBack }: MintScreenProps) {
     setRevealPhase('minting');
 
     try {
-      // Simulate minting transaction delay
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Check if we have access to ethereum provider
+      const ethereum = (window as any).ethereum;
+      if (!ethereum) {
+        // Demo mode - simulate mint
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        setRevealPhase('video');
+        return;
+      }
+
+      // Calculate value in wei (price * quantity)
+      const priceWei = BigInt(Math.floor(stats.priceEth * 1e18));
+      const totalWei = priceWei * BigInt(quantity);
+      const valueHex = '0x' + totalWei.toString(16);
+
+      // Encode mint(quantity) function call
+      // mint(uint256) selector = 0xa0712d68
+      const quantityHex = quantity.toString(16).padStart(64, '0');
+      const data = '0xa0712d68' + quantityHex;
+
+      // Send transaction
+      const txHash = await ethereum.request({
+        method: 'eth_sendTransaction',
+        params: [{
+          from: wallet,
+          to: CONTRACT_CONFIG.CONTRACTS.EmberholmPortal,
+          value: valueHex,
+          data: data,
+        }],
+      });
+
+      // Wait for transaction confirmation (simplified - just wait a bit then show video)
+      console.log('Mint transaction sent:', txHash);
+
+      // Poll for transaction receipt
+      let confirmed = false;
+      for (let i = 0; i < 60; i++) {
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        try {
+          const receipt = await ethereum.request({
+            method: 'eth_getTransactionReceipt',
+            params: [txHash],
+          });
+          if (receipt && receipt.status === '0x1') {
+            confirmed = true;
+            break;
+          } else if (receipt && receipt.status === '0x0') {
+            throw new Error('Transaction failed');
+          }
+        } catch (e) {
+          // Receipt not available yet, continue polling
+        }
+      }
+
+      if (!confirmed) {
+        // Still show video but warn
+        console.warn('Transaction not confirmed yet, showing video anyway');
+      }
 
       // Start video reveal
       setRevealPhase('video');
     } catch (err: any) {
+      console.error('Mint error:', err);
       setError(err.message || 'Mint failed');
       setRevealPhase('idle');
       setIsMinting(false);
@@ -105,10 +240,12 @@ export function MintScreen({ wallet, onMintSuccess, onBack }: MintScreenProps) {
 
   // Reset to mint again
   const handleMintAgain = () => {
-    setMintedEmissary(null);
+    setMintedEmissaries([]);
     setRevealPhase('idle');
     setQuantity(1);
     setIsMinting(false);
+    loadContractStats();
+    loadEthBalance();
   };
 
   // Progress percentage
@@ -141,7 +278,11 @@ export function MintScreen({ wallet, onMintSuccess, onBack }: MintScreenProps) {
               <div className="portal-box mb-6">
                 <div className="text-center mb-4">
                   <div className="text-3xl text-amber-bright font-bold">
-                    {stats.totalMinted.toLocaleString()}
+                    {stats.isLoading ? (
+                      <span className="animate-pulse">...</span>
+                    ) : (
+                      stats.totalMinted.toLocaleString()
+                    )}
                   </div>
                   <div className="text-amber-dim text-sm">
                     / {stats.maxSupply.toLocaleString()} EMISSARIES MINTED
@@ -313,7 +454,7 @@ export function MintScreen({ wallet, onMintSuccess, onBack }: MintScreenProps) {
             </motion.div>
           )}
 
-          {revealPhase === 'complete' && mintedEmissary && (
+          {revealPhase === 'complete' && mintedEmissaries.length > 0 && (
             <motion.div
               key="complete"
               initial={{ opacity: 0, scale: 0.8 }}
@@ -324,38 +465,45 @@ export function MintScreen({ wallet, onMintSuccess, onBack }: MintScreenProps) {
               <div className="portal-box mb-6">
                 <div className="ornament mb-4">═══ ◈ ═══</div>
 
-                {/* Emissary card */}
-                <div className="relative mx-auto w-48 h-48 mb-4 rounded-lg border-2 border-amber
-                              bg-gradient-to-b from-amber-dark/20 to-dark
-                              flex items-center justify-center">
-                  {mintedEmissary.image_url ? (
-                    <img
-                      src={mintedEmissary.image_url}
-                      alt={mintedEmissary.name}
-                      className="w-full h-full object-cover rounded-lg"
-                    />
-                  ) : (
-                    <Image
-                      src="/icons/Swords.png"
-                      alt=""
-                      width={64}
-                      height={64}
-                      className="pixel-icon"
-                    />
-                  )}
-                </div>
+                {/* Emissary cards - scrollable if multiple */}
+                <div className={`${mintedEmissaries.length > 1 ? 'max-h-64 overflow-y-auto' : ''}`}>
+                  {mintedEmissaries.map((emissary, index) => (
+                    <motion.div
+                      key={emissary.token_id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.2 }}
+                      className={index > 0 ? 'mt-4 pt-4 border-t border-amber-dark' : ''}
+                    >
+                      <div className="relative mx-auto w-40 h-40 mb-3 rounded-lg border-2 border-amber
+                                    bg-gradient-to-b from-amber-dark/20 to-dark
+                                    flex items-center justify-center overflow-hidden">
+                        <img
+                          src={emissary.image_url}
+                          alt={emissary.name}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).style.display = 'none';
+                          }}
+                        />
+                      </div>
 
-                <h2 className="title text-xl mb-2">{mintedEmissary.name}</h2>
-                <div className="text-amber text-sm">{mintedEmissary.guild}</div>
-                <div className="text-amber-dim text-xs mt-1">
-                  {mintedEmissary.race_class}
+                      <h2 className="title text-lg mb-1">{emissary.name}</h2>
+                      <div className="text-amber text-sm">{emissary.guild}</div>
+                      <div className="text-amber-dim text-xs mt-1">
+                        {emissary.race_class}
+                      </div>
+                    </motion.div>
+                  ))}
                 </div>
 
                 <div className="ornament mt-4">═══ ◈ ═══</div>
               </div>
 
               <div className="text-green text-sm mb-4">
-                Congratulations! Your Emissary has joined Emberholm.
+                Congratulations! {mintedEmissaries.length > 1
+                  ? `${mintedEmissaries.length} Emissaries have joined Emberholm.`
+                  : 'Your Emissary has joined Emberholm.'}
               </div>
 
               <div className="space-y-2">

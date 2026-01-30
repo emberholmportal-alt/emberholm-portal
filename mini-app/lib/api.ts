@@ -1,7 +1,7 @@
 /**
  * EMBERHOLM MINI APP - API Client v2
  * Connects to Flask backend endpoints
- * Includes: Realm Status, $PYRE, Micro-Missions, Social Chat
+ * Includes: Realm Status, $EMBER, Micro-Missions, Social Chat
  */
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || '';
@@ -28,25 +28,14 @@ export interface RealmStatus {
 }
 
 // =========================================
-// Types - $PYRE
+// Types - $EMBER Balance
 // =========================================
 
-export interface PyreBalance {
+export interface EmberBalance {
   wallet: string;
   balance: number;
   total_earned: number;
-  total_spent: number;
-  daily_streak: number;
-  daily_available: boolean;
-}
-
-export interface PyreTransaction {
-  id: number;
-  amount: number;
-  type: string;
-  reference_id: string;
-  description: string;
-  created_at: string;
+  pending: number;
 }
 
 // =========================================
@@ -60,11 +49,13 @@ export interface MicroMission {
   difficulty: 'EASY' | 'MEDIUM' | 'HARD';
   duration_seconds: number;
   energy_cost: number;
-  pyre_reward: { min: number; max: number };
+  ember_reward: { min: number; max: number };
   xp_reward: { min: number; max: number };
   aura_chance: number;
   narrative_intro: string;
   cooldown_minutes: number;
+  // Keep pyre_reward for backwards compatibility with backend
+  pyre_reward?: { min: number; max: number };
 }
 
 export interface MicroMissionDetail extends MicroMission {
@@ -76,7 +67,7 @@ export interface MicroMissionDetail extends MicroMission {
   narrative_outcomes: Record<string, {
     type: string;
     text: string;
-    pyre_modifier: number;
+    ember_modifier: number;
     xp_modifier: number;
   }>;
 }
@@ -96,7 +87,7 @@ export interface ActiveMicroMission {
 }
 
 export interface MissionRewards {
-  pyre: number;
+  ember: number;
   xp: number;
   aura: number;
 }
@@ -222,19 +213,24 @@ export async function getRealmStatus(): Promise<RealmStatus> {
 }
 
 // =========================================
-// $PYRE
+// $EMBER Balance
 // =========================================
 
-export async function getPyreBalance(wallet: string): Promise<PyreBalance> {
-  const data = await fetchAPI<{ success: boolean } & PyreBalance>(`/api/pyre/${wallet}`);
-  return data;
-}
-
-export async function getPyreHistory(wallet: string, limit = 50): Promise<PyreTransaction[]> {
-  const data = await fetchAPI<{ success: boolean; transactions: PyreTransaction[] }>(
-    `/api/pyre/history/${wallet}?limit=${limit}`
-  );
-  return data.transactions;
+export async function getEmberBalance(wallet: string): Promise<EmberBalance> {
+  try {
+    const data = await fetchAPI<{ success: boolean; ember_balance: number; total_ember_earned: number }>(
+      `/api/player/${wallet}/ember`
+    );
+    return {
+      wallet,
+      balance: data.ember_balance || 0,
+      total_earned: data.total_ember_earned || 0,
+      pending: 0,
+    };
+  } catch {
+    // Return zero balance if endpoint not available
+    return { wallet, balance: 0, total_earned: 0, pending: 0 };
+  }
 }
 
 // =========================================

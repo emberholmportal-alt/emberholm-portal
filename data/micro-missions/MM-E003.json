@@ -63,5 +63,9 @@
     }
   },
   "lore_connection": "The Order of Dawn performs sacred rituals tied to the sun's movements, maintaining the balance between light and shadow in Emberholm.",
-  "is_active": true
+  "is_active": true,
+  "ember_reward": {
+    "min": 1,
+    "max": 5
+  }
 }

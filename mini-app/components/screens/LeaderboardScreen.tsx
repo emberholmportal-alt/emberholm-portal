@@ -6,8 +6,8 @@ import Image from 'next/image';
 
 /**
  * LeaderboardScreen - Player rankings
- * Tabs: GLOBAL | BY GUILD | WEEKLY | $PYRE
- * Top 50 players with user position highlighted
+ * Tabs: GLOBAL | BY GUILD | WEEKLY
+ * Top 10 players with user position highlighted
  */
 
 interface LeaderboardEntry {
@@ -16,7 +16,6 @@ interface LeaderboardEntry {
   display_name: string | null;
   guild: string | null;
   xp_total: number;
-  pyre_total: number;
   missions_completed: number;
   is_current_user?: boolean;
 }
@@ -26,7 +25,7 @@ interface LeaderboardScreenProps {
   onBack: () => void;
 }
 
-type LeaderboardTab = 'global' | 'guild' | 'weekly' | 'pyre';
+type LeaderboardTab = 'global' | 'guild' | 'weekly';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || '';
 
@@ -46,24 +45,20 @@ export function LeaderboardScreen({
         setIsLoading(true);
 
         // In production, this would call the actual leaderboard API
-        // For now, using mock data
-        const mockData: LeaderboardEntry[] = Array.from({ length: 50 }, (_, i) => ({
+        // For now, using mock data - limited to top 10
+        const mockData: LeaderboardEntry[] = Array.from({ length: 10 }, (_, i) => ({
           rank: i + 1,
           wallet: `0x${(i + 1).toString().padStart(40, '0')}`,
-          display_name: i < 10 ? `Player${i + 1}` : null,
+          display_name: `Player${i + 1}`,
           guild: ['Forge Legion', 'Circle of Mist', 'Order of Dawn', 'Shadow Guild', 'Horizon Watch', 'Void Echoes'][i % 6],
-          xp_total: 10000 - i * 150,
-          pyre_total: 5000 - i * 80,
-          missions_completed: 100 - i * 2,
-          is_current_user: !!currentWallet && i === 15, // Mock: current user at position 16
+          xp_total: 10000 - i * 800,
+          missions_completed: 100 - i * 8,
+          is_current_user: !!currentWallet && i === 7, // Mock: current user at position 8
         }));
 
         // Sort based on active tab
         let sortedData = [...mockData];
         switch (activeTab) {
-          case 'pyre':
-            sortedData.sort((a, b) => b.pyre_total - a.pyre_total);
-            break;
           case 'weekly':
             // Would use weekly stats in production
             sortedData.sort((a, b) => b.missions_completed - a.missions_completed);
@@ -123,7 +118,6 @@ export function LeaderboardScreen({
     { id: 'global', label: 'GLOBAL' },
     { id: 'guild', label: 'BY GUILD' },
     { id: 'weekly', label: 'WEEKLY' },
-    { id: 'pyre', label: '◈ PYRE' },
   ];
 
   return (
@@ -135,7 +129,7 @@ export function LeaderboardScreen({
         className="text-center mb-4"
       >
         <h2 className="title text-xl">LEADERBOARDS</h2>
-        <p className="text-amber-dim text-xs">Top 50 Emissaries</p>
+        <p className="text-amber-dim text-xs">Top 10 Emissaries</p>
       </motion.div>
 
       {/* User rank indicator */}
@@ -216,12 +210,7 @@ export function LeaderboardScreen({
 
                 {/* Stats based on tab */}
                 <div className="text-right">
-                  {activeTab === 'pyre' ? (
-                    <>
-                      <p className="text-cyan font-semibold">{entry.pyre_total.toLocaleString()}</p>
-                      <p className="text-xs text-amber-dim">◈ PYRE</p>
-                    </>
-                  ) : activeTab === 'weekly' ? (
+                  {activeTab === 'weekly' ? (
                     <>
                       <p className="text-amber font-semibold">{entry.missions_completed}</p>
                       <p className="text-xs text-amber-dim">Missions</p>

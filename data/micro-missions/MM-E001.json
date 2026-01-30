@@ -13,6 +13,10 @@
     "min": 5,
     "max": 10
   },
+  "ember_reward": {
+    "min": 1,
+    "max": 5
+  },
   "aura_chance": 5,
   "cooldown_minutes": 30,
   "narrative": {

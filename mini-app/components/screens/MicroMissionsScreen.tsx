@@ -7,8 +7,8 @@ import { Emissary, MicroMission, getMicroMissions } from '@/lib/api';
 
 /**
  * MicroMissionsScreen - Micro-missions list
- * Quick 1-5 minute adventures for $PYRE rewards
- * Filter by difficulty: EASY, MEDIUM, HARD, LEGENDARY
+ * Quick 1-5 minute adventures for $EMBER rewards
+ * Filter by difficulty: EASY, MEDIUM, HARD
  */
 
 interface MicroMissionsScreenProps {
@@ -22,7 +22,6 @@ const DIFFICULTY_STYLES: Record<string, { color: string; label: string; bg: stri
   EASY: { color: 'text-green', label: 'EASY', bg: 'bg-green/10' },
   MEDIUM: { color: 'text-amber', label: 'MEDIUM', bg: 'bg-amber/10' },
   HARD: { color: 'text-red', label: 'HARD', bg: 'bg-red/10' },
-  LEGENDARY: { color: 'text-cyan', label: 'LEGENDARY', bg: 'bg-cyan/10' },
 };
 
 export function MicroMissionsScreen({
@@ -77,7 +76,7 @@ export function MicroMissionsScreen({
         className="text-center mb-4"
       >
         <h2 className="title text-xl">MICRO-MISSIONS</h2>
-        <p className="text-amber-dim text-xs">Quick adventures for ◈ PYRE</p>
+        <p className="text-amber-dim text-xs">Quick adventures for $EMBER rewards</p>
       </motion.div>
 
       {/* Selected emissary */}
@@ -217,10 +216,10 @@ export function MicroMissionsScreen({
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="text-cyan font-semibold">
+                      <p className="text-amber-bright font-semibold">
                         +{mission.pyre_reward.min}-{mission.pyre_reward.max}
                       </p>
-                      <p className="text-xs text-cyan">◈ PYRE</p>
+                      <p className="text-xs text-amber">$EMBER</p>
                     </div>
                   </div>
 

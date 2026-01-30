@@ -63,5 +63,9 @@
     }
   },
   "lore_connection": "The Forge Legion's supply routes are the lifeblood of Emberholm's industry, carrying raw materials and finished goods across the realm.",
-  "is_active": true
+  "is_active": true,
+  "ember_reward": {
+    "min": 1,
+    "max": 5
+  }
 }

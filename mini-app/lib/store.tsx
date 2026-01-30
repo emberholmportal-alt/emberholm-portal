@@ -1,7 +1,7 @@
 /**
  * EMBERHOLM MINI APP - Global State Store v2
  * Simple React context-based store for app state
- * Includes: Navigation, User, $PYRE, Social/Chat
+ * Includes: Navigation, User, $EMBER, Social/Chat
  */
 
 import { createContext, useContext, useReducer, ReactNode } from 'react';
@@ -34,14 +34,13 @@ export type AppScreen =
   | 'micro-missions'    // Micro-missions list
   | 'timer'             // Active mission timer
   // Vault
-  | 'vault'             // Tabs: Tokens/$PYRE/Actions
+  | 'vault'             // Tabs: Tokens/Items/Runes
   // Other
   | 'events'            // Events list
   | 'lore'              // Lore chapters
   | 'tutorial'          // Tutorial screen
   | 'leaderboard'       // Leaderboard
-  | 'mint'              // Mint new emissary
-  | 'pyre-guide';       // $PYRE guide
+  | 'mint';             // Mint new emissary
 
 export interface AppState {
   // Navigation
@@ -60,10 +59,9 @@ export interface AppState {
   emissaries: Emissary[];
   selectedEmissary: Emissary | null;
 
-  // $PYRE (formerly $SPARK)
-  pyreBalance: number;
-  pyreTotalEarned: number;
-  pyreDailyAvailable: boolean;
+  // $EMBER
+  emberBalance: number;
+  emberTotalEarned: number;
 
   // Active Mission
   activeMission: ActiveMicroMission | null;
@@ -103,8 +101,8 @@ type AppAction =
   // Emissaries
   | { type: 'SET_EMISSARIES'; emissaries: Emissary[] }
   | { type: 'SELECT_EMISSARY'; emissary: Emissary | null }
-  // $PYRE
-  | { type: 'SET_PYRE_BALANCE'; balance: number; totalEarned?: number; dailyAvailable?: boolean }
+  // $EMBER
+  | { type: 'SET_EMBER_BALANCE'; balance: number; totalEarned?: number }
   // Missions
   | { type: 'SET_ACTIVE_MISSION'; mission: ActiveMicroMission | null }
   | { type: 'SELECT_MISSION'; missionId: string | null }
@@ -145,10 +143,9 @@ const initialState: AppState = {
   emissaries: [],
   selectedEmissary: null,
 
-  // $PYRE
-  pyreBalance: 0,
-  pyreTotalEarned: 0,
-  pyreDailyAvailable: true,
+  // $EMBER
+  emberBalance: 0,
+  emberTotalEarned: 0,
 
   // Missions
   activeMission: null,
@@ -242,13 +239,12 @@ function appReducer(state: AppState, action: AppAction): AppState {
         selectedEmissary: action.emissary,
       };
 
-    // $PYRE
-    case 'SET_PYRE_BALANCE':
+    // $EMBER
+    case 'SET_EMBER_BALANCE':
       return {
         ...state,
-        pyreBalance: action.balance,
-        pyreTotalEarned: action.totalEarned ?? state.pyreTotalEarned,
-        pyreDailyAvailable: action.dailyAvailable ?? state.pyreDailyAvailable,
+        emberBalance: action.balance,
+        emberTotalEarned: action.totalEarned ?? state.emberTotalEarned,
       };
 
     // Missions
@@ -411,9 +407,9 @@ export const actions = {
   setEmissaries: (emissaries: Emissary[]): AppAction => ({ type: 'SET_EMISSARIES', emissaries }),
   selectEmissary: (emissary: Emissary | null): AppAction => ({ type: 'SELECT_EMISSARY', emissary }),
 
-  // $PYRE
-  setPyreBalance: (balance: number, totalEarned?: number, dailyAvailable?: boolean): AppAction =>
-    ({ type: 'SET_PYRE_BALANCE', balance, totalEarned, dailyAvailable }),
+  // $EMBER
+  setEmberBalance: (balance: number, totalEarned?: number): AppAction =>
+    ({ type: 'SET_EMBER_BALANCE', balance, totalEarned }),
 
   // Missions
   setActiveMission: (mission: ActiveMicroMission | null): AppAction => ({ type: 'SET_ACTIVE_MISSION', mission }),

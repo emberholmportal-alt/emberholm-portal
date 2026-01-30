@@ -1,12 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
 
 /**
  * LoreScreen - World lore and story
- * Content from portal web lore sections
+ * Features typewriter effect for immersive reading
  */
 
 interface LoreScreenProps {
@@ -98,11 +98,124 @@ const LORE_SECTIONS: LoreSection[] = [
   },
 ];
 
+// Typewriter speed in milliseconds per character
+const TYPEWRITER_SPEED = 35;
+
+// Typewriter text component
+function TypewriterText({
+  text,
+  onComplete,
+  isSkipped,
+}: {
+  text: string;
+  onComplete: () => void;
+  isSkipped: boolean;
+}) {
+  const [displayedText, setDisplayedText] = useState('');
+  const [charIndex, setCharIndex] = useState(0);
+
+  useEffect(() => {
+    if (isSkipped) {
+      setDisplayedText(text);
+      setCharIndex(text.length);
+      onComplete();
+      return;
+    }
+
+    if (charIndex < text.length) {
+      const timeout = setTimeout(() => {
+        setDisplayedText(text.slice(0, charIndex + 1));
+        setCharIndex(charIndex + 1);
+      }, TYPEWRITER_SPEED);
+      return () => clearTimeout(timeout);
+    } else {
+      onComplete();
+    }
+  }, [charIndex, text, isSkipped, onComplete]);
+
+  return (
+    <span className="text-amber-dim text-sm leading-relaxed">
+      {displayedText}
+      {charIndex < text.length && !isSkipped && (
+        <span className="animate-pulse text-amber">|</span>
+      )}
+    </span>
+  );
+}
+
 export function LoreScreen({ onBack }: LoreScreenProps) {
   const [expandedSection, setExpandedSection] = useState<string | null>(null);
+  const [currentParagraph, setCurrentParagraph] = useState(0);
+  const [isTyping, setIsTyping] = useState(false);
+  const [isComplete, setIsComplete] = useState(false);
+  const [isSkipped, setIsSkipped] = useState(false);
+
+  // Get current section content
+  const currentSection = LORE_SECTIONS.find(s => s.id === expandedSection);
+  const totalParagraphs = currentSection?.content.length || 0;
+
+  // Reset state when section changes
+  useEffect(() => {
+    if (expandedSection) {
+      setCurrentParagraph(0);
+      setIsTyping(true);
+      setIsComplete(false);
+      setIsSkipped(false);
+    }
+  }, [expandedSection]);
+
+  // Handle paragraph complete
+  const handleParagraphComplete = useCallback(() => {
+    if (currentParagraph < totalParagraphs - 1) {
+      // Move to next paragraph
+      setTimeout(() => {
+        setCurrentParagraph(prev => prev + 1);
+      }, 500);
+    } else {
+      // All paragraphs complete
+      setIsTyping(false);
+      setIsComplete(true);
+    }
+  }, [currentParagraph, totalParagraphs]);
+
+  // Handle skip
+  const handleSkip = () => {
+    setIsSkipped(true);
+    setCurrentParagraph(totalParagraphs - 1);
+  };
+
+  // Handle continue (close section)
+  const handleContinue = () => {
+    setExpandedSection(null);
+    setCurrentParagraph(0);
+    setIsTyping(false);
+    setIsComplete(false);
+    setIsSkipped(false);
+  };
+
+  // Handle any key press when complete
+  useEffect(() => {
+    if (!isComplete) return;
+
+    const handleKeyPress = () => {
+      handleContinue();
+    };
+
+    window.addEventListener('keydown', handleKeyPress);
+    window.addEventListener('click', handleKeyPress);
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyPress);
+      window.removeEventListener('click', handleKeyPress);
+    };
+  }, [isComplete]);
 
   const toggleSection = (id: string) => {
-    setExpandedSection(expandedSection === id ? null : id);
+    if (expandedSection === id) {
+      handleContinue();
+    } else {
+      setExpandedSection(id);
+    }
   };
 
   return (
@@ -166,18 +279,74 @@ export function LoreScreen({ onBack }: LoreScreenProps) {
                   transition={{ duration: 0.3 }}
                   className="overflow-hidden"
                 >
-                  <div className="portal-box mt-2 space-y-4">
-                    {section.content.map((paragraph, pIndex) => (
-                      <motion.p
-                        key={pIndex}
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: pIndex * 0.1 }}
-                        className="text-amber-dim text-sm leading-relaxed"
-                      >
-                        {paragraph}
-                      </motion.p>
-                    ))}
+                  <div className="portal-box mt-2">
+                    {/* Typewriter paragraphs */}
+                    <div className="space-y-4 min-h-[200px]">
+                      {section.content.slice(0, currentParagraph + 1).map((paragraph, pIndex) => (
+                        <p key={pIndex}>
+                          {pIndex < currentParagraph || isSkipped ? (
+                            <span className="text-amber-dim text-sm leading-relaxed">
+                              {paragraph}
+                            </span>
+                          ) : (
+                            <TypewriterText
+                              text={paragraph}
+                              onComplete={handleParagraphComplete}
+                              isSkipped={isSkipped}
+                            />
+                          )}
+                        </p>
+                      ))}
+                    </div>
+
+                    {/* Controls */}
+                    <div className="mt-6 pt-4 border-t border-amber-dark/30">
+                      {isTyping && !isComplete && !isSkipped && (
+                        <motion.button
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleSkip();
+                          }}
+                          className="btn small secondary w-full"
+                        >
+                          [SKIP]
+                        </motion.button>
+                      )}
+
+                      {(isComplete || isSkipped) && (
+                        <motion.div
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          className="text-center"
+                        >
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleContinue();
+                            }}
+                            className="btn w-full animate-pulse"
+                          >
+                            [PRESS ANY KEY TO CONTINUE]
+                          </button>
+                        </motion.div>
+                      )}
+
+                      {/* Progress indicator */}
+                      <div className="mt-3 flex justify-center gap-1">
+                        {section.content.map((_, i) => (
+                          <div
+                            key={i}
+                            className={`w-2 h-2 rounded-full transition-colors ${
+                              i <= currentParagraph
+                                ? 'bg-amber'
+                                : 'bg-amber-dark/30'
+                            }`}
+                          />
+                        ))}
+                      </div>
+                    </div>
                   </div>
                 </motion.div>
               )}

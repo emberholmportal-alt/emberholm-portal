@@ -69,5 +69,9 @@
     }
   },
   "lore_connection": "The Whispering Ruins predate Emberholm itself, remnants of a civilization that fell when the Eternal Flame first ignited. Some say the spirits trapped within are those who couldn't accept the new order.",
-  "is_active": true
+  "is_active": true,
+  "ember_reward": {
+    "min": 3,
+    "max": 10
+  }
 }
