@@ -676,11 +676,89 @@ export interface EventSettings {
   bonus_multiplier: number;
 }
 
+// Fallback events for when API is unavailable
+const FALLBACK_EVENTS: GameEvent[] = [
+  {
+    id: 'event_shadow_siege',
+    name: 'Shadow Siege',
+    difficulty: 'HEROIC',
+    duration_hours: 48,
+    energy_cost: 50,
+    reward_xp: 500,
+    reward_aura: 25,
+    success_rate: 65,
+    xp_loss_on_fail: 50,
+    death_chance: 15,
+    available_from: new Date().toISOString(),
+    available_until: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+    event_active: true,
+    favored_guild: 'Shadow Covenant',
+    favored_class: 'Assassin',
+    favored_race: null,
+    description: 'The Shadow Lord has emerged from the Void. Rally your strongest emissaries to defend Emberholm.',
+    lore: 'In the darkest hours before dawn, when the Dying Flame flickers at its lowest, the Shadow Lord emerges. Ancient texts speak of this entity - a being born from the collective fears of a thousand fallen realms. Now it sets its gaze upon Emberholm.',
+    time_remaining_hours: 120,
+  },
+  {
+    id: 'event_ember_harvest',
+    name: 'Ember Harvest Festival',
+    difficulty: 'MEDIUM',
+    duration_hours: 24,
+    energy_cost: 25,
+    reward_xp: 150,
+    reward_aura: 10,
+    success_rate: 85,
+    xp_loss_on_fail: 20,
+    death_chance: 5,
+    available_from: new Date().toISOString(),
+    available_until: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(),
+    event_active: true,
+    favored_guild: 'Flame Keepers',
+    favored_class: null,
+    favored_race: 'Human',
+    description: 'The annual harvest of Ember Crystals from the Ashen Fields. Gather as many as you can!',
+    lore: 'Every cycle, when the twin moons align, the Ashen Fields bloom with crystallized ember energy. The wise call it a blessing; the scholars call it a geological phenomenon. Either way, it means treasure.',
+    time_remaining_hours: 48,
+  },
+  {
+    id: 'event_void_rift',
+    name: 'Void Rift Exploration',
+    difficulty: 'LEGENDARY',
+    duration_hours: 72,
+    energy_cost: 100,
+    reward_xp: 1000,
+    reward_aura: 50,
+    success_rate: 45,
+    xp_loss_on_fail: 100,
+    death_chance: 35,
+    available_from: new Date().toISOString(),
+    available_until: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
+    event_active: true,
+    favored_guild: null,
+    favored_class: 'Mage',
+    favored_race: 'Elf',
+    description: 'A rift to the Void has opened. Brave emissaries may enter to claim legendary artifacts.',
+    lore: 'The Void is not empty. It is full of forgotten things - memories, dreams, and artifacts of power that predate the realms themselves. Those who enter rarely return, but those who do bring back treasures beyond imagination.',
+    time_remaining_hours: 240,
+  },
+];
+
+const FALLBACK_EVENT_SETTINGS: EventSettings = {
+  max_concurrent_events: 2,
+  cooldown_hours: 72,
+  bonus_multiplier: 2.5,
+};
+
 export async function getEvents(): Promise<{ events: GameEvent[]; event_settings: EventSettings }> {
   try {
     const data = await fetchAPI<{ events: GameEvent[]; event_settings: EventSettings }>('/api/events');
-    return data;
-  } catch {
-    return { events: [], event_settings: { max_concurrent_events: 2, cooldown_hours: 72, bonus_multiplier: 2.5 } };
+    if (data.events && data.events.length > 0) {
+      return data;
+    }
+    console.debug('API returned empty events, using fallback data');
+    return { events: FALLBACK_EVENTS, event_settings: FALLBACK_EVENT_SETTINGS };
+  } catch (error) {
+    console.debug('Failed to load events from API, using fallback:', error);
+    return { events: FALLBACK_EVENTS, event_settings: FALLBACK_EVENT_SETTINGS };
   }
 }

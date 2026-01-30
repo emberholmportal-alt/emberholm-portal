@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import Image from 'next/image';
 import { Emissary } from '@/lib/api';
 
 /**
@@ -86,7 +87,7 @@ export function VaultScreen({ wallet, emissaries, onBack }: VaultScreenProps) {
             name: 'Flame Sword',
             type: 'weapon',
             rarity: 'rare',
-            icon: '🗡️',
+            icon: '/icons/Swords.png',
             benefits: '+15 Power, +5% Crit',
             equippedTo: null,
           },
@@ -95,7 +96,7 @@ export function VaultScreen({ wallet, emissaries, onBack }: VaultScreenProps) {
             name: 'Shadow Cloak',
             type: 'armor',
             rarity: 'epic',
-            icon: '🧥',
+            icon: '/icons/Cloak.png',
             benefits: '+20 Defense, +10% Dodge',
             equippedTo: emissaries[0]?.token_id || null,
           },
@@ -104,7 +105,7 @@ export function VaultScreen({ wallet, emissaries, onBack }: VaultScreenProps) {
             name: 'Ember Ring',
             type: 'accessory',
             rarity: 'uncommon',
-            icon: '💍',
+            icon: '/icons/Sparkles.png',
             benefits: '+5% $EMBER earned',
             equippedTo: null,
           },
@@ -114,7 +115,7 @@ export function VaultScreen({ wallet, emissaries, onBack }: VaultScreenProps) {
           {
             id: 'rune-1',
             name: 'Rune of Vitality',
-            symbol: 'ᚠ',
+            symbol: '/icons/Lightning.png',
             effect: '+10 Max Energy',
             rarity: 'uncommon',
             equippedTo: null,
@@ -123,7 +124,7 @@ export function VaultScreen({ wallet, emissaries, onBack }: VaultScreenProps) {
           {
             id: 'rune-2',
             name: 'Rune of Fortune',
-            symbol: 'ᚱ',
+            symbol: '/icons/Sparkles.png',
             effect: '+5% Loot Chance',
             rarity: 'rare',
             equippedTo: emissaries[0]?.token_id || null,
@@ -165,8 +166,8 @@ export function VaultScreen({ wallet, emissaries, onBack }: VaultScreenProps) {
     setShowEquipModal(null);
   };
 
-  // Calculate ASH from EMBER burn
-  const ashPreview = burnAmount ? (parseFloat(burnAmount) * 0.1).toFixed(2) : '0';
+  // Calculate ASH from EMBER burn (1000:1 ratio)
+  const ashPreview = burnAmount ? (parseFloat(burnAmount) / 1000).toFixed(4) : '0';
 
   const tabs: { id: VaultTab; label: string }[] = [
     { id: 'tokens', label: 'TOKENS' },
@@ -246,7 +247,7 @@ export function VaultScreen({ wallet, emissaries, onBack }: VaultScreenProps) {
                   </div>
                   <div className="mt-3 pt-3 border-t border-amber-dark/30">
                     <div className="text-xs text-amber-dim mb-2">
-                      Burn EMBER → ASH (10:1 ratio)
+                      Burn EMBER → ASH (1000:1 ratio)
                     </div>
                     <div className="flex gap-2">
                       <input
@@ -293,7 +294,7 @@ export function VaultScreen({ wallet, emissaries, onBack }: VaultScreenProps) {
                   items.map(item => (
                     <div key={item.id} className="data-box">
                       <div className="flex items-start gap-3">
-                        <span className="text-2xl">{item.icon}</span>
+                        <Image src={item.icon} alt={item.name} width={32} height={32} className="pixel-icon" />
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
                             <span className={`font-semibold ${RARITY_COLORS[item.rarity]}`}>
@@ -348,9 +349,7 @@ export function VaultScreen({ wallet, emissaries, onBack }: VaultScreenProps) {
                   runes.map(rune => (
                     <div key={rune.id} className="data-box">
                       <div className="flex items-start gap-3">
-                        <span className="text-3xl font-serif text-amber-bright">
-                          {rune.symbol}
-                        </span>
+                        <Image src={rune.symbol} alt={rune.name} width={32} height={32} className="pixel-icon" />
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
                             <span className={`font-semibold ${RARITY_COLORS[rune.rarity]}`}>
