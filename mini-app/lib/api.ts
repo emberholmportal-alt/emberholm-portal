@@ -186,21 +186,38 @@ export interface OnlineStats {
 // API Fetch Helper
 // =========================================
 
+// Request timeout in milliseconds
+const API_TIMEOUT = 10000;
+
 async function fetchAPI<T>(endpoint: string, options?: RequestInit): Promise<T> {
-  const response = await fetch(`${API_BASE}${endpoint}`, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...options?.headers,
-    },
-  });
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT);
 
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ error: 'Unknown error' }));
-    throw new Error(error.error || `API Error: ${response.status}`);
+  try {
+    const response = await fetch(`${API_BASE}${endpoint}`, {
+      ...options,
+      signal: controller.signal,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options?.headers,
+      },
+    });
+
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ error: 'Unknown error' }));
+      throw new Error(error.error || `API Error: ${response.status}`);
+    }
+
+    return response.json();
+  } catch (error: any) {
+    clearTimeout(timeoutId);
+    if (error.name === 'AbortError') {
+      throw new Error('Request timeout - server did not respond');
+    }
+    throw error;
   }
-
-  return response.json();
 }
 
 // =========================================
@@ -237,87 +254,13 @@ export async function getEmberBalance(wallet: string): Promise<EmberBalance> {
 // Micro-Missions
 // =========================================
 
-// Fallback micro-missions for when API is unavailable
-const FALLBACK_MICRO_MISSIONS: MicroMission[] = [
-  {
-    id: 'patrol_perimeter',
-    name: 'Patrol the Perimeter',
-    description: 'Scout the outer walls of Emberholm for signs of trouble.',
-    difficulty: 'EASY',
-    duration_seconds: 60,
-    energy_cost: 5,
-    ember_reward: { min: 3, max: 8 },
-    xp_reward: { min: 5, max: 10 },
-    aura_chance: 5,
-    narrative_intro: 'The walls of Emberholm grow cold...',
-    cooldown_minutes: 5,
-  },
-  {
-    id: 'gather_ember_shards',
-    name: 'Gather Ember Shards',
-    description: 'Collect glowing ember shards from the Ashen Fields.',
-    difficulty: 'EASY',
-    duration_seconds: 90,
-    energy_cost: 8,
-    ember_reward: { min: 5, max: 12 },
-    xp_reward: { min: 8, max: 15 },
-    aura_chance: 8,
-    narrative_intro: 'The Ashen Fields shimmer with residual energy...',
-    cooldown_minutes: 10,
-  },
-  {
-    id: 'shadow_reconnaissance',
-    name: 'Shadow Reconnaissance',
-    description: 'Investigate reports of shadow creatures near the village.',
-    difficulty: 'MEDIUM',
-    duration_seconds: 180,
-    energy_cost: 15,
-    ember_reward: { min: 10, max: 25 },
-    xp_reward: { min: 15, max: 30 },
-    aura_chance: 15,
-    narrative_intro: 'Darkness gathers at the edge of town...',
-    cooldown_minutes: 15,
-  },
-  {
-    id: 'flame_ritual',
-    name: 'The Flame Ritual',
-    description: 'Assist the elders in maintaining the Dying Flame.',
-    difficulty: 'MEDIUM',
-    duration_seconds: 240,
-    energy_cost: 20,
-    ember_reward: { min: 15, max: 35 },
-    xp_reward: { min: 20, max: 40 },
-    aura_chance: 20,
-    narrative_intro: 'The sacred flame flickers dangerously low...',
-    cooldown_minutes: 20,
-  },
-  {
-    id: 'void_descent',
-    name: 'Void Descent',
-    description: 'Brave the depths beneath Emberholm to recover lost artifacts.',
-    difficulty: 'HARD',
-    duration_seconds: 300,
-    energy_cost: 30,
-    ember_reward: { min: 25, max: 50 },
-    xp_reward: { min: 35, max: 60 },
-    aura_chance: 30,
-    narrative_intro: 'The void calls to those brave enough to answer...',
-    cooldown_minutes: 30,
-  },
-];
-
 export async function getMicroMissions(): Promise<MicroMission[]> {
   try {
     const data = await fetchAPI<{ success: boolean; missions: MicroMission[] }>('/api/micro-missions');
-    if (data.missions && data.missions.length > 0) {
-      return data.missions;
-    }
-    // Return fallback if API returns empty
-    console.debug('API returned empty missions, using fallback data');
-    return FALLBACK_MICRO_MISSIONS;
+    return data.missions || [];
   } catch (error) {
-    console.debug('Failed to load micro-missions from API, using fallback:', error);
-    return FALLBACK_MICRO_MISSIONS;
+    console.error('Failed to load micro-missions:', error);
+    return [];
   }
 }
 
@@ -485,43 +428,13 @@ export async function updateProfile(params: {
 // Social - Countries (for 3D Globe)
 // =========================================
 
-// Fallback country stats for when API is unavailable
-const FALLBACK_COUNTRIES: CountryStats[] = [
-  { country_code: 'US', user_count: 45, online_count: 12 },
-  { country_code: 'GB', user_count: 23, online_count: 5 },
-  { country_code: 'DE', user_count: 18, online_count: 4 },
-  { country_code: 'JP', user_count: 15, online_count: 3 },
-  { country_code: 'BR', user_count: 12, online_count: 2 },
-  { country_code: 'ES', user_count: 10, online_count: 2 },
-  { country_code: 'FR', user_count: 9, online_count: 1 },
-  { country_code: 'AU', user_count: 8, online_count: 2 },
-  { country_code: 'CA', user_count: 7, online_count: 1 },
-  { country_code: 'KR', user_count: 6, online_count: 1 },
-  { country_code: 'MX', user_count: 5, online_count: 1 },
-  { country_code: 'AR', user_count: 4, online_count: 0 },
-  { country_code: 'NL', user_count: 4, online_count: 1 },
-  { country_code: 'IT', user_count: 3, online_count: 0 },
-  { country_code: 'SG', user_count: 3, online_count: 1 },
-];
-
-// Fallback online stats
-const FALLBACK_ONLINE_STATS: OnlineStats = {
-  total_users: 172,
-  online_now: 36,
-  countries_represented: 15,
-};
-
 export async function getCountries(): Promise<CountryStats[]> {
   try {
     const data = await fetchAPI<{ success: boolean; countries: CountryStats[] }>('/api/social/countries');
-    if (data.countries && data.countries.length > 0) {
-      return data.countries;
-    }
-    console.debug('API returned empty countries, using fallback data');
-    return FALLBACK_COUNTRIES;
+    return data.countries || [];
   } catch (error) {
-    console.debug('Failed to load countries from API, using fallback:', error);
-    return FALLBACK_COUNTRIES;
+    console.error('Failed to load countries:', error);
+    return [];
   }
 }
 
@@ -530,23 +443,20 @@ export async function getCountryUsers(countryCode: string): Promise<CountryUser[
     const data = await fetchAPI<{ success: boolean; users: CountryUser[] }>(
       `/api/social/country/${countryCode}/users`
     );
-    return data.users;
+    return data.users || [];
   } catch (error) {
-    console.debug('Failed to load country users:', error);
+    console.error('Failed to load country users:', error);
     return [];
   }
 }
 
-export async function getOnlineStats(): Promise<OnlineStats> {
+export async function getOnlineStats(): Promise<OnlineStats | null> {
   try {
     const data = await fetchAPI<{ success: boolean; stats: OnlineStats }>('/api/social/online-stats');
-    if (data.stats) {
-      return data.stats;
-    }
-    return FALLBACK_ONLINE_STATS;
+    return data.stats || null;
   } catch (error) {
-    console.debug('Failed to load online stats, using fallback:', error);
-    return FALLBACK_ONLINE_STATS;
+    console.error('Failed to load online stats:', error);
+    return null;
   }
 }
 
@@ -676,89 +586,15 @@ export interface EventSettings {
   bonus_multiplier: number;
 }
 
-// Fallback events for when API is unavailable
-const FALLBACK_EVENTS: GameEvent[] = [
-  {
-    id: 'event_shadow_siege',
-    name: 'Shadow Siege',
-    difficulty: 'HEROIC',
-    duration_hours: 48,
-    energy_cost: 50,
-    reward_xp: 500,
-    reward_aura: 25,
-    success_rate: 65,
-    xp_loss_on_fail: 50,
-    death_chance: 15,
-    available_from: new Date().toISOString(),
-    available_until: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-    event_active: true,
-    favored_guild: 'Shadow Covenant',
-    favored_class: 'Assassin',
-    favored_race: null,
-    description: 'The Shadow Lord has emerged from the Void. Rally your strongest emissaries to defend Emberholm.',
-    lore: 'In the darkest hours before dawn, when the Dying Flame flickers at its lowest, the Shadow Lord emerges. Ancient texts speak of this entity - a being born from the collective fears of a thousand fallen realms. Now it sets its gaze upon Emberholm.',
-    time_remaining_hours: 120,
-  },
-  {
-    id: 'event_ember_harvest',
-    name: 'Ember Harvest Festival',
-    difficulty: 'MEDIUM',
-    duration_hours: 24,
-    energy_cost: 25,
-    reward_xp: 150,
-    reward_aura: 10,
-    success_rate: 85,
-    xp_loss_on_fail: 20,
-    death_chance: 5,
-    available_from: new Date().toISOString(),
-    available_until: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(),
-    event_active: true,
-    favored_guild: 'Flame Keepers',
-    favored_class: null,
-    favored_race: 'Human',
-    description: 'The annual harvest of Ember Crystals from the Ashen Fields. Gather as many as you can!',
-    lore: 'Every cycle, when the twin moons align, the Ashen Fields bloom with crystallized ember energy. The wise call it a blessing; the scholars call it a geological phenomenon. Either way, it means treasure.',
-    time_remaining_hours: 48,
-  },
-  {
-    id: 'event_void_rift',
-    name: 'Void Rift Exploration',
-    difficulty: 'LEGENDARY',
-    duration_hours: 72,
-    energy_cost: 100,
-    reward_xp: 1000,
-    reward_aura: 50,
-    success_rate: 45,
-    xp_loss_on_fail: 100,
-    death_chance: 35,
-    available_from: new Date().toISOString(),
-    available_until: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
-    event_active: true,
-    favored_guild: null,
-    favored_class: 'Mage',
-    favored_race: 'Elf',
-    description: 'A rift to the Void has opened. Brave emissaries may enter to claim legendary artifacts.',
-    lore: 'The Void is not empty. It is full of forgotten things - memories, dreams, and artifacts of power that predate the realms themselves. Those who enter rarely return, but those who do bring back treasures beyond imagination.',
-    time_remaining_hours: 240,
-  },
-];
-
-const FALLBACK_EVENT_SETTINGS: EventSettings = {
-  max_concurrent_events: 2,
-  cooldown_hours: 72,
-  bonus_multiplier: 2.5,
-};
-
-export async function getEvents(): Promise<{ events: GameEvent[]; event_settings: EventSettings }> {
+export async function getEvents(): Promise<{ events: GameEvent[]; event_settings: EventSettings | null }> {
   try {
     const data = await fetchAPI<{ events: GameEvent[]; event_settings: EventSettings }>('/api/events');
-    if (data.events && data.events.length > 0) {
-      return data;
-    }
-    console.debug('API returned empty events, using fallback data');
-    return { events: FALLBACK_EVENTS, event_settings: FALLBACK_EVENT_SETTINGS };
+    return {
+      events: data.events || [],
+      event_settings: data.event_settings || null,
+    };
   } catch (error) {
-    console.debug('Failed to load events from API, using fallback:', error);
-    return { events: FALLBACK_EVENTS, event_settings: FALLBACK_EVENT_SETTINGS };
+    console.error('Failed to load events:', error);
+    return { events: [], event_settings: null };
   }
 }
