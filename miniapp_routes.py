@@ -2220,6 +2220,428 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
             print(f"Error getting streak: {e}")
             return jsonify({"error": str(e)}), 500
 
+    # =====================================================================
+    # PLAYER ENDPOINTS (Required by Mini App)
+    # =====================================================================
+
+    @app.route('/api/player/<wallet>', methods=['GET'])
+    def api_player_get(wallet):
+        """
+        Get player data including their emissaries.
+        This is the main endpoint for loading user's NFTs in the mini app.
+        """
+        wallet = wallet.lower()
+
+        if not POSTGRESQL_AVAILABLE:
+            return jsonify({"error": "Database not available"}), 503
+
+        try:
+            with get_db_connection() as conn:
+                with conn.cursor() as cur:
+                    # Get all NFTs owned by this wallet
+                    cur.execute("""
+                        SELECT token_id, name, guild, race_class, image_url, dynamic_state
+                        FROM nfts
+                        WHERE last_known_owner = %s
+                        ORDER BY token_id
+                    """, (wallet,))
+                    rows = cur.fetchall()
+
+                    heroes = []
+                    for row in rows:
+                        dynamic_state = row[5] or {}
+                        heroes.append({
+                            "token_id": row[0],
+                            "name": row[1] or f"Emissary #{row[0]}",
+                            "guild": row[2] or "Unknown",
+                            "race_class": row[3] or "Unknown",
+                            "image_url": row[4] or "",
+                            "dynamic_state": dynamic_state,
+                            "level": dynamic_state.get('xp_level', 1),
+                            "xp": dynamic_state.get('xp_total', 0),
+                            "aura": dynamic_state.get('aura_level', 0),
+                            "energy": dynamic_state.get('energy_current', 100),
+                            "state": dynamic_state.get('state', 'READY')
+                        })
+
+                    # Get EMBER balance
+                    cur.execute("""
+                        SELECT ember_balance, total_ember_earned
+                        FROM user_balances
+                        WHERE wallet = %s
+                    """, (wallet,))
+                    balance_row = cur.fetchone()
+
+                    return jsonify({
+                        "success": True,
+                        "wallet": wallet,
+                        "player": {
+                            "heroes": heroes,
+                            "heroes_count": len(heroes)
+                        },
+                        "ember_balance": balance_row[0] if balance_row else 0,
+                        "total_ember_earned": balance_row[1] if balance_row else 0
+                    })
+
+        except Exception as e:
+            print(f"Error getting player data: {e}")
+            return jsonify({"error": str(e)}), 500
+
+    @app.route('/api/player/<wallet>', methods=['POST'])
+    def api_player_register(wallet):
+        """
+        Register/sync NFTs for a wallet.
+        Called when user connects wallet to sync blockchain data to database.
+
+        Body: {
+            "token_ids": ["00001", "00002", ...],
+            "total_supply": 1234
+        }
+        """
+        wallet = wallet.lower()
+        data = request.get_json() or {}
+        token_ids = data.get('token_ids', [])
+        total_supply = data.get('total_supply', 0)
+
+        if not POSTGRESQL_AVAILABLE:
+            return jsonify({"error": "Database not available"}), 503
+
+        if not token_ids:
+            return jsonify({
+                "success": True,
+                "message": "No token_ids provided",
+                "token_ids_cached": 0,
+                "synced_to_database": 0
+            })
+
+        try:
+            synced = 0
+            with get_db_connection() as conn:
+                with conn.cursor() as cur:
+                    for token_id in token_ids:
+                        # Pad token_id to 5 digits
+                        token_id_padded = str(token_id).zfill(5)
+
+                        # Update or insert NFT with owner
+                        cur.execute("""
+                            INSERT INTO nfts (token_id, last_known_owner, name)
+                            VALUES (%s, %s, %s)
+                            ON CONFLICT (token_id) DO UPDATE SET
+                                last_known_owner = %s,
+                                last_update = NOW()
+                        """, (
+                            token_id_padded,
+                            wallet,
+                            f"Emissary #{token_id_padded}",
+                            wallet
+                        ))
+                        synced += 1
+
+                    # Ensure user_balances entry exists
+                    cur.execute("""
+                        INSERT INTO user_balances (wallet, ember_balance, ash_balance)
+                        VALUES (%s, 0, 0)
+                        ON CONFLICT (wallet) DO NOTHING
+                    """, (wallet,))
+
+            return jsonify({
+                "success": True,
+                "wallet": wallet,
+                "token_ids_cached": len(token_ids),
+                "synced_to_database": synced,
+                "total_supply": total_supply
+            })
+
+        except Exception as e:
+            print(f"Error registering player NFTs: {e}")
+            return jsonify({"error": str(e)}), 500
+
+    @app.route('/api/player/<wallet>/ember', methods=['GET'])
+    def api_player_ember(wallet):
+        """Get $EMBER balance for a wallet"""
+        wallet = wallet.lower()
+
+        if not POSTGRESQL_AVAILABLE:
+            return jsonify({"error": "Database not available"}), 503
+
+        try:
+            with get_db_connection() as conn:
+                with conn.cursor() as cur:
+                    cur.execute("""
+                        SELECT ember_balance, total_ember_earned, ash_balance
+                        FROM user_balances
+                        WHERE wallet = %s
+                    """, (wallet,))
+                    row = cur.fetchone()
+
+                    if row:
+                        return jsonify({
+                            "success": True,
+                            "wallet": wallet,
+                            "ember_balance": row[0] or 0,
+                            "total_ember_earned": row[1] or 0,
+                            "ash_balance": row[2] or 0
+                        })
+                    else:
+                        return jsonify({
+                            "success": True,
+                            "wallet": wallet,
+                            "ember_balance": 0,
+                            "total_ember_earned": 0,
+                            "ash_balance": 0
+                        })
+
+        except Exception as e:
+            print(f"Error getting ember balance: {e}")
+            return jsonify({"error": str(e)}), 500
+
+    # =====================================================================
+    # GLOBAL CHAT ENDPOINTS
+    # =====================================================================
+
+    @app.route('/api/social/global-chat', methods=['GET'])
+    def api_social_global_chat_get():
+        """Get global chat messages"""
+        limit = request.args.get('limit', 100, type=int)
+        before_id = request.args.get('before_id', type=int)
+
+        if not POSTGRESQL_AVAILABLE:
+            return jsonify({"error": "Database not available"}), 503
+
+        try:
+            with get_db_connection() as conn:
+                with conn.cursor() as cur:
+                    # Check if global_messages table exists, create if not
+                    cur.execute("""
+                        CREATE TABLE IF NOT EXISTS global_messages (
+                            id SERIAL PRIMARY KEY,
+                            wallet VARCHAR(42) NOT NULL,
+                            message TEXT NOT NULL,
+                            created_at TIMESTAMP DEFAULT NOW()
+                        )
+                    """)
+
+                    if before_id:
+                        cur.execute("""
+                            SELECT gm.id, gm.wallet, gm.message, gm.created_at,
+                                   up.display_name, up.farcaster_username, up.farcaster_pfp_url
+                            FROM global_messages gm
+                            LEFT JOIN user_profiles up ON gm.wallet = up.wallet
+                            WHERE gm.id < %s
+                            ORDER BY gm.id DESC
+                            LIMIT %s
+                        """, (before_id, limit))
+                    else:
+                        cur.execute("""
+                            SELECT gm.id, gm.wallet, gm.message, gm.created_at,
+                                   up.display_name, up.farcaster_username, up.farcaster_pfp_url
+                            FROM global_messages gm
+                            LEFT JOIN user_profiles up ON gm.wallet = up.wallet
+                            ORDER BY gm.id DESC
+                            LIMIT %s
+                        """, (limit,))
+
+                    rows = cur.fetchall()
+                    messages = []
+                    for row in rows:
+                        messages.append({
+                            "id": row[0],
+                            "wallet": row[1],
+                            "message": row[2],
+                            "created_at": row[3].isoformat() if row[3] else None,
+                            "display_name": row[4],
+                            "farcaster_username": row[5],
+                            "farcaster_pfp_url": row[6]
+                        })
+
+                    # Return in chronological order
+                    messages.reverse()
+
+                    return jsonify({
+                        "success": True,
+                        "messages": messages
+                    })
+
+        except Exception as e:
+            print(f"Error getting global chat: {e}")
+            return jsonify({"error": str(e)}), 500
+
+    @app.route('/api/social/global-chat', methods=['POST'])
+    def api_social_global_chat_post():
+        """Send a message to global chat"""
+        data = request.get_json() or {}
+        wallet = data.get('wallet', '').lower()
+        message = data.get('message', '').strip()
+
+        if not wallet or not message:
+            return jsonify({"error": "Missing wallet or message"}), 400
+
+        if len(message) > 500:
+            return jsonify({"error": "Message too long (max 500 chars)"}), 400
+
+        if not POSTGRESQL_AVAILABLE:
+            return jsonify({"error": "Database not available"}), 503
+
+        try:
+            with get_db_connection() as conn:
+                with conn.cursor() as cur:
+                    # Create table if not exists
+                    cur.execute("""
+                        CREATE TABLE IF NOT EXISTS global_messages (
+                            id SERIAL PRIMARY KEY,
+                            wallet VARCHAR(42) NOT NULL,
+                            message TEXT NOT NULL,
+                            created_at TIMESTAMP DEFAULT NOW()
+                        )
+                    """)
+
+                    # Insert message
+                    cur.execute("""
+                        INSERT INTO global_messages (wallet, message)
+                        VALUES (%s, %s)
+                        RETURNING id, created_at
+                    """, (wallet, message))
+                    row = cur.fetchone()
+
+                    # Get user profile
+                    cur.execute("""
+                        SELECT display_name, farcaster_username, farcaster_pfp_url
+                        FROM user_profiles WHERE wallet = %s
+                    """, (wallet,))
+                    profile = cur.fetchone()
+
+                    return jsonify({
+                        "success": True,
+                        "message": {
+                            "id": row[0],
+                            "wallet": wallet,
+                            "message": message,
+                            "created_at": row[1].isoformat() if row[1] else None,
+                            "display_name": profile[0] if profile else None,
+                            "farcaster_username": profile[1] if profile else None,
+                            "farcaster_pfp_url": profile[2] if profile else None
+                        }
+                    })
+
+        except Exception as e:
+            print(f"Error posting to global chat: {e}")
+            return jsonify({"error": str(e)}), 500
+
+    # =====================================================================
+    # OPERATORS ENDPOINT
+    # =====================================================================
+
+    @app.route('/api/social/operators', methods=['GET'])
+    def api_social_operators():
+        """Get list of all operators (NFT holders with profiles)"""
+        limit = request.args.get('limit', 100, type=int)
+        offset = request.args.get('offset', 0, type=int)
+
+        if not POSTGRESQL_AVAILABLE:
+            return jsonify({"error": "Database not available"}), 503
+
+        try:
+            with get_db_connection() as conn:
+                with conn.cursor() as cur:
+                    cur.execute("""
+                        SELECT DISTINCT
+                            up.wallet,
+                            up.display_name,
+                            up.farcaster_username,
+                            up.farcaster_pfp_url,
+                            up.last_seen,
+                            up.country_code,
+                            (SELECT COUNT(*) FROM nfts WHERE last_known_owner = up.wallet) as nft_count
+                        FROM user_profiles up
+                        WHERE EXISTS (SELECT 1 FROM nfts WHERE last_known_owner = up.wallet)
+                        ORDER BY up.last_seen DESC NULLS LAST
+                        LIMIT %s OFFSET %s
+                    """, (limit, offset))
+                    rows = cur.fetchall()
+
+                    users = []
+                    now = datetime.now(timezone.utc).replace(tzinfo=None)
+                    for row in rows:
+                        last_seen = row[4]
+                        is_online = False
+                        if last_seen:
+                            is_online = (now - last_seen).total_seconds() < 900  # 15 min
+
+                        users.append({
+                            "wallet": row[0],
+                            "display_name": row[1],
+                            "farcaster_username": row[2],
+                            "farcaster_pfp_url": row[3],
+                            "last_seen": row[4].isoformat() if row[4] else None,
+                            "country_code": row[5],
+                            "nft_count": row[6],
+                            "is_online": is_online
+                        })
+
+                    return jsonify({
+                        "success": True,
+                        "users": users,
+                        "count": len(users),
+                        "limit": limit,
+                        "offset": offset
+                    })
+
+        except Exception as e:
+            print(f"Error getting operators: {e}")
+            return jsonify({"error": str(e)}), 500
+
+    # =====================================================================
+    # EVENTS ENDPOINT (Wrapper for /api/events/active)
+    # =====================================================================
+
+    @app.route('/api/events', methods=['GET'])
+    def api_events():
+        """
+        Get active events.
+        This is a wrapper that redirects to the existing events endpoint format.
+        """
+        if not POSTGRESQL_AVAILABLE:
+            return jsonify({"events": [], "event_settings": None})
+
+        try:
+            with get_db_connection() as conn:
+                with conn.cursor() as cur:
+                    # Get active events
+                    cur.execute("""
+                        SELECT id, name, slug, status, description,
+                               item_drop_multiplier, rune_drop_multiplier, created_at
+                        FROM events
+                        WHERE status = 'active'
+                        ORDER BY created_at DESC
+                    """, ())
+                    rows = cur.fetchall()
+
+                    events = []
+                    for row in rows:
+                        events.append({
+                            "id": str(row[0]),
+                            "name": row[1],
+                            "slug": row[2],
+                            "status": row[3],
+                            "description": row[4],
+                            "item_drop_multiplier": float(row[5]) if row[5] else 1.0,
+                            "rune_drop_multiplier": float(row[6]) if row[6] else 1.0,
+                            "event_active": row[3] == 'active'
+                        })
+
+                    return jsonify({
+                        "events": events,
+                        "event_settings": {
+                            "max_concurrent_events": 3,
+                            "cooldown_hours": 1,
+                            "bonus_multiplier": 1.0
+                        }
+                    })
+
+        except Exception as e:
+            print(f"Error getting events: {e}")
+            return jsonify({"events": [], "event_settings": None})
+
     print("✅ Mini App routes registered successfully")
     print("   - GET  /api/realm-status")
     print("   - GET  /api/pyre/<wallet>")
@@ -2242,3 +2664,10 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
     print("   - POST /api/social/message")
     print("   - POST /api/social/message/read")
     print("   - GET  /api/social/online-stats")
+    print("   - GET  /api/player/<wallet> (NEW)")
+    print("   - POST /api/player/<wallet> (NEW)")
+    print("   - GET  /api/player/<wallet>/ember (NEW)")
+    print("   - GET  /api/social/global-chat (NEW)")
+    print("   - POST /api/social/global-chat (NEW)")
+    print("   - GET  /api/social/operators (NEW)")
+    print("   - GET  /api/events (NEW)")

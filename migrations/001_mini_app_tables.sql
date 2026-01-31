@@ -146,6 +146,16 @@ CREATE INDEX IF NOT EXISTS idx_private_messages_to ON private_messages(to_wallet
 CREATE INDEX IF NOT EXISTS idx_private_messages_date ON private_messages(created_at);
 CREATE INDEX IF NOT EXISTS idx_private_messages_conversation ON private_messages(from_wallet, to_wallet);
 
+CREATE TABLE IF NOT EXISTS global_messages (
+    id SERIAL PRIMARY KEY,
+    wallet VARCHAR(42) NOT NULL,
+    message TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_global_messages_wallet ON global_messages(wallet);
+CREATE INDEX IF NOT EXISTS idx_global_messages_date ON global_messages(created_at);
+
 -- =========================================================================
 -- PASO 6: TABLAS DE RECOMPENSAS SOCIALES
 -- =========================================================================
