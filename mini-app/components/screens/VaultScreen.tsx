@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createPublicClient, http, parseAbi } from 'viem';
 import { base } from 'viem/chains';
-import { Emissary } from '@/lib/api';
+import { Emissary, getEmberBalance } from '@/lib/api';
 import { CONTRACT_CONFIG } from '@/lib/contracts';
 
 /**
@@ -261,11 +261,13 @@ export function VaultScreen({ wallet, emissaries, onBack }: VaultScreenProps) {
       setLoadingStatus('Connecting to blockchain...');
 
       try {
-        // Load balances from API (mock for now, real API integration pending)
+        // Load balances from API
+        const emberData = await getEmberBalance(wallet!);
         setBalances({
-          ember: { balance: 0, pending: 0 },
-          ash: { balance: 0 },
+          ember: { balance: emberData.balance || 0, pending: emberData.pending || 0 },
+          ash: { balance: 0 }, // ASH balance from separate endpoint if needed
         });
+        console.log(`[Vault] Loaded EMBER balance: ${emberData.balance}`);
 
         // Load Items and Runes in parallel from blockchain
         const [loadedItems, loadedRunes] = await Promise.all([

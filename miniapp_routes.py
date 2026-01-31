@@ -508,7 +508,8 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
                         SELECT id, name, description, difficulty, duration_seconds,
                                energy_cost, pyre_reward_min, pyre_reward_max,
                                xp_reward_min, xp_reward_max, aura_chance,
-                               narrative_intro, cooldown_minutes
+                               narrative_intro, cooldown_minutes,
+                               ember_reward_min, ember_reward_max
                         FROM micro_missions
                         WHERE is_active = TRUE
                         ORDER BY difficulty, id
@@ -517,18 +518,26 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
 
                     missions = []
                     for row in rows:
+                        # Normalize difficulty to uppercase (frontend expects EASY/MEDIUM/HARD)
+                        difficulty = (row[3] or 'EASY').upper()
+                        # Map 'LEGENDARY' to 'HARD' for frontend compatibility
+                        if difficulty == 'LEGENDARY':
+                            difficulty = 'HARD'
+
                         missions.append({
                             "id": row[0],
                             "name": row[1],
                             "description": row[2],
-                            "difficulty": row[3],
+                            "difficulty": difficulty,
                             "duration_seconds": row[4],
                             "energy_cost": row[5],
                             "pyre_reward": {"min": row[6], "max": row[7]},
                             "xp_reward": {"min": row[8], "max": row[9]},
                             "aura_chance": float(row[10]) if row[10] else 0,
                             "narrative_intro": row[11],
-                            "cooldown_minutes": row[12]
+                            "cooldown_minutes": row[12],
+                            # Include ember_reward for frontend
+                            "ember_reward": {"min": row[13] or row[6], "max": row[14] or row[7]}
                         })
 
                     return jsonify({
