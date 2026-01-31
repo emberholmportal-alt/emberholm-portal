@@ -17,6 +17,7 @@ CREATE TABLE IF NOT EXISTS nfts (
     guild VARCHAR(100),                                  -- "Circle of Mist", etc.
     race_class VARCHAR(100),                             -- "Human Warrior"
     last_known_owner VARCHAR(42),                        -- Wallet address (lowercase)
+    image_url TEXT,                                      -- IPFS/Arweave URL of the NFT image
 
     -- Dynamic state como JSONB para búsquedas rápidas
     dynamic_state JSONB NOT NULL DEFAULT '{}'::jsonb,
