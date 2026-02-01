@@ -107,6 +107,9 @@ async function makeMicroMissionChoice(wallet, activeId, choice) {
             })
         });
         const data = await response.json();
+
+        console.log('[MicroMissions] Choice API response:', data);
+
         if (data.success) {
             // Update local state with multi-step progression
             if (microMissionsState.activeMission) {
@@ -127,13 +130,17 @@ async function makeMicroMissionChoice(wallet, activeId, choice) {
             }
             return data;
         }
+
+        // Return error info so it can be displayed
         if (data.error) {
             console.error('[MicroMissions] Choice error:', data.error);
+            return { success: false, error: data.error };
         }
-        return null;
+
+        return { success: false, error: 'Unknown error' };
     } catch (error) {
         console.error('[MicroMissions] Error making choice:', error);
-        return null;
+        return { success: false, error: error.message };
     }
 }
 
@@ -736,7 +743,7 @@ async function executeAbandonMission(activeId) {
 }
 
 /**
- * Handle mission choice
+ * Handle mission choice - Multi-step adventure support
  */
 async function handleMissionChoice(activeId, choice) {
     const wallet = window.connectedWallet;
@@ -745,12 +752,34 @@ async function handleMissionChoice(activeId, choice) {
         return;
     }
 
+    console.log('[MicroMissions] Making choice:', choice, 'for mission:', activeId);
+
     const result = await makeMicroMissionChoice(wallet, activeId, choice);
-    if (result) {
-        // Refresh active mission view
+
+    if (result && result.success) {
+        console.log('[MicroMissions] Choice result:', result);
+
+        // Use the local state which was updated by makeMicroMissionChoice
+        if (microMissionsState.activeMission) {
+            renderActiveMission(microMissionsState.activeMission);
+        } else {
+            // Fallback: refresh from server
+            const activeMission = await getActiveMicroMission(wallet);
+            if (activeMission) {
+                renderActiveMission(activeMission);
+            }
+        }
+    } else if (result && result.error) {
+        console.error('[MicroMissions] Choice error:', result.error);
+        showInfoModal('CHOICE ERROR', result.error);
+    } else {
+        console.error('[MicroMissions] Choice failed - no result');
+        // Try to refresh from server anyway
         const activeMission = await getActiveMicroMission(wallet);
         if (activeMission) {
             renderActiveMission(activeMission);
+        } else {
+            showInfoModal('ERROR', 'Failed to process choice. Please try refreshing the page.');
         }
     }
 }
@@ -1133,13 +1162,19 @@ async function showActiveMicroMissionByToken(tokenId) {
         return;
     }
 
+    console.log('[MicroMissions] VIEW MISSION clicked for token:', tokenId);
+
     // Get the active mission
     const activeMission = await getActiveMicroMission(wallet);
+
+    console.log('[MicroMissions] Active mission data:', activeMission);
 
     if (activeMission) {
         // Normalize token IDs for comparison (handle "00042" vs "42")
         const requestedToken = String(tokenId).replace(/^0+/, '') || '0';
         const missionToken = String(activeMission.emissary_token_id).replace(/^0+/, '') || '0';
+
+        console.log('[MicroMissions] Token comparison - requested:', requestedToken, 'mission:', missionToken);
 
         if (requestedToken === missionToken) {
             // Navigate to micro-missions section
@@ -1150,15 +1185,30 @@ async function showActiveMicroMissionByToken(tokenId) {
             renderActiveMission(activeMission);
         } else {
             // Different emissary has the active mission
-            showInfoModal('DIFFERENT EMISSARY', `Another emissary is currently on a micro-mission. Complete or abandon that mission first.`);
+            showInfoModal('DIFFERENT EMISSARY', `Another emissary (Token #${activeMission.emissary_token_id}) is currently on a micro-mission. Complete or abandon that mission first.`);
         }
     } else {
-        // No active mission found - this emissary might be stuck, offer to refresh
-        showInfoModal('NO ACTIVE MISSION', 'This emissary has no active micro-mission. If the emissary appears stuck, try refreshing the page.');
-        // Try to reload emissaries to fix stuck state
-        if (typeof loadHeroes === 'function') {
-            loadHeroes();
+        // No active mission found - this emissary might be stuck
+        console.warn('[MicroMissions] No active mission found for emissary, cleaning up stuck state...');
+
+        // Attempt to fix stuck emissary state via emergency cleanup
+        try {
+            await fetch('/api/micro-mission/emergency-cleanup', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            });
+        } catch (e) {
+            console.error('[MicroMissions] Cleanup failed:', e);
         }
+
+        showInfoModal('NO ACTIVE MISSION', 'This emissary has no active micro-mission. The stuck state has been cleaned up. Refreshing...');
+
+        // Reload emissaries to fix stuck state
+        setTimeout(() => {
+            if (typeof loadHeroes === 'function') {
+                loadHeroes();
+            }
+        }, 1000);
     }
 }
 

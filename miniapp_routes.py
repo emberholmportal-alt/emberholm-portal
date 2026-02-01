@@ -341,6 +341,46 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
                     """)
 
                     # =========================================================
+                    # FORCE FIX: Update mission durations (fix old 10860s values)
+                    # EASY=120s (2min), MEDIUM=240s (4min), HARD=300s (5min)
+                    # =========================================================
+                    cur.execute("""
+                        UPDATE micro_missions SET duration_seconds = 120
+                        WHERE difficulty = 'EASY' AND duration_seconds != 120
+                    """)
+                    cur.execute("""
+                        UPDATE micro_missions SET duration_seconds = 240
+                        WHERE difficulty = 'MEDIUM' AND duration_seconds != 240
+                    """)
+                    cur.execute("""
+                        UPDATE micro_missions SET duration_seconds = 300
+                        WHERE difficulty = 'HARD' AND duration_seconds != 300
+                    """)
+
+                    # Also fix any active missions with wrong end times
+                    cur.execute("""
+                        UPDATE active_micro_missions SET
+                            ends_at = started_at + INTERVAL '120 seconds'
+                        WHERE micro_mission_id LIKE 'MM-E%'
+                        AND status IN ('active', 'choice_pending')
+                        AND ends_at > started_at + INTERVAL '10 minutes'
+                    """)
+                    cur.execute("""
+                        UPDATE active_micro_missions SET
+                            ends_at = started_at + INTERVAL '240 seconds'
+                        WHERE micro_mission_id LIKE 'MM-M%'
+                        AND status IN ('active', 'choice_pending')
+                        AND ends_at > started_at + INTERVAL '10 minutes'
+                    """)
+                    cur.execute("""
+                        UPDATE active_micro_missions SET
+                            ends_at = started_at + INTERVAL '300 seconds'
+                        WHERE micro_mission_id LIKE 'MM-H%'
+                        AND status IN ('active', 'choice_pending')
+                        AND ends_at > started_at + INTERVAL '10 minutes'
+                    """)
+
+                    # =========================================================
                     # POPULATE MULTI-STEP NARRATIVE DATA FOR MISSIONS
                     # Structure: EASY=2 steps, MEDIUM=3 steps, HARD=4 steps
                     # =========================================================
@@ -2111,7 +2151,7 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
                     # Get mission data including narrative_steps and current progress
                     cur.execute("""
                         SELECT amm.id, amm.status, amm.micro_mission_id,
-                               COALESCE(amm.current_step, 1) as current_step,
+                               COALESCE(amm.current_step, '1') as current_step,
                                COALESCE(amm.choices_path, '[]'::jsonb) as choices_path,
                                amm.ending_reached,
                                mm.narrative_steps, mm.name
@@ -2125,11 +2165,25 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
                         return jsonify({"error": "Active micro-mission not found"}), 404
 
                     status = row[1]
-                    current_step = row[3]
+                    current_step = str(row[3]) if row[3] else "1"
                     choices_path = row[4] if row[4] else []
+
+                    print(f"[MicroMission] Choice API - active_id: {active_id}, current_step: {current_step}, status: {status}")
                     ending_reached = row[5]
-                    narrative_steps = row[6] or {}
+                    narrative_steps_raw = row[6]
                     mission_name = row[7]
+
+                    # Parse narrative_steps if it's a string
+                    if isinstance(narrative_steps_raw, str):
+                        import json as json_module
+                        try:
+                            narrative_steps = json_module.loads(narrative_steps_raw)
+                        except:
+                            narrative_steps = {}
+                    else:
+                        narrative_steps = narrative_steps_raw or {}
+
+                    print(f"[MicroMission] narrative_steps type: {type(narrative_steps)}, has steps: {'steps' in narrative_steps if isinstance(narrative_steps, dict) else 'N/A'}")
 
                     # Check if ending already reached
                     if ending_reached:
@@ -2142,8 +2196,16 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
                         return jsonify({"error": f"Cannot make choice in status: {status}"}), 400
 
                     # Get steps and endings from narrative_steps
+                    if not isinstance(narrative_steps, dict):
+                        return jsonify({
+                            "error": "Invalid narrative data",
+                            "narrative_type": str(type(narrative_steps))
+                        }), 500
+
                     steps = narrative_steps.get('steps', {})
                     endings = narrative_steps.get('endings', {})
+
+                    print(f"[MicroMission] Available steps: {list(steps.keys())}")
 
                     # Find current step (can be "1", "2A", "2B", "3A", etc.)
                     # First step is always "1", subsequent steps are stored in choices_path progression
@@ -2647,12 +2709,53 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
                     cur.execute("SELECT COUNT(*) FROM active_micro_missions WHERE status IN ('active', 'choice_pending')")
                     count_before = cur.fetchone()[0]
 
+                    # Get emissary token IDs from active micro missions (to reset their state)
+                    cur.execute("""
+                        SELECT DISTINCT emissary_token_id FROM active_micro_missions
+                        WHERE status IN ('active', 'choice_pending')
+                    """)
+                    stuck_emissary_tokens = [row[0] for row in cur.fetchall()]
+
                     # Delete ALL active/pending micro missions
                     cur.execute("""
                         DELETE FROM active_micro_missions
                         WHERE status IN ('active', 'choice_pending')
                     """)
                     deleted = cur.rowcount
+
+                    # Reset emissary states to READY for all stuck emissaries
+                    emissaries_reset = 0
+                    for token_id in stuck_emissary_tokens:
+                        cur.execute("""
+                            UPDATE nfts SET
+                                dynamic_state = jsonb_set(
+                                    COALESCE(dynamic_state, '{}'::jsonb),
+                                    '{state}',
+                                    '"READY"'
+                                ),
+                                last_update = NOW()
+                            WHERE token_id = %s
+                        """, (token_id,))
+                        emissaries_reset += cur.rowcount
+
+                    # Also reset any emissary with ON_MICRO_MISSION state that doesn't have an active mission
+                    cur.execute("""
+                        UPDATE nfts SET
+                            dynamic_state = jsonb_set(
+                                COALESCE(dynamic_state, '{}'::jsonb),
+                                '{state}',
+                                '"READY"'
+                            ),
+                            last_update = NOW()
+                        WHERE dynamic_state->>'state' = 'ON_MICRO_MISSION'
+                        AND token_id NOT IN (
+                            SELECT emissary_token_id FROM active_micro_missions
+                            WHERE status IN ('active', 'choice_pending')
+                        )
+                    """)
+                    orphaned_reset = cur.rowcount
+
+                    print(f"[Emergency Cleanup] Deleted {deleted} missions, reset {emissaries_reset} emissaries, fixed {orphaned_reset} orphaned states")
 
                     # Force update narrative data (remove restrictive conditions)
                     cur.execute("""
@@ -2750,11 +2853,13 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
                     cur.execute("SELECT COUNT(*) FROM micro_missions WHERE narrative_choices IS NOT NULL AND narrative_choices::text != '[]'")
                     missions_updated = cur.fetchone()[0]
 
+                    total_emissaries_fixed = emissaries_reset + orphaned_reset
                     return jsonify({
                         "success": True,
                         "deleted_missions": deleted,
+                        "emissaries_reset": total_emissaries_fixed,
                         "missions_with_narrative": missions_updated,
-                        "message": f"Cleanup complete! Deleted {deleted} corrupted missions. {missions_updated} missions now have narrative data."
+                        "message": f"Cleanup complete! Deleted {deleted} corrupted missions, reset {total_emissaries_fixed} emissary states. {missions_updated} missions now have narrative data."
                     })
 
         except Exception as e:
