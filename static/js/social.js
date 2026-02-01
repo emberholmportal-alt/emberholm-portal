@@ -44,6 +44,13 @@ async function getSocialProfile(wallet) {
  * Save user profile (country, etc.)
  */
 async function saveSocialProfile(wallet, countryCode, displayName) {
+    console.log('[Social] Saving profile:', { wallet, countryCode, displayName });
+
+    if (!wallet) {
+        console.error('[Social] No wallet provided');
+        return null;
+    }
+
     try {
         const response = await fetch('/api/social/profile', {
             method: 'POST',
@@ -54,11 +61,21 @@ async function saveSocialProfile(wallet, countryCode, displayName) {
                 display_name: displayName || null
             })
         });
+
         const data = await response.json();
+        console.log('[Social] Profile save response:', data);
+
+        if (!response.ok) {
+            console.error('[Social] HTTP error:', response.status, data.error);
+            return null;
+        }
+
         if (data.success) {
             socialState.userProfile = data.profile;
             return data.profile;
         }
+
+        console.error('[Social] Save failed:', data.error || 'Unknown error');
         return null;
     } catch (error) {
         console.error('[Social] Error saving profile:', error);
@@ -316,13 +333,45 @@ function selectCountry(code) {
  * Confirm country selection and save to backend
  */
 async function confirmCountrySelection() {
-    if (!selectedCountryCode || !connectedWallet) return;
-
     const confirmBtn = document.getElementById('confirm-country-btn');
-    confirmBtn.disabled = true;
-    confirmBtn.textContent = '[SAVING...]';
 
-    const profile = await saveSocialProfile(connectedWallet, selectedCountryCode);
+    // Get wallet from global variable (defined in index.html)
+    const wallet = window.connectedWallet;
+
+    console.log('[Social] confirmCountrySelection called:', {
+        selectedCountryCode,
+        wallet,
+        connectedWalletGlobal: typeof connectedWallet !== 'undefined' ? connectedWallet : 'undefined'
+    });
+
+    if (!selectedCountryCode) {
+        console.error('[Social] No country selected');
+        if (confirmBtn) {
+            confirmBtn.disabled = false;
+            confirmBtn.textContent = '[SELECT A COUNTRY FIRST]';
+        }
+        return;
+    }
+
+    if (!wallet) {
+        console.error('[Social] No wallet connected');
+        if (confirmBtn) {
+            confirmBtn.disabled = false;
+            confirmBtn.textContent = '[CONNECT WALLET FIRST]';
+        }
+        // Show info modal
+        if (typeof showInfoModal === 'function') {
+            showInfoModal('WALLET REQUIRED', 'Please connect your wallet first to save your country selection.');
+        }
+        return;
+    }
+
+    if (confirmBtn) {
+        confirmBtn.disabled = true;
+        confirmBtn.textContent = '[SAVING...]';
+    }
+
+    const profile = await saveSocialProfile(wallet, selectedCountryCode);
 
     if (profile) {
         // Close modal
@@ -330,15 +379,22 @@ async function confirmCountrySelection() {
 
         // Show success message
         const country = getCountryByCode(selectedCountryCode);
-        showInfoModal('COUNTRY SET', `You are now representing ${country.flag} ${country.name}!\n\nWelcome to the global community, Emissary.`);
+        if (typeof showInfoModal === 'function') {
+            showInfoModal('COUNTRY SET', `You are now representing ${country.flag} ${country.name}!\n\nWelcome to the global community, Emissary.`);
+        }
 
         // Load social section
         setTimeout(() => {
-            loadSocialContent();
+            if (typeof loadSocialContent === 'function') {
+                loadSocialContent();
+            }
         }, 500);
     } else {
-        confirmBtn.disabled = false;
-        confirmBtn.textContent = '[ERROR - TRY AGAIN]';
+        console.error('[Social] Failed to save profile');
+        if (confirmBtn) {
+            confirmBtn.disabled = false;
+            confirmBtn.textContent = '[ERROR - TRY AGAIN]';
+        }
     }
 }
 
@@ -385,7 +441,7 @@ function renderChatMessages(messages) {
             hour: '2-digit',
             minute: '2-digit'
         });
-        const isOwnMessage = connectedWallet && msg.wallet.toLowerCase() === connectedWallet.toLowerCase();
+        const isOwnMessage = window.connectedWallet && msg.wallet.toLowerCase() === window.connectedWallet.toLowerCase();
 
         return `
             <div class="chat-message ${isOwnMessage ? 'own-message' : ''}">
@@ -427,8 +483,9 @@ async function handleChatSubmit(e) {
 
     const input = document.getElementById('global-chat-input');
     const sendBtn = document.getElementById('global-chat-send');
+    const wallet = window.connectedWallet;
 
-    if (!input || !connectedWallet) return;
+    if (!input || !wallet) return;
 
     const message = input.value.trim();
     if (!message) return;
@@ -438,7 +495,7 @@ async function handleChatSubmit(e) {
     sendBtn.disabled = true;
     sendBtn.textContent = '...';
 
-    const result = await sendGlobalChatMessage(connectedWallet, message);
+    const result = await sendGlobalChatMessage(wallet, message);
 
     if (result) {
         input.value = '';
@@ -491,21 +548,30 @@ function stopChatPolling() {
  * Initialize social section when entering
  */
 async function initSocialSection() {
-    if (!connectedWallet) {
-        showInfoModal('CONNECT WALLET', 'Please connect your wallet to access the Social features.');
+    // Use window.connectedWallet for global access
+    const wallet = window.connectedWallet;
+
+    console.log('[Social] initSocialSection called, wallet:', wallet);
+
+    if (!wallet) {
+        if (typeof showInfoModal === 'function') {
+            showInfoModal('CONNECT WALLET', 'Please connect your wallet to access the Social features.');
+        }
         return false;
     }
 
     // Check if user has country set
-    const profile = await getSocialProfile(connectedWallet);
+    const profile = await getSocialProfile(wallet);
 
     if (!profile || !profile.country_code) {
         // Show country selection modal
+        console.log('[Social] No country set, showing modal');
         showCountrySelectionModal();
         return false;
     }
 
     // User has country, load content
+    console.log('[Social] Country set:', profile.country_code);
     socialState.userProfile = profile;
     await loadSocialContent();
     return true;
@@ -515,10 +581,12 @@ async function initSocialSection() {
  * Load social content (globe, chat, stats)
  */
 async function loadSocialContent() {
+    const wallet = window.connectedWallet;
+
     // Load data in parallel
     const [countries, messages, stats] = await Promise.all([
         getCountriesWithUsers(),
-        getGlobalChatMessages(connectedWallet),
+        getGlobalChatMessages(wallet),
         getOnlineStats()
     ]);
 
@@ -535,7 +603,7 @@ async function loadSocialContent() {
     }
 
     // Start chat polling
-    startChatPolling(connectedWallet);
+    startChatPolling(wallet);
 }
 
 /**
