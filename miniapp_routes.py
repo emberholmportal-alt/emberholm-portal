@@ -1093,19 +1093,23 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
                         WHERE token_id = %s
                     """, (token_id,))
 
+                    # Return structure matching what frontend expects
                     return jsonify({
                         "success": True,
                         "active_micro_mission_id": active_id,
-                        "mission": {
-                            "id": mission[0],
+                        "active_mission": {
+                            "active_id": active_id,
+                            "mission_id": mission[0],
                             "name": mission[1],
                             "duration_seconds": mission[2],
                             "narrative_intro": mission[4],
-                            "choices": mission[5] or []
-                        },
-                        "started_at": now.isoformat(),
-                        "ends_at": ends_at.isoformat(),
-                        "emissary_token_id": token_id
+                            "choices": mission[5] or [],
+                            "started_at": now.isoformat(),
+                            "ends_at": ends_at.isoformat(),
+                            "emissary_token_id": token_id,
+                            "status": "active",
+                            "choice_made": None
+                        }
                     })
 
         except Exception as e:
@@ -1474,6 +1478,138 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
 
         except Exception as e:
             print(f"Error getting active micro-mission: {e}")
+            return jsonify({"error": str(e)}), 500
+
+    @app.route('/api/micro-mission/emergency-cleanup', methods=['POST'])
+    def api_micro_mission_emergency_cleanup():
+        """
+        EMERGENCY: Clean up ALL corrupted active micro-missions.
+        This will free all emissaries stuck in ON_MICRO_MISSION state.
+        """
+        if not POSTGRESQL_AVAILABLE:
+            return jsonify({"error": "Database not available"}), 503
+
+        try:
+            with get_db_connection() as conn:
+                with conn.cursor() as cur:
+                    # Count before cleanup
+                    cur.execute("SELECT COUNT(*) FROM active_micro_missions WHERE status IN ('active', 'choice_pending')")
+                    count_before = cur.fetchone()[0]
+
+                    # Delete ALL active/pending micro missions
+                    cur.execute("""
+                        DELETE FROM active_micro_missions
+                        WHERE status IN ('active', 'choice_pending')
+                    """)
+                    deleted = cur.rowcount
+
+                    # Force update narrative data (remove restrictive conditions)
+                    cur.execute("""
+                        UPDATE micro_missions SET
+                            narrative_choices = '[
+                                {"id": "A", "text": "Listen closely to the whispers", "icon": "ear"},
+                                {"id": "B", "text": "Add fuel to strengthen the flame", "icon": "flame"},
+                                {"id": "C", "text": "Attempt to communicate back", "icon": "chat"}
+                            ]'::jsonb,
+                            narrative_outcomes = '{
+                                "A": {"type": "GOOD", "text": "The whispers reveal ancient knowledge.", "pyre_modifier": 1.2, "xp_modifier": 1.3},
+                                "B": {"type": "PERFECT", "text": "The flame bestows a blessing!", "pyre_modifier": 1.5, "xp_modifier": 1.4},
+                                "C": {"type": "NEUTRAL", "text": "The flame does not respond.", "pyre_modifier": 0.9, "xp_modifier": 1.0}
+                            }'::jsonb
+                        WHERE id = 'MM-E001'
+                    """)
+
+                    cur.execute("""
+                        UPDATE micro_missions SET
+                            narrative_choices = '[
+                                {"id": "A", "text": "Gather quickly before they fade", "icon": "run"},
+                                {"id": "B", "text": "Select only the brightest embers", "icon": "gem"},
+                                {"id": "C", "text": "Follow the ember trail to its source", "icon": "compass"}
+                            ]'::jsonb,
+                            narrative_outcomes = '{
+                                "A": {"type": "GOOD", "text": "Quick reflexes save many embers!", "pyre_modifier": 1.2, "xp_modifier": 1.1},
+                                "B": {"type": "NEUTRAL", "text": "Fewer but exceptional embers.", "pyre_modifier": 1.0, "xp_modifier": 1.0},
+                                "C": {"type": "PERFECT", "text": "You discover a hidden ember nest!", "pyre_modifier": 1.4, "xp_modifier": 1.5}
+                            }'::jsonb
+                        WHERE id = 'MM-E002'
+                    """)
+
+                    cur.execute("""
+                        UPDATE micro_missions SET
+                            narrative_choices = '[
+                                {"id": "A", "text": "Maintain vigilant watch", "icon": "eye"},
+                                {"id": "B", "text": "Investigate the mists", "icon": "search"},
+                                {"id": "C", "text": "Signal other guards", "icon": "bell"}
+                            ]'::jsonb,
+                            narrative_outcomes = '{
+                                "A": {"type": "NEUTRAL", "text": "A quiet but successful patrol.", "pyre_modifier": 1.0, "xp_modifier": 1.0},
+                                "B": {"type": "PERFECT", "text": "You seal a tear in the veil!", "pyre_modifier": 1.5, "xp_modifier": 1.4},
+                                "C": {"type": "GOOD", "text": "Teamwork neutralizes a threat.", "pyre_modifier": 1.2, "xp_modifier": 1.2}
+                            }'::jsonb
+                        WHERE id = 'MM-E003'
+                    """)
+
+                    cur.execute("""
+                        UPDATE micro_missions SET
+                            narrative_choices = '[
+                                {"id": "A", "text": "Empty your mind completely", "icon": "mind"},
+                                {"id": "B", "text": "Focus on a specific question", "icon": "question"},
+                                {"id": "C", "text": "Let the rune guide you", "icon": "rune"}
+                            ]'::jsonb,
+                            narrative_outcomes = '{
+                                "A": {"type": "GOOD", "text": "Power flows through your empty mind.", "pyre_modifier": 1.2, "xp_modifier": 1.1},
+                                "B": {"type": "NEUTRAL", "text": "The rune offers no clear answer.", "pyre_modifier": 0.9, "xp_modifier": 1.0},
+                                "C": {"type": "PERFECT", "text": "Ancient Runesmiths speak through time!", "pyre_modifier": 1.4, "xp_modifier": 1.5}
+                            }'::jsonb
+                        WHERE id = 'MM-E004'
+                    """)
+
+                    cur.execute("""
+                        UPDATE micro_missions SET
+                            narrative_choices = '[
+                                {"id": "A", "text": "Pump the bellows", "icon": "wind"},
+                                {"id": "B", "text": "Sort the metal ingots", "icon": "boxes"},
+                                {"id": "C", "text": "Watch the master work", "icon": "eye"}
+                            ]'::jsonb,
+                            narrative_outcomes = '{
+                                "A": {"type": "GOOD", "text": "Perfect forge temperature achieved.", "pyre_modifier": 1.2, "xp_modifier": 1.2},
+                                "B": {"type": "NEUTRAL", "text": "Organization is the foundation.", "pyre_modifier": 1.0, "xp_modifier": 1.0},
+                                "C": {"type": "PERFECT", "text": "The master shares a secret technique!", "pyre_modifier": 1.3, "xp_modifier": 1.5}
+                            }'::jsonb
+                        WHERE id = 'MM-E005'
+                    """)
+
+                    # Update all remaining missions with default choices
+                    cur.execute("""
+                        UPDATE micro_missions SET
+                            narrative_choices = '[
+                                {"id": "A", "text": "Take the cautious approach", "icon": "shield"},
+                                {"id": "B", "text": "Act boldly and swiftly", "icon": "sword"},
+                                {"id": "C", "text": "Seek a clever solution", "icon": "book"}
+                            ]'::jsonb,
+                            narrative_outcomes = '{
+                                "A": {"type": "NEUTRAL", "text": "Caution serves you well.", "pyre_modifier": 1.0, "xp_modifier": 1.0},
+                                "B": {"type": "GOOD", "text": "Fortune favors the bold!", "pyre_modifier": 1.3, "xp_modifier": 1.2},
+                                "C": {"type": "PERFECT", "text": "Your wit earns great rewards!", "pyre_modifier": 1.5, "xp_modifier": 1.5}
+                            }'::jsonb
+                        WHERE narrative_choices IS NULL OR narrative_choices = '[]'::jsonb OR narrative_choices::text = '[]'
+                    """)
+
+                    # Verify updates
+                    cur.execute("SELECT COUNT(*) FROM micro_missions WHERE narrative_choices IS NOT NULL AND narrative_choices::text != '[]'")
+                    missions_updated = cur.fetchone()[0]
+
+                    return jsonify({
+                        "success": True,
+                        "deleted_missions": deleted,
+                        "missions_with_narrative": missions_updated,
+                        "message": f"Cleanup complete! Deleted {deleted} corrupted missions. {missions_updated} missions now have narrative data."
+                    })
+
+        except Exception as e:
+            print(f"Error in emergency cleanup: {e}")
+            import traceback
+            traceback.print_exc()
             return jsonify({"error": str(e)}), 500
 
     # =====================================================================

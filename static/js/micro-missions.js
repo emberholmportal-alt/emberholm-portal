@@ -238,6 +238,12 @@ async function initMicroMissionsSection() {
     // Check for active mission first
     const activeMission = await getActiveMicroMission(wallet);
 
+    // Show/hide emergency button
+    const emergencyDiv = document.getElementById('micro-missions-emergency');
+    if (emergencyDiv) {
+        emergencyDiv.style.display = activeMission ? 'block' : 'none';
+    }
+
     if (activeMission) {
         // Show active mission UI
         renderActiveMission(activeMission);
@@ -956,7 +962,7 @@ async function startMicroMissionFromModal(missionId, heroId) {
         }
         // Render the active mission
         if (result.active_mission) {
-            renderActiveMission(result);
+            renderActiveMission(result.active_mission);
         } else {
             initMicroMissionsSection();
         }
@@ -966,10 +972,48 @@ async function startMicroMissionFromModal(missionId, heroId) {
 }
 
 // =========================================================================
+// EMERGENCY CLEANUP
+// =========================================================================
+
+/**
+ * Call emergency cleanup endpoint to fix corrupted missions
+ */
+async function emergencyCleanupMissions() {
+    if (!confirm('This will delete ALL active micro-missions and free all stuck emissaries. Continue?')) {
+        return;
+    }
+
+    showInfoModal('CLEANING UP...', 'Removing corrupted missions...');
+
+    try {
+        const response = await fetch('/api/micro-mission/emergency-cleanup', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        });
+        const data = await response.json();
+
+        if (data.success) {
+            showInfoModal('CLEANUP COMPLETE', data.message);
+            // Refresh the section
+            setTimeout(() => {
+                closeInfoModal();
+                initMicroMissionsSection();
+            }, 2000);
+        } else {
+            showInfoModal('ERROR', data.error || 'Cleanup failed');
+        }
+    } catch (error) {
+        console.error('[MicroMissions] Emergency cleanup error:', error);
+        showInfoModal('ERROR', 'Failed to clean up missions: ' + error.message);
+    }
+}
+
+// =========================================================================
 // EXPORTS
 // =========================================================================
 
 window.initMicroMissionsSection = initMicroMissionsSection;
+window.emergencyCleanupMissions = emergencyCleanupMissions;
 window.cleanupMicroMissionsSection = cleanupMicroMissionsSection;
 window.selectMicroMission = selectMicroMission;
 window.confirmMissionStart = confirmMissionStart;
