@@ -65,16 +65,16 @@ ON CONFLICT (id) DO UPDATE SET
     is_active = EXCLUDED.is_active;
 
 -- =========================================================================
--- MICRO-MISSIONS: HARD (360 segundos = 6 minutos)
+-- MICRO-MISSIONS: HARD (300 segundos = 5 minutos)
 -- =========================================================================
 
 INSERT INTO micro_missions (id, name, description, difficulty, duration_seconds, energy_cost, pyre_reward_min, pyre_reward_max, xp_reward_min, xp_reward_max, ember_reward_min, ember_reward_max, aura_chance, narrative_intro, cooldown_minutes, is_active)
 VALUES
-('MM-H001', 'Void Rift Sealing', 'A dangerous rift has opened. Seal it before creatures emerge.', 'HARD', 360, 15, 35, 50, 20, 35, 50, 80, 20.00, 'The fabric of reality tears before you. Dark energies pour through - seal the rift or face the consequences!', 10, TRUE),
-('MM-H002', 'Ancient Guardian Trial', 'Face the trial of the Ancient Guardian to prove your worth.', 'HARD', 360, 20, 40, 60, 25, 40, 60, 100, 25.00, 'The stone guardian awakens. Only the worthy may pass this ancient trial.', 15, TRUE),
-('MM-H003', 'Legendary Artifact Recovery', 'A legendary artifact has been detected. Retrieve it from dangerous territory.', 'HARD', 360, 25, 50, 75, 30, 50, 80, 120, 30.00, 'The artifact pulses with power in the distance. Many have sought it - none have returned.', 20, TRUE),
-('MM-H004', 'Elite Ash Beast Hunt', 'An elite ash beast threatens the realm. Hunt it down.', 'HARD', 360, 20, 40, 60, 25, 40, 60, 100, 25.00, 'Massive tracks scar the landscape. The alpha beast must be eliminated before it breeds.', 15, TRUE),
-('MM-H005', 'Forge of Legends', 'Assist in forging a legendary weapon at the Eternal Forge.', 'HARD', 360, 15, 35, 50, 20, 35, 50, 80, 20.00, 'The master smith summons you. Today, legend shall be forged in flame and steel.', 10, TRUE)
+('MM-H001', 'Void Rift Sealing', 'A dangerous rift has opened. Seal it before creatures emerge.', 'HARD', 300, 15, 35, 50, 20, 35, 50, 80, 20.00, 'The fabric of reality tears before you. Dark energies pour through - seal the rift or face the consequences!', 10, TRUE),
+('MM-H002', 'Ancient Guardian Trial', 'Face the trial of the Ancient Guardian to prove your worth.', 'HARD', 300, 20, 40, 60, 25, 40, 60, 100, 25.00, 'The stone guardian awakens. Only the worthy may pass this ancient trial.', 15, TRUE),
+('MM-H003', 'Legendary Artifact Recovery', 'A legendary artifact has been detected. Retrieve it from dangerous territory.', 'HARD', 300, 25, 50, 75, 30, 50, 80, 120, 30.00, 'The artifact pulses with power in the distance. Many have sought it - none have returned.', 20, TRUE),
+('MM-H004', 'Elite Ash Beast Hunt', 'An elite ash beast threatens the realm. Hunt it down.', 'HARD', 300, 20, 40, 60, 25, 40, 60, 100, 25.00, 'Massive tracks scar the landscape. The alpha beast must be eliminated before it breeds.', 15, TRUE),
+('MM-H005', 'Forge of Legends', 'Assist in forging a legendary weapon at the Eternal Forge.', 'HARD', 300, 15, 35, 50, 20, 35, 50, 80, 20.00, 'The master smith summons you. Today, legend shall be forged in flame and steel.', 10, TRUE)
 ON CONFLICT (id) DO UPDATE SET
     name = EXCLUDED.name,
     description = EXCLUDED.description,

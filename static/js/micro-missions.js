@@ -108,11 +108,27 @@ async function makeMicroMissionChoice(wallet, activeId, choice) {
         });
         const data = await response.json();
         if (data.success) {
-            // Update local state
+            // Update local state with multi-step progression
             if (microMissionsState.activeMission) {
-                microMissionsState.activeMission.choice_made = choice;
+                if (data.ending_reached) {
+                    // Ending reached - update state
+                    microMissionsState.activeMission.ending_reached = data.ending_id;
+                    microMissionsState.activeMission.ending_type = data.ending_type;
+                    microMissionsState.activeMission.narrative_intro = data.ending_text;
+                    microMissionsState.activeMission.choices = [];
+                    microMissionsState.activeMission.choices_path = data.choices_path;
+                } else {
+                    // More steps to go - update with new step data
+                    microMissionsState.activeMission.current_step = data.current_step;
+                    microMissionsState.activeMission.narrative_intro = data.narrative_text;
+                    microMissionsState.activeMission.choices = data.choices;
+                    microMissionsState.activeMission.choices_path = data.choices_path;
+                }
             }
             return data;
+        }
+        if (data.error) {
+            console.error('[MicroMissions] Choice error:', data.error);
         }
         return null;
     } catch (error) {
@@ -534,7 +550,7 @@ async function confirmMissionStart(missionId, tokenId) {
 }
 
 /**
- * Render active mission UI with narrative modal style
+ * Render active mission UI with narrative modal style - Multi-step adventure support
  */
 function renderActiveMission(mission) {
     const container = document.getElementById('micro-missions-content');
@@ -568,6 +584,25 @@ function renderActiveMission(mission) {
         `;
     }).join('');
 
+    // Calculate step progress for multi-step adventures
+    const currentStep = mission.current_step || '1';
+    const choicesPath = mission.choices_path || [];
+    const stepNumber = choicesPath.length + 1;
+    const endingReached = mission.ending_reached;
+    const endingType = mission.ending_type;
+
+    // Ending type styling
+    const getEndingStyle = (type) => {
+        switch(type) {
+            case 'LEGENDARY': return 'ending-legendary';
+            case 'PERFECT': return 'ending-perfect';
+            case 'GOOD': return 'ending-good';
+            case 'NEUTRAL': return 'ending-neutral';
+            case 'BAD': return 'ending-bad';
+            default: return 'ending-neutral';
+        }
+    };
+
     container.innerHTML = `
         <div class="narrative-mission-container">
             <!-- Header with emissary portrait -->
@@ -578,11 +613,17 @@ function renderActiveMission(mission) {
                 <div class="narrative-header-info">
                     <div class="emissary-name">${emissaryName}</div>
                     <div class="mission-title">${missionName}</div>
+                    ${!endingReached ? `<div class="step-indicator">Step ${stepNumber}</div>` : ''}
                 </div>
             </div>
 
             <!-- Narrative text -->
             <div class="narrative-scroll">
+                ${endingReached ? `
+                    <div class="ending-badge ${getEndingStyle(endingType)}">
+                        ${endingType || 'COMPLETE'}
+                    </div>
+                ` : ''}
                 <div class="narrative-text">
                     ${mission.narrative_intro || 'Your emissary ventures into the unknown...'}
                 </div>
@@ -596,21 +637,24 @@ function renderActiveMission(mission) {
                 <div class="timer-value" id="timer-value">--:--</div>
             </div>
 
-            <!-- Choices or waiting state -->
-            ${mission.status === 'active' && choices.length > 0 && !mission.choice_made ? `
+            <!-- Choices or ending state -->
+            ${endingReached ? `
+                <div class="ending-reached-section">
+                    <div class="ending-message">Your journey has reached its conclusion.</div>
+                    <div class="ending-hint">Wait for the timer to claim your rewards!</div>
+                </div>
+            ` : choices.length > 0 ? `
                 <div class="narrative-choices">
                     <div class="choices-header">What do you do?</div>
                     <div class="choices-list">
                         ${choicesHTML}
                     </div>
                 </div>
-            ` : mission.choice_made ? `
-                <div class="choice-made-section">
-                    <div class="choice-made-label">Your choice:</div>
-                    <div class="choice-made-text">${getChoiceText(choices, mission.choice_made)}</div>
+            ` : `
+                <div class="choice-waiting-section">
                     <div class="choice-waiting">The story unfolds...</div>
                 </div>
-            ` : ''}
+            `}
 
             <!-- Action buttons -->
             <div class="narrative-actions">
