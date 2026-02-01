@@ -263,6 +263,10 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
                     cur.execute("""
                         ALTER TABLE micro_missions ADD COLUMN IF NOT EXISTS achievements JSONB DEFAULT '{}'::jsonb;
                     """)
+                    # Add narrative_steps for multi-step adventures
+                    cur.execute("""
+                        ALTER TABLE micro_missions ADD COLUMN IF NOT EXISTS narrative_steps JSONB DEFAULT '{}'::jsonb;
+                    """)
 
                     # Create active_micro_missions table
                     cur.execute("""
@@ -271,7 +275,8 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
                             wallet VARCHAR(42) NOT NULL,
                             emissary_token_id VARCHAR(10) NOT NULL,
                             micro_mission_id VARCHAR(20) NOT NULL REFERENCES micro_missions(id),
-                            current_step INTEGER DEFAULT 0,
+                            current_step VARCHAR(10) DEFAULT '1',
+                            choices_path JSONB DEFAULT '[]'::jsonb,
                             choice_made VARCHAR(50),
                             score INTEGER DEFAULT 0,
                             status VARCHAR(20) DEFAULT 'active',
@@ -285,6 +290,18 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
                             aura_earned INTEGER DEFAULT 0,
                             rewards_claimed BOOLEAN DEFAULT FALSE
                         )
+                    """)
+                    # Add choices_path column if missing
+                    cur.execute("""
+                        ALTER TABLE active_micro_missions ADD COLUMN IF NOT EXISTS choices_path JSONB DEFAULT '[]'::jsonb
+                    """)
+                    # Add ending_reached column for multi-step narrative endings
+                    cur.execute("""
+                        ALTER TABLE active_micro_missions ADD COLUMN IF NOT EXISTS ending_reached VARCHAR(50) DEFAULT NULL
+                    """)
+                    # Update current_step to VARCHAR if it's INTEGER (for step keys like "2A", "2B")
+                    cur.execute("""
+                        ALTER TABLE active_micro_missions ALTER COLUMN current_step TYPE VARCHAR(10) USING current_step::VARCHAR
                     """)
                     cur.execute("""
                         CREATE INDEX IF NOT EXISTS idx_active_micro_missions_wallet ON active_micro_missions(wallet)
@@ -324,274 +341,1199 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
                     """)
 
                     # =========================================================
-                    # POPULATE NARRATIVE DATA FOR MISSIONS
+                    # POPULATE MULTI-STEP NARRATIVE DATA FOR MISSIONS
+                    # Structure: EASY=2 steps, MEDIUM=3 steps, HARD=4 steps
                     # =========================================================
 
-                    # MM-E001: The Whispering Flame (LORE)
+                    # MM-E001: The Whispering Flame (EASY - 2 steps)
                     cur.execute("""
                         UPDATE micro_missions SET
                             category = 'LORE',
-                            narrative_choices = '[
-                                {"id": "A", "text": "Listen closely to the whispers", "icon": "ear"},
-                                {"id": "B", "text": "Add fuel to strengthen the flame", "icon": "flame"},
-                                {"id": "C", "text": "Attempt to communicate back", "icon": "chat"}
-                            ]'::jsonb,
-                            narrative_outcomes = '{
-                                "A": {"type": "GOOD", "text": "The whispers reveal a fragment of ancient knowledge.", "pyre_modifier": 1.2, "xp_modifier": 1.3},
-                                "B": {"type": "PERFECT", "text": "The flame roars to life, bestowing a blessing of the First Flame!", "pyre_modifier": 1.5, "xp_modifier": 1.4},
-                                "C": {"type": "NEUTRAL", "text": "The flame flickers but does not respond directly.", "pyre_modifier": 0.9, "xp_modifier": 1.0}
+                            narrative_steps = '{
+                                "steps": {
+                                    "1": {
+                                        "text": "The ancient brazier burns with an otherworldly flame. Whispers echo from its depths, speaking in a language older than the Portal itself.",
+                                        "choices": [
+                                            {"id": "A", "text": "Kneel and listen reverently", "next": "2A"},
+                                            {"id": "B", "text": "Cast your own ember into the flame", "next": "2B"}
+                                        ]
+                                    },
+                                    "2A": {
+                                        "text": "The whispers grow clearer. They speak of the First Flame, the source of all power in Emberholm. The voice asks what knowledge you seek.",
+                                        "choices": [
+                                            {"id": "A", "text": "Ask about the Portals creation", "next": "END_LEGENDARY"},
+                                            {"id": "B", "text": "Ask about your own path forward", "next": "END_GOOD"}
+                                        ]
+                                    },
+                                    "2B": {
+                                        "text": "Your ember merges with the ancient flame. It burns brighter, and a powerful presence acknowledges your offering.",
+                                        "choices": [
+                                            {"id": "A", "text": "Request a blessing of power", "next": "END_NEUTRAL"},
+                                            {"id": "B", "text": "Offer yourself in service to the Flame", "next": "END_PERFECT"}
+                                        ]
+                                    }
+                                },
+                                "endings": {
+                                    "END_LEGENDARY": {"type": "LEGENDARY", "text": "The First Flame reveals secrets of creation itself! Ancient power flows through you.", "pyre_mod": 2.0, "xp_mod": 2.0},
+                                    "END_PERFECT": {"type": "PERFECT", "text": "The Flame blesses your devotion. You are marked as a true servant of the eternal fire.", "pyre_mod": 1.5, "xp_mod": 1.4},
+                                    "END_GOOD": {"type": "GOOD", "text": "Visions of your future battles and triumphs fill your mind. You leave with renewed purpose.", "pyre_mod": 1.2, "xp_mod": 1.2},
+                                    "END_NEUTRAL": {"type": "NEUTRAL", "text": "The Flame grants power, but warns that such requests come with hidden costs.", "pyre_mod": 1.0, "xp_mod": 1.0}
+                                }
                             }'::jsonb
-                        WHERE id = 'MM-E001' AND (narrative_choices IS NULL OR narrative_choices = '[]'::jsonb)
+                        WHERE id = 'MM-E001'
                     """)
 
-                    # MM-E002: Ember Gathering (PATROL)
+                    # MM-E002: Ember Gathering (EASY - 2 steps)
                     cur.execute("""
                         UPDATE micro_missions SET
                             category = 'PATROL',
-                            narrative_choices = '[
-                                {"id": "A", "text": "Gather quickly before they fade", "icon": "run"},
-                                {"id": "B", "text": "Carefully select only the brightest embers", "icon": "gem"},
-                                {"id": "C", "text": "Follow the ember trail to its source", "icon": "compass"}
-                            ]'::jsonb,
-                            narrative_outcomes = '{
-                                "A": {"type": "GOOD", "text": "Quick reflexes save many embers from fading!", "pyre_modifier": 1.2, "xp_modifier": 1.1},
-                                "B": {"type": "NEUTRAL", "text": "Fewer embers, but each burns with exceptional intensity.", "pyre_modifier": 1.0, "xp_modifier": 1.0},
-                                "C": {"type": "PERFECT", "text": "You discover a hidden ember nest! A magnificent haul.", "pyre_modifier": 1.4, "xp_modifier": 1.5}
+                            narrative_steps = '{
+                                "steps": {
+                                    "1": {
+                                        "text": "Glowing embers dot the Ashen Fields, fading slowly into the void. You must act quickly to gather them before they disappear forever.",
+                                        "choices": [
+                                            {"id": "A", "text": "Rush to collect as many as possible", "next": "2A"},
+                                            {"id": "B", "text": "Follow the brightest ember trail", "next": "2B"}
+                                        ]
+                                    },
+                                    "2A": {
+                                        "text": "Your hands are full of embers, but you notice an unusual glow deeper in the field. Time is running out.",
+                                        "choices": [
+                                            {"id": "A", "text": "Secure what you have and return", "next": "END_GOOD"},
+                                            {"id": "B", "text": "Risk it all for the mysterious glow", "next": "END_PERFECT"}
+                                        ]
+                                    },
+                                    "2B": {
+                                        "text": "The trail leads to a hidden alcove where embers congregate. But something moves in the shadows nearby.",
+                                        "choices": [
+                                            {"id": "A", "text": "Quietly gather and retreat", "next": "END_GOOD"},
+                                            {"id": "B", "text": "Investigate the shadow", "next": "END_LEGENDARY"}
+                                        ]
+                                    }
+                                },
+                                "endings": {
+                                    "END_LEGENDARY": {"type": "LEGENDARY", "text": "The shadow was a spirit guardian! Impressed by your courage, it reveals a mother ember - source of all others.", "pyre_mod": 2.0, "xp_mod": 2.0},
+                                    "END_PERFECT": {"type": "PERFECT", "text": "You discover an ember nest untouched for centuries. A magnificent haul!", "pyre_mod": 1.5, "xp_mod": 1.4},
+                                    "END_GOOD": {"type": "GOOD", "text": "A solid collection of quality embers. The realm will benefit from your diligence.", "pyre_mod": 1.2, "xp_mod": 1.2},
+                                    "END_NEUTRAL": {"type": "NEUTRAL", "text": "You gather a modest amount before the embers fade completely.", "pyre_mod": 1.0, "xp_mod": 1.0}
+                                }
                             }'::jsonb
-                        WHERE id = 'MM-E002' AND (narrative_choices IS NULL OR narrative_choices = '[]'::jsonb)
+                        WHERE id = 'MM-E002'
                     """)
 
-                    # MM-E003: Patrol the Perimeter (PATROL)
+                    # MM-E003: Patrol the Perimeter (EASY - 2 steps)
                     cur.execute("""
                         UPDATE micro_missions SET
                             category = 'PATROL',
-                            narrative_choices = '[
-                                {"id": "A", "text": "Maintain vigilant watch from your post", "icon": "eye"},
-                                {"id": "B", "text": "Investigate suspicious movement in the mists", "icon": "search"},
-                                {"id": "C", "text": "Signal other guards about unusual activity", "icon": "bell"}
-                            ]'::jsonb,
-                            narrative_outcomes = '{
-                                "A": {"type": "NEUTRAL", "text": "A quiet patrol is still a successful patrol.", "pyre_modifier": 1.0, "xp_modifier": 1.0},
-                                "B": {"type": "PERFECT", "text": "You discover a tear in the veil and seal it! The realm is safer.", "pyre_modifier": 1.5, "xp_modifier": 1.4},
-                                "C": {"type": "GOOD", "text": "Your teamwork neutralizes a potential threat.", "pyre_modifier": 1.2, "xp_modifier": 1.2}
+                            narrative_steps = '{
+                                "steps": {
+                                    "1": {
+                                        "text": "You take your position at the Portals edge. The mists swirl with unknown dangers, and strange sounds echo in the distance.",
+                                        "choices": [
+                                            {"id": "A", "text": "Maintain position and observe", "next": "2A"},
+                                            {"id": "B", "text": "Venture into the mists to investigate", "next": "2B"}
+                                        ]
+                                    },
+                                    "2A": {
+                                        "text": "Your patience pays off. You notice a subtle disturbance in the veil between worlds - a small tear forming.",
+                                        "choices": [
+                                            {"id": "A", "text": "Signal for backup before acting", "next": "END_GOOD"},
+                                            {"id": "B", "text": "Attempt to seal it yourself immediately", "next": "END_PERFECT"}
+                                        ]
+                                    },
+                                    "2B": {
+                                        "text": "Deep in the mists, you discover tracks. Something has crossed from the void recently.",
+                                        "choices": [
+                                            {"id": "A", "text": "Follow the tracks cautiously", "next": "END_LEGENDARY"},
+                                            {"id": "B", "text": "Mark the location and report back", "next": "END_GOOD"}
+                                        ]
+                                    }
+                                },
+                                "endings": {
+                                    "END_LEGENDARY": {"type": "LEGENDARY", "text": "You track and neutralize a void scout before it can report back. The realm is saved from invasion!", "pyre_mod": 2.0, "xp_mod": 2.0},
+                                    "END_PERFECT": {"type": "PERFECT", "text": "You seal the tear with ancient techniques. The veil strengthens around your repair.", "pyre_mod": 1.5, "xp_mod": 1.4},
+                                    "END_GOOD": {"type": "GOOD", "text": "Your report enables a coordinated response. The threat is contained efficiently.", "pyre_mod": 1.2, "xp_mod": 1.2},
+                                    "END_NEUTRAL": {"type": "NEUTRAL", "text": "A quiet patrol. Sometimes the absence of danger is the best outcome.", "pyre_mod": 1.0, "xp_mod": 1.0}
+                                }
                             }'::jsonb
-                        WHERE id = 'MM-E003' AND (narrative_choices IS NULL OR narrative_choices = '[]'::jsonb)
+                        WHERE id = 'MM-E003'
                     """)
 
-                    # MM-E004: Rune Meditation (LORE)
+                    # MM-E004: Rune Meditation (EASY - 2 steps)
                     cur.execute("""
                         UPDATE micro_missions SET
                             category = 'LORE',
-                            narrative_choices = '[
-                                {"id": "A", "text": "Empty your mind completely", "icon": "mind"},
-                                {"id": "B", "text": "Focus on a specific question", "icon": "question"},
-                                {"id": "C", "text": "Let the rune guide your thoughts", "icon": "rune"}
-                            ]'::jsonb,
-                            narrative_outcomes = '{
-                                "A": {"type": "GOOD", "text": "Power flows freely through your empty mind.", "pyre_modifier": 1.2, "xp_modifier": 1.1},
-                                "B": {"type": "NEUTRAL", "text": "The rune offers no clear answer to your question.", "pyre_modifier": 0.9, "xp_modifier": 1.0},
-                                "C": {"type": "PERFECT", "text": "The First Runesmiths speak through time! You understand their art.", "pyre_modifier": 1.4, "xp_modifier": 1.5}
+                            narrative_steps = '{
+                                "steps": {
+                                    "1": {
+                                        "text": "The ancient rune stone hums with power older than memory. As you approach, your mind begins to resonate with its energy.",
+                                        "choices": [
+                                            {"id": "A", "text": "Empty your mind completely", "next": "2A"},
+                                            {"id": "B", "text": "Focus your will upon the rune", "next": "2B"}
+                                        ]
+                                    },
+                                    "2A": {
+                                        "text": "In the void of your empty mind, visions begin to form. Ancient symbols dance at the edge of comprehension.",
+                                        "choices": [
+                                            {"id": "A", "text": "Let the visions flow through you", "next": "END_PERFECT"},
+                                            {"id": "B", "text": "Try to grasp and hold the symbols", "next": "END_NEUTRAL"}
+                                        ]
+                                    },
+                                    "2B": {
+                                        "text": "The rune responds to your will. A presence stirs within it - one of the First Runesmiths, their consciousness preserved in stone.",
+                                        "choices": [
+                                            {"id": "A", "text": "Ask them to teach you", "next": "END_LEGENDARY"},
+                                            {"id": "B", "text": "Simply listen to their wisdom", "next": "END_GOOD"}
+                                        ]
+                                    }
+                                },
+                                "endings": {
+                                    "END_LEGENDARY": {"type": "LEGENDARY", "text": "The First Runesmith shares forbidden knowledge! A new rune sears itself into your memory.", "pyre_mod": 2.0, "xp_mod": 2.0},
+                                    "END_PERFECT": {"type": "PERFECT", "text": "The visions reveal the true nature of runic magic. Understanding floods your consciousness.", "pyre_mod": 1.5, "xp_mod": 1.4},
+                                    "END_GOOD": {"type": "GOOD", "text": "Ancient wisdom settles in your mind. You leave with deeper insight into the old ways.", "pyre_mod": 1.2, "xp_mod": 1.2},
+                                    "END_NEUTRAL": {"type": "NEUTRAL", "text": "The symbols slip away like sand. But fragments remain, useful if incomplete.", "pyre_mod": 1.0, "xp_mod": 1.0}
+                                }
                             }'::jsonb
-                        WHERE id = 'MM-E004' AND (narrative_choices IS NULL OR narrative_choices = '[]'::jsonb)
+                        WHERE id = 'MM-E004'
                     """)
 
-                    # MM-E005: Forge Apprentice (GUILD)
+                    # MM-E005: Forge Apprentice (EASY - 2 steps)
                     cur.execute("""
                         UPDATE micro_missions SET
                             category = 'GUILD',
-                            narrative_choices = '[
-                                {"id": "A", "text": "Pump the bellows to heat the forge", "icon": "wind"},
-                                {"id": "B", "text": "Sort and organize the metal ingots", "icon": "boxes"},
-                                {"id": "C", "text": "Watch and learn the masters technique", "icon": "eye"}
-                            ]'::jsonb,
-                            narrative_outcomes = '{
-                                "A": {"type": "GOOD", "text": "Your steady rhythm brings the forge to perfect temperature.", "pyre_modifier": 1.2, "xp_modifier": 1.2},
-                                "B": {"type": "NEUTRAL", "text": "Simple but necessary work. Organization is the foundation.", "pyre_modifier": 1.0, "xp_modifier": 1.0},
-                                "C": {"type": "PERFECT", "text": "The master demonstrates a secret technique! Few earn such trust.", "pyre_modifier": 1.3, "xp_modifier": 1.5}
+                            narrative_steps = '{
+                                "steps": {
+                                    "1": {
+                                        "text": "The heat of the Eternal Forge washes over you. The master smith glances up from his work, measuring you with ancient eyes.",
+                                        "choices": [
+                                            {"id": "A", "text": "Offer to work the bellows", "next": "2A"},
+                                            {"id": "B", "text": "Ask to observe his technique", "next": "2B"}
+                                        ]
+                                    },
+                                    "2A": {
+                                        "text": "Your steady rhythm pleases the master. As the forge reaches perfect heat, he gestures for you to approach the anvil.",
+                                        "choices": [
+                                            {"id": "A", "text": "Attempt to shape the metal yourself", "next": "END_PERFECT"},
+                                            {"id": "B", "text": "Assist while he demonstrates", "next": "END_GOOD"}
+                                        ]
+                                    },
+                                    "2B": {
+                                        "text": "The master nods slowly. Few show such humility. He begins to work, and you notice his hammer strikes form an ancient pattern.",
+                                        "choices": [
+                                            {"id": "A", "text": "Memorize the pattern carefully", "next": "END_LEGENDARY"},
+                                            {"id": "B", "text": "Focus on the basic techniques", "next": "END_GOOD"}
+                                        ]
+                                    }
+                                },
+                                "endings": {
+                                    "END_LEGENDARY": {"type": "LEGENDARY", "text": "The pattern was a secret of the founding smiths! The master grins - you passed his test.", "pyre_mod": 2.0, "xp_mod": 2.0},
+                                    "END_PERFECT": {"type": "PERFECT", "text": "Under his guidance, you forge your first true piece. The master nods in approval.", "pyre_mod": 1.5, "xp_mod": 1.4},
+                                    "END_GOOD": {"type": "GOOD", "text": "A productive day at the forge. Your skills have improved noticeably.", "pyre_mod": 1.2, "xp_mod": 1.2},
+                                    "END_NEUTRAL": {"type": "NEUTRAL", "text": "The work is done well enough. Foundation before mastery, as they say.", "pyre_mod": 1.0, "xp_mod": 1.0}
+                                }
                             }'::jsonb
-                        WHERE id = 'MM-E005' AND (narrative_choices IS NULL OR narrative_choices = '[]'::jsonb)
+                        WHERE id = 'MM-E005'
                     """)
 
-                    # MM-M001: Void Echoes Investigation (EXPLORATION)
+                    # MM-M001: Void Echoes Investigation (MEDIUM - 3 steps)
                     cur.execute("""
                         UPDATE micro_missions SET
                             category = 'EXPLORATION',
-                            narrative_choices = '[
-                                {"id": "A", "text": "Record the sounds for analysis", "icon": "scroll"},
-                                {"id": "B", "text": "Trace them to their source", "icon": "compass"},
-                                {"id": "C", "text": "Use protective wards before proceeding", "icon": "shield"}
-                            ]'::jsonb,
-                            narrative_outcomes = '{
-                                "A": {"type": "GOOD", "text": "Your recordings capture patterns previously unknown!", "pyre_modifier": 1.2, "xp_modifier": 1.3},
-                                "B": {"type": "PERFECT", "text": "You discover a hidden void pocket with residual creation energy!", "pyre_modifier": 1.5, "xp_modifier": 1.4},
-                                "C": {"type": "NEUTRAL", "text": "Caution limits discovery, but you return safely.", "pyre_modifier": 1.0, "xp_modifier": 1.0}
+                            narrative_steps = '{
+                                "steps": {
+                                    "1": {
+                                        "text": "Strange sounds emanate from a tear in reality. The void whispers secrets that mortal ears were never meant to hear.",
+                                        "choices": [
+                                            {"id": "A", "text": "Cast protective wards before approaching", "next": "2A"},
+                                            {"id": "B", "text": "Move closer to hear more clearly", "next": "2B"}
+                                        ]
+                                    },
+                                    "2A": {
+                                        "text": "Your wards hold as void energy washes over you. Through the barrier, you see shapes moving in the darkness beyond.",
+                                        "choices": [
+                                            {"id": "A", "text": "Try to communicate with the shapes", "next": "3AA"},
+                                            {"id": "B", "text": "Document everything from safety", "next": "3AB"}
+                                        ]
+                                    },
+                                    "2B": {
+                                        "text": "The whispers grow into voices. They speak of ancient times, before the Portal, before the Flame.",
+                                        "choices": [
+                                            {"id": "A", "text": "Ask about the time before creation", "next": "3BA"},
+                                            {"id": "B", "text": "Demand to know their purpose", "next": "3BB"}
+                                        ]
+                                    },
+                                    "3AA": {
+                                        "text": "The shapes pause. One approaches your barrier, curious rather than hostile.",
+                                        "choices": [
+                                            {"id": "A", "text": "Lower your wards as a sign of trust", "next": "END_LEGENDARY"},
+                                            {"id": "B", "text": "Maintain the barrier while speaking", "next": "END_GOOD"}
+                                        ]
+                                    },
+                                    "3AB": {
+                                        "text": "Your detailed notes capture phenomena never before recorded.",
+                                        "choices": [
+                                            {"id": "A", "text": "Risk getting closer for more detail", "next": "END_PERFECT"},
+                                            {"id": "B", "text": "Compile your findings and retreat", "next": "END_GOOD"}
+                                        ]
+                                    },
+                                    "3BA": {
+                                        "text": "The voices reveal glimpses of the Void Before - a time of perfect emptiness. They offer to show you more.",
+                                        "choices": [
+                                            {"id": "A", "text": "Accept their offer", "next": "END_LEGENDARY"},
+                                            {"id": "B", "text": "Decline but thank them for the knowledge", "next": "END_PERFECT"}
+                                        ]
+                                    },
+                                    "3BB": {
+                                        "text": "Silence. Then laughter. They find your demand amusing, but they answer nonetheless.",
+                                        "choices": [
+                                            {"id": "A", "text": "Press for more information", "next": "END_NEUTRAL"},
+                                            {"id": "B", "text": "Accept what they offer and withdraw", "next": "END_GOOD"}
+                                        ]
+                                    }
+                                },
+                                "endings": {
+                                    "END_LEGENDARY": {"type": "LEGENDARY", "text": "You glimpse the truth of creation itself! Your mind expands with forbidden knowledge.", "pyre_mod": 2.0, "xp_mod": 2.0},
+                                    "END_PERFECT": {"type": "PERFECT", "text": "Incredible discoveries that will reshape understanding of the Void.", "pyre_mod": 1.5, "xp_mod": 1.4},
+                                    "END_GOOD": {"type": "GOOD", "text": "Valuable intelligence gathered safely. A successful investigation.", "pyre_mod": 1.2, "xp_mod": 1.2},
+                                    "END_NEUTRAL": {"type": "NEUTRAL", "text": "You return with fragments of knowledge, your curiosity only partially satisfied.", "pyre_mod": 1.0, "xp_mod": 1.0}
+                                }
                             }'::jsonb
-                        WHERE id = 'MM-M001' AND (narrative_choices IS NULL OR narrative_choices = '[]'::jsonb)
+                        WHERE id = 'MM-M001'
                     """)
 
-                    # MM-M002: Guild Rivalry (GUILD)
+                    # MM-M002: Guild Rivalry (MEDIUM - 3 steps)
                     cur.execute("""
                         UPDATE micro_missions SET
                             category = 'GUILD',
-                            name = 'Guild Rivalry',
-                            description = 'Tensions between guilds threaten to boil over. Diplomacy is required.',
-                            duration_seconds = 150,
-                            narrative_intro = 'The tavern falls silent as you enter. Scarred smiths of the Forge Legion glare at hooded Shadow Guild figures. Blood stains the floor.',
-                            narrative_choices = '[
-                                {"id": "A", "text": "Examine the cards for evidence of cheating", "icon": "search"},
-                                {"id": "B", "text": "Appeal to guild honor and shared history", "icon": "scroll"},
-                                {"id": "C", "text": "Propose a different contest to settle the dispute", "icon": "balance"}
-                            ]'::jsonb,
-                            narrative_outcomes = '{
-                                "A": {"type": "GOOD", "text": "A THIRD party planted marked cards! Both sides unite against the real culprit.", "pyre_modifier": 1.3, "xp_modifier": 1.2},
-                                "B": {"type": "PERFECT", "text": "You recount the Battle of Cinderpeak. Grudgingly, both sides shake hands.", "pyre_modifier": 1.45, "xp_modifier": 1.35},
-                                "C": {"type": "NEUTRAL", "text": "An arm-wrestling contest breaks the tension. Crisis averted, barely.", "pyre_modifier": 0.9, "xp_modifier": 1.0}
+                            narrative_steps = '{
+                                "steps": {
+                                    "1": {
+                                        "text": "The tavern falls silent as you enter. Scarred smiths of the Forge Legion glare at hooded Shadow Guild figures. A body lies on the floor - not dead, but beaten badly.",
+                                        "choices": [
+                                            {"id": "A", "text": "Tend to the wounded first", "next": "2A"},
+                                            {"id": "B", "text": "Demand an explanation from both sides", "next": "2B"}
+                                        ]
+                                    },
+                                    "2A": {
+                                        "text": "Both sides pause as you help the fallen. The wounded man whispers that he saw something - a third party started this.",
+                                        "choices": [
+                                            {"id": "A", "text": "Announce this to everyone", "next": "3AA"},
+                                            {"id": "B", "text": "Quietly investigate the room", "next": "3AB"}
+                                        ]
+                                    },
+                                    "2B": {
+                                        "text": "Both guilds shout accusations. The Forge Legion claims cheating. The Shadow Guild claims provocation. Neither will back down.",
+                                        "choices": [
+                                            {"id": "A", "text": "Appeal to their shared history against the Void", "next": "3BA"},
+                                            {"id": "B", "text": "Propose a formal challenge to settle this", "next": "3BB"}
+                                        ]
+                                    },
+                                    "3AA": {
+                                        "text": "Your announcement causes both sides to pause. They want proof.",
+                                        "choices": [
+                                            {"id": "A", "text": "Search the room together for evidence", "next": "END_PERFECT"},
+                                            {"id": "B", "text": "Ask the wounded man to identify the saboteur", "next": "END_GOOD"}
+                                        ]
+                                    },
+                                    "3AB": {
+                                        "text": "In the shadows, you find marked cards and a sigil belonging to neither guild - the Cult of the Void!",
+                                        "choices": [
+                                            {"id": "A", "text": "Reveal this to unite both guilds against the real enemy", "next": "END_LEGENDARY"},
+                                            {"id": "B", "text": "Quietly inform the guild leaders in private", "next": "END_PERFECT"}
+                                        ]
+                                    },
+                                    "3BA": {
+                                        "text": "You remind them of the Battle of Cinderpeak, when both guilds fought side by side. Some veterans lower their weapons.",
+                                        "choices": [
+                                            {"id": "A", "text": "Press the advantage - call for peace", "next": "END_PERFECT"},
+                                            {"id": "B", "text": "Let them work it out now that tempers have cooled", "next": "END_GOOD"}
+                                        ]
+                                    },
+                                    "3BB": {
+                                        "text": "They agree to a formal duel. The champions step forward.",
+                                        "choices": [
+                                            {"id": "A", "text": "Offer to referee fairly", "next": "END_GOOD"},
+                                            {"id": "B", "text": "This is escalation - intervene to stop it", "next": "END_NEUTRAL"}
+                                        ]
+                                    }
+                                },
+                                "endings": {
+                                    "END_LEGENDARY": {"type": "LEGENDARY", "text": "Both guilds unite against the Void cultists! You have forged an alliance that will change history.", "pyre_mod": 2.0, "xp_mod": 2.0},
+                                    "END_PERFECT": {"type": "PERFECT", "text": "Peace is restored and both guilds owe you a debt. Your reputation soars.", "pyre_mod": 1.5, "xp_mod": 1.4},
+                                    "END_GOOD": {"type": "GOOD", "text": "The immediate crisis is resolved. Relations remain tense but no blood is shed.", "pyre_mod": 1.2, "xp_mod": 1.2},
+                                    "END_NEUTRAL": {"type": "NEUTRAL", "text": "The duel happens despite your efforts. At least only pride was wounded.", "pyre_mod": 1.0, "xp_mod": 1.0}
+                                }
                             }'::jsonb
                         WHERE id = 'MM-M002'
                     """)
 
-                    # MM-M003: Ash Beast Tracking (PATROL)
+                    # MM-M003: Ash Beast Tracking (MEDIUM - 3 steps)
                     cur.execute("""
                         UPDATE micro_missions SET
                             category = 'PATROL',
-                            narrative_choices = '[
-                                {"id": "A", "text": "Follow the tracks stealthily", "icon": "footprints"},
-                                {"id": "B", "text": "Set up a surveillance position", "icon": "eye"},
-                                {"id": "C", "text": "Mark the territory for other patrols", "icon": "flag"}
-                            ]'::jsonb,
-                            narrative_outcomes = '{
-                                "A": {"type": "PERFECT", "text": "You discover an entire ash beast den! Invaluable intelligence.", "pyre_modifier": 1.5, "xp_modifier": 1.4},
-                                "B": {"type": "GOOD", "text": "You observe their patrol patterns and feeding times.", "pyre_modifier": 1.2, "xp_modifier": 1.3},
-                                "C": {"type": "NEUTRAL", "text": "Your markers will guide future patrols safely.", "pyre_modifier": 1.0, "xp_modifier": 1.0}
+                            narrative_steps = '{
+                                "steps": {
+                                    "1": {
+                                        "text": "Massive tracks scar the ashen ground. The ash beasts have been active - and close. The wind shifts, carrying their acrid scent.",
+                                        "choices": [
+                                            {"id": "A", "text": "Follow the tracks with stealth", "next": "2A"},
+                                            {"id": "B", "text": "Find high ground to observe", "next": "2B"}
+                                        ]
+                                    },
+                                    "2A": {
+                                        "text": "The tracks lead to a ravine. You hear growling below. Through the haze, you see not one beast, but a pack resting in the shadows.",
+                                        "choices": [
+                                            {"id": "A", "text": "Observe their hierarchy and behavior", "next": "3AA"},
+                                            {"id": "B", "text": "Count their numbers and map escape routes", "next": "3AB"}
+                                        ]
+                                    },
+                                    "2B": {
+                                        "text": "From the ridge, you spot movement in multiple directions. The beasts are hunting - and their prey appears to be heading toward the settlement.",
+                                        "choices": [
+                                            {"id": "A", "text": "Race to warn the settlement", "next": "3BA"},
+                                            {"id": "B", "text": "Create a distraction to divert the beasts", "next": "3BB"}
+                                        ]
+                                    },
+                                    "3AA": {
+                                        "text": "You identify the alpha - a massive scarred beast. Understanding their structure could be key to controlling future encounters.",
+                                        "choices": [
+                                            {"id": "A", "text": "Continue observing their communication patterns", "next": "END_LEGENDARY"},
+                                            {"id": "B", "text": "Retreat with your current intelligence", "next": "END_PERFECT"}
+                                        ]
+                                    },
+                                    "3AB": {
+                                        "text": "Your tactical assessment is thorough. This information could save many lives.",
+                                        "choices": [
+                                            {"id": "A", "text": "Risk getting closer for exact numbers", "next": "END_PERFECT"},
+                                            {"id": "B", "text": "Return immediately with your report", "next": "END_GOOD"}
+                                        ]
+                                    },
+                                    "3BA": {
+                                        "text": "You arrive just in time. The settlement can prepare defenses.",
+                                        "choices": [
+                                            {"id": "A", "text": "Help coordinate the defense personally", "next": "END_PERFECT"},
+                                            {"id": "B", "text": "Deliver your warning and return to tracking", "next": "END_GOOD"}
+                                        ]
+                                    },
+                                    "3BB": {
+                                        "text": "You create noise and light, drawing the pack toward you. Risky, but effective.",
+                                        "choices": [
+                                            {"id": "A", "text": "Lead them into a trap zone", "next": "END_LEGENDARY"},
+                                            {"id": "B", "text": "Escape while they investigate", "next": "END_GOOD"}
+                                        ]
+                                    }
+                                },
+                                "endings": {
+                                    "END_LEGENDARY": {"type": "LEGENDARY", "text": "Your actions have turned the tide! The pack is neutralized and you understand their ways.", "pyre_mod": 2.0, "xp_mod": 2.0},
+                                    "END_PERFECT": {"type": "PERFECT", "text": "Exceptional intelligence gathering. Your report will guide patrols for months.", "pyre_mod": 1.5, "xp_mod": 1.4},
+                                    "END_GOOD": {"type": "GOOD", "text": "Solid work. The information you gathered will prove valuable.", "pyre_mod": 1.2, "xp_mod": 1.2},
+                                    "END_NEUTRAL": {"type": "NEUTRAL", "text": "Basic tracking completed. The beasts remain a threat but you return safely.", "pyre_mod": 1.0, "xp_mod": 1.0}
+                                }
                             }'::jsonb
-                        WHERE id = 'MM-M003' AND (narrative_choices IS NULL OR narrative_choices = '[]'::jsonb)
+                        WHERE id = 'MM-M003'
                     """)
 
-                    # MM-M004: Crystal Harvesting (EXPLORATION)
+                    # MM-M004: Crystal Harvesting (MEDIUM - 3 steps)
                     cur.execute("""
                         UPDATE micro_missions SET
                             category = 'EXPLORATION',
-                            narrative_choices = '[
-                                {"id": "A", "text": "Harvest the most accessible crystals", "icon": "gem"},
-                                {"id": "B", "text": "Seek the deeper, more resonant formations", "icon": "compass"},
-                                {"id": "C", "text": "Attune to the caves song before harvesting", "icon": "music"}
-                            ]'::jsonb,
-                            narrative_outcomes = '{
-                                "A": {"type": "NEUTRAL", "text": "A standard haul of resonance crystals.", "pyre_modifier": 1.0, "xp_modifier": 1.0},
-                                "B": {"type": "GOOD", "text": "Deeper formations yield crystals of exceptional purity.", "pyre_modifier": 1.3, "xp_modifier": 1.2},
-                                "C": {"type": "PERFECT", "text": "You locate a mother crystal - the source of all others!", "pyre_modifier": 1.5, "xp_modifier": 1.5}
+                            narrative_steps = '{
+                                "steps": {
+                                    "1": {
+                                        "text": "The Singing Caves resonate with crystalline harmonies. Each step releases new notes from the formations around you. The deeper caves pulse with brighter light.",
+                                        "choices": [
+                                            {"id": "A", "text": "Harvest the outer crystals first", "next": "2A"},
+                                            {"id": "B", "text": "Venture deeper toward the source", "next": "2B"}
+                                        ]
+                                    },
+                                    "2A": {
+                                        "text": "The outer crystals yield easily. As you work, you notice the cave song changing - it seems to respond to your harvesting.",
+                                        "choices": [
+                                            {"id": "A", "text": "Harvest in rhythm with the song", "next": "3AA"},
+                                            {"id": "B", "text": "Work quickly before anything changes", "next": "3AB"}
+                                        ]
+                                    },
+                                    "2B": {
+                                        "text": "The deeper caves reveal crystals of extraordinary size and clarity. But the song here is almost deafening, and the light hurts your eyes.",
+                                        "choices": [
+                                            {"id": "A", "text": "Push through to the heart of the caves", "next": "3BA"},
+                                            {"id": "B", "text": "Harvest these exceptional crystals and retreat", "next": "3BB"}
+                                        ]
+                                    },
+                                    "3AA": {
+                                        "text": "The cave song harmonizes with your work. Crystals seem to practically offer themselves to you.",
+                                        "choices": [
+                                            {"id": "A", "text": "Follow the song deeper into the caves", "next": "END_LEGENDARY"},
+                                            {"id": "B", "text": "Complete your harvest in harmony", "next": "END_PERFECT"}
+                                        ]
+                                    },
+                                    "3AB": {
+                                        "text": "The song becomes discordant. The cave rumbles.",
+                                        "choices": [
+                                            {"id": "A", "text": "Drop everything and run", "next": "END_NEUTRAL"},
+                                            {"id": "B", "text": "Grab what you can on the way out", "next": "END_GOOD"}
+                                        ]
+                                    },
+                                    "3BA": {
+                                        "text": "At the heart of the caves, you find it - a Mother Crystal, source of all resonance in these depths.",
+                                        "choices": [
+                                            {"id": "A", "text": "Carefully harvest a fragment of the Mother Crystal", "next": "END_LEGENDARY"},
+                                            {"id": "B", "text": "Study it but leave it intact", "next": "END_PERFECT"}
+                                        ]
+                                    },
+                                    "3BB": {
+                                        "text": "These crystals are the finest you have ever seen. Pure and powerful.",
+                                        "choices": [
+                                            {"id": "A", "text": "Take only the best specimens", "next": "END_PERFECT"},
+                                            {"id": "B", "text": "Harvest as many as you can carry", "next": "END_GOOD"}
+                                        ]
+                                    }
+                                },
+                                "endings": {
+                                    "END_LEGENDARY": {"type": "LEGENDARY", "text": "A fragment of the Mother Crystal! Its power alone is worth more than a hundred normal crystals.", "pyre_mod": 2.0, "xp_mod": 2.0},
+                                    "END_PERFECT": {"type": "PERFECT", "text": "Exceptional crystals of rare purity. The harmonics they produce are beautiful.", "pyre_mod": 1.5, "xp_mod": 1.4},
+                                    "END_GOOD": {"type": "GOOD", "text": "A good haul of quality resonance crystals.", "pyre_mod": 1.2, "xp_mod": 1.2},
+                                    "END_NEUTRAL": {"type": "NEUTRAL", "text": "You escape safely but with meager findings.", "pyre_mod": 1.0, "xp_mod": 1.0}
+                                }
                             }'::jsonb
-                        WHERE id = 'MM-M004' AND (narrative_choices IS NULL OR narrative_choices = '[]'::jsonb)
+                        WHERE id = 'MM-M004'
                     """)
 
-                    # MM-M005: Spirit Communion (LORE)
+                    # MM-M005: Spirit Communion (MEDIUM - 3 steps)
                     cur.execute("""
                         UPDATE micro_missions SET
                             category = 'LORE',
-                            narrative_choices = '[
-                                {"id": "A", "text": "Ask the spirits for tactical wisdom", "icon": "sword"},
-                                {"id": "B", "text": "Request knowledge of ancient history", "icon": "book"},
-                                {"id": "C", "text": "Offer to carry a message to the living", "icon": "scroll"}
-                            ]'::jsonb,
-                            narrative_outcomes = '{
-                                "A": {"type": "GOOD", "text": "Warrior spirits share battle techniques lost to time.", "pyre_modifier": 1.2, "xp_modifier": 1.3},
-                                "B": {"type": "GOOD", "text": "Spirits reveal fragments of erased history.", "pyre_modifier": 1.3, "xp_modifier": 1.4},
-                                "C": {"type": "PERFECT", "text": "Your selfless offer moves the spirits. They bestow their blessing!", "pyre_modifier": 1.5, "xp_modifier": 1.5}
+                            narrative_steps = '{
+                                "steps": {
+                                    "1": {
+                                        "text": "The veil between worlds grows thin. Ghostly shapes of fallen emissaries shimmer before you, their eyes carrying the weight of centuries.",
+                                        "choices": [
+                                            {"id": "A", "text": "Kneel in respect and wait for them to speak", "next": "2A"},
+                                            {"id": "B", "text": "Call out to them with questions", "next": "2B"}
+                                        ]
+                                    },
+                                    "2A": {
+                                        "text": "The spirits appreciate your humility. An ancient warrior steps forward, his spectral form bearing scars from legendary battles.",
+                                        "choices": [
+                                            {"id": "A", "text": "Ask him about the old wars", "next": "3AA"},
+                                            {"id": "B", "text": "Ask if there is anything you can do for him", "next": "3AB"}
+                                        ]
+                                    },
+                                    "2B": {
+                                        "text": "Your boldness amuses them. A scholar spirit drifts closer, her form surrounded by ghostly tomes.",
+                                        "choices": [
+                                            {"id": "A", "text": "Request knowledge of forbidden arts", "next": "3BA"},
+                                            {"id": "B", "text": "Ask about the true history of the Portal", "next": "3BB"}
+                                        ]
+                                    },
+                                    "3AA": {
+                                        "text": "The warrior speaks of battles against the Void, strategies lost to time. His words carry the weight of hard-won wisdom.",
+                                        "choices": [
+                                            {"id": "A", "text": "Ask him to train you in spirit combat", "next": "END_LEGENDARY"},
+                                            {"id": "B", "text": "Thank him and commit his words to memory", "next": "END_PERFECT"}
+                                        ]
+                                    },
+                                    "3AB": {
+                                        "text": "The warrior is surprised. No one has asked in centuries. He speaks of a message for his descendant in the realm.",
+                                        "choices": [
+                                            {"id": "A", "text": "Swear to deliver it, whatever the cost", "next": "END_LEGENDARY"},
+                                            {"id": "B", "text": "Promise to try your best", "next": "END_PERFECT"}
+                                        ]
+                                    },
+                                    "3BA": {
+                                        "text": "The scholar hesitates. Such knowledge is dangerous. But your desire to learn moves her.",
+                                        "choices": [
+                                            {"id": "A", "text": "Accept whatever consequences may come", "next": "END_PERFECT"},
+                                            {"id": "B", "text": "Ask for only what is safe to know", "next": "END_GOOD"}
+                                        ]
+                                    },
+                                    "3BB": {
+                                        "text": "The scholar reveals the Portal was not created - it was awakened. There was something here before, sleeping...",
+                                        "choices": [
+                                            {"id": "A", "text": "Press for more about what sleeps", "next": "END_LEGENDARY"},
+                                            {"id": "B", "text": "Accept this revelation and retreat", "next": "END_PERFECT"}
+                                        ]
+                                    }
+                                },
+                                "endings": {
+                                    "END_LEGENDARY": {"type": "LEGENDARY", "text": "The spirits bestow their blessing! Your soul is marked with their eternal wisdom.", "pyre_mod": 2.0, "xp_mod": 2.0},
+                                    "END_PERFECT": {"type": "PERFECT", "text": "Deep communion achieved. The spirits have shared precious knowledge.", "pyre_mod": 1.5, "xp_mod": 1.4},
+                                    "END_GOOD": {"type": "GOOD", "text": "The spirits shared what they could. You leave with new understanding.", "pyre_mod": 1.2, "xp_mod": 1.2},
+                                    "END_NEUTRAL": {"type": "NEUTRAL", "text": "Brief contact with the other side. Fragments of wisdom, nothing more.", "pyre_mod": 1.0, "xp_mod": 1.0}
+                                }
                             }'::jsonb
-                        WHERE id = 'MM-M005' AND (narrative_choices IS NULL OR narrative_choices = '[]'::jsonb)
+                        WHERE id = 'MM-M005'
                     """)
 
-                    # MM-H001: Void Rift Sealing (LEGENDARY)
+                    # MM-H001: Void Rift Sealing (HARD - 4 steps)
                     cur.execute("""
                         UPDATE micro_missions SET
                             category = 'LEGENDARY',
-                            narrative_choices = '[
-                                {"id": "A", "text": "Use raw power to force the rift closed", "icon": "fist"},
-                                {"id": "B", "text": "Employ ancient sealing runes", "icon": "rune"},
-                                {"id": "C", "text": "Redirect the void energy back through the rift", "icon": "void"}
-                            ]'::jsonb,
-                            narrative_outcomes = '{
-                                "A": {"type": "NEUTRAL", "text": "Brute force succeeds, but leaves you exhausted.", "pyre_modifier": 0.9, "xp_modifier": 1.0},
-                                "B": {"type": "GOOD", "text": "Ancient runes seal the rift cleanly.", "pyre_modifier": 1.3, "xp_modifier": 1.3},
-                                "C": {"type": "PERFECT", "text": "You harness the void energy itself! The rift becomes your reward.", "pyre_modifier": 1.6, "xp_modifier": 1.5}
+                            narrative_steps = '{
+                                "steps": {
+                                    "1": {
+                                        "text": "A tear in reality screams before you. Void energy pours through, corrupting everything it touches. Dark shapes move on the other side, waiting to cross.",
+                                        "choices": [
+                                            {"id": "A", "text": "Begin weaving sealing runes immediately", "next": "2A"},
+                                            {"id": "B", "text": "Study the rift to understand its nature", "next": "2B"}
+                                        ]
+                                    },
+                                    "2A": {
+                                        "text": "Your runes flare against the void energy. The rift resists, pushing back. One of the dark shapes notices your presence.",
+                                        "choices": [
+                                            {"id": "A", "text": "Pour more power into the sealing", "next": "3AA"},
+                                            {"id": "B", "text": "Adapt your runes to harmonize with the void", "next": "3AB"}
+                                        ]
+                                    },
+                                    "2B": {
+                                        "text": "The rift is unstable, created by accident or sabotage. You notice the void energy follows patterns, like a language.",
+                                        "choices": [
+                                            {"id": "A", "text": "Try to communicate through the patterns", "next": "3BA"},
+                                            {"id": "B", "text": "Use the patterns to predict the rifts behavior", "next": "3BB"}
+                                        ]
+                                    },
+                                    "3AA": {
+                                        "text": "The dark shape fully emerges - a void sentinel! It moves to stop you.",
+                                        "choices": [
+                                            {"id": "A", "text": "Fight while continuing the seal", "next": "4AAA"},
+                                            {"id": "B", "text": "Abandon the seal and defend yourself", "next": "4AAB"}
+                                        ]
+                                    },
+                                    "3AB": {
+                                        "text": "Your adapted runes begin to work! The rift shrinks, but the void energy seeks a new host - you.",
+                                        "choices": [
+                                            {"id": "A", "text": "Accept the energy and redirect it", "next": "4ABA"},
+                                            {"id": "B", "text": "Reject it completely and finish the seal", "next": "4ABB"}
+                                        ]
+                                    },
+                                    "3BA": {
+                                        "text": "The patterns shift in response! Something intelligent watches from the other side - not hostile, merely curious.",
+                                        "choices": [
+                                            {"id": "A", "text": "Propose a mutual sealing - peace between realms", "next": "4BAA"},
+                                            {"id": "B", "text": "Demand they close their side of the rift", "next": "4BAB"}
+                                        ]
+                                    },
+                                    "3BB": {
+                                        "text": "The patterns reveal the rifts weakness - a point where reality is thinnest.",
+                                        "choices": [
+                                            {"id": "A", "text": "Strike the weak point with all your power", "next": "4BBA"},
+                                            {"id": "B", "text": "Carefully repair the weakness with precision magic", "next": "4BBB"}
+                                        ]
+                                    },
+                                    "4AAA": {
+                                        "text": "Against impossible odds, you battle and seal simultaneously!",
+                                        "choices": [
+                                            {"id": "A", "text": "Finish the seal, risking the sentinels final strike", "next": "END_LEGENDARY"},
+                                            {"id": "B", "text": "Destroy the sentinel first, then seal", "next": "END_PERFECT"}
+                                        ]
+                                    },
+                                    "4AAB": {
+                                        "text": "The sentinel falls but the rift grows. You must act fast.",
+                                        "choices": [
+                                            {"id": "A", "text": "Sacrifice some of your essence to close it", "next": "END_GOOD"},
+                                            {"id": "B", "text": "Use emergency sealing - crude but effective", "next": "END_NEUTRAL"}
+                                        ]
+                                    },
+                                    "4ABA": {
+                                        "text": "Void energy courses through you! You become a conduit, redirecting it back through the rift.",
+                                        "choices": [
+                                            {"id": "A", "text": "Channel it all, whatever the cost", "next": "END_LEGENDARY"},
+                                            {"id": "B", "text": "Release it gradually and safely", "next": "END_PERFECT"}
+                                        ]
+                                    },
+                                    "4ABB": {
+                                        "text": "Pure rejection! The void recoils from your will.",
+                                        "choices": [
+                                            {"id": "A", "text": "Push your advantage and seal it completely", "next": "END_PERFECT"},
+                                            {"id": "B", "text": "Maintain the seal until reinforcements arrive", "next": "END_GOOD"}
+                                        ]
+                                    },
+                                    "4BAA": {
+                                        "text": "The entity agrees! You witness beings from the void weaving their own seal from the other side.",
+                                        "choices": [
+                                            {"id": "A", "text": "Work together for a permanent seal", "next": "END_LEGENDARY"},
+                                            {"id": "B", "text": "Accept temporary peace", "next": "END_PERFECT"}
+                                        ]
+                                    },
+                                    "4BAB": {
+                                        "text": "They find your demand amusing but comply - partially.",
+                                        "choices": [
+                                            {"id": "A", "text": "Accept the partial closure and seal your side", "next": "END_GOOD"},
+                                            {"id": "B", "text": "Demand complete closure", "next": "END_NEUTRAL"}
+                                        ]
+                                    },
+                                    "4BBA": {
+                                        "text": "Your strike is true! The rift collapses in a cascade of energy.",
+                                        "choices": [
+                                            {"id": "A", "text": "Absorb the released energy", "next": "END_LEGENDARY"},
+                                            {"id": "B", "text": "Let it dissipate harmlessly", "next": "END_PERFECT"}
+                                        ]
+                                    },
+                                    "4BBB": {
+                                        "text": "Delicate work, but effective. The rift seals perfectly.",
+                                        "choices": [
+                                            {"id": "A", "text": "Reinforce the seal with permanent wards", "next": "END_PERFECT"},
+                                            {"id": "B", "text": "Leave it as is - stable enough", "next": "END_GOOD"}
+                                        ]
+                                    }
+                                },
+                                "endings": {
+                                    "END_LEGENDARY": {"type": "LEGENDARY", "text": "You have not just sealed the rift - you have gained power from the void itself! The realm will remember this day.", "pyre_mod": 2.0, "xp_mod": 2.0},
+                                    "END_PERFECT": {"type": "PERFECT", "text": "The rift is sealed perfectly. Your mastery of the situation was exemplary.", "pyre_mod": 1.5, "xp_mod": 1.4},
+                                    "END_GOOD": {"type": "GOOD", "text": "The rift is closed. It cost you, but the realm is safe.", "pyre_mod": 1.2, "xp_mod": 1.2},
+                                    "END_NEUTRAL": {"type": "NEUTRAL", "text": "The rift is sealed, though imperfectly. It may need attention later.", "pyre_mod": 1.0, "xp_mod": 1.0}
+                                }
                             }'::jsonb
-                        WHERE id = 'MM-H001' AND (narrative_choices IS NULL OR narrative_choices = '[]'::jsonb)
+                        WHERE id = 'MM-H001'
                     """)
 
-                    # MM-H002: Ancient Guardian Trial (LEGENDARY)
+                    # MM-H002: Ancient Guardian Trial (HARD - 4 steps)
                     cur.execute("""
                         UPDATE micro_missions SET
                             category = 'LEGENDARY',
-                            narrative_choices = '[
-                                {"id": "A", "text": "Face the trial of strength", "icon": "sword"},
-                                {"id": "B", "text": "Choose the trial of wisdom", "icon": "book"},
-                                {"id": "C", "text": "Accept the trial of heart", "icon": "heart"}
-                            ]'::jsonb,
-                            narrative_outcomes = '{
-                                "A": {"type": "GOOD", "text": "Battered but victorious, you prove your martial worth.", "pyre_modifier": 1.3, "xp_modifier": 1.2},
-                                "B": {"type": "GOOD", "text": "Your answers demonstrate deep understanding.", "pyre_modifier": 1.2, "xp_modifier": 1.4},
-                                "C": {"type": "PERFECT", "text": "The guardian sees your dedication and bestows its greatest blessing!", "pyre_modifier": 1.5, "xp_modifier": 1.5}
+                            narrative_steps = '{
+                                "steps": {
+                                    "1": {
+                                        "text": "The stone guardian awakens, ancient eyes burning with judgment. It speaks: You seek to prove your worth. Choose your trial.",
+                                        "choices": [
+                                            {"id": "A", "text": "I choose the Trial of Strength", "next": "2A"},
+                                            {"id": "B", "text": "I choose the Trial of Wisdom", "next": "2B"}
+                                        ]
+                                    },
+                                    "2A": {
+                                        "text": "The guardian raises a massive stone fist. Survive my assault. A barrage of attacks begins.",
+                                        "choices": [
+                                            {"id": "A", "text": "Meet force with force - attack back", "next": "3AA"},
+                                            {"id": "B", "text": "Focus on defense and endurance", "next": "3AB"}
+                                        ]
+                                    },
+                                    "2B": {
+                                        "text": "The guardian asks: What is the true purpose of the Portal? The question seems simple, but you sense depth beneath it.",
+                                        "choices": [
+                                            {"id": "A", "text": "To connect realms and enable travel", "next": "3BA"},
+                                            {"id": "B", "text": "To serve a purpose we do not yet understand", "next": "3BB"}
+                                        ]
+                                    },
+                                    "3AA": {
+                                        "text": "Your counterattack staggers the guardian! It pauses, surprised. You have shown unexpected power.",
+                                        "choices": [
+                                            {"id": "A", "text": "Press the advantage - overwhelm it", "next": "4AAA"},
+                                            {"id": "B", "text": "Hold back - this is a test, not a war", "next": "4AAB"}
+                                        ]
+                                    },
+                                    "3AB": {
+                                        "text": "Wave after wave crashes against you. Your defense holds. The guardian nods with respect.",
+                                        "choices": [
+                                            {"id": "A", "text": "Now strike back with everything", "next": "4ABA"},
+                                            {"id": "B", "text": "Maintain defense until it relents", "next": "4ABB"}
+                                        ]
+                                    },
+                                    "3BA": {
+                                        "text": "The guardian considers. A surface answer. Tell me - why do YOU use the Portal?",
+                                        "choices": [
+                                            {"id": "A", "text": "To protect those who cannot protect themselves", "next": "4BAA"},
+                                            {"id": "B", "text": "To grow stronger and face any threat", "next": "4BAB"}
+                                        ]
+                                    },
+                                    "3BB": {
+                                        "text": "The guardian tilts its head. Humility before mystery. Intriguing. Tell me what you would do if you knew the Portals true purpose would destroy you.",
+                                        "choices": [
+                                            {"id": "A", "text": "I would serve the purpose regardless", "next": "4BBA"},
+                                            {"id": "B", "text": "I would seek another way to fulfill it", "next": "4BBB"}
+                                        ]
+                                    },
+                                    "4AAA": {
+                                        "text": "You drive the guardian back! Stone cracks under your assault.",
+                                        "choices": [
+                                            {"id": "A", "text": "Finish it - prove absolute dominance", "next": "END_PERFECT"},
+                                            {"id": "B", "text": "Offer mercy - the point is proven", "next": "END_LEGENDARY"}
+                                        ]
+                                    },
+                                    "4AAB": {
+                                        "text": "The guardian relaxes. You understand. Strength without wisdom destroys itself.",
+                                        "choices": [
+                                            {"id": "A", "text": "Ask to learn its wisdom", "next": "END_LEGENDARY"},
+                                            {"id": "B", "text": "Accept its acknowledgment", "next": "END_PERFECT"}
+                                        ]
+                                    },
+                                    "4ABA": {
+                                        "text": "Your strike lands true! The guardian yields.",
+                                        "choices": [
+                                            {"id": "A", "text": "Demand the highest reward for victory", "next": "END_GOOD"},
+                                            {"id": "B", "text": "Thank it for the lesson", "next": "END_PERFECT"}
+                                        ]
+                                    },
+                                    "4ABB": {
+                                        "text": "The assault ends. You stand unbroken. The trial is complete.",
+                                        "choices": [
+                                            {"id": "A", "text": "Ask what you have proven", "next": "END_PERFECT"},
+                                            {"id": "B", "text": "Request the next trial", "next": "END_LEGENDARY"}
+                                        ]
+                                    },
+                                    "4BAA": {
+                                        "text": "The guardian is moved. Selfless dedication. The rarest answer.",
+                                        "choices": [
+                                            {"id": "A", "text": "It is simply truth", "next": "END_LEGENDARY"},
+                                            {"id": "B", "text": "I try to be worthy of the Portal", "next": "END_PERFECT"}
+                                        ]
+                                    },
+                                    "4BAB": {
+                                        "text": "Honest ambition. This I can respect.",
+                                        "choices": [
+                                            {"id": "A", "text": "Strength serves the realm", "next": "END_PERFECT"},
+                                            {"id": "B", "text": "Will you help me grow stronger?", "next": "END_GOOD"}
+                                        ]
+                                    },
+                                    "4BBA": {
+                                        "text": "The guardians eyes flare. True devotion! You would give everything.",
+                                        "choices": [
+                                            {"id": "A", "text": "The realm demands no less", "next": "END_LEGENDARY"},
+                                            {"id": "B", "text": "I hope it never comes to that", "next": "END_PERFECT"}
+                                        ]
+                                    },
+                                    "4BBB": {
+                                        "text": "Creative loyalty. You would find a way.",
+                                        "choices": [
+                                            {"id": "A", "text": "There is always another way", "next": "END_PERFECT"},
+                                            {"id": "B", "text": "I believe in balance", "next": "END_GOOD"}
+                                        ]
+                                    }
+                                },
+                                "endings": {
+                                    "END_LEGENDARY": {"type": "LEGENDARY", "text": "The guardian kneels! It has not done so in a thousand years. You have proven yourself beyond measure.", "pyre_mod": 2.0, "xp_mod": 2.0},
+                                    "END_PERFECT": {"type": "PERFECT", "text": "The guardian bestows its blessing. You have proven worthy of the ancient trust.", "pyre_mod": 1.5, "xp_mod": 1.4},
+                                    "END_GOOD": {"type": "GOOD", "text": "The trial is passed. You have shown your quality.", "pyre_mod": 1.2, "xp_mod": 1.2},
+                                    "END_NEUTRAL": {"type": "NEUTRAL", "text": "The guardian allows you to leave. Perhaps next time.", "pyre_mod": 1.0, "xp_mod": 1.0}
+                                }
                             }'::jsonb
-                        WHERE id = 'MM-H002' AND (narrative_choices IS NULL OR narrative_choices = '[]'::jsonb)
+                        WHERE id = 'MM-H002'
                     """)
 
-                    # MM-H003: Legendary Artifact Recovery (LEGENDARY)
+                    # MM-H003: Legendary Artifact Recovery (HARD - 4 steps)
                     cur.execute("""
                         UPDATE micro_missions SET
                             category = 'LEGENDARY',
-                            narrative_choices = '[
-                                {"id": "A", "text": "Approach through the main path, ready for combat", "icon": "sword"},
-                                {"id": "B", "text": "Find an alternate route to avoid detection", "icon": "stealth"},
-                                {"id": "C", "text": "Study the area first to understand its dangers", "icon": "eye"}
-                            ]'::jsonb,
-                            narrative_outcomes = '{
-                                "A": {"type": "NEUTRAL", "text": "You fight through, sustaining injuries but claiming the prize.", "pyre_modifier": 1.0, "xp_modifier": 1.1},
-                                "B": {"type": "GOOD", "text": "Your alternative path avoids most dangers.", "pyre_modifier": 1.3, "xp_modifier": 1.3},
-                                "C": {"type": "PERFECT", "text": "It was a test! Guardians surrender the artifact plus bonus rewards.", "pyre_modifier": 1.6, "xp_modifier": 1.6}
+                            narrative_steps = '{
+                                "steps": {
+                                    "1": {
+                                        "text": "The artifact pulses with power in the distance. Ancient defenses surround it - traps, guardians, and worse. Many have sought it. None have returned.",
+                                        "choices": [
+                                            {"id": "A", "text": "Scout the perimeter for weaknesses", "next": "2A"},
+                                            {"id": "B", "text": "Move directly toward the artifact", "next": "2B"}
+                                        ]
+                                    },
+                                    "2A": {
+                                        "text": "You identify three paths: a trapped main corridor, a narrow crevice, and an ancient air shaft.",
+                                        "choices": [
+                                            {"id": "A", "text": "Navigate the narrow crevice", "next": "3AA"},
+                                            {"id": "B", "text": "Climb through the air shaft", "next": "3AB"}
+                                        ]
+                                    },
+                                    "2B": {
+                                        "text": "Traps spring! You dodge blades and flames, but now the guardians know you are here.",
+                                        "choices": [
+                                            {"id": "A", "text": "Fight through the guardians", "next": "3BA"},
+                                            {"id": "B", "text": "Use the chaos to slip past them", "next": "3BB"}
+                                        ]
+                                    },
+                                    "3AA": {
+                                        "text": "The crevice leads to an ancient chamber. Writings on the walls speak of the artifacts true nature - it was meant to be found.",
+                                        "choices": [
+                                            {"id": "A", "text": "Study the writings first", "next": "4AAA"},
+                                            {"id": "B", "text": "Press on to the artifact", "next": "4AAB"}
+                                        ]
+                                    },
+                                    "3AB": {
+                                        "text": "The air shaft opens above the artifact chamber. You can see it below - and the guardian directly beneath you.",
+                                        "choices": [
+                                            {"id": "A", "text": "Drop down in a surprise attack", "next": "4ABA"},
+                                            {"id": "B", "text": "Wait for the guardian to move", "next": "4ABB"}
+                                        ]
+                                    },
+                                    "3BA": {
+                                        "text": "Guardian after guardian falls. Your path is littered with stone fragments. The artifact chamber lies ahead.",
+                                        "choices": [
+                                            {"id": "A", "text": "Claim the artifact immediately", "next": "4BAA"},
+                                            {"id": "B", "text": "Check for one final trap", "next": "4BAB"}
+                                        ]
+                                    },
+                                    "3BB": {
+                                        "text": "You slip through during the confusion. The artifact gleams before you, unguarded for this moment.",
+                                        "choices": [
+                                            {"id": "A", "text": "Grab it and run", "next": "4BBA"},
+                                            {"id": "B", "text": "Carefully disconnect it from its pedestal", "next": "4BBB"}
+                                        ]
+                                    },
+                                    "4AAA": {
+                                        "text": "The writings reveal this was a test all along. Those worthy enough to seek knowledge first deserve the artifact.",
+                                        "choices": [
+                                            {"id": "A", "text": "Accept the title of Seeker", "next": "END_LEGENDARY"},
+                                            {"id": "B", "text": "Take the artifact humbly", "next": "END_PERFECT"}
+                                        ]
+                                    },
+                                    "4AAB": {
+                                        "text": "You reach the artifact. As you touch it, visions flood your mind.",
+                                        "choices": [
+                                            {"id": "A", "text": "Embrace the visions fully", "next": "END_PERFECT"},
+                                            {"id": "B", "text": "Take the artifact and leave quickly", "next": "END_GOOD"}
+                                        ]
+                                    },
+                                    "4ABA": {
+                                        "text": "Your attack destroys the guardian! The artifact is yours.",
+                                        "choices": [
+                                            {"id": "A", "text": "Attune to its power immediately", "next": "END_PERFECT"},
+                                            {"id": "B", "text": "Secure it for later study", "next": "END_GOOD"}
+                                        ]
+                                    },
+                                    "4ABB": {
+                                        "text": "The guardian leaves. You descend silently and retrieve the artifact without conflict.",
+                                        "choices": [
+                                            {"id": "A", "text": "Study its nature before leaving", "next": "END_LEGENDARY"},
+                                            {"id": "B", "text": "Escape before anything changes", "next": "END_PERFECT"}
+                                        ]
+                                    },
+                                    "4BAA": {
+                                        "text": "The artifact is yours! But it feels... incomplete?",
+                                        "choices": [
+                                            {"id": "A", "text": "Search for what is missing", "next": "END_LEGENDARY"},
+                                            {"id": "B", "text": "Leave with what you have", "next": "END_GOOD"}
+                                        ]
+                                    },
+                                    "4BAB": {
+                                        "text": "Your instinct was right - a pressure plate! You disable it and claim your prize.",
+                                        "choices": [
+                                            {"id": "A", "text": "Check if there is more", "next": "END_PERFECT"},
+                                            {"id": "B", "text": "Take the artifact and go", "next": "END_GOOD"}
+                                        ]
+                                    },
+                                    "4BBA": {
+                                        "text": "Alarms blare! You run with the artifact as the temple collapses.",
+                                        "choices": [
+                                            {"id": "A", "text": "Dive for the exit", "next": "END_GOOD"},
+                                            {"id": "B", "text": "Use the artifacts power to escape", "next": "END_PERFECT"}
+                                        ]
+                                    },
+                                    "4BBB": {
+                                        "text": "You carefully disconnect it. The temple remains stable. You have time.",
+                                        "choices": [
+                                            {"id": "A", "text": "Explore for additional treasures", "next": "END_LEGENDARY"},
+                                            {"id": "B", "text": "Leave while fortune favors you", "next": "END_PERFECT"}
+                                        ]
+                                    }
+                                },
+                                "endings": {
+                                    "END_LEGENDARY": {"type": "LEGENDARY", "text": "The artifact recognizes you as a true Seeker! Additional rewards manifest from the ancient vaults.", "pyre_mod": 2.0, "xp_mod": 2.0},
+                                    "END_PERFECT": {"type": "PERFECT", "text": "The legendary artifact is yours! Its power already responds to your touch.", "pyre_mod": 1.5, "xp_mod": 1.4},
+                                    "END_GOOD": {"type": "GOOD", "text": "You escape with the artifact. A successful recovery.", "pyre_mod": 1.2, "xp_mod": 1.2},
+                                    "END_NEUTRAL": {"type": "NEUTRAL", "text": "The artifact is secured, though the journey cost you much.", "pyre_mod": 1.0, "xp_mod": 1.0}
+                                }
                             }'::jsonb
-                        WHERE id = 'MM-H003' AND (narrative_choices IS NULL OR narrative_choices = '[]'::jsonb)
+                        WHERE id = 'MM-H003'
                     """)
 
-                    # MM-H004: Elite Ash Beast Hunt (PATROL)
+                    # MM-H004: Elite Ash Beast Hunt (HARD - 4 steps)
                     cur.execute("""
                         UPDATE micro_missions SET
                             category = 'PATROL',
-                            narrative_choices = '[
-                                {"id": "A", "text": "Engage the beast in direct combat", "icon": "sword"},
-                                {"id": "B", "text": "Lure it into a prepared trap", "icon": "trap"},
-                                {"id": "C", "text": "Use the terrain to gain advantage", "icon": "mountain"}
-                            ]'::jsonb,
-                            narrative_outcomes = '{
-                                "A": {"type": "NEUTRAL", "text": "A fierce battle. Victory at personal cost.", "pyre_modifier": 1.0, "xp_modifier": 1.1},
-                                "B": {"type": "GOOD", "text": "Your trap springs perfectly! Efficient neutralization.", "pyre_modifier": 1.3, "xp_modifier": 1.3},
-                                "C": {"type": "PERFECT", "text": "Masterful use of terrain! A clean victory worthy of legend.", "pyre_modifier": 1.5, "xp_modifier": 1.5}
+                            narrative_steps = '{
+                                "steps": {
+                                    "1": {
+                                        "text": "Massive tracks scar the landscape. The alpha ash beast - a creature of legend and nightmare. Its pack decimated a patrol last night. This ends now.",
+                                        "choices": [
+                                            {"id": "A", "text": "Track it to its lair", "next": "2A"},
+                                            {"id": "B", "text": "Set an ambush at the water source", "next": "2B"}
+                                        ]
+                                    },
+                                    "2A": {
+                                        "text": "The tracks lead to a volcanic cave. Heat radiates from within. You hear the beast breathing.",
+                                        "choices": [
+                                            {"id": "A", "text": "Enter the cave for close combat", "next": "3AA"},
+                                            {"id": "B", "text": "Smoke it out with fire bombs", "next": "3AB"}
+                                        ]
+                                    },
+                                    "2B": {
+                                        "text": "You wait at the ashen spring. As dusk falls, the massive form appears. It is even larger than the reports suggested.",
+                                        "choices": [
+                                            {"id": "A", "text": "Spring the trap immediately", "next": "3BA"},
+                                            {"id": "B", "text": "Wait for it to drink and lower its guard", "next": "3BB"}
+                                        ]
+                                    },
+                                    "3AA": {
+                                        "text": "The beast lunges from the darkness! In the confined space, its size becomes a weakness.",
+                                        "choices": [
+                                            {"id": "A", "text": "Use your agility to strike vital points", "next": "4AAA"},
+                                            {"id": "B", "text": "Collapse the cave entrance, trapping it", "next": "4AAB"}
+                                        ]
+                                    },
+                                    "3AB": {
+                                        "text": "The beast charges out, enraged and partially blinded by smoke. Other pack members follow.",
+                                        "choices": [
+                                            {"id": "A", "text": "Focus on the alpha - the pack will scatter", "next": "4ABA"},
+                                            {"id": "B", "text": "Separate the alpha from its pack first", "next": "4ABB"}
+                                        ]
+                                    },
+                                    "3BA": {
+                                        "text": "Your trap catches its leg! The beast howls in fury and turns toward you.",
+                                        "choices": [
+                                            {"id": "A", "text": "Press the attack while it is restrained", "next": "4BAA"},
+                                            {"id": "B", "text": "Keep distance and wear it down", "next": "4BAB"}
+                                        ]
+                                    },
+                                    "3BB": {
+                                        "text": "Patient hunter. The beast drinks deeply, unaware. You have the perfect angle.",
+                                        "choices": [
+                                            {"id": "A", "text": "Strike for an instant kill", "next": "4BBA"},
+                                            {"id": "B", "text": "Wound it first, then finish carefully", "next": "4BBB"}
+                                        ]
+                                    },
+                                    "4AAA": {
+                                        "text": "You dance around its strikes, blade finding weakness after weakness.",
+                                        "choices": [
+                                            {"id": "A", "text": "Go for the killing blow", "next": "END_LEGENDARY"},
+                                            {"id": "B", "text": "Drive it from its lair defeated", "next": "END_PERFECT"}
+                                        ]
+                                    },
+                                    "4AAB": {
+                                        "text": "The cave collapses! You escape as the beast is buried.",
+                                        "choices": [
+                                            {"id": "A", "text": "Confirm the kill in the rubble", "next": "END_PERFECT"},
+                                            {"id": "B", "text": "Report it destroyed and leave", "next": "END_GOOD"}
+                                        ]
+                                    },
+                                    "4ABA": {
+                                        "text": "The alpha falls! Without their leader, the pack flees into the wastes.",
+                                        "choices": [
+                                            {"id": "A", "text": "Hunt down the remaining pack", "next": "END_LEGENDARY"},
+                                            {"id": "B", "text": "Let them scatter - the alpha was the goal", "next": "END_PERFECT"}
+                                        ]
+                                    },
+                                    "4ABB": {
+                                        "text": "You draw the alpha away. Alone, it is still deadly but manageable.",
+                                        "choices": [
+                                            {"id": "A", "text": "Finish it in single combat", "next": "END_PERFECT"},
+                                            {"id": "B", "text": "Lead it into a secondary trap", "next": "END_GOOD"}
+                                        ]
+                                    },
+                                    "4BAA": {
+                                        "text": "Your assault is relentless! The beast cannot defend and free itself.",
+                                        "choices": [
+                                            {"id": "A", "text": "End it with honor", "next": "END_LEGENDARY"},
+                                            {"id": "B", "text": "End it quickly", "next": "END_PERFECT"}
+                                        ]
+                                    },
+                                    "4BAB": {
+                                        "text": "Blood loss weakens the beast. It finally collapses.",
+                                        "choices": [
+                                            {"id": "A", "text": "Grant it a warriors end", "next": "END_PERFECT"},
+                                            {"id": "B", "text": "Ensure it cannot recover", "next": "END_GOOD"}
+                                        ]
+                                    },
+                                    "4BBA": {
+                                        "text": "One perfect strike! The alpha falls without knowing what killed it.",
+                                        "choices": [
+                                            {"id": "A", "text": "Take a trophy to prove the kill", "next": "END_LEGENDARY"},
+                                            {"id": "B", "text": "Leave its body as warning to others", "next": "END_PERFECT"}
+                                        ]
+                                    },
+                                    "4BBB": {
+                                        "text": "Wounded, the beast still fights. But its strength fails.",
+                                        "choices": [
+                                            {"id": "A", "text": "Finish what you started", "next": "END_PERFECT"},
+                                            {"id": "B", "text": "Let it bleed out - no need to risk more", "next": "END_GOOD"}
+                                        ]
+                                    }
+                                },
+                                "endings": {
+                                    "END_LEGENDARY": {"type": "LEGENDARY", "text": "The alpha falls and you become legend! Songs will be sung of this hunt for generations.", "pyre_mod": 2.0, "xp_mod": 2.0},
+                                    "END_PERFECT": {"type": "PERFECT", "text": "A masterful hunt! The beast is slain and the realm is safer.", "pyre_mod": 1.5, "xp_mod": 1.4},
+                                    "END_GOOD": {"type": "GOOD", "text": "The hunt is successful. The alpha will threaten no more.", "pyre_mod": 1.2, "xp_mod": 1.2},
+                                    "END_NEUTRAL": {"type": "NEUTRAL", "text": "The beast is driven off. It may return, but not today.", "pyre_mod": 1.0, "xp_mod": 1.0}
+                                }
                             }'::jsonb
-                        WHERE id = 'MM-H004' AND (narrative_choices IS NULL OR narrative_choices = '[]'::jsonb)
+                        WHERE id = 'MM-H004'
                     """)
 
-                    # MM-H005: Forge of Legends (GUILD)
+                    # MM-H005: Forge of Legends (HARD - 4 steps)
                     cur.execute("""
                         UPDATE micro_missions SET
                             category = 'GUILD',
-                            narrative_choices = '[
-                                {"id": "A", "text": "Contribute your own ember essence to the forging", "icon": "flame"},
-                                {"id": "B", "text": "Maintain perfect rhythm with the master smith", "icon": "anvil"},
-                                {"id": "C", "text": "Channel ancestral knowledge of metallurgy", "icon": "book"}
-                            ]'::jsonb,
-                            narrative_outcomes = '{
-                                "A": {"type": "GOOD", "text": "Your essence merges with the weapon. It carries part of you.", "pyre_modifier": 1.3, "xp_modifier": 1.2},
-                                "B": {"type": "GOOD", "text": "Perfect tempo! The weapon forms flawlessly.", "pyre_modifier": 1.2, "xp_modifier": 1.3},
-                                "C": {"type": "PERFECT", "text": "Ancient smiths speak through you! The weapon achieves perfection.", "pyre_modifier": 1.6, "xp_modifier": 1.5}
+                            narrative_steps = '{
+                                "steps": {
+                                    "1": {
+                                        "text": "The master smith has summoned you. Today, legend shall be forged. The metal is ancient starmetal, the forge burns with First Flame essence. This is a sacred moment.",
+                                        "choices": [
+                                            {"id": "A", "text": "Ask what role you will play", "next": "2A"},
+                                            {"id": "B", "text": "Offer your ember essence to the forging", "next": "2B"}
+                                        ]
+                                    },
+                                    "2A": {
+                                        "text": "The master explains: You will hold the intention. As I shape the metal, you must focus your will upon what this weapon shall become.",
+                                        "choices": [
+                                            {"id": "A", "text": "Focus on protection - a guardians weapon", "next": "3AA"},
+                                            {"id": "B", "text": "Focus on destruction - a conquerors weapon", "next": "3AB"}
+                                        ]
+                                    },
+                                    "2B": {
+                                        "text": "The master pauses, surprised. You would give of yourself? He nods slowly. Then your essence shall be part of the legend.",
+                                        "choices": [
+                                            {"id": "A", "text": "Give freely, without reservation", "next": "3BA"},
+                                            {"id": "B", "text": "Give carefully, maintaining your strength", "next": "3BB"}
+                                        ]
+                                    },
+                                    "3AA": {
+                                        "text": "The metal glows with defensive sigils. But the master asks: What would you protect?",
+                                        "choices": [
+                                            {"id": "A", "text": "The innocent who cannot fight", "next": "4AAA"},
+                                            {"id": "B", "text": "The realm and all within it", "next": "4AAB"}
+                                        ]
+                                    },
+                                    "3AB": {
+                                        "text": "The metal crackles with destructive force. The master asks: What would you destroy?",
+                                        "choices": [
+                                            {"id": "A", "text": "The enemies of the realm", "next": "4ABA"},
+                                            {"id": "B", "text": "The darkness that threatens all light", "next": "4ABB"}
+                                        ]
+                                    },
+                                    "3BA": {
+                                        "text": "Your essence pours into the metal. You feel weakened but the weapon glows with incredible power.",
+                                        "choices": [
+                                            {"id": "A", "text": "Give even more - make it perfect", "next": "4BAA"},
+                                            {"id": "B", "text": "Trust that what you gave is enough", "next": "4BAB"}
+                                        ]
+                                    },
+                                    "3BB": {
+                                        "text": "Your measured contribution stabilizes the forging. The weapon will be excellent, if not transcendent.",
+                                        "choices": [
+                                            {"id": "A", "text": "Add more - reach for greatness", "next": "4BBA"},
+                                            {"id": "B", "text": "Excellence is achievement enough", "next": "4BBB"}
+                                        ]
+                                    },
+                                    "4AAA": {
+                                        "text": "The Defenders Intent! The weapon becomes a shield-blade, protecting its wielder and those behind them.",
+                                        "choices": [
+                                            {"id": "A", "text": "Name it in honor of the fallen", "next": "END_LEGENDARY"},
+                                            {"id": "B", "text": "Let its deeds name it", "next": "END_PERFECT"}
+                                        ]
+                                    },
+                                    "4AAB": {
+                                        "text": "The Realms Intent! The weapon resonates with the land itself.",
+                                        "choices": [
+                                            {"id": "A", "text": "Bind it to the Portal", "next": "END_LEGENDARY"},
+                                            {"id": "B", "text": "Let it find its own purpose", "next": "END_PERFECT"}
+                                        ]
+                                    },
+                                    "4ABA": {
+                                        "text": "The Warriors Intent! The weapon hungers for battle.",
+                                        "choices": [
+                                            {"id": "A", "text": "Temper it with wisdom", "next": "END_PERFECT"},
+                                            {"id": "B", "text": "Let it be what it is", "next": "END_GOOD"}
+                                        ]
+                                    },
+                                    "4ABB": {
+                                        "text": "The Lights Intent! The weapon burns with inner fire that void creatures will fear.",
+                                        "choices": [
+                                            {"id": "A", "text": "Dedicate it to the First Flame", "next": "END_LEGENDARY"},
+                                            {"id": "B", "text": "Let it carry its own light", "next": "END_PERFECT"}
+                                        ]
+                                    },
+                                    "4BAA": {
+                                        "text": "You give everything. The weapon achieves a perfection rarely seen. But you collapse.",
+                                        "choices": [
+                                            {"id": "A", "text": "It was worth any cost", "next": "END_LEGENDARY"},
+                                            {"id": "B", "text": "The master catches you - you survive", "next": "END_PERFECT"}
+                                        ]
+                                    },
+                                    "4BAB": {
+                                        "text": "The forging completes. The weapon is exceptional - touched by your essence.",
+                                        "choices": [
+                                            {"id": "A", "text": "Request to wield it yourself", "next": "END_PERFECT"},
+                                            {"id": "B", "text": "Let the master decide its fate", "next": "END_GOOD"}
+                                        ]
+                                    },
+                                    "4BBA": {
+                                        "text": "The additional essence pushes the forging higher! The master works in awe.",
+                                        "choices": [
+                                            {"id": "A", "text": "See it through to the end", "next": "END_LEGENDARY"},
+                                            {"id": "B", "text": "Trust the master to finish", "next": "END_PERFECT"}
+                                        ]
+                                    },
+                                    "4BBB": {
+                                        "text": "The weapon forms beautifully - excellent craftsmanship with a touch of your essence.",
+                                        "choices": [
+                                            {"id": "A", "text": "Be proud of your contribution", "next": "END_GOOD"},
+                                            {"id": "B", "text": "Learn from the experience for next time", "next": "END_GOOD"}
+                                        ]
+                                    }
+                                },
+                                "endings": {
+                                    "END_LEGENDARY": {"type": "LEGENDARY", "text": "A weapon of legend is born! Your contribution will be remembered as long as the weapon exists.", "pyre_mod": 2.0, "xp_mod": 2.0},
+                                    "END_PERFECT": {"type": "PERFECT", "text": "An exceptional weapon forged with your essence! The master smith bows in respect.", "pyre_mod": 1.5, "xp_mod": 1.4},
+                                    "END_GOOD": {"type": "GOOD", "text": "You contributed to the forging of a fine weapon. The experience was invaluable.", "pyre_mod": 1.2, "xp_mod": 1.2},
+                                    "END_NEUTRAL": {"type": "NEUTRAL", "text": "The forging completes. Your role was small but you learned much.", "pyre_mod": 1.0, "xp_mod": 1.0}
+                                }
                             }'::jsonb
-                        WHERE id = 'MM-H005' AND (narrative_choices IS NULL OR narrative_choices = '[]'::jsonb)
+                        WHERE id = 'MM-H005'
                     """)
 
-                    # Clean up any corrupted active missions with wrong duration
+                    # AGGRESSIVE CLEANUP: Remove ALL expired/corrupted micro-missions
+                    # This prevents emissaries from getting stuck with no action buttons
+
+                    # 1. Delete any micro-mission that has already ended
                     cur.execute("""
                         DELETE FROM active_micro_missions
                         WHERE status IN ('active', 'choice_pending')
-                        AND ends_at < NOW() - INTERVAL '1 hour'
+                        AND ends_at < NOW()
                     """)
+
+                    # 2. Delete any micro-mission older than 10 minutes (max should be 5 min)
+                    cur.execute("""
+                        DELETE FROM active_micro_missions
+                        WHERE status IN ('active', 'choice_pending')
+                        AND started_at < NOW() - INTERVAL '10 minutes'
+                    """)
+
+                    # 3. Delete any micro-mission with NULL ends_at (corrupted data)
+                    cur.execute("""
+                        DELETE FROM active_micro_missions
+                        WHERE status IN ('active', 'choice_pending')
+                        AND ends_at IS NULL
+                    """)
+
+                    # 4. Force complete any stuck micro-missions
+                    cur.execute("""
+                        UPDATE active_micro_missions
+                        SET status = 'expired', completed_at = NOW()
+                        WHERE status IN ('active', 'choice_pending')
+                        AND (
+                            ends_at < NOW() - INTERVAL '1 minute'
+                            OR started_at < NOW() - INTERVAL '15 minutes'
+                        )
+                    """)
+
+                    print("🧹 Cleaned up expired/corrupted micro-missions")
+
+                    # =========================================================
+                    # FIX DURATIONS: EASY=120s, MEDIUM=240s, HARD=360s
+                    # =========================================================
+                    cur.execute("""
+                        UPDATE micro_missions SET duration_seconds = 120 WHERE difficulty = 'EASY'
+                    """)
+                    cur.execute("""
+                        UPDATE micro_missions SET duration_seconds = 240 WHERE difficulty = 'MEDIUM'
+                    """)
+                    cur.execute("""
+                        UPDATE micro_missions SET duration_seconds = 300 WHERE difficulty = 'HARD'
+                    """)
+
+                    # Also fix ends_at for any active missions with wrong duration
+                    cur.execute("""
+                        UPDATE active_micro_missions amm SET
+                            ends_at = amm.started_at + (mm.duration_seconds * interval '1 second')
+                        FROM micro_missions mm
+                        WHERE amm.micro_mission_id = mm.id
+                        AND amm.status IN ('active', 'choice_pending')
+                    """)
+                    print("⏱️ Fixed mission durations (EASY=2min, MEDIUM=4min, HARD=6min)")
 
                     print("✅ Database migrations applied (including narrative system)")
         except Exception as e:
@@ -1028,10 +1970,10 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
         try:
             with get_db_connection() as conn:
                 with conn.cursor() as cur:
-                    # Get mission details
+                    # Get mission details including narrative_steps for multi-step adventures
                     cur.execute("""
                         SELECT id, name, duration_seconds, energy_cost, narrative_intro,
-                               narrative_choices
+                               narrative_choices, narrative_steps
                         FROM micro_missions
                         WHERE id = %s AND is_active = TRUE
                     """, (mission_id,))
@@ -1072,11 +2014,11 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
                     now = datetime.now(timezone.utc).replace(tzinfo=None)
                     ends_at = now + timedelta(seconds=mission[2])
 
-                    # Create active micro-mission
+                    # Create active micro-mission with current_step = "1"
                     cur.execute("""
                         INSERT INTO active_micro_missions
-                        (wallet, emissary_token_id, micro_mission_id, started_at, ends_at, status)
-                        VALUES (%s, %s, %s, %s, %s, 'active')
+                        (wallet, emissary_token_id, micro_mission_id, started_at, ends_at, status, current_step, choices_path)
+                        VALUES (%s, %s, %s, %s, %s, 'active', '1', '[]'::jsonb)
                         RETURNING id
                     """, (wallet, token_id, mission_id, now, ends_at))
                     active_id = cur.fetchone()[0]
@@ -1093,7 +2035,20 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
                         WHERE token_id = %s
                     """, (token_id,))
 
-                    # Return structure matching what frontend expects
+                    # Extract first step from narrative_steps for multi-step adventures
+                    narrative_steps = mission[6] or {}
+                    steps = narrative_steps.get('steps', {})
+                    first_step = steps.get('1', {})
+
+                    # Use multi-step narrative if available, otherwise fallback to legacy
+                    if first_step:
+                        narrative_text = first_step.get('text', mission[4] or 'Your journey begins...')
+                        choices = first_step.get('choices', mission[5] or [])
+                    else:
+                        narrative_text = mission[4] or 'Your journey begins...'
+                        choices = mission[5] or []
+
+                    # Return structure for multi-step adventures
                     return jsonify({
                         "success": True,
                         "active_micro_mission_id": active_id,
@@ -1102,8 +2057,11 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
                             "mission_id": mission[0],
                             "name": mission[1],
                             "duration_seconds": mission[2],
-                            "narrative_intro": mission[4],
-                            "choices": mission[5] or [],
+                            "narrative_intro": narrative_text,
+                            "choices": choices,
+                            "current_step": "1",
+                            "choices_path": [],
+                            "ending_reached": None,
                             "started_at": now.isoformat(),
                             "ends_at": ends_at.isoformat(),
                             "emissary_token_id": token_id,
@@ -1121,13 +2079,17 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
     @app.route('/api/micro-mission/choice', methods=['POST'])
     def api_micro_mission_choice():
         """
-        Register player's choice in a micro-mission.
+        Handle multi-step narrative progression in micro-missions.
 
         Body: {
             "wallet": "0x...",
             "active_micro_mission_id": 123,
-            "choice": "A"  // A, B, or C
+            "choice": "A"  // A or B
         }
+
+        Returns:
+        - If more steps remain: next step text and choices
+        - If ending reached: ending info and readiness for completion
         """
         data = request.get_json() or {}
         wallet = data.get('wallet', '').lower()
@@ -1146,9 +2108,13 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
         try:
             with get_db_connection() as conn:
                 with conn.cursor() as cur:
-                    # Verify ownership and status
+                    # Get mission data including narrative_steps and current progress
                     cur.execute("""
-                        SELECT amm.id, amm.status, amm.micro_mission_id, mm.narrative_outcomes
+                        SELECT amm.id, amm.status, amm.micro_mission_id,
+                               COALESCE(amm.current_step, 1) as current_step,
+                               COALESCE(amm.choices_path, '[]'::jsonb) as choices_path,
+                               amm.ending_reached,
+                               mm.narrative_steps, mm.name
                         FROM active_micro_missions amm
                         JOIN micro_missions mm ON amm.micro_mission_id = mm.id
                         WHERE amm.id = %s AND amm.wallet = %s
@@ -1158,30 +2124,130 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
                     if not row:
                         return jsonify({"error": "Active micro-mission not found"}), 404
 
-                    if row[1] not in ['active', 'choice_pending']:
-                        return jsonify({"error": f"Cannot make choice in status: {row[1]}"}), 400
+                    status = row[1]
+                    current_step = row[3]
+                    choices_path = row[4] if row[4] else []
+                    ending_reached = row[5]
+                    narrative_steps = row[6] or {}
+                    mission_name = row[7]
 
-                    outcomes = row[3] or {}
-                    outcome = outcomes.get(choice, {})
+                    # Check if ending already reached
+                    if ending_reached:
+                        return jsonify({
+                            "error": "Mission ending already reached. Claim your rewards.",
+                            "ending_reached": ending_reached
+                        }), 400
 
-                    # Update with choice
-                    cur.execute("""
-                        UPDATE active_micro_missions SET
-                            choice_made = %s,
-                            status = 'choice_pending',
-                            outcome_text = %s
-                        WHERE id = %s
-                    """, (choice, outcome.get('text', ''), active_id))
+                    if status not in ['active', 'choice_pending']:
+                        return jsonify({"error": f"Cannot make choice in status: {status}"}), 400
 
-                    return jsonify({
-                        "success": True,
-                        "choice": choice,
-                        "outcome_preview": outcome.get('text', 'Your choice has been recorded...'),
-                        "message": "Wait for the mission to complete to see full results"
-                    })
+                    # Get steps and endings from narrative_steps
+                    steps = narrative_steps.get('steps', {})
+                    endings = narrative_steps.get('endings', {})
+
+                    # Find current step (can be "1", "2A", "2B", "3A", etc.)
+                    # First step is always "1", subsequent steps are stored in choices_path progression
+                    if len(choices_path) == 0:
+                        step_key = "1"
+                    else:
+                        # Reconstruct step key from choices_path
+                        step_key = str(len(choices_path) + 1) + choices_path[-1] if choices_path else "1"
+                        # Actually, we store the step key directly after first choice
+                        # Let's use a simpler approach: store the current step key
+                        pass
+
+                    # For simplicity, let's use current_step as the step key directly
+                    step_key = str(current_step) if current_step else "1"
+                    current_step_data = steps.get(step_key, {})
+
+                    if not current_step_data:
+                        # Try finding the step another way - maybe it's like "2A" after first choice
+                        # Reconstruct from choices_path
+                        if len(choices_path) > 0:
+                            step_key = str(len(choices_path) + 1) + choices_path[-1]
+                            current_step_data = steps.get(step_key, {})
+
+                    if not current_step_data:
+                        return jsonify({
+                            "error": f"Step {step_key} not found in narrative",
+                            "available_steps": list(steps.keys())
+                        }), 500
+
+                    # Find the chosen option
+                    choices_list = current_step_data.get('choices', [])
+                    chosen_option = None
+                    for opt in choices_list:
+                        if opt.get('id', '').upper() == choice:
+                            chosen_option = opt
+                            break
+
+                    if not chosen_option:
+                        return jsonify({
+                            "error": f"Choice {choice} not available in current step",
+                            "available_choices": [c.get('id') for c in choices_list]
+                        }), 400
+
+                    # Get the next step
+                    next_step = chosen_option.get('next', '')
+
+                    # Update choices_path
+                    new_choices_path = choices_path + [choice]
+
+                    # Check if this leads to an ending
+                    if next_step.startswith('END_'):
+                        ending_data = endings.get(next_step, {})
+                        ending_type = ending_data.get('type', 'NEUTRAL')
+                        ending_text = ending_data.get('text', 'Your journey concludes...')
+
+                        # Store ending info and mark ready for completion
+                        cur.execute("""
+                            UPDATE active_micro_missions SET
+                                choices_path = %s,
+                                ending_reached = %s,
+                                outcome_text = %s,
+                                status = 'choice_pending'
+                            WHERE id = %s
+                        """, (json.dumps(new_choices_path), next_step, ending_text, active_id))
+
+                        return jsonify({
+                            "success": True,
+                            "choice": choice,
+                            "ending_reached": True,
+                            "ending_type": ending_type,
+                            "ending_id": next_step,
+                            "ending_text": ending_text,
+                            "choices_path": new_choices_path,
+                            "message": "The story reaches its conclusion. Wait for the timer to claim rewards."
+                        })
+                    else:
+                        # More steps to go - update current step
+                        next_step_data = steps.get(next_step, {})
+                        next_text = next_step_data.get('text', 'The story continues...')
+                        next_choices = next_step_data.get('choices', [])
+
+                        cur.execute("""
+                            UPDATE active_micro_missions SET
+                                current_step = %s,
+                                choices_path = %s,
+                                status = 'active'
+                            WHERE id = %s
+                        """, (next_step, json.dumps(new_choices_path), active_id))
+
+                        return jsonify({
+                            "success": True,
+                            "choice": choice,
+                            "ending_reached": False,
+                            "current_step": next_step,
+                            "narrative_text": next_text,
+                            "choices": next_choices,
+                            "choices_path": new_choices_path,
+                            "message": "Continue your journey..."
+                        })
 
         except Exception as e:
             print(f"Error recording choice: {e}")
+            import traceback
+            traceback.print_exc()
             return jsonify({"error": str(e)}), 500
 
     @app.route('/api/micro-mission/complete', methods=['POST'])
@@ -1207,14 +2273,15 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
         try:
             with get_db_connection() as conn:
                 with conn.cursor() as cur:
-                    # Get active mission details (including ember_reward fields)
+                    # Get active mission details including multi-step narrative data
                     cur.execute("""
                         SELECT amm.id, amm.status, amm.emissary_token_id, amm.ends_at,
                                amm.choice_made, amm.outcome_text,
                                mm.pyre_reward_min, mm.pyre_reward_max,
                                mm.xp_reward_min, mm.xp_reward_max,
                                mm.aura_chance, mm.name, mm.narrative_outcomes,
-                               COALESCE(mm.ember_reward_min, 0), COALESCE(mm.ember_reward_max, 0)
+                               COALESCE(mm.ember_reward_min, 0), COALESCE(mm.ember_reward_max, 0),
+                               amm.ending_reached, mm.narrative_steps
                         FROM active_micro_missions amm
                         JOIN micro_missions mm ON amm.micro_mission_id = mm.id
                         WHERE amm.id = %s AND amm.wallet = %s
@@ -1239,25 +2306,50 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
                             "remaining_seconds": int(remaining)
                         }), 400
 
-                    # Calculate rewards
+                    # Extract ending data for multi-step adventures
+                    ending_reached = row[15]
+                    narrative_steps = row[16] or {}
+                    endings = narrative_steps.get('endings', {})
+
+                    # Calculate base rewards
                     pyre_earned = random.randint(row[6], row[7])  # pyre_reward_min/max
                     xp_earned = random.randint(row[8], row[9])     # xp_reward_min/max
                     aura_earned = 1 if random.random() * 100 < float(row[10] or 0) else 0
 
-                    # 🔥 EMBER REWARD: Calculate ember from micro-mission
+                    # EMBER REWARD: Calculate ember from micro-mission
                     ember_min = row[13] or 0  # ember_reward_min
                     ember_max = row[14] or 0  # ember_reward_max
                     ember_earned = random.randint(ember_min, ember_max) if ember_min > 0 and ember_max > 0 else 0
 
-                    # Apply choice modifier if applicable
-                    choice = row[4]
-                    outcomes = row[12] or {}
-                    if choice and choice in outcomes:
-                        modifier = outcomes[choice].get('pyre_modifier', 1.0)
-                        pyre_earned = int(pyre_earned * modifier)
-                        # Also apply modifier to ember if specified
-                        ember_modifier = outcomes[choice].get('ember_modifier', 1.0)
-                        ember_earned = int(ember_earned * ember_modifier)
+                    # Apply ending modifiers for multi-step adventures
+                    ending_type = None
+                    if ending_reached and ending_reached in endings:
+                        ending_data = endings[ending_reached]
+                        ending_type = ending_data.get('type', 'NEUTRAL')
+
+                        # Apply modifiers based on ending
+                        pyre_mod = ending_data.get('pyre_mod', 1.0)
+                        xp_mod = ending_data.get('xp_mod', 1.0)
+                        ember_mod = ending_data.get('ember_mod', pyre_mod)  # Default ember to pyre modifier
+                        aura_mod = ending_data.get('aura_mod', 1.0)
+
+                        pyre_earned = int(pyre_earned * pyre_mod)
+                        xp_earned = int(xp_earned * xp_mod)
+                        ember_earned = int(ember_earned * ember_mod)
+
+                        # Aura boost for legendary endings
+                        if ending_type == 'LEGENDARY' and aura_earned == 0:
+                            # 50% extra chance for aura on legendary endings
+                            aura_earned = 1 if random.random() < 0.5 else 0
+                    else:
+                        # Legacy: Apply choice modifier if applicable
+                        choice = row[4]
+                        outcomes = row[12] or {}
+                        if choice and choice in outcomes:
+                            modifier = outcomes[choice].get('pyre_modifier', 1.0)
+                            pyre_earned = int(pyre_earned * modifier)
+                            ember_modifier = outcomes[choice].get('ember_modifier', 1.0)
+                            ember_earned = int(ember_earned * ember_modifier)
 
                     token_id = row[2]
                     mission_name = row[11]
@@ -1333,7 +2425,8 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
                         },
                         "mission_name": mission_name,
                         "outcome_text": outcome_text,
-                        "choice_made": choice,
+                        "ending_type": ending_type,
+                        "ending_reached": ending_reached,
                         "emissary_token_id": token_id
                     })
 
@@ -1346,14 +2439,17 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
     @app.route('/api/micro-mission/abandon', methods=['POST'])
     def api_micro_mission_abandon():
         """
-        Abandon an active micro-mission with XP penalty.
+        Abandon an active micro-mission with XP penalty based on difficulty.
 
         Body: {
             "wallet": "0x...",
             "active_micro_mission_id": 123
         }
 
-        Penalty: -10 XP
+        Penalty by difficulty:
+        - EASY: -5 XP
+        - MEDIUM: -10 XP
+        - HARD: -15 XP
         """
         data = request.get_json() or {}
         wallet = data.get('wallet', '').lower()
@@ -1365,14 +2461,19 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
         if not POSTGRESQL_AVAILABLE:
             return jsonify({"error": "Database not available"}), 503
 
-        XP_PENALTY = 10
+        # XP penalty by difficulty
+        XP_PENALTY_MAP = {
+            'EASY': 5,
+            'MEDIUM': 10,
+            'HARD': 15
+        }
 
         try:
             with get_db_connection() as conn:
                 with conn.cursor() as cur:
-                    # Verify ownership and status
+                    # Verify ownership, status, and get difficulty
                     cur.execute("""
-                        SELECT amm.id, amm.status, amm.emissary_token_id, mm.name
+                        SELECT amm.id, amm.status, amm.emissary_token_id, mm.name, mm.difficulty
                         FROM active_micro_missions amm
                         JOIN micro_missions mm ON amm.micro_mission_id = mm.id
                         WHERE amm.id = %s AND amm.wallet = %s
@@ -1387,6 +2488,8 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
 
                     token_id = row[2]
                     mission_name = row[3]
+                    difficulty = row[4] or 'EASY'
+                    xp_penalty = XP_PENALTY_MAP.get(difficulty, 10)
 
                     # Mark as abandoned
                     cur.execute("""
@@ -1396,12 +2499,19 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
                         WHERE id = %s
                     """, (active_id,))
 
-                    # Apply XP penalty
+                    # Apply XP penalty to nfts table using dynamic_state JSONB
+                    # Pad token_id to 5 digits for consistency
+                    token_id_padded = str(token_id).zfill(5)
                     cur.execute("""
-                        UPDATE emissaries SET
-                            xp = GREATEST(0, xp - %s)
+                        UPDATE nfts SET
+                            dynamic_state = jsonb_set(
+                                COALESCE(dynamic_state, '{}'::jsonb),
+                                '{xp_total}',
+                                to_jsonb(GREATEST(0, COALESCE((dynamic_state->>'xp_total')::int, 0) - %s))
+                            ),
+                            last_update = NOW()
                         WHERE token_id = %s
-                    """, (XP_PENALTY, token_id))
+                    """, (xp_penalty, token_id_padded))
 
                     # Record in history
                     cur.execute("""
@@ -1409,14 +2519,15 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
                         (wallet, emissary_token_id, micro_mission_id, outcome_type, xp_earned)
                         SELECT wallet, emissary_token_id, micro_mission_id, 'abandoned', %s
                         FROM active_micro_missions WHERE id = %s
-                    """, (-XP_PENALTY, active_id))
+                    """, (-xp_penalty, active_id))
 
                     return jsonify({
                         "success": True,
                         "abandoned": True,
                         "mission_name": mission_name,
-                        "xp_penalty": XP_PENALTY,
-                        "message": f"Mission abandoned. You lost {XP_PENALTY} XP."
+                        "difficulty": difficulty,
+                        "xp_penalty": xp_penalty,
+                        "message": f"Mission abandoned. You lost {xp_penalty} XP."
                     })
 
         except Exception as e:
@@ -1427,7 +2538,7 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
 
     @app.route('/api/micro-mission/active/<wallet>', methods=['GET'])
     def api_micro_mission_active(wallet):
-        """Get active micro-mission for a wallet"""
+        """Get active micro-mission for a wallet with multi-step adventure support"""
         wallet = wallet.lower()
 
         if not POSTGRESQL_AVAILABLE:
@@ -1436,10 +2547,15 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
         try:
             with get_db_connection() as conn:
                 with conn.cursor() as cur:
+                    # Include current_step, choices_path, ending_reached for multi-step
                     cur.execute("""
                         SELECT amm.id, amm.emissary_token_id, amm.micro_mission_id,
                                amm.started_at, amm.ends_at, amm.status, amm.choice_made,
-                               mm.name, mm.narrative_intro, mm.narrative_choices
+                               mm.name, mm.narrative_intro, mm.narrative_choices,
+                               COALESCE(amm.current_step, '1') as current_step,
+                               COALESCE(amm.choices_path, '[]'::jsonb) as choices_path,
+                               amm.ending_reached, amm.outcome_text,
+                               mm.narrative_steps
                         FROM active_micro_missions amm
                         JOIN micro_missions mm ON amm.micro_mission_id = mm.id
                         WHERE amm.wallet = %s AND amm.status IN ('active', 'choice_pending')
@@ -1458,6 +2574,35 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
                     now = datetime.now(timezone.utc).replace(tzinfo=None)
                     remaining = max(0, (row[4] - now).total_seconds())
 
+                    # Extract current step data from narrative_steps
+                    current_step = row[10] or "1"
+                    choices_path = row[11] if row[11] else []
+                    ending_reached = row[12]
+                    outcome_text = row[13]
+                    narrative_steps = row[14] or {}
+
+                    steps = narrative_steps.get('steps', {})
+                    endings = narrative_steps.get('endings', {})
+
+                    # Determine what to show based on current state
+                    if ending_reached:
+                        # Show ending text and no more choices
+                        ending_data = endings.get(ending_reached, {})
+                        narrative_text = outcome_text or ending_data.get('text', 'Your journey concludes...')
+                        choices = []  # No more choices at ending
+                        ending_type = ending_data.get('type', 'NEUTRAL')
+                    else:
+                        # Show current step text and choices
+                        current_step_data = steps.get(current_step, {})
+                        if current_step_data:
+                            narrative_text = current_step_data.get('text', row[8] or 'Your journey continues...')
+                            choices = current_step_data.get('choices', row[9] or [])
+                        else:
+                            # Fallback to legacy fields
+                            narrative_text = row[8] or 'Your journey begins...'
+                            choices = row[9] or []
+                        ending_type = None
+
                     return jsonify({
                         "success": True,
                         "active": True,
@@ -1471,13 +2616,19 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
                             "status": row[5],
                             "choice_made": row[6],
                             "name": row[7],
-                            "narrative_intro": row[8],
-                            "choices": row[9] or []
+                            "narrative_intro": narrative_text,
+                            "choices": choices,
+                            "current_step": current_step,
+                            "choices_path": choices_path,
+                            "ending_reached": ending_reached,
+                            "ending_type": ending_type
                         }
                     })
 
         except Exception as e:
             print(f"Error getting active micro-mission: {e}")
+            import traceback
+            traceback.print_exc()
             return jsonify({"error": str(e)}), 500
 
     @app.route('/api/micro-mission/emergency-cleanup', methods=['POST'])
