@@ -552,18 +552,17 @@ function renderActiveMission(mission) {
         return eTokenId === missionTokenId;
     });
     const emissaryName = emissary?.name || `Emissary #${mission.emissary_token_id}`;
-    // Use cached_image first, then image, then API fallback
+    // Use image_url first (actual field name), then fallbacks
     const tokenIdForUrl = String(mission.emissary_token_id).replace(/^0+/, '') || '0';
-    const emissaryImage = emissary?.cached_image || emissary?.image ||
-        `https://portal.emissaries.xyz/api/emissary/${tokenIdForUrl}/image`;
+    const emissaryImage = emissary?.image_url || emissary?.cached_image || emissary?.image ||
+        `/img/emissary-placeholder.png`;
 
-    // Get choices with icons
+    // Get choices (no emojis)
     const choices = mission.choices || [];
     const choicesHTML = choices.map(choice => {
-        const iconEmoji = CHOICE_ICONS[choice.icon] || '▸';
         return `
             <button class="narrative-choice-btn" onclick="handleMissionChoice('${mission.active_id}', '${choice.id}')">
-                <span class="choice-icon">${iconEmoji}</span>
+                <span class="choice-icon">[${choice.id}]</span>
                 <span class="choice-text">${choice.text}</span>
             </button>
         `;
@@ -630,13 +629,12 @@ function renderActiveMission(mission) {
 }
 
 /**
- * Get choice text by ID
+ * Get choice text by ID (no emojis)
  */
 function getChoiceText(choices, choiceId) {
     const choice = choices.find(c => c.id === choiceId);
-    if (!choice) return choiceId;
-    const icon = CHOICE_ICONS[choice.icon] || '';
-    return `${icon} ${choice.text}`;
+    if (!choice) return `Option ${choiceId}`;
+    return `[${choice.id}] ${choice.text}`;
 }
 
 /**
@@ -1082,7 +1080,7 @@ async function forceRefreshEmissaries() {
 
 /**
  * Show active micro-mission for a specific emissary token
- * Called from [MICRO-MISSION] button in emissary list
+ * Called from [VIEW MISSION] button in emissary list
  */
 async function showActiveMicroMissionByToken(tokenId) {
     const wallet = window.connectedWallet;
@@ -1095,14 +1093,28 @@ async function showActiveMicroMissionByToken(tokenId) {
     const activeMission = await getActiveMicroMission(wallet);
 
     if (activeMission) {
-        // Navigate to micro-missions section
-        if (typeof switchScreen === 'function') {
-            switchScreen('micro-missions');
+        // Normalize token IDs for comparison (handle "00042" vs "42")
+        const requestedToken = String(tokenId).replace(/^0+/, '') || '0';
+        const missionToken = String(activeMission.emissary_token_id).replace(/^0+/, '') || '0';
+
+        if (requestedToken === missionToken) {
+            // Navigate to micro-missions section
+            if (typeof switchScreen === 'function') {
+                switchScreen('micro-missions');
+            }
+            // Render the active mission
+            renderActiveMission(activeMission);
+        } else {
+            // Different emissary has the active mission
+            showInfoModal('DIFFERENT EMISSARY', `Another emissary is currently on a micro-mission. Complete or abandon that mission first.`);
         }
-        // Render the active mission
-        renderActiveMission(activeMission);
     } else {
-        showInfoModal('NO ACTIVE MISSION', 'This emissary has no active micro-mission.');
+        // No active mission found - this emissary might be stuck, offer to refresh
+        showInfoModal('NO ACTIVE MISSION', 'This emissary has no active micro-mission. If the emissary appears stuck, try refreshing the page.');
+        // Try to reload emissaries to fix stuck state
+        if (typeof loadHeroes === 'function') {
+            loadHeroes();
+        }
     }
 }
 

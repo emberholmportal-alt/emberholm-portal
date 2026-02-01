@@ -567,8 +567,8 @@
                     emissary.rune_ids = equipData.equipment.rune_ids || [];
                     console.log("📦 Equipment data loaded:", equipData.equipment);
                 }
-                // Also check ON_MISSION state
-                if (equipData.state === 'ON_MISSION') {
+                // Also check ON_MISSION or ON_MICRO_MISSION state
+                if (equipData.state === 'ON_MISSION' || equipData.state === 'ON_MICRO_MISSION') {
                     emissary.on_mission = true;
                 }
             } catch (equipErr) {
@@ -852,12 +852,16 @@
         const maxEnergy = ds.energy_max || 100;
 
         // Determine state badge
-        let stateBadge = '✓ READY';
+        let stateBadge = 'READY';
         let stateBadgeStyle = 'background:rgba(68,170,255,0.2); color:var(--primary-green); border:1px solid var(--primary-green);';
         if (state === 'ON_MISSION') {
-            stateBadge = '⏳ IN PROGRESS';
+            stateBadge = 'IN PROGRESS';
+            stateBadgeStyle = 'background:rgba(245,158,11,0.2); color:#f59e0b; border:1px solid #f59e0b;';
+        } else if (state === 'ON_MICRO_MISSION') {
+            stateBadge = 'MICRO-MISSION';
+            stateBadgeStyle = 'background:rgba(245,158,11,0.2); color:#f59e0b; border:1px solid #f59e0b;';
         } else if (state === 'FALLEN') {
-            stateBadge = '💀 FALLEN';
+            stateBadge = 'FALLEN';
             stateBadgeStyle = 'background:rgba(239,68,68,0.2); color:#ef4444; border:1px solid #ef4444;';
         }
 
@@ -1414,7 +1418,7 @@
                                 return {
                                     name: emissary.name || backendName || `Emissary #${emissaryId}`,
                                     state: emissary.state || 'READY',
-                                    isOnMission: emissary.state === 'ON_MISSION'
+                                    isOnMission: emissary.state === 'ON_MISSION' || emissary.state === 'ON_MICRO_MISSION'
                                 };
                             }
                         }
@@ -1797,7 +1801,7 @@
         // Get all emissaries and filter by state
         const allEmissaries = getCurrentEmissaries();
         const readyEmissaries = allEmissaries.filter(e => e.state === 'READY');
-        const onMissionCount = allEmissaries.filter(e => e.state === 'ON_MISSION').length;
+        const onMissionCount = allEmissaries.filter(e => e.state === 'ON_MISSION' || e.state === 'ON_MICRO_MISSION').length;
 
         if (readyEmissaries.length === 0) {
             let message = 'No READY emissaries available to equip items.';

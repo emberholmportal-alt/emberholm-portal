@@ -623,6 +623,29 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
 
                     print("🧹 Cleaned up expired/corrupted micro-missions")
 
+                    # =========================================================
+                    # FIX DURATIONS: EASY=120s, MEDIUM=240s, HARD=360s
+                    # =========================================================
+                    cur.execute("""
+                        UPDATE micro_missions SET duration_seconds = 120 WHERE difficulty = 'EASY'
+                    """)
+                    cur.execute("""
+                        UPDATE micro_missions SET duration_seconds = 240 WHERE difficulty = 'MEDIUM'
+                    """)
+                    cur.execute("""
+                        UPDATE micro_missions SET duration_seconds = 360 WHERE difficulty = 'HARD'
+                    """)
+
+                    # Also fix ends_at for any active missions with wrong duration
+                    cur.execute("""
+                        UPDATE active_micro_missions amm SET
+                            ends_at = amm.started_at + (mm.duration_seconds * interval '1 second')
+                        FROM micro_missions mm
+                        WHERE amm.micro_mission_id = mm.id
+                        AND amm.status IN ('active', 'choice_pending')
+                    """)
+                    print("⏱️ Fixed mission durations (EASY=2min, MEDIUM=4min, HARD=6min)")
+
                     print("✅ Database migrations applied (including narrative system)")
         except Exception as e:
             print(f"⚠️ Database migration warning: {e}")
@@ -1376,14 +1399,17 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
     @app.route('/api/micro-mission/abandon', methods=['POST'])
     def api_micro_mission_abandon():
         """
-        Abandon an active micro-mission with XP penalty.
+        Abandon an active micro-mission with XP penalty based on difficulty.
 
         Body: {
             "wallet": "0x...",
             "active_micro_mission_id": 123
         }
 
-        Penalty: -10 XP
+        Penalty by difficulty:
+        - EASY: -5 XP
+        - MEDIUM: -10 XP
+        - HARD: -15 XP
         """
         data = request.get_json() or {}
         wallet = data.get('wallet', '').lower()
@@ -1395,14 +1421,19 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
         if not POSTGRESQL_AVAILABLE:
             return jsonify({"error": "Database not available"}), 503
 
-        XP_PENALTY = 10
+        # XP penalty by difficulty
+        XP_PENALTY_MAP = {
+            'EASY': 5,
+            'MEDIUM': 10,
+            'HARD': 15
+        }
 
         try:
             with get_db_connection() as conn:
                 with conn.cursor() as cur:
-                    # Verify ownership and status
+                    # Verify ownership, status, and get difficulty
                     cur.execute("""
-                        SELECT amm.id, amm.status, amm.emissary_token_id, mm.name
+                        SELECT amm.id, amm.status, amm.emissary_token_id, mm.name, mm.difficulty
                         FROM active_micro_missions amm
                         JOIN micro_missions mm ON amm.micro_mission_id = mm.id
                         WHERE amm.id = %s AND amm.wallet = %s
@@ -1417,6 +1448,8 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
 
                     token_id = row[2]
                     mission_name = row[3]
+                    difficulty = row[4] or 'EASY'
+                    xp_penalty = XP_PENALTY_MAP.get(difficulty, 10)
 
                     # Mark as abandoned
                     cur.execute("""
@@ -1426,12 +1459,19 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
                         WHERE id = %s
                     """, (active_id,))
 
-                    # Apply XP penalty
+                    # Apply XP penalty to nfts table using dynamic_state JSONB
+                    # Pad token_id to 5 digits for consistency
+                    token_id_padded = str(token_id).zfill(5)
                     cur.execute("""
-                        UPDATE emissaries SET
-                            xp = GREATEST(0, xp - %s)
+                        UPDATE nfts SET
+                            dynamic_state = jsonb_set(
+                                COALESCE(dynamic_state, '{}'::jsonb),
+                                '{xp_total}',
+                                to_jsonb(GREATEST(0, COALESCE((dynamic_state->>'xp_total')::int, 0) - %s))
+                            ),
+                            last_update = NOW()
                         WHERE token_id = %s
-                    """, (XP_PENALTY, token_id))
+                    """, (xp_penalty, token_id_padded))
 
                     # Record in history
                     cur.execute("""
@@ -1439,14 +1479,15 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
                         (wallet, emissary_token_id, micro_mission_id, outcome_type, xp_earned)
                         SELECT wallet, emissary_token_id, micro_mission_id, 'abandoned', %s
                         FROM active_micro_missions WHERE id = %s
-                    """, (-XP_PENALTY, active_id))
+                    """, (-xp_penalty, active_id))
 
                     return jsonify({
                         "success": True,
                         "abandoned": True,
                         "mission_name": mission_name,
-                        "xp_penalty": XP_PENALTY,
-                        "message": f"Mission abandoned. You lost {XP_PENALTY} XP."
+                        "difficulty": difficulty,
+                        "xp_penalty": xp_penalty,
+                        "message": f"Mission abandoned. You lost {xp_penalty} XP."
                     })
 
         except Exception as e:
