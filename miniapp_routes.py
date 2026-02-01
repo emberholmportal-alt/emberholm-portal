@@ -988,6 +988,88 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
             traceback.print_exc()
             return jsonify({"error": str(e)}), 500
 
+    @app.route('/api/micro-mission/abandon', methods=['POST'])
+    def api_micro_mission_abandon():
+        """
+        Abandon an active micro-mission with XP penalty.
+
+        Body: {
+            "wallet": "0x...",
+            "active_micro_mission_id": 123
+        }
+
+        Penalty: -10 XP
+        """
+        data = request.get_json() or {}
+        wallet = data.get('wallet', '').lower()
+        active_id = data.get('active_micro_mission_id')
+
+        if not wallet or not active_id:
+            return jsonify({"error": "Missing required fields"}), 400
+
+        if not POSTGRESQL_AVAILABLE:
+            return jsonify({"error": "Database not available"}), 503
+
+        XP_PENALTY = 10
+
+        try:
+            with get_db_connection() as conn:
+                with conn.cursor() as cur:
+                    # Verify ownership and status
+                    cur.execute("""
+                        SELECT amm.id, amm.status, amm.emissary_token_id, mm.name
+                        FROM active_micro_missions amm
+                        JOIN micro_missions mm ON amm.micro_mission_id = mm.id
+                        WHERE amm.id = %s AND amm.wallet = %s
+                    """, (active_id, wallet))
+                    row = cur.fetchone()
+
+                    if not row:
+                        return jsonify({"error": "Active micro-mission not found"}), 404
+
+                    if row[1] not in ['active', 'choice_pending']:
+                        return jsonify({"error": f"Cannot abandon mission in status: {row[1]}"}), 400
+
+                    token_id = row[2]
+                    mission_name = row[3]
+
+                    # Mark as abandoned
+                    cur.execute("""
+                        UPDATE active_micro_missions SET
+                            status = 'abandoned',
+                            completed_at = NOW()
+                        WHERE id = %s
+                    """, (active_id,))
+
+                    # Apply XP penalty
+                    cur.execute("""
+                        UPDATE emissaries SET
+                            xp = GREATEST(0, xp - %s)
+                        WHERE token_id = %s
+                    """, (XP_PENALTY, token_id))
+
+                    # Record in history
+                    cur.execute("""
+                        INSERT INTO micro_mission_history
+                        (wallet, emissary_token_id, micro_mission_id, outcome_type, xp_earned)
+                        SELECT wallet, emissary_token_id, micro_mission_id, 'abandoned', %s
+                        FROM active_micro_missions WHERE id = %s
+                    """, (-XP_PENALTY, active_id))
+
+                    return jsonify({
+                        "success": True,
+                        "abandoned": True,
+                        "mission_name": mission_name,
+                        "xp_penalty": XP_PENALTY,
+                        "message": f"Mission abandoned. You lost {XP_PENALTY} XP."
+                    })
+
+        except Exception as e:
+            print(f"Error abandoning micro-mission: {e}")
+            import traceback
+            traceback.print_exc()
+            return jsonify({"error": str(e)}), 500
+
     @app.route('/api/micro-mission/active/<wallet>', methods=['GET'])
     def api_micro_mission_active(wallet):
         """Get active micro-mission for a wallet"""

@@ -4633,6 +4633,7 @@ window.connectedWallet = null;  // Also expose to window for external JS files
 
 // 🔥 NFTs fetched directly from blockchain + IPFS (NO backend dependency)
 let ipfsNFTsData = [];
+window.userEmissaries = [];  // Expose to window for micro-missions.js
 
 // =========================================================================
 // 🔥 PAGINATION SYSTEM FOR SCALABILITY
@@ -4713,6 +4714,7 @@ async function loadNFTPage(page) {
 
     console.log(`🔄 Loading NFT page ${page + 1}...`);
     ipfsNFTsData = await loadNFTsWithPagination(state.allTokenIds, page);
+    window.userEmissaries = ipfsNFTsData;  // Sync for micro-missions
 
     // Re-render the roster
     await loadPlayerAndRender(connectedWallet);
@@ -5455,10 +5457,12 @@ async function connectWallet() {
 
                 // Use pagination for large collections
                 ipfsNFTsData = await loadNFTsWithPagination(tokenIds, 0);
+                window.userEmissaries = ipfsNFTsData;  // Sync for micro-missions
 
                 console.log(`✅ Page 1 loaded: ${ipfsNFTsData.length} NFTs (total: ${tokenIds.length})`);
             } else {
                 ipfsNFTsData = [];
+                window.userEmissaries = [];  // Sync for micro-missions
                 window.paginationState.nfts = { page: 0, totalPages: 0, allTokenIds: [], loading: false };
             }
 
@@ -6588,7 +6592,7 @@ async function loadPlayerAndRender(){
                         <button class="action-btn inventory" onclick="showInventoryModal('${h.token_id}')" title="Manage Equipment">
                             [INVENTORY]
                         </button>
-                        <button class="action-btn send" onclick="openMissionListModal('${h.token_id}')">
+                        <button class="action-btn send" onclick="openMissionTypeSelector('${h.token_id}')">
                             [SEND MISSION]
                         </button>
                         <button class="action-btn recover" onclick="showRecoverModal('${h.token_id}')">
@@ -8389,6 +8393,41 @@ Too many requests in a short period. The realm needs a moment to process your co
     return '⚠️ ' + message;
 }
 
+// ═══════════════════════════════════════════════════════════
+// MISSION TYPE SELECTOR
+// ═══════════════════════════════════════════════════════════
+
+let selectedHeroForMission = null;
+
+function openMissionTypeSelector(heroId) {
+    if (!connectedWallet) {
+        showInfoModal("WALLET REQUIRED", "Please connect your wallet first!");
+        return;
+    }
+    selectedHeroForMission = heroId;
+    showModal('mission-type-modal');
+}
+
+function selectMissionType(type) {
+    hideModal('mission-type-modal');
+
+    if (type === 'normal') {
+        // Open normal missions list
+        openMissionListModal(selectedHeroForMission);
+    } else if (type === 'micro') {
+        // Open micro-missions for this hero
+        if (typeof showMicroMissionsForHero === 'function') {
+            showMicroMissionsForHero(selectedHeroForMission);
+        } else {
+            // Fallback: navigate to micro-missions section
+            switchScreen('micro-missions');
+            // Store the selected hero for micro-missions to use
+            window.selectedHeroForMicroMission = selectedHeroForMission;
+        }
+    }
+    selectedHeroForMission = null;
+}
+
 // Open Mission Selection Modal (from PROFILE)
 async function openMissionListModal(heroId) {
     if (!connectedWallet) {
@@ -8958,6 +8997,47 @@ async function startPartyMission(missionId, missionName) {
         </div>
         <div class="terminal-modal-body" id="mission-select-body">
             <!-- Mission list will be inserted here -->
+        </div>
+    </div>
+</div>
+
+<!-- MISSION TYPE SELECTOR MODAL -->
+<div id="mission-type-modal" class="modal-overlay" onclick="if(event.target===this) hideModal('mission-type-modal')">
+    <div class="terminal-modal" style="max-width: 500px;">
+        <div class="terminal-modal-header">
+            SELECT MISSION TYPE
+            <button class="terminal-modal-close" onclick="hideModal('mission-type-modal')">×</button>
+        </div>
+        <div class="terminal-modal-body" style="padding: 20px;">
+            <div style="display: flex; gap: 20px; justify-content: center;">
+                <!-- MISSIONS Card -->
+                <div class="mission-type-card" onclick="selectMissionType('normal')"
+                     style="flex: 1; padding: 20px; border: 2px solid var(--gold, #f59e0b);
+                            cursor: pointer; text-align: center; transition: all 0.3s; background: rgba(0,0,0,0.3);">
+                    <div class="type-icon" style="font-size: 32px; margin-bottom: 10px;">📋</div>
+                    <h3 style="color: var(--gold, #f59e0b); margin-bottom: 10px; font-size: 16px;">MISSIONS</h3>
+                    <p style="color: #888; font-size: 12px;">(3-12 hours)</p>
+                    <ul style="text-align: left; margin-top: 15px; color: #888; font-size: 11px; list-style: none; padding: 0;">
+                        <li>▸ Long expeditions</li>
+                        <li>▸ High XP & Aura</li>
+                        <li>▸ Strategic planning</li>
+                    </ul>
+                </div>
+
+                <!-- MICRO-MISSIONS Card -->
+                <div class="mission-type-card" onclick="selectMissionType('micro')"
+                     style="flex: 1; padding: 20px; border: 2px solid var(--gold, #f59e0b);
+                            cursor: pointer; text-align: center; transition: all 0.3s; background: rgba(0,0,0,0.3);">
+                    <div class="type-icon" style="font-size: 32px; margin-bottom: 10px;">⚡</div>
+                    <h3 style="color: var(--gold, #f59e0b); margin-bottom: 10px; font-size: 16px;">MICRO-MISSIONS</h3>
+                    <p style="color: #888; font-size: 12px;">(1-5 minutes)</p>
+                    <ul style="text-align: left; margin-top: 15px; color: #888; font-size: 11px; list-style: none; padding: 0;">
+                        <li>▸ Quick adventures</li>
+                        <li>▸ Instant $EMBER</li>
+                        <li>▸ Multiple per day</li>
+                    </ul>
+                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -11178,6 +11258,13 @@ img.death-icon {
     margin-right: 5px;
 }
 
+/* Mission Type Selector */
+.mission-type-card:hover {
+    background-color: rgba(245, 158, 11, 0.15) !important;
+    border-color: #ffcc00 !important;
+    transform: translateY(-3px);
+}
+
 /* Country Selection Modal */
 .modal-overlay {
     position: fixed;
@@ -11583,6 +11670,208 @@ img.death-icon {
 
 .mission-actions {
     text-align: center;
+}
+
+/* =============================================
+   NARRATIVE MISSION MODAL STYLES
+   ============================================= */
+
+.narrative-mission-container {
+    max-width: 650px;
+    margin: 0 auto;
+    background: linear-gradient(135deg, rgba(0,0,0,0.8) 0%, rgba(20,10,5,0.9) 100%);
+    border: 2px solid var(--gold, #f59e0b);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.narrative-header {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    padding: 20px;
+    background: linear-gradient(90deg, rgba(245,158,11,0.2) 0%, transparent 100%);
+    border-bottom: 1px solid rgba(245,158,11,0.3);
+}
+
+.emissary-portrait {
+    width: 100px;
+    height: 100px;
+    border: 3px solid var(--gold, #f59e0b);
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 0 20px rgba(245,158,11,0.3);
+}
+
+.emissary-portrait img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.narrative-header-info {
+    flex: 1;
+}
+
+.narrative-header-info .emissary-name {
+    color: var(--gold, #f59e0b);
+    font-size: 18px;
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.narrative-header-info .mission-title {
+    color: #22c55e;
+    font-size: 14px;
+}
+
+.narrative-scroll {
+    padding: 25px;
+    background: rgba(0,0,0,0.4);
+    border-bottom: 1px solid rgba(245,158,11,0.2);
+}
+
+.narrative-scroll .narrative-text {
+    color: #e0e0e0;
+    font-size: 14px;
+    line-height: 1.8;
+    font-style: italic;
+    text-align: justify;
+    white-space: pre-line;
+}
+
+.narrative-mission-container .mission-timer {
+    margin: 0;
+    padding: 15px 20px;
+    background: rgba(245,158,11,0.05);
+    border: none;
+    border-bottom: 1px solid rgba(245,158,11,0.2);
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.timer-bar-container {
+    flex: 1;
+    height: 8px;
+    background: rgba(0,0,0,0.5);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.narrative-mission-container .timer-value {
+    font-size: 16px;
+    min-width: 60px;
+    text-align: right;
+}
+
+.narrative-choices {
+    padding: 20px;
+}
+
+.choices-header {
+    color: var(--gold, #f59e0b);
+    font-size: 16px;
+    margin-bottom: 15px;
+    text-align: center;
+}
+
+.choices-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.narrative-choice-btn {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 15px 20px;
+    background: rgba(0,0,0,0.4);
+    border: 1px solid #444;
+    color: #fff;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-align: left;
+    border-radius: 4px;
+}
+
+.narrative-choice-btn:hover {
+    border-color: var(--gold, #f59e0b);
+    background: rgba(245,158,11,0.15);
+    transform: translateX(5px);
+}
+
+.narrative-choice-btn .choice-icon {
+    font-size: 24px;
+    filter: sepia(1) saturate(2) hue-rotate(-10deg) brightness(1.1);
+}
+
+.narrative-choice-btn .choice-text {
+    flex: 1;
+    font-size: 14px;
+    line-height: 1.4;
+}
+
+.choice-made-section {
+    padding: 25px;
+    text-align: center;
+    background: rgba(34,197,94,0.1);
+}
+
+.choice-made-label {
+    color: #888;
+    font-size: 12px;
+    margin-bottom: 5px;
+}
+
+.choice-made-text {
+    color: #22c55e;
+    font-size: 16px;
+    margin-bottom: 10px;
+}
+
+.choice-waiting {
+    color: var(--gold, #f59e0b);
+    font-style: italic;
+    animation: pulse 2s infinite;
+}
+
+.narrative-actions {
+    display: flex;
+    gap: 10px;
+    padding: 20px;
+    background: rgba(0,0,0,0.3);
+    justify-content: center;
+}
+
+.narrative-actions .terminal-btn {
+    min-width: 150px;
+}
+
+.primary-btn {
+    background: rgba(34,197,94,0.2);
+    border-color: #22c55e;
+    color: #22c55e;
+}
+
+.primary-btn:hover:not(:disabled) {
+    background: rgba(34,197,94,0.3);
+}
+
+.danger-btn {
+    background: rgba(239,68,68,0.2);
+    border-color: #ef4444;
+    color: #ef4444;
+}
+
+.danger-btn:hover {
+    background: rgba(239,68,68,0.3);
+}
+
+/* Orange filter for all emoji icons in mission type selector */
+.mission-type-card .type-icon {
+    filter: sepia(1) saturate(3) hue-rotate(-10deg) brightness(1.2);
 }
 
 /* Emissary Selection Modal */
