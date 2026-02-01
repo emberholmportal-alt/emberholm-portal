@@ -155,6 +155,68 @@ async function completeMicroMission(wallet, activeId) {
     }
 }
 
+/**
+ * Abandon a micro-mission with XP penalty
+ */
+async function abandonMicroMission(wallet, activeId) {
+    try {
+        const response = await fetch('/api/micro-mission/abandon', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                wallet: wallet.toLowerCase(),
+                active_micro_mission_id: activeId
+            })
+        });
+        const data = await response.json();
+        if (data.success) {
+            microMissionsState.activeMission = null;
+            showInfoModal('MISSION ABANDONED', `${data.mission_name}\n\nPenalty: -${data.xp_penalty} XP`);
+            return data;
+        }
+        if (data.error) {
+            showInfoModal('ERROR', data.error);
+        }
+        return null;
+    } catch (error) {
+        console.error('[MicroMissions] Error abandoning mission:', error);
+        return null;
+    }
+}
+
+// Icon mapping for narrative choices
+const CHOICE_ICONS = {
+    sword: '⚔️',
+    search: '🔍',
+    scroll: '📜',
+    balance: '⚖️',
+    shield: '🛡️',
+    compass: '🧭',
+    flame: '🔥',
+    eye: '👁️',
+    ear: '👂',
+    chat: '💬',
+    run: '🏃',
+    gem: '💎',
+    rune: '✨',
+    mind: '🧠',
+    question: '❓',
+    music: '🎵',
+    book: '📖',
+    wind: '💨',
+    boxes: '📦',
+    footprints: '👣',
+    flag: '🚩',
+    bell: '🔔',
+    heart: '❤️',
+    fist: '✊',
+    void: '🌀',
+    stealth: '🥷',
+    trap: '⚡',
+    mountain: '⛰️',
+    anvil: '🔨'
+};
+
 // =========================================================================
 // UI RENDERING
 // =========================================================================
@@ -428,7 +490,7 @@ async function confirmMissionStart(missionId, tokenId) {
 }
 
 /**
- * Render active mission UI
+ * Render active mission UI with narrative modal style
  */
 function renderActiveMission(mission) {
     const container = document.getElementById('micro-missions-content');
@@ -437,47 +499,78 @@ function renderActiveMission(mission) {
     const missionDetails = microMissionsState.availableMissions.find(m => m.id === mission.mission_id);
     const missionName = mission.name || missionDetails?.name || mission.mission_id;
 
+    // Get emissary info for portrait
+    const emissaries = window.userEmissaries || [];
+    const emissary = emissaries.find(e =>
+        (e.token_id || e.tokenId) === mission.emissary_token_id
+    );
+    const emissaryName = emissary?.name || `Emissary #${mission.emissary_token_id}`;
+    const emissaryImage = emissary?.image || emissary?.cached_image ||
+        `https://www.emissaries.xyz/api/image/${mission.emissary_token_id}`;
+
+    // Get choices with icons
+    const choices = mission.choices || [];
+    const choicesHTML = choices.map(choice => {
+        const iconEmoji = CHOICE_ICONS[choice.icon] || '▸';
+        return `
+            <button class="narrative-choice-btn" onclick="handleMissionChoice('${mission.active_id}', '${choice.id}')">
+                <span class="choice-icon">${iconEmoji}</span>
+                <span class="choice-text">${choice.text}</span>
+            </button>
+        `;
+    }).join('');
+
     container.innerHTML = `
-        <div class="active-mission-container">
-            <div class="active-mission-header">
-                <h3>MISSION IN PROGRESS</h3>
-                <div class="mission-title">${missionName}</div>
-            </div>
-
-            <div class="mission-narrative">
-                <p class="narrative-text">${mission.narrative_intro || 'Your emissary ventures forth...'}</p>
-            </div>
-
-            <div class="mission-timer" id="mission-timer">
-                <div class="timer-label">Time Remaining</div>
-                <div class="timer-value" id="timer-value">--:--</div>
-                <div class="timer-bar">
-                    <div class="timer-progress" id="timer-progress"></div>
+        <div class="narrative-mission-container">
+            <!-- Header with emissary portrait -->
+            <div class="narrative-header">
+                <div class="emissary-portrait">
+                    <img src="${emissaryImage}" alt="${emissaryName}" onerror="this.src='/static/images/placeholder-emissary.png'">
+                </div>
+                <div class="narrative-header-info">
+                    <div class="emissary-name">${emissaryName}</div>
+                    <div class="mission-title">${missionName}</div>
                 </div>
             </div>
 
-            ${mission.status === 'active' && mission.choices && mission.choices.length > 0 && !mission.choice_made ? `
-                <div class="mission-choices">
-                    <h4>Choose Your Action</h4>
-                    <div class="choices-grid">
-                        ${mission.choices.map(choice => `
-                            <button class="choice-btn" onclick="handleMissionChoice('${mission.active_id}', '${choice.id}')">
-                                ${choice.icon ? `<span class="choice-icon">${choice.icon}</span>` : ''}
-                                <span class="choice-text">${choice.text}</span>
-                            </button>
-                        `).join('')}
+            <!-- Narrative text -->
+            <div class="narrative-scroll">
+                <div class="narrative-text">
+                    ${mission.narrative_intro || 'Your emissary ventures into the unknown...'}
+                </div>
+            </div>
+
+            <!-- Timer -->
+            <div class="mission-timer" id="mission-timer">
+                <div class="timer-bar-container">
+                    <div class="timer-progress" id="timer-progress"></div>
+                </div>
+                <div class="timer-value" id="timer-value">--:--</div>
+            </div>
+
+            <!-- Choices or waiting state -->
+            ${mission.status === 'active' && choices.length > 0 && !mission.choice_made ? `
+                <div class="narrative-choices">
+                    <div class="choices-header">What do you do?</div>
+                    <div class="choices-list">
+                        ${choicesHTML}
                     </div>
                 </div>
             ` : mission.choice_made ? `
-                <div class="choice-made">
-                    <p>Choice made: <strong>${mission.choice_made}</strong></p>
-                    <p class="dim">Awaiting results...</p>
+                <div class="choice-made-section">
+                    <div class="choice-made-label">Your choice:</div>
+                    <div class="choice-made-text">${getChoiceText(choices, mission.choice_made)}</div>
+                    <div class="choice-waiting">The story unfolds...</div>
                 </div>
             ` : ''}
 
-            <div class="mission-actions">
-                <button class="terminal-btn large-btn" id="complete-mission-btn" disabled onclick="handleMissionComplete('${mission.active_id}')">
+            <!-- Action buttons -->
+            <div class="narrative-actions">
+                <button class="terminal-btn primary-btn" id="complete-mission-btn" disabled onclick="handleMissionComplete('${mission.active_id}')">
                     [CLAIM REWARDS]
+                </button>
+                <button class="terminal-btn danger-btn" onclick="confirmAbandonMission('${mission.active_id}')">
+                    [ABANDON MISSION]
                 </button>
             </div>
         </div>
@@ -485,6 +578,70 @@ function renderActiveMission(mission) {
 
     // Start countdown
     startMissionCountdown(mission);
+}
+
+/**
+ * Get choice text by ID
+ */
+function getChoiceText(choices, choiceId) {
+    const choice = choices.find(c => c.id === choiceId);
+    if (!choice) return choiceId;
+    const icon = CHOICE_ICONS[choice.icon] || '';
+    return `${icon} ${choice.text}`;
+}
+
+/**
+ * Confirm abandon mission dialog
+ */
+function confirmAbandonMission(activeId) {
+    const modal = document.createElement('div');
+    modal.className = 'modal-overlay';
+    modal.id = 'abandon-confirm-modal';
+    modal.onclick = function(e) { if (e.target === this) this.remove(); };
+
+    modal.innerHTML = `
+        <div class="terminal-modal" style="max-width: 400px;">
+            <div class="terminal-modal-header">
+                ABANDON MISSION?
+                <button class="terminal-modal-close" onclick="document.getElementById('abandon-confirm-modal').remove()">×</button>
+            </div>
+            <div class="terminal-modal-body" style="padding: 20px; text-align: center;">
+                <p style="color: #ef4444; margin-bottom: 15px;">⚠️ WARNING ⚠️</p>
+                <p style="margin-bottom: 10px;">You will lose <strong style="color: #ef4444;">10 XP</strong> if you abandon this mission!</p>
+                <p style="color: #888; font-size: 12px; margin-bottom: 20px;">This action cannot be undone.</p>
+                <div style="display: flex; gap: 10px; justify-content: center;">
+                    <button class="terminal-btn" onclick="document.getElementById('abandon-confirm-modal').remove()">
+                        [CANCEL]
+                    </button>
+                    <button class="terminal-btn danger-btn" onclick="executeAbandonMission('${activeId}')">
+                        [ABANDON]
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+}
+
+/**
+ * Execute mission abandonment
+ */
+async function executeAbandonMission(activeId) {
+    const modal = document.getElementById('abandon-confirm-modal');
+    if (modal) modal.remove();
+
+    const wallet = window.connectedWallet;
+    if (!wallet) {
+        showInfoModal('WALLET REQUIRED', 'Please connect your wallet first.');
+        return;
+    }
+
+    const result = await abandonMicroMission(wallet, activeId);
+    if (result && result.success) {
+        // Refresh micro-missions section
+        await initMicroMissionsSection();
+    }
 }
 
 /**
@@ -816,3 +973,6 @@ window.handleMissionComplete = handleMissionComplete;
 window.closeEmissarySelectModal = closeEmissarySelectModal;
 window.showMicroMissionsForHero = showMicroMissionsForHero;
 window.startMicroMissionFromModal = startMicroMissionFromModal;
+window.confirmAbandonMission = confirmAbandonMission;
+window.executeAbandonMission = executeAbandonMission;
+window.abandonMicroMission = abandonMicroMission;
