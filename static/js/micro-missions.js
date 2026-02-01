@@ -163,7 +163,9 @@ async function completeMicroMission(wallet, activeId) {
  * Initialize micro-missions section
  */
 async function initMicroMissionsSection() {
-    if (!connectedWallet) {
+    const wallet = window.connectedWallet;
+
+    if (!wallet) {
         showInfoModal('CONNECT WALLET', 'Please connect your wallet to access Micro-Missions.');
         return false;
     }
@@ -172,7 +174,7 @@ async function initMicroMissionsSection() {
     updateMicroMissionsLoading(true);
 
     // Check for active mission first
-    const activeMission = await getActiveMicroMission(connectedWallet);
+    const activeMission = await getActiveMicroMission(wallet);
 
     if (activeMission) {
         // Show active mission UI
@@ -408,10 +410,16 @@ async function confirmMissionStart(missionId, tokenId) {
     const mission = microMissionsState.availableMissions.find(m => m.id === missionId);
     if (!mission) return;
 
+    const wallet = window.connectedWallet;
+    if (!wallet) {
+        showInfoModal('WALLET REQUIRED', 'Please connect your wallet first.');
+        return;
+    }
+
     // Show loading
     showInfoModal('STARTING MISSION', 'Preparing your emissary for adventure...');
 
-    const result = await startMicroMission(connectedWallet, tokenId, missionId);
+    const result = await startMicroMission(wallet, tokenId, missionId);
 
     if (result && result.success) {
         closeInfoModal();
@@ -483,10 +491,16 @@ function renderActiveMission(mission) {
  * Handle mission choice
  */
 async function handleMissionChoice(activeId, choice) {
-    const result = await makeMicroMissionChoice(connectedWallet, activeId, choice);
+    const wallet = window.connectedWallet;
+    if (!wallet) {
+        showInfoModal('WALLET REQUIRED', 'Please connect your wallet first.');
+        return;
+    }
+
+    const result = await makeMicroMissionChoice(wallet, activeId, choice);
     if (result) {
         // Refresh active mission view
-        const activeMission = await getActiveMicroMission(connectedWallet);
+        const activeMission = await getActiveMicroMission(wallet);
         if (activeMission) {
             renderActiveMission(activeMission);
         }
@@ -497,13 +511,19 @@ async function handleMissionChoice(activeId, choice) {
  * Handle mission completion
  */
 async function handleMissionComplete(activeId) {
+    const wallet = window.connectedWallet;
+    if (!wallet) {
+        showInfoModal('WALLET REQUIRED', 'Please connect your wallet first.');
+        return;
+    }
+
     const btn = document.getElementById('complete-mission-btn');
     if (btn) {
         btn.disabled = true;
         btn.textContent = '[CLAIMING...]';
     }
 
-    const result = await completeMicroMission(connectedWallet, activeId);
+    const result = await completeMicroMission(wallet, activeId);
 
     if (result && result.waiting) {
         // Still waiting

@@ -11089,6 +11089,91 @@ img.death-icon {
     padding: 10px 20px;
 }
 
+/* Daily Login Reward Popup */
+.daily-login-content {
+    text-align: center;
+    padding: 10px 0;
+}
+
+.streak-display {
+    margin: 20px 0;
+}
+
+.streak-number {
+    display: block;
+    font-size: 48px;
+    color: var(--gold, #f59e0b);
+    font-weight: bold;
+    line-height: 1;
+    text-shadow: 0 0 20px rgba(245, 158, 11, 0.5);
+}
+
+.streak-label {
+    display: block;
+    color: var(--dim-green, #8b9a3e);
+    font-size: 14px;
+    margin-top: 5px;
+}
+
+.rewards-earned {
+    margin: 20px 0;
+    padding: 15px;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--border-color, #333);
+}
+
+.login-reward-item {
+    padding: 8px 0;
+    color: var(--bright-green, #00ff00);
+    font-size: 14px;
+}
+
+.login-reward-item.milestone {
+    color: var(--gold, #f59e0b);
+    font-weight: bold;
+}
+
+.total-earned {
+    padding-top: 10px;
+    margin-top: 10px;
+    border-top: 1px solid var(--border-color, #333);
+    color: var(--gold, #f59e0b);
+    font-size: 16px;
+    font-weight: bold;
+}
+
+.streak-progress {
+    color: var(--dim-green, #8b9a3e);
+    font-size: 13px;
+}
+
+/* Reward Toast */
+.reward-toast {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    background: rgba(0, 0, 0, 0.9);
+    border: 2px solid var(--gold, #f59e0b);
+    color: var(--gold, #f59e0b);
+    padding: 12px 20px;
+    font-family: inherit;
+    font-size: 14px;
+    z-index: 10001;
+    transform: translateY(100px);
+    opacity: 0;
+    transition: all 0.3s ease;
+}
+
+.reward-toast.show {
+    transform: translateY(0);
+    opacity: 1;
+}
+
+.reward-toast .reward-icon {
+    color: var(--bright-green, #00ff00);
+    margin-right: 5px;
+}
+
 /* Country Selection Modal */
 .modal-overlay {
     position: fixed;

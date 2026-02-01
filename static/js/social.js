@@ -116,6 +116,92 @@ async function getOnlineStats() {
 }
 
 /**
+ * Claim daily login reward
+ */
+async function claimDailyLogin(wallet) {
+    try {
+        const response = await fetch('/api/social/daily-login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ wallet: wallet.toLowerCase() })
+        });
+        const data = await response.json();
+        return data;
+    } catch (error) {
+        console.error('[Social] Error claiming daily login:', error);
+        return null;
+    }
+}
+
+/**
+ * Get streak information for a wallet
+ */
+async function getStreakInfo(wallet) {
+    try {
+        const response = await fetch(`/api/social/streak/${wallet.toLowerCase()}`);
+        const data = await response.json();
+        return data.success ? data : null;
+    } catch (error) {
+        console.error('[Social] Error fetching streak:', error);
+        return null;
+    }
+}
+
+/**
+ * Show daily login reward popup
+ */
+function showDailyLoginReward(result) {
+    if (!result || result.already_claimed) return;
+
+    const rewards = result.rewards || [];
+    const totalEmber = result.total_ember_earned || 0;
+    const currentStreak = result.current_streak || 1;
+    const nextMilestone = result.next_milestone || 7;
+    const daysToNext = result.days_to_next || (7 - currentStreak);
+
+    // Build rewards list
+    let rewardsHtml = '';
+    rewards.forEach(r => {
+        if (r.type === 'daily_login') {
+            rewardsHtml += `<div class="login-reward-item">🔥 Daily Login: +${r.ember} EMBER</div>`;
+        } else if (r.type === 'streak_7') {
+            rewardsHtml += `<div class="login-reward-item milestone">🎉 7-Day Streak Bonus: +${r.ember} EMBER</div>`;
+        } else if (r.type === 'streak_30') {
+            rewardsHtml += `<div class="login-reward-item milestone">🏆 30-Day Streak Bonus: +${r.ember} EMBER</div>`;
+        }
+    });
+
+    const streakText = currentStreak === 1
+        ? 'Streak started! Keep logging in daily.'
+        : `${currentStreak} day streak! ${daysToNext} more days to ${nextMilestone}-day milestone.`;
+
+    const modalContent = `
+<div class="daily-login-content">
+    <div class="streak-display">
+        <span class="streak-number">${currentStreak}</span>
+        <span class="streak-label">DAY STREAK</span>
+    </div>
+
+    <div class="rewards-earned">
+        ${rewardsHtml}
+        <div class="total-earned">Total: +${totalEmber} EMBER</div>
+    </div>
+
+    <div class="streak-progress">
+        <p>${streakText}</p>
+    </div>
+</div>
+    `;
+
+    if (typeof showInfoModal === 'function') {
+        showInfoModal('DAILY LOGIN REWARD', modalContent);
+    }
+
+    // Also show toast
+    showRewardToast(`+${totalEmber} EMBER`, 'daily-login');
+}
+
+/**
  * Get global chat messages
  */
 async function getGlobalChatMessages(wallet, limit = 50) {
@@ -573,6 +659,14 @@ async function initSocialSection() {
     // User has country, load content
     console.log('[Social] Country set:', profile.country_code);
     socialState.userProfile = profile;
+
+    // Claim daily login reward (will show popup if first login today)
+    const dailyResult = await claimDailyLogin(wallet);
+    if (dailyResult && dailyResult.success && !dailyResult.already_claimed) {
+        console.log('[Social] Daily login claimed:', dailyResult);
+        showDailyLoginReward(dailyResult);
+    }
+
     await loadSocialContent();
     return true;
 }
@@ -704,3 +798,6 @@ window.getSocialProfile = getSocialProfile;
 window.saveSocialProfile = saveSocialProfile;
 window.getGlobalChatMessages = getGlobalChatMessages;
 window.sendGlobalChatMessage = sendGlobalChatMessage;
+window.claimDailyLogin = claimDailyLogin;
+window.getStreakInfo = getStreakInfo;
+window.showDailyLoginReward = showDailyLoginReward;

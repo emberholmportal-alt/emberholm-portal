@@ -226,6 +226,26 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
 
     print("🎮 Registering Mini App routes...")
 
+    # Run database migrations if PostgreSQL is available
+    if postgresql_available:
+        try:
+            with get_db_connection() as conn:
+                with conn.cursor() as cur:
+                    # FIX: Ensure ember_balance supports decimal values (0.1, 0.5, etc.)
+                    # This migration converts INTEGER to NUMERIC for proper EMBER tracking
+                    cur.execute("""
+                        DO $$
+                        BEGIN
+                            ALTER TABLE user_balances ALTER COLUMN ember_balance TYPE NUMERIC(18,2);
+                        EXCEPTION WHEN undefined_table THEN
+                            -- Table doesn't exist yet, will be created with correct type
+                            NULL;
+                        END $$;
+                    """)
+                    print("✅ Database migrations applied")
+        except Exception as e:
+            print(f"⚠️ Database migration warning: {e}")
+
     # =====================================================================
     # REALM STATUS
     # =====================================================================

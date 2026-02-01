@@ -228,7 +228,7 @@ CREATE INDEX IF NOT EXISTS idx_lands_token ON lands(land_token_id);
 -- -------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS user_balances (
     wallet VARCHAR(42) PRIMARY KEY,
-    ember_balance INTEGER DEFAULT 0,
+    ember_balance NUMERIC(18,2) DEFAULT 0,   -- NUMERIC for decimal EMBER (0.1, 0.5, etc.)
     ash_balance INTEGER DEFAULT 0,
     gambit_rolls_today INTEGER DEFAULT 0,
     gambit_rolls_max INTEGER DEFAULT 5,
@@ -236,6 +236,9 @@ CREATE TABLE IF NOT EXISTS user_balances (
     last_update TIMESTAMP DEFAULT NOW(),
     created_at TIMESTAMP DEFAULT NOW()
 );
+
+-- FIX: Convert existing ember_balance from INTEGER to NUMERIC for decimal support
+ALTER TABLE user_balances ALTER COLUMN ember_balance TYPE NUMERIC(18,2);
 
 -- Índice
 CREATE INDEX IF NOT EXISTS idx_balances_wallet ON user_balances(wallet);
