@@ -586,12 +586,42 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
                         WHERE id = 'MM-H005' AND (narrative_choices IS NULL OR narrative_choices = '[]'::jsonb)
                     """)
 
-                    # Clean up any corrupted active missions with wrong duration
+                    # AGGRESSIVE CLEANUP: Remove ALL expired/corrupted micro-missions
+                    # This prevents emissaries from getting stuck with no action buttons
+
+                    # 1. Delete any micro-mission that has already ended
                     cur.execute("""
                         DELETE FROM active_micro_missions
                         WHERE status IN ('active', 'choice_pending')
-                        AND ends_at < NOW() - INTERVAL '1 hour'
+                        AND ends_at < NOW()
                     """)
+
+                    # 2. Delete any micro-mission older than 10 minutes (max should be 5 min)
+                    cur.execute("""
+                        DELETE FROM active_micro_missions
+                        WHERE status IN ('active', 'choice_pending')
+                        AND started_at < NOW() - INTERVAL '10 minutes'
+                    """)
+
+                    # 3. Delete any micro-mission with NULL ends_at (corrupted data)
+                    cur.execute("""
+                        DELETE FROM active_micro_missions
+                        WHERE status IN ('active', 'choice_pending')
+                        AND ends_at IS NULL
+                    """)
+
+                    # 4. Force complete any stuck micro-missions
+                    cur.execute("""
+                        UPDATE active_micro_missions
+                        SET status = 'expired', completed_at = NOW()
+                        WHERE status IN ('active', 'choice_pending')
+                        AND (
+                            ends_at < NOW() - INTERVAL '1 minute'
+                            OR started_at < NOW() - INTERVAL '15 minutes'
+                        )
+                    """)
+
+                    print("🧹 Cleaned up expired/corrupted micro-missions")
 
                     print("✅ Database migrations applied (including narrative system)")
         except Exception as e:

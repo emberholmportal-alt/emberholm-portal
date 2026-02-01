@@ -1077,6 +1077,75 @@ async function forceRefreshEmissaries() {
 }
 
 // =========================================================================
+// BUTTON HELPER FUNCTIONS (called from emissary action buttons)
+// =========================================================================
+
+/**
+ * Show active micro-mission for a specific emissary token
+ * Called from [MICRO-MISSION] button in emissary list
+ */
+async function showActiveMicroMissionByToken(tokenId) {
+    const wallet = window.connectedWallet;
+    if (!wallet) {
+        showInfoModal('WALLET REQUIRED', 'Please connect your wallet first.');
+        return;
+    }
+
+    // Get the active mission
+    const activeMission = await getActiveMicroMission(wallet);
+
+    if (activeMission) {
+        // Navigate to micro-missions section
+        if (typeof switchScreen === 'function') {
+            switchScreen('micro-missions');
+        }
+        // Render the active mission
+        renderActiveMission(activeMission);
+    } else {
+        showInfoModal('NO ACTIVE MISSION', 'This emissary has no active micro-mission.');
+    }
+}
+
+/**
+ * Abandon micro-mission for a specific emissary token
+ * Called from [ABANDON] button in emissary list
+ */
+async function abandonMicroMissionByToken(tokenId) {
+    const wallet = window.connectedWallet;
+    if (!wallet) {
+        showInfoModal('WALLET REQUIRED', 'Please connect your wallet first.');
+        return;
+    }
+
+    // Get the active mission to find the activeId
+    const activeMission = await getActiveMicroMission(wallet);
+
+    if (!activeMission) {
+        showInfoModal('NO MISSION', 'This emissary has no active micro-mission to abandon.');
+        // Refresh emissaries to clear the stuck state
+        if (typeof loadHeroes === 'function') {
+            loadHeroes();
+        }
+        return;
+    }
+
+    // Confirm abandonment
+    if (!confirm(`Abandon the current micro-mission? You will lose XP.`)) {
+        return;
+    }
+
+    // Call the API to abandon
+    const result = await abandonMicroMission(wallet, activeMission.id);
+
+    if (result) {
+        // Refresh emissaries to update their state
+        if (typeof loadHeroes === 'function') {
+            loadHeroes();
+        }
+    }
+}
+
+// =========================================================================
 // EXPORTS
 // =========================================================================
 
@@ -1094,3 +1163,5 @@ window.startMicroMissionFromModal = startMicroMissionFromModal;
 window.confirmAbandonMission = confirmAbandonMission;
 window.executeAbandonMission = executeAbandonMission;
 window.abandonMicroMission = abandonMicroMission;
+window.showActiveMicroMission = showActiveMicroMissionByToken;
+window.abandonMicroMissionByToken = abandonMicroMissionByToken;

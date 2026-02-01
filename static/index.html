@@ -6588,6 +6588,9 @@ async function loadPlayerAndRender(){
                 stateColor = missionComplete ? "#44ff44" : "#ffaa00";
                 const partyLabel = isPartyMission ? ' <small style="color:#ffaa00;">[PARTY MISSION]</small>' : '';
                 stateText = missionComplete ? '<img src="/img/target.png" class="pixel-icon" alt=""> MISSION READY' : `<img src="/img/fire.png" class="pixel-icon" alt=""> IN PROGRESS${partyLabel}`;
+            } else if (state === "ON_MICRO_MISSION") {
+                stateColor = "#f59e0b";
+                stateText = '<img src="/img/fire.png" class="pixel-icon" alt=""> MICRO-MISSION';
             } else if (state === "FALLEN") {
                 stateColor = "#ff4444";
                 stateText = '<img src="/img/skull.png" class="pixel-icon" alt=""> FALLEN';
@@ -6646,6 +6649,31 @@ async function loadPlayerAndRender(){
                         </button>
                         <button class="action-btn revive reinvoke-btn" data-hero="${h.token_id}">
                             [REVIVE]
+                        </button>
+                    </div>`;
+            } else if (state === "ON_MICRO_MISSION") {
+                // Handler for emissaries on micro-missions
+                actionButtons = `
+                    <div class="actions-cell">
+                        <button class="action-btn inventory" onclick="showInventoryModal('${h.token_id}')">
+                            [INVENTORY]
+                        </button>
+                        <button class="action-btn push" onclick="window.showActiveMicroMission && window.showActiveMicroMission('${h.token_id}')" style="color:#ffaa00; border-color:#ffaa00;">
+                            [VIEW MISSION]
+                        </button>
+                        <button class="action-btn recover" onclick="window.abandonMicroMissionByToken && window.abandonMicroMissionByToken('${h.token_id}')" title="Abandon micro-mission" style="color:#ef4444; border-color:#ef4444;">
+                            [ABANDON]
+                        </button>
+                    </div>`;
+            } else {
+                // Fallback for any unknown state - show basic buttons
+                actionButtons = `
+                    <div class="actions-cell">
+                        <button class="action-btn inventory" onclick="showInventoryModal('${h.token_id}')">
+                            [INVENTORY]
+                        </button>
+                        <button class="action-btn send" onclick="openMissionTypeSelector('${h.token_id}')">
+                            [SEND MISSION]
                         </button>
                     </div>`;
             }
