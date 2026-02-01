@@ -208,6 +208,64 @@ def get_emissary_state(token_id):
 
 
 # =========================================================================
+# NARRATIVE GENERATOR FOR MULTI-STEP MISSIONS
+# =========================================================================
+
+def generate_linear_narrative(steps_content, endings_config):
+    """
+    Generate a linear narrative structure with scoring-based endings.
+
+    Args:
+        steps_content: List of dicts with 'text', 'choice_a', 'choice_b'
+        endings_config: Dict with ending thresholds and texts
+
+    The narrative tracks "bold_score" - choosing B adds 1, A adds 0.
+    Final ending is determined by bold_score / total_steps ratio.
+    """
+    total_steps = len(steps_content)
+    steps = {}
+
+    for i, step in enumerate(steps_content):
+        step_num = i + 1
+        is_last = (step_num == total_steps)
+
+        if is_last:
+            # Final step leads to score-based ending
+            steps[str(step_num)] = {
+                "text": step['text'],
+                "choices": [
+                    {"id": "A", "text": step.get('choice_a', 'Conclude carefully'), "next": "CALC_END", "bold": 0},
+                    {"id": "B", "text": step.get('choice_b', 'Finish with flair'), "next": "CALC_END", "bold": 1}
+                ]
+            }
+        else:
+            # Regular step leads to next
+            steps[str(step_num)] = {
+                "text": step['text'],
+                "choices": [
+                    {"id": "A", "text": step.get('choice_a', 'Be cautious'), "next": str(step_num + 1), "bold": 0},
+                    {"id": "B", "text": step.get('choice_b', 'Be bold'), "next": str(step_num + 1), "bold": 1}
+                ]
+            }
+
+    return {
+        "steps": steps,
+        "endings": endings_config,
+        "total_steps": total_steps,
+        "scoring": True  # Flag for scoring-based ending calculation
+    }
+
+
+# Standard endings for all missions (can be overridden)
+STANDARD_ENDINGS = {
+    "END_LEGENDARY": {"type": "LEGENDARY", "text": "Legendary success! Your choices were masterful.", "xp_mod": 2.0, "ember_mod": 2.0},
+    "END_PERFECT": {"type": "PERFECT", "text": "Excellent work! Your balance of caution and boldness paid off.", "xp_mod": 1.5, "ember_mod": 1.5},
+    "END_GOOD": {"type": "GOOD", "text": "Well done! The mission concludes successfully.", "xp_mod": 1.2, "ember_mod": 1.2},
+    "END_NEUTRAL": {"type": "NEUTRAL", "text": "The mission is complete, though it could have gone better.", "xp_mod": 1.0, "ember_mod": 1.0}
+}
+
+
+# =========================================================================
 # ROUTE REGISTRATION
 # =========================================================================
 
@@ -345,22 +403,33 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
                     # EASY=120s (2min), MEDIUM=240s (4min), HARD=300s (5min)
                     # =========================================================
                     print("[Migration] Forcing duration updates for all missions...")
+                    # EASY = 2 minutes (120s)
                     cur.execute("""
                         UPDATE micro_missions SET duration_seconds = 120
                         WHERE difficulty = 'EASY'
                     """)
                     easy_updated = cur.rowcount
+                    # MEDIUM = 3 minutes (180s)
                     cur.execute("""
-                        UPDATE micro_missions SET duration_seconds = 240
+                        UPDATE micro_missions SET duration_seconds = 180
                         WHERE difficulty = 'MEDIUM'
                     """)
                     medium_updated = cur.rowcount
+                    # HARD = 5 minutes (300s)
                     cur.execute("""
                         UPDATE micro_missions SET duration_seconds = 300
                         WHERE difficulty = 'HARD'
                     """)
                     hard_updated = cur.rowcount
-                    print(f"[Migration] Duration updates: EASY={easy_updated}, MEDIUM={medium_updated}, HARD={hard_updated}")
+
+                    # FORCE FIX: Any mission with duration > 600s (10 min) is broken
+                    cur.execute("""
+                        UPDATE micro_missions SET duration_seconds = 120
+                        WHERE duration_seconds > 600 OR duration_seconds IS NULL
+                    """)
+                    broken_fixed = cur.rowcount
+
+                    print(f"[Migration] Duration updates: EASY={easy_updated}, MEDIUM={medium_updated}, HARD={hard_updated}, broken_fixed={broken_fixed}")
 
                     # =========================================================
                     # FORCE FIX: Set PYRE rewards to 0 (NO PYRE in micro-missions)
@@ -2367,14 +2436,35 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
                             "available_choices": [c.get('id') for c in choices_list]
                         }), 400
 
-                    # Get the next step
+                    # Get the next step and bold value for scoring
                     next_step = chosen_option.get('next', '')
+                    bold_value = chosen_option.get('bold', 0)
 
-                    # Update choices_path
-                    new_choices_path = choices_path + [choice]
+                    # Update choices_path with choice and bold tracking
+                    new_choices_path = choices_path + [{"choice": choice, "bold": bold_value}]
 
                     # Check if this leads to an ending
-                    if next_step.startswith('END_'):
+                    if next_step.startswith('END_') or next_step == 'CALC_END':
+                        # Calculate ending based on scoring if CALC_END
+                        if next_step == 'CALC_END':
+                            # Calculate bold_score from all choices
+                            total_bold = sum(c.get('bold', 0) if isinstance(c, dict) else 0 for c in new_choices_path)
+                            total_steps = len(new_choices_path)
+                            bold_ratio = total_bold / total_steps if total_steps > 0 else 0.5
+
+                            # Determine ending based on bold_ratio
+                            # 80%+ bold = LEGENDARY, 60%+ = PERFECT, 40%+ = GOOD, else NEUTRAL
+                            if bold_ratio >= 0.8:
+                                next_step = 'END_LEGENDARY'
+                            elif bold_ratio >= 0.6:
+                                next_step = 'END_PERFECT'
+                            elif bold_ratio >= 0.4:
+                                next_step = 'END_GOOD'
+                            else:
+                                next_step = 'END_NEUTRAL'
+
+                            print(f"[MicroMission] CALC_END: bold_score={total_bold}/{total_steps}, ratio={bold_ratio:.2f}, ending={next_step}")
+
                         ending_data = endings.get(next_step, {})
                         ending_type = ending_data.get('type', 'NEUTRAL')
                         ending_text = ending_data.get('text', 'Your journey concludes...')
@@ -2397,13 +2487,17 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
                             "ending_id": next_step,
                             "ending_text": ending_text,
                             "choices_path": new_choices_path,
-                            "message": "The story reaches its conclusion. Wait for the timer to claim rewards."
+                            "steps_completed": len(new_choices_path),
+                            "message": "Mission complete! Claim your rewards now."
                         })
                     else:
                         # More steps to go - update current step
                         next_step_data = steps.get(next_step, {})
                         next_text = next_step_data.get('text', 'The story continues...')
                         next_choices = next_step_data.get('choices', [])
+
+                        # Get total steps if available (for progress display)
+                        total_steps = narrative_steps.get('total_steps', len(steps))
 
                         cur.execute("""
                             UPDATE active_micro_missions SET
@@ -2418,10 +2512,12 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
                             "choice": choice,
                             "ending_reached": False,
                             "current_step": next_step,
+                            "step_number": len(new_choices_path) + 1,
+                            "total_steps": total_steps,
                             "narrative_text": next_text,
                             "choices": next_choices,
                             "choices_path": new_choices_path,
-                            "message": "Continue your journey..."
+                            "message": f"Step {len(new_choices_path) + 1} of {total_steps}"
                         })
 
         except Exception as e:
@@ -2477,17 +2573,25 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
                     if row[1] == 'claimed':
                         return jsonify({"error": "Rewards already claimed"}), 400
 
-                    # Check if time has passed
+                    # Extract ending data first to check completion status
+                    ending_reached = row[15]
                     now = datetime.now(timezone.utc).replace(tzinfo=None)
-                    if now < row[3]:  # ends_at
+                    time_expired = now >= row[3]  # ends_at
+
+                    # NEW FLOW:
+                    # - If ending_reached → SUCCESS (immediate completion allowed)
+                    # - If time_expired but no ending → FAILED (auto-fail)
+                    # - If time not expired and no ending → still in progress
+
+                    if not ending_reached and not time_expired:
                         remaining = (row[3] - now).total_seconds()
                         return jsonify({
-                            "error": "Mission not yet complete",
+                            "error": "Mission still in progress. Complete all steps or wait for timeout.",
                             "remaining_seconds": int(remaining)
                         }), 400
 
-                    # Extract ending data for multi-step adventures
-                    ending_reached = row[15]
+                    # Determine if mission is a success or failure
+                    mission_failed = time_expired and not ending_reached
                     narrative_steps_raw = row[16]
 
                     # Parse narrative_steps if needed
@@ -2502,22 +2606,71 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
 
                     endings = narrative_steps.get('endings', {}) if isinstance(narrative_steps, dict) else {}
 
-                    # Calculate base rewards (NO PYRE - only XP, EMBER, AURA)
+                    token_id = row[2]
+                    mission_name = row[11]
+
+                    # Handle FAILED mission (timeout without completing)
+                    if mission_failed:
+                        xp_earned = 0
+                        ember_earned = 0
+                        aura_earned = 0
+                        ending_type = 'FAILED'
+                        outcome_text = "Time ran out! The mission has failed. Complete all steps faster next time."
+
+                        # Update active mission as failed
+                        cur.execute("""
+                            UPDATE active_micro_missions SET
+                                status = 'failed',
+                                pyre_earned = 0,
+                                xp_earned = 0,
+                                aura_earned = 0
+                            WHERE id = %s
+                        """, (active_id,))
+
+                        # Reset emissary to READY
+                        cur.execute("""
+                            UPDATE nfts SET
+                                dynamic_state = jsonb_set(
+                                    dynamic_state,
+                                    '{state}',
+                                    '"READY"'
+                                ),
+                                last_update = NOW()
+                            WHERE token_id = %s
+                        """, (token_id,))
+
+                        print(f"[MicroMission] FAILED (timeout): {mission_name}")
+
+                        return jsonify({
+                            "success": True,
+                            "completed": False,
+                            "failed": True,
+                            "rewards": {
+                                "xp": 0,
+                                "ember": 0,
+                                "aura": 0
+                            },
+                            "mission_name": mission_name,
+                            "outcome_text": outcome_text,
+                            "ending_type": ending_type,
+                            "emissary_token_id": token_id
+                        })
+
+                    # SUCCESS: Calculate rewards
                     xp_earned = random.randint(row[8], row[9])     # xp_reward_min/max
                     aura_earned = 1 if random.random() * 100 < float(row[10] or 0) else 0
 
-                    # EMBER REWARD: Calculate ember from micro-mission
-                    ember_min = row[13] or 0  # ember_reward_min
-                    ember_max = row[14] or 0  # ember_reward_max
+                    # EMBER REWARD
+                    ember_min = row[13] or 0
+                    ember_max = row[14] or 0
                     ember_earned = random.randint(ember_min, ember_max) if ember_min > 0 and ember_max > 0 else 0
 
-                    # Apply ending modifiers for multi-step adventures
+                    # Apply ending modifiers
                     ending_type = None
                     if ending_reached and ending_reached in endings:
                         ending_data = endings[ending_reached]
                         ending_type = ending_data.get('type', 'NEUTRAL')
 
-                        # Apply modifiers based on ending (XP and EMBER only)
                         xp_mod = ending_data.get('xp_mod', 1.0)
                         ember_mod = ending_data.get('ember_mod', 1.0)
 
@@ -2526,12 +2679,9 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
 
                         # Aura boost for legendary endings
                         if ending_type == 'LEGENDARY' and aura_earned == 0:
-                            # 50% extra chance for aura on legendary endings
                             aura_earned = 1 if random.random() < 0.5 else 0
 
-                    token_id = row[2]
-                    mission_name = row[11]
-                    outcome_text = row[5] or "The mission concludes..."
+                    outcome_text = row[5] or "The mission concludes successfully!"
 
                     # Update active mission (no pyre)
                     cur.execute("""

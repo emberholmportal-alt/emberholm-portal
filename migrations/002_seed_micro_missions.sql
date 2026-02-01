@@ -36,17 +36,17 @@ ON CONFLICT (id) DO UPDATE SET
     is_active = EXCLUDED.is_active;
 
 -- =========================================================================
--- MICRO-MISSIONS: MEDIUM (240 segundos = 4 minutos)
+-- MICRO-MISSIONS: MEDIUM (180 segundos = 3 minutos)
 -- Rewards: XP 8-20, EMBER 20-40, Aura 8-12%
 -- =========================================================================
 
 INSERT INTO micro_missions (id, name, description, difficulty, duration_seconds, energy_cost, pyre_reward_min, pyre_reward_max, xp_reward_min, xp_reward_max, ember_reward_min, ember_reward_max, aura_chance, narrative_intro, cooldown_minutes, is_active)
 VALUES
-('MM-M001', 'Void Echoes Investigation', 'Strange sounds emanate from the void. Investigate their source.', 'MEDIUM', 240, 10, 0, 0, 10, 20, 25, 40, 10.00, 'The void whispers secrets that mortal ears were not meant to hear. Do you dare listen?', 5, TRUE),
-('MM-M002', 'Guild Messenger', 'Deliver an urgent message between guild outposts.', 'MEDIUM', 240, 8, 0, 0, 8, 15, 20, 35, 8.00, 'A sealed scroll bears the mark of your guild. Time is of the essence - deliver it swiftly!', 3, TRUE),
-('MM-M003', 'Ash Beast Tracking', 'Track the movements of ash beasts near the settlement.', 'MEDIUM', 240, 10, 0, 0, 10, 20, 25, 40, 10.00, 'Strange tracks mark the ashen ground. The beasts are near - proceed with caution.', 5, TRUE),
-('MM-M004', 'Crystal Harvesting', 'Harvest resonance crystals from the Singing Caves.', 'MEDIUM', 240, 8, 0, 0, 8, 15, 20, 35, 8.00, 'The caves sing with crystal harmonies. Extract the resonant gems carefully...', 3, TRUE),
-('MM-M005', 'Spirit Communion', 'Commune with the spirits of fallen emissaries.', 'MEDIUM', 240, 10, 0, 0, 10, 20, 25, 40, 12.00, 'The veil between worlds grows thin. The spirits of the fallen seek to share their wisdom...', 5, TRUE)
+('MM-M001', 'Void Echoes Investigation', 'Strange sounds emanate from the void. Investigate their source.', 'MEDIUM', 180, 10, 0, 0, 10, 20, 25, 40, 10.00, 'The void whispers secrets that mortal ears were not meant to hear. Do you dare listen?', 5, TRUE),
+('MM-M002', 'Guild Messenger', 'Deliver an urgent message between guild outposts.', 'MEDIUM', 180, 8, 0, 0, 8, 15, 20, 35, 8.00, 'A sealed scroll bears the mark of your guild. Time is of the essence - deliver it swiftly!', 3, TRUE),
+('MM-M003', 'Ash Beast Tracking', 'Track the movements of ash beasts near the settlement.', 'MEDIUM', 180, 10, 0, 0, 10, 20, 25, 40, 10.00, 'Strange tracks mark the ashen ground. The beasts are near - proceed with caution.', 5, TRUE),
+('MM-M004', 'Crystal Harvesting', 'Harvest resonance crystals from the Singing Caves.', 'MEDIUM', 180, 8, 0, 0, 8, 15, 20, 35, 8.00, 'The caves sing with crystal harmonies. Extract the resonant gems carefully...', 3, TRUE),
+('MM-M005', 'Spirit Communion', 'Commune with the spirits of fallen emissaries.', 'MEDIUM', 180, 10, 0, 0, 10, 20, 25, 40, 12.00, 'The veil between worlds grows thin. The spirits of the fallen seek to share their wisdom...', 5, TRUE)
 ON CONFLICT (id) DO UPDATE SET
     name = EXCLUDED.name,
     description = EXCLUDED.description,
