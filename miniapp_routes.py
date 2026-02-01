@@ -341,44 +341,38 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
                     """)
 
                     # =========================================================
-                    # FORCE FIX: Update mission durations (fix old 10860s values)
+                    # FORCE FIX: Update mission durations UNCONDITIONALLY
                     # EASY=120s (2min), MEDIUM=240s (4min), HARD=300s (5min)
                     # =========================================================
+                    print("[Migration] Forcing duration updates for all missions...")
                     cur.execute("""
                         UPDATE micro_missions SET duration_seconds = 120
-                        WHERE difficulty = 'EASY' AND duration_seconds != 120
+                        WHERE difficulty = 'EASY'
                     """)
+                    easy_updated = cur.rowcount
                     cur.execute("""
                         UPDATE micro_missions SET duration_seconds = 240
-                        WHERE difficulty = 'MEDIUM' AND duration_seconds != 240
+                        WHERE difficulty = 'MEDIUM'
                     """)
+                    medium_updated = cur.rowcount
                     cur.execute("""
                         UPDATE micro_missions SET duration_seconds = 300
-                        WHERE difficulty = 'HARD' AND duration_seconds != 300
+                        WHERE difficulty = 'HARD'
                     """)
+                    hard_updated = cur.rowcount
+                    print(f"[Migration] Duration updates: EASY={easy_updated}, MEDIUM={medium_updated}, HARD={hard_updated}")
 
-                    # Also fix any active missions with wrong end times
+                    # FORCE fix all active missions with wrong end times (over 10 minutes)
                     cur.execute("""
-                        UPDATE active_micro_missions SET
-                            ends_at = started_at + INTERVAL '120 seconds'
-                        WHERE micro_mission_id LIKE 'MM-E%'
-                        AND status IN ('active', 'choice_pending')
-                        AND ends_at > started_at + INTERVAL '10 minutes'
+                        UPDATE active_micro_missions amm SET
+                            ends_at = amm.started_at + (mm.duration_seconds * INTERVAL '1 second')
+                        FROM micro_missions mm
+                        WHERE amm.micro_mission_id = mm.id
+                        AND amm.status IN ('active', 'choice_pending')
+                        AND (amm.ends_at - amm.started_at) > INTERVAL '10 minutes'
                     """)
-                    cur.execute("""
-                        UPDATE active_micro_missions SET
-                            ends_at = started_at + INTERVAL '240 seconds'
-                        WHERE micro_mission_id LIKE 'MM-M%'
-                        AND status IN ('active', 'choice_pending')
-                        AND ends_at > started_at + INTERVAL '10 minutes'
-                    """)
-                    cur.execute("""
-                        UPDATE active_micro_missions SET
-                            ends_at = started_at + INTERVAL '300 seconds'
-                        WHERE micro_mission_id LIKE 'MM-H%'
-                        AND status IN ('active', 'choice_pending')
-                        AND ends_at > started_at + INTERVAL '10 minutes'
-                    """)
+                    active_fixed = cur.rowcount
+                    print(f"[Migration] Fixed {active_fixed} active missions with wrong end times")
 
                     # =========================================================
                     # POPULATE MULTI-STEP NARRATIVE DATA FOR MISSIONS
@@ -1515,6 +1509,52 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
                         WHERE id = 'MM-H005'
                     """)
 
+                    # =========================================================
+                    # GENERIC FALLBACK: Add narrative_steps for ANY mission without it
+                    # This ensures ALL missions work with the multi-step system
+                    # =========================================================
+                    print("[Migration] Adding generic narrative for missions without narrative_steps...")
+                    cur.execute("""
+                        UPDATE micro_missions SET
+                            narrative_steps = '{
+                                "steps": {
+                                    "1": {
+                                        "text": "Your emissary embarks on the mission. The path ahead is uncertain, but your resolve is strong.",
+                                        "choices": [
+                                            {"id": "A", "text": "Take the cautious approach", "next": "2A"},
+                                            {"id": "B", "text": "Act boldly and decisively", "next": "2B"}
+                                        ]
+                                    },
+                                    "2A": {
+                                        "text": "Your careful approach pays off. You avoid potential dangers and make steady progress.",
+                                        "choices": [
+                                            {"id": "A", "text": "Continue with caution to the end", "next": "END_GOOD"},
+                                            {"id": "B", "text": "Take a calculated risk for greater reward", "next": "END_PERFECT"}
+                                        ]
+                                    },
+                                    "2B": {
+                                        "text": "Your boldness is rewarded! Opportunities present themselves to those who dare.",
+                                        "choices": [
+                                            {"id": "A", "text": "Press your advantage further", "next": "END_LEGENDARY"},
+                                            {"id": "B", "text": "Consolidate your gains", "next": "END_GOOD"}
+                                        ]
+                                    }
+                                },
+                                "endings": {
+                                    "END_LEGENDARY": {"type": "LEGENDARY", "text": "Outstanding success! Your emissary has achieved legendary results.", "pyre_mod": 2.0, "xp_mod": 2.0},
+                                    "END_PERFECT": {"type": "PERFECT", "text": "Excellent work! Your calculated risk has paid off handsomely.", "pyre_mod": 1.5, "xp_mod": 1.4},
+                                    "END_GOOD": {"type": "GOOD", "text": "Well done! The mission concludes successfully.", "pyre_mod": 1.2, "xp_mod": 1.2},
+                                    "END_NEUTRAL": {"type": "NEUTRAL", "text": "The mission is complete. You have fulfilled your duty.", "pyre_mod": 1.0, "xp_mod": 1.0}
+                                }
+                            }'::jsonb
+                        WHERE narrative_steps IS NULL
+                           OR narrative_steps = '{}'::jsonb
+                           OR narrative_steps::text = '{}'
+                           OR NOT (narrative_steps ? 'steps')
+                    """)
+                    generic_updated = cur.rowcount
+                    print(f"[Migration] Added generic narrative to {generic_updated} missions")
+
                     # AGGRESSIVE CLEANUP: Remove ALL expired/corrupted micro-missions
                     # This prevents emissaries from getting stuck with no action buttons
 
@@ -2076,17 +2116,37 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
                     """, (token_id,))
 
                     # Extract first step from narrative_steps for multi-step adventures
-                    narrative_steps = mission[6] or {}
-                    steps = narrative_steps.get('steps', {})
+                    narrative_steps_raw = mission[6]
+
+                    # Parse narrative_steps if it's a string
+                    if isinstance(narrative_steps_raw, str):
+                        import json as json_module
+                        try:
+                            narrative_steps = json_module.loads(narrative_steps_raw)
+                        except:
+                            narrative_steps = {}
+                    else:
+                        narrative_steps = narrative_steps_raw or {}
+
+                    steps = narrative_steps.get('steps', {}) if isinstance(narrative_steps, dict) else {}
                     first_step = steps.get('1', {})
 
-                    # Use multi-step narrative if available, otherwise fallback to legacy
+                    # Use multi-step narrative if available
                     if first_step:
                         narrative_text = first_step.get('text', mission[4] or 'Your journey begins...')
                         choices = first_step.get('choices', mission[5] or [])
-                    else:
+                    elif mission[4] or mission[5]:
+                        # Legacy fallback
                         narrative_text = mission[4] or 'Your journey begins...'
                         choices = mission[5] or []
+                    else:
+                        # Generic fallback for missions without any narrative data
+                        print(f"[MicroMission] WARNING: No narrative data for {mission_id}, using generic fallback")
+                        narrative_text = "Your emissary embarks on the mission. The path ahead is uncertain, but your resolve is strong."
+                        choices = [
+                            {"id": "A", "text": "Take the cautious approach"},
+                            {"id": "B", "text": "Act boldly and decisively"}
+                        ]
 
                     # Return structure for multi-step adventures
                     return jsonify({
@@ -2197,13 +2257,43 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
 
                     # Get steps and endings from narrative_steps
                     if not isinstance(narrative_steps, dict):
-                        return jsonify({
-                            "error": "Invalid narrative data",
-                            "narrative_type": str(type(narrative_steps))
-                        }), 500
+                        narrative_steps = {}
 
                     steps = narrative_steps.get('steps', {})
                     endings = narrative_steps.get('endings', {})
+
+                    # FALLBACK: If no steps defined, use generic narrative
+                    if not steps:
+                        print(f"[MicroMission] WARNING: No narrative_steps for mission {row[2]}, using fallback")
+                        steps = {
+                            "1": {
+                                "text": "Your emissary embarks on the mission. The path ahead is uncertain.",
+                                "choices": [
+                                    {"id": "A", "text": "Take the cautious approach", "next": "2A"},
+                                    {"id": "B", "text": "Act boldly and decisively", "next": "2B"}
+                                ]
+                            },
+                            "2A": {
+                                "text": "Your careful approach pays off. You make steady progress.",
+                                "choices": [
+                                    {"id": "A", "text": "Continue with caution", "next": "END_GOOD"},
+                                    {"id": "B", "text": "Take a calculated risk", "next": "END_PERFECT"}
+                                ]
+                            },
+                            "2B": {
+                                "text": "Your boldness is rewarded! Opportunities present themselves.",
+                                "choices": [
+                                    {"id": "A", "text": "Press your advantage", "next": "END_LEGENDARY"},
+                                    {"id": "B", "text": "Consolidate your gains", "next": "END_GOOD"}
+                                ]
+                            }
+                        }
+                        endings = {
+                            "END_LEGENDARY": {"type": "LEGENDARY", "text": "Outstanding success!", "pyre_mod": 2.0, "xp_mod": 2.0},
+                            "END_PERFECT": {"type": "PERFECT", "text": "Excellent work!", "pyre_mod": 1.5, "xp_mod": 1.4},
+                            "END_GOOD": {"type": "GOOD", "text": "Well done!", "pyre_mod": 1.2, "xp_mod": 1.2},
+                            "END_NEUTRAL": {"type": "NEUTRAL", "text": "Mission complete.", "pyre_mod": 1.0, "xp_mod": 1.0}
+                        }
 
                     print(f"[MicroMission] Available steps: {list(steps.keys())}")
 
@@ -2637,14 +2727,56 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
                     remaining = max(0, (row[4] - now).total_seconds())
 
                     # Extract current step data from narrative_steps
-                    current_step = row[10] or "1"
+                    current_step = str(row[10]) if row[10] else "1"
                     choices_path = row[11] if row[11] else []
                     ending_reached = row[12]
                     outcome_text = row[13]
-                    narrative_steps = row[14] or {}
+                    narrative_steps_raw = row[14]
 
-                    steps = narrative_steps.get('steps', {})
-                    endings = narrative_steps.get('endings', {})
+                    # Parse narrative_steps if it's a string
+                    if isinstance(narrative_steps_raw, str):
+                        import json as json_module
+                        try:
+                            narrative_steps = json_module.loads(narrative_steps_raw)
+                        except:
+                            narrative_steps = {}
+                    else:
+                        narrative_steps = narrative_steps_raw or {}
+
+                    steps = narrative_steps.get('steps', {}) if isinstance(narrative_steps, dict) else {}
+                    endings = narrative_steps.get('endings', {}) if isinstance(narrative_steps, dict) else {}
+
+                    # FALLBACK: If no steps defined, use generic narrative
+                    if not steps:
+                        steps = {
+                            "1": {
+                                "text": "Your emissary embarks on the mission. The path ahead is uncertain.",
+                                "choices": [
+                                    {"id": "A", "text": "Take the cautious approach", "next": "2A"},
+                                    {"id": "B", "text": "Act boldly and decisively", "next": "2B"}
+                                ]
+                            },
+                            "2A": {
+                                "text": "Your careful approach pays off. You make steady progress.",
+                                "choices": [
+                                    {"id": "A", "text": "Continue with caution", "next": "END_GOOD"},
+                                    {"id": "B", "text": "Take a calculated risk", "next": "END_PERFECT"}
+                                ]
+                            },
+                            "2B": {
+                                "text": "Your boldness is rewarded! Opportunities present themselves.",
+                                "choices": [
+                                    {"id": "A", "text": "Press your advantage", "next": "END_LEGENDARY"},
+                                    {"id": "B", "text": "Consolidate your gains", "next": "END_GOOD"}
+                                ]
+                            }
+                        }
+                        endings = {
+                            "END_LEGENDARY": {"type": "LEGENDARY", "text": "Outstanding success!", "pyre_mod": 2.0, "xp_mod": 2.0},
+                            "END_PERFECT": {"type": "PERFECT", "text": "Excellent work!", "pyre_mod": 1.5, "xp_mod": 1.4},
+                            "END_GOOD": {"type": "GOOD", "text": "Well done!", "pyre_mod": 1.2, "xp_mod": 1.2},
+                            "END_NEUTRAL": {"type": "NEUTRAL", "text": "Mission complete.", "pyre_mod": 1.0, "xp_mod": 1.0}
+                        }
 
                     # Determine what to show based on current state
                     if ending_reached:
@@ -2659,10 +2791,17 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
                         if current_step_data:
                             narrative_text = current_step_data.get('text', row[8] or 'Your journey continues...')
                             choices = current_step_data.get('choices', row[9] or [])
-                        else:
+                        elif row[8] or row[9]:
                             # Fallback to legacy fields
                             narrative_text = row[8] or 'Your journey begins...'
                             choices = row[9] or []
+                        else:
+                            # Generic fallback
+                            narrative_text = "Your emissary is on a mission. Make your choice."
+                            choices = [
+                                {"id": "A", "text": "Take the cautious approach", "next": "2A"},
+                                {"id": "B", "text": "Act boldly and decisively", "next": "2B"}
+                            ]
                         ending_type = None
 
                     return jsonify({
