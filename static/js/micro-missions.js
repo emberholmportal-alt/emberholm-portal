@@ -232,11 +232,34 @@ async function initMicroMissionsSection() {
         return false;
     }
 
+    console.log('[MicroMissions] Initializing for wallet:', wallet);
+    console.log('[MicroMissions] window.userEmissaries:', window.userEmissaries?.length || 0, 'emissaries');
+
     microMissionsState.isLoading = true;
     updateMicroMissionsLoading(true);
 
     // Check for active mission first
     const activeMission = await getActiveMicroMission(wallet);
+    console.log('[MicroMissions] Active mission:', activeMission);
+
+    // Show emergency button always if there are issues
+    const emergencyDiv = document.getElementById('micro-missions-emergency');
+    if (emergencyDiv) {
+        // Show emergency button if there's an active mission OR if the mission data looks corrupted
+        const isCorrupted = activeMission && (
+            !activeMission.choices ||
+            activeMission.choices.length === 0 ||
+            activeMission.remaining_seconds > 600  // More than 10 minutes is suspicious for micro-missions
+        );
+        emergencyDiv.style.display = (activeMission || isCorrupted) ? 'block' : 'none';
+
+        if (isCorrupted) {
+            console.warn('[MicroMissions] CORRUPTED MISSION DETECTED:', {
+                choices: activeMission?.choices?.length || 0,
+                remaining: activeMission?.remaining_seconds
+            });
+        }
+    }
 
     if (activeMission) {
         // Show active mission UI
@@ -391,13 +414,34 @@ function selectMicroMission(missionId) {
 function showEmissarySelectionModal(mission) {
     // Get available emissaries (READY state only)
     const emissaries = window.userEmissaries || [];
+    // Debug: log emissary states
+    console.log('[MicroMissions] All emissaries:', emissaries.map(e => ({
+        id: e.token_id || e.tokenId,
+        name: e.name,
+        current_state: e.current_state,
+        dynamic_state: e.dynamic_state?.state
+    })));
+
+    // More permissive filter - accept emissaries that are:
+    // 1. Explicitly READY
+    // 2. Have no state info (assume READY)
+    // 3. Have undefined/null state
     const readyEmissaries = emissaries.filter(e => {
         const state = e.current_state || e.dynamic_state?.state;
-        return state === 'READY' || !state;
+        // Accept if READY, or if state is missing/undefined
+        const isReady = state === 'READY' || state === undefined || state === null || state === '';
+        // Reject only if explicitly on mission or fallen
+        const isBusy = state === 'ON_MISSION' || state === 'ON_MICRO_MISSION' || state === 'FALLEN' || state === 'CLAIMING';
+        return isReady || !isBusy;
     });
 
+    console.log('[MicroMissions] READY emissaries:', readyEmissaries.length);
+
     if (readyEmissaries.length === 0) {
-        showInfoModal('NO EMISSARIES', 'You need at least one READY emissary to start a mission.\n\nAll your emissaries are currently busy or fallen.');
+        // Show more helpful error with debug info
+        const states = emissaries.map(e => e.current_state || e.dynamic_state?.state || 'unknown');
+        console.error('[MicroMissions] No READY emissaries! States:', states);
+        showInfoModal('NO EMISSARIES', `You need at least one READY emissary to start a mission.\n\nAll your emissaries are currently busy or fallen.\n\nTip: Try the [EMERGENCY CLEANUP] button to free stuck emissaries.`);
         return;
     }
 
@@ -501,12 +545,17 @@ function renderActiveMission(mission) {
 
     // Get emissary info for portrait
     const emissaries = window.userEmissaries || [];
-    const emissary = emissaries.find(e =>
-        (e.token_id || e.tokenId) === mission.emissary_token_id
-    );
+    // Normalize token IDs for comparison (handle "00042" vs "42")
+    const missionTokenId = String(mission.emissary_token_id).replace(/^0+/, '') || '0';
+    const emissary = emissaries.find(e => {
+        const eTokenId = String(e.token_id || e.tokenId || '').replace(/^0+/, '') || '0';
+        return eTokenId === missionTokenId;
+    });
     const emissaryName = emissary?.name || `Emissary #${mission.emissary_token_id}`;
-    const emissaryImage = emissary?.image || emissary?.cached_image ||
-        `https://www.emissaries.xyz/api/image/${mission.emissary_token_id}`;
+    // Use cached_image first, then image, then API fallback
+    const tokenIdForUrl = String(mission.emissary_token_id).replace(/^0+/, '') || '0';
+    const emissaryImage = emissary?.cached_image || emissary?.image ||
+        `https://portal.emissaries.xyz/api/emissary/${tokenIdForUrl}/image`;
 
     // Get choices with icons
     const choices = mission.choices || [];
@@ -951,7 +1000,7 @@ async function startMicroMissionFromModal(missionId, heroId) {
         }
         // Render the active mission
         if (result.active_mission) {
-            renderActiveMission(result);
+            renderActiveMission(result.active_mission);
         } else {
             initMicroMissionsSection();
         }
@@ -961,10 +1010,79 @@ async function startMicroMissionFromModal(missionId, heroId) {
 }
 
 // =========================================================================
+// EMERGENCY CLEANUP
+// =========================================================================
+
+/**
+ * Call emergency cleanup endpoint to fix corrupted missions
+ */
+async function emergencyCleanupMissions() {
+    if (!confirm('This will delete ALL active micro-missions and free all stuck emissaries. Continue?')) {
+        return;
+    }
+
+    showInfoModal('CLEANING UP...', 'Removing corrupted missions...');
+
+    try {
+        const response = await fetch('/api/micro-mission/emergency-cleanup', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        });
+        const data = await response.json();
+
+        if (data.success) {
+            showInfoModal('CLEANUP COMPLETE', data.message);
+            // Refresh the section
+            setTimeout(() => {
+                closeInfoModal();
+                initMicroMissionsSection();
+            }, 2000);
+        } else {
+            showInfoModal('ERROR', data.error || 'Cleanup failed');
+        }
+    } catch (error) {
+        console.error('[MicroMissions] Emergency cleanup error:', error);
+        showInfoModal('ERROR', 'Failed to clean up missions: ' + error.message);
+    }
+}
+
+/**
+ * Force refresh emissaries data from backend
+ */
+async function forceRefreshEmissaries() {
+    const wallet = window.connectedWallet;
+    if (!wallet) {
+        showInfoModal('WALLET REQUIRED', 'Please connect your wallet first.');
+        return;
+    }
+
+    showInfoModal('REFRESHING...', 'Reloading emissary data...');
+
+    try {
+        // First, run emergency cleanup
+        await fetch('/api/micro-mission/emergency-cleanup', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        });
+
+        // Then reload the page to get fresh data
+        setTimeout(() => {
+            window.location.reload();
+        }, 1000);
+
+    } catch (error) {
+        console.error('[MicroMissions] Refresh error:', error);
+        showInfoModal('ERROR', 'Failed to refresh: ' + error.message);
+    }
+}
+
+// =========================================================================
 // EXPORTS
 // =========================================================================
 
 window.initMicroMissionsSection = initMicroMissionsSection;
+window.emergencyCleanupMissions = emergencyCleanupMissions;
+window.forceRefreshEmissaries = forceRefreshEmissaries;
 window.cleanupMicroMissionsSection = cleanupMicroMissionsSection;
 window.selectMicroMission = selectMicroMission;
 window.confirmMissionStart = confirmMissionStart;
