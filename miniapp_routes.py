@@ -2749,14 +2749,14 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
             return jsonify({"error": str(e)}), 500
 
     # =====================================================================
-    # EVENTS ENDPOINT (Wrapper for /api/events/active)
+    # EVENTS ENDPOINT (Database version - for Mini App)
     # =====================================================================
 
-    @app.route('/api/events', methods=['GET'])
-    def api_events():
+    @app.route('/api/events/db', methods=['GET'])
+    def api_events_from_db():
         """
-        Get active events.
-        This is a wrapper that redirects to the existing events endpoint format.
+        Get active events from database.
+        Alternative to /api/events which uses in-memory EVENTS constant.
         """
         if not POSTGRESQL_AVAILABLE:
             return jsonify({"events": [], "event_settings": None})

@@ -4629,6 +4629,7 @@ document.addEventListener('DOMContentLoaded', function() {
 <script>
 /* --------- GLOBAL STATE --------- */
 let connectedWallet = null;
+window.connectedWallet = null;  // Also expose to window for external JS files
 
 // 🔥 NFTs fetched directly from blockchain + IPFS (NO backend dependency)
 let ipfsNFTsData = [];
@@ -5351,6 +5352,7 @@ async function connectWallet() {
         const address = await signer.getAddress();
 
         connectedWallet = address;
+        window.connectedWallet = address;  // Sync with window for external JS files
         document.getElementById("wallet-display").textContent = address.slice(0, 6) + "..." + address.slice(-4);
         console.log(`✅ Wallet connected: ${address}`);
 
@@ -5549,6 +5551,7 @@ function disconnectWallet() {
 
     // Reset wallet state
     connectedWallet = null;
+    window.connectedWallet = null;  // Sync with window for external JS files
 
     // Update UI
     document.getElementById("wallet-display").textContent = "Not connected";
@@ -5766,6 +5769,7 @@ if (window.ethereum) {
         if (accounts.length === 0) {
             console.log("⚠️ User disconnected wallet");
             connectedWallet = null;
+            window.connectedWallet = null;  // Sync with window for external JS files
             document.getElementById("wallet-display").textContent = "NOT CONNECTED";
             document.getElementById("connect-wallet-btn").textContent = "[CONNECT WALLET]";
             document.getElementById("connect-wallet-btn").disabled = false;
