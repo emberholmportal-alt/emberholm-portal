@@ -226,6 +226,26 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
 
     print("🎮 Registering Mini App routes...")
 
+    # Run database migrations if PostgreSQL is available
+    if postgresql_available:
+        try:
+            with get_db_connection() as conn:
+                with conn.cursor() as cur:
+                    # FIX: Ensure ember_balance supports decimal values (0.1, 0.5, etc.)
+                    # This migration converts INTEGER to NUMERIC for proper EMBER tracking
+                    cur.execute("""
+                        DO $$
+                        BEGIN
+                            ALTER TABLE user_balances ALTER COLUMN ember_balance TYPE NUMERIC(18,2);
+                        EXCEPTION WHEN undefined_table THEN
+                            -- Table doesn't exist yet, will be created with correct type
+                            NULL;
+                        END $$;
+                    """)
+                    print("✅ Database migrations applied")
+        except Exception as e:
+            print(f"⚠️ Database migration warning: {e}")
+
     # =====================================================================
     # REALM STATUS
     # =====================================================================
@@ -1186,6 +1206,21 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
         try:
             with get_db_connection() as conn:
                 with conn.cursor() as cur:
+                    # Ensure table exists
+                    cur.execute("""
+                        CREATE TABLE IF NOT EXISTS user_profiles (
+                            id SERIAL PRIMARY KEY,
+                            wallet VARCHAR(42) UNIQUE NOT NULL,
+                            farcaster_fid INTEGER,
+                            farcaster_username VARCHAR(100),
+                            farcaster_pfp_url TEXT,
+                            country_code CHAR(3),
+                            display_name VARCHAR(100),
+                            last_seen TIMESTAMP DEFAULT NOW(),
+                            created_at TIMESTAMP DEFAULT NOW()
+                        )
+                    """)
+
                     cur.execute("""
                         INSERT INTO user_profiles
                         (wallet, country_code, display_name, farcaster_fid, farcaster_username, farcaster_pfp_url)
@@ -1201,6 +1236,8 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
                     """, (wallet, country_code or None, display_name or None, fid, username or None, pfp_url or None))
                     row = cur.fetchone()
 
+                    print(f"[Social] Profile updated for {wallet[:10]}...: country={country_code}")
+
                     return jsonify({
                         "success": True,
                         "profile": {
@@ -1214,6 +1251,8 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
 
         except Exception as e:
             print(f"Error updating profile: {e}")
+            import traceback
+            traceback.print_exc()
             return jsonify({"error": str(e)}), 500
 
     @app.route('/api/social/profile/<wallet>', methods=['GET'])
@@ -1227,6 +1266,21 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
         try:
             with get_db_connection() as conn:
                 with conn.cursor() as cur:
+                    # Ensure table exists
+                    cur.execute("""
+                        CREATE TABLE IF NOT EXISTS user_profiles (
+                            id SERIAL PRIMARY KEY,
+                            wallet VARCHAR(42) UNIQUE NOT NULL,
+                            farcaster_fid INTEGER,
+                            farcaster_username VARCHAR(100),
+                            farcaster_pfp_url TEXT,
+                            country_code CHAR(3),
+                            display_name VARCHAR(100),
+                            last_seen TIMESTAMP DEFAULT NOW(),
+                            created_at TIMESTAMP DEFAULT NOW()
+                        )
+                    """)
+
                     cur.execute("""
                         SELECT id, wallet, country_code, display_name,
                                farcaster_fid, farcaster_username, farcaster_pfp_url, last_seen
@@ -1237,12 +1291,15 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
                     if not row:
                         return jsonify({"success": True, "profile": None})
 
+                    # Trim whitespace from CHAR(3) country_code
+                    country_code = row[2].strip() if row[2] else None
+
                     return jsonify({
                         "success": True,
                         "profile": {
                             "id": row[0],
                             "wallet": row[1],
-                            "country_code": row[2],
+                            "country_code": country_code,
                             "display_name": row[3],
                             "farcaster_fid": row[4],
                             "farcaster_username": row[5],
@@ -1253,6 +1310,8 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
 
         except Exception as e:
             print(f"Error getting profile: {e}")
+            import traceback
+            traceback.print_exc()
             return jsonify({"error": str(e)}), 500
 
     @app.route('/api/social/countries', methods=['GET'])
@@ -2690,14 +2749,14 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
             return jsonify({"error": str(e)}), 500
 
     # =====================================================================
-    # EVENTS ENDPOINT (Wrapper for /api/events/active)
+    # EVENTS ENDPOINT (Database version - for Mini App)
     # =====================================================================
 
-    @app.route('/api/events', methods=['GET'])
-    def api_events():
+    @app.route('/api/events/db', methods=['GET'])
+    def api_events_from_db():
         """
-        Get active events.
-        This is a wrapper that redirects to the existing events endpoint format.
+        Get active events from database.
+        Alternative to /api/events which uses in-memory EVENTS constant.
         """
         if not POSTGRESQL_AVAILABLE:
             return jsonify({"events": [], "event_settings": None})
