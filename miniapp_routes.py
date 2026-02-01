@@ -362,17 +362,45 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
                     hard_updated = cur.rowcount
                     print(f"[Migration] Duration updates: EASY={easy_updated}, MEDIUM={medium_updated}, HARD={hard_updated}")
 
-                    # FORCE fix all active missions with wrong end times (over 10 minutes)
+                    # =========================================================
+                    # FORCE FIX: Set PYRE rewards to 0 (NO PYRE in micro-missions)
+                    # =========================================================
+                    print("[Migration] Setting PYRE rewards to 0...")
                     cur.execute("""
-                        UPDATE active_micro_missions amm SET
-                            ends_at = amm.started_at + (mm.duration_seconds * INTERVAL '1 second')
-                        FROM micro_missions mm
-                        WHERE amm.micro_mission_id = mm.id
-                        AND amm.status IN ('active', 'choice_pending')
-                        AND (amm.ends_at - amm.started_at) > INTERVAL '10 minutes'
+                        UPDATE micro_missions SET pyre_reward_min = 0, pyre_reward_max = 0
                     """)
-                    active_fixed = cur.rowcount
-                    print(f"[Migration] Fixed {active_fixed} active missions with wrong end times")
+                    pyre_reset = cur.rowcount
+                    print(f"[Migration] Reset PYRE to 0 for {pyre_reset} missions")
+
+                    # =========================================================
+                    # FULL RESET: Delete ALL active micro-missions and cooldowns
+                    # Start fresh with clean state
+                    # =========================================================
+                    print("[Migration] Resetting micro-missions system...")
+
+                    # Delete ALL active missions
+                    cur.execute("DELETE FROM active_micro_missions")
+                    active_deleted = cur.rowcount
+                    print(f"[Migration] Deleted {active_deleted} active micro-missions")
+
+                    # Delete ALL cooldowns
+                    cur.execute("DELETE FROM micro_mission_cooldowns")
+                    cooldowns_deleted = cur.rowcount
+                    print(f"[Migration] Deleted {cooldowns_deleted} cooldowns")
+
+                    # Reset ALL emissaries stuck in ON_MICRO_MISSION state
+                    cur.execute("""
+                        UPDATE nfts SET
+                            dynamic_state = jsonb_set(
+                                COALESCE(dynamic_state, '{}'::jsonb),
+                                '{state}',
+                                '"READY"'
+                            ),
+                            last_update = NOW()
+                        WHERE dynamic_state->>'state' = 'ON_MICRO_MISSION'
+                    """)
+                    emissaries_reset = cur.rowcount
+                    print(f"[Migration] Reset {emissaries_reset} emissaries from ON_MICRO_MISSION to READY")
 
                     # =========================================================
                     # POPULATE MULTI-STEP NARRATIVE DATA FOR MISSIONS
@@ -2460,11 +2488,21 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
 
                     # Extract ending data for multi-step adventures
                     ending_reached = row[15]
-                    narrative_steps = row[16] or {}
-                    endings = narrative_steps.get('endings', {})
+                    narrative_steps_raw = row[16]
 
-                    # Calculate base rewards
-                    pyre_earned = random.randint(row[6], row[7])  # pyre_reward_min/max
+                    # Parse narrative_steps if needed
+                    if isinstance(narrative_steps_raw, str):
+                        import json as json_module
+                        try:
+                            narrative_steps = json_module.loads(narrative_steps_raw)
+                        except:
+                            narrative_steps = {}
+                    else:
+                        narrative_steps = narrative_steps_raw or {}
+
+                    endings = narrative_steps.get('endings', {}) if isinstance(narrative_steps, dict) else {}
+
+                    # Calculate base rewards (NO PYRE - only XP, EMBER, AURA)
                     xp_earned = random.randint(row[8], row[9])     # xp_reward_min/max
                     aura_earned = 1 if random.random() * 100 < float(row[10] or 0) else 0
 
@@ -2479,13 +2517,10 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
                         ending_data = endings[ending_reached]
                         ending_type = ending_data.get('type', 'NEUTRAL')
 
-                        # Apply modifiers based on ending
-                        pyre_mod = ending_data.get('pyre_mod', 1.0)
+                        # Apply modifiers based on ending (XP and EMBER only)
                         xp_mod = ending_data.get('xp_mod', 1.0)
-                        ember_mod = ending_data.get('ember_mod', pyre_mod)  # Default ember to pyre modifier
-                        aura_mod = ending_data.get('aura_mod', 1.0)
+                        ember_mod = ending_data.get('ember_mod', 1.0)
 
-                        pyre_earned = int(pyre_earned * pyre_mod)
                         xp_earned = int(xp_earned * xp_mod)
                         ember_earned = int(ember_earned * ember_mod)
 
@@ -2493,29 +2528,20 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
                         if ending_type == 'LEGENDARY' and aura_earned == 0:
                             # 50% extra chance for aura on legendary endings
                             aura_earned = 1 if random.random() < 0.5 else 0
-                    else:
-                        # Legacy: Apply choice modifier if applicable
-                        choice = row[4]
-                        outcomes = row[12] or {}
-                        if choice and choice in outcomes:
-                            modifier = outcomes[choice].get('pyre_modifier', 1.0)
-                            pyre_earned = int(pyre_earned * modifier)
-                            ember_modifier = outcomes[choice].get('ember_modifier', 1.0)
-                            ember_earned = int(ember_earned * ember_modifier)
 
                     token_id = row[2]
                     mission_name = row[11]
                     outcome_text = row[5] or "The mission concludes..."
 
-                    # Update active mission
+                    # Update active mission (no pyre)
                     cur.execute("""
                         UPDATE active_micro_missions SET
                             status = 'completed',
-                            pyre_earned = %s,
+                            pyre_earned = 0,
                             xp_earned = %s,
                             aura_earned = %s
                         WHERE id = %s
-                    """, (pyre_earned, xp_earned, aura_earned, active_id))
+                    """, (xp_earned, aura_earned, active_id))
 
                     # Update emissary XP and aura
                     cur.execute("""
@@ -2537,17 +2563,7 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
                         WHERE token_id = %s
                     """, (xp_earned, aura_earned, token_id))
 
-                    # Add $PYRE to wallet
-                    cur.execute("""
-                        INSERT INTO pyre_balances (wallet, balance, total_earned)
-                        VALUES (%s, %s, %s)
-                        ON CONFLICT (wallet) DO UPDATE SET
-                            balance = pyre_balances.balance + %s,
-                            total_earned = pyre_balances.total_earned + %s,
-                            updated_at = NOW()
-                    """, (wallet, pyre_earned, pyre_earned, pyre_earned, pyre_earned))
-
-                    # 🔥 Add $EMBER to wallet (if earned)
+                    # Add $EMBER to wallet (if earned)
                     if ember_earned > 0:
                         cur.execute("""
                             INSERT INTO user_balances (wallet, ember_balance, total_ember_earned, created_at, last_update)
@@ -2557,23 +2573,17 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
                                 total_ember_earned = COALESCE(user_balances.total_ember_earned, 0) + EXCLUDED.total_ember_earned,
                                 last_update = NOW()
                         """, (wallet, ember_earned, ember_earned))
-                        print(f"🔥 EMBER +{ember_earned} for {wallet} (micro-mission complete)")
+                        print(f"[MicroMission] EMBER +{ember_earned} for {wallet}")
 
-                    # Record transaction
-                    cur.execute("""
-                        INSERT INTO pyre_transactions
-                        (wallet, amount, transaction_type, reference_id, description)
-                        VALUES (%s, %s, 'micro_mission', %s, %s)
-                    """, (wallet, pyre_earned, str(active_id), f"Completed: {mission_name}"))
+                    print(f"[MicroMission] Complete: {mission_name} -> XP:{xp_earned}, EMBER:{ember_earned}, AURA:{aura_earned}")
 
                     return jsonify({
                         "success": True,
                         "completed": True,
                         "rewards": {
-                            "pyre": pyre_earned,
                             "xp": xp_earned,
-                            "aura": aura_earned,
-                            "ember": ember_earned
+                            "ember": ember_earned,
+                            "aura": aura_earned
                         },
                         "mission_name": mission_name,
                         "outcome_text": outcome_text,

@@ -381,9 +381,8 @@ function renderMissionCards(missions) {
             ${missions.map(mission => {
                 const diff = DIFFICULTY_CONFIG[mission.difficulty];
                 const duration = formatDuration(mission.duration_seconds);
-                const emberReward = mission.ember_reward || mission.pyre_reward;
-                const rewardMin = emberReward?.min || 0;
-                const rewardMax = emberReward?.max || 0;
+                const rewardMin = mission.ember_reward_min || mission.ember_reward?.min || 0;
+                const rewardMax = mission.ember_reward_max || mission.ember_reward?.max || 0;
 
                 return `
                     <div class="mission-card" onclick="selectMicroMission('${mission.id}')">
@@ -893,15 +892,6 @@ function showMissionRewardsModal(result) {
         `;
     }
 
-    if (rewards.pyre > 0) {
-        rewardsHtml += `
-            <div class="reward-item pyre">
-                <span class="reward-value">+${rewards.pyre}</span>
-                <span class="reward-label">$PYRE</span>
-            </div>
-        `;
-    }
-
     if (rewards.xp > 0) {
         rewardsHtml += `
             <div class="reward-item xp">
@@ -1031,7 +1021,7 @@ async function showMicroMissionsForHero(heroId) {
                                     </div>
                                 </div>
                                 <div style="margin-top: 8px; color: #666; font-size: 11px;">
-                                    Rewards: ${m.ember_reward?.min || 0}-${m.ember_reward?.max || 0} $EMBER, ${m.pyre_reward?.min || 0}-${m.pyre_reward?.max || 0} $PYRE
+                                    Rewards: ${m.ember_reward_min || m.ember_reward?.min || 0}-${m.ember_reward_max || m.ember_reward?.max || 0} $EMBER
                                 </div>
                             </div>
                         `;
