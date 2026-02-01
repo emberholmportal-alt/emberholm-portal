@@ -1670,11 +1670,14 @@ document.addEventListener('DOMContentLoaded', initPortalWarning);
                 </div>
             </div>
 
-            <!-- Emergency cleanup button (hidden by default, shown when needed) -->
-            <div id="micro-missions-emergency" style="margin-top: 20px; text-align: center; padding: 15px; border: 1px dashed #ef4444; display: none;">
-                <p style="color: #ef4444; margin-bottom: 10px;">Stuck emissary? Mission errors?</p>
-                <button class="terminal-btn danger-btn" onclick="emergencyCleanupMissions()">
+            <!-- Emergency cleanup button - VISIBLE due to ongoing data issues -->
+            <div id="micro-missions-emergency" style="margin-top: 20px; text-align: center; padding: 15px; border: 1px dashed #ef4444; background: rgba(239,68,68,0.1);">
+                <p style="color: #ef4444; margin-bottom: 10px;">⚠️ Stuck emissary? 184 minute timer? Mission not working?</p>
+                <button class="terminal-btn danger-btn" onclick="emergencyCleanupMissions()" style="margin-right: 10px;">
                     [EMERGENCY CLEANUP]
+                </button>
+                <button class="terminal-btn" onclick="forceRefreshEmissaries()" style="background: rgba(245,158,11,0.2); border-color: #f59e0b; color: #f59e0b;">
+                    [REFRESH DATA]
                 </button>
             </div>
         </div>
