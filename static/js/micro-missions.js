@@ -683,6 +683,126 @@ function cleanupMicroMissionsSection() {
     }
 }
 
+/**
+ * Show micro-missions for a specific hero (called from mission type selector)
+ */
+async function showMicroMissionsForHero(heroId) {
+    const wallet = window.connectedWallet;
+    if (!wallet) {
+        showInfoModal('WALLET REQUIRED', 'Please connect your wallet first.');
+        return;
+    }
+
+    // Store the selected hero
+    microMissionsState.selectedEmissary = heroId;
+
+    // Load missions if not already loaded
+    if (microMissionsState.availableMissions.length === 0) {
+        microMissionsState.isLoading = true;
+        await getMicroMissions();
+        microMissionsState.isLoading = false;
+    }
+
+    // Find the hero data
+    const emissaries = window.userEmissaries || [];
+    const hero = emissaries.find(e => (e.token_id || e.tokenId) === heroId);
+
+    if (!hero) {
+        showInfoModal('ERROR', 'Could not find the selected emissary.');
+        return;
+    }
+
+    // Show modal with mission selection for this specific hero
+    let modal = document.getElementById('micro-mission-select-modal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'micro-mission-select-modal';
+        modal.className = 'modal-overlay';
+        modal.onclick = function(e) { if (e.target === this) this.style.display = 'none'; };
+        document.body.appendChild(modal);
+    }
+
+    const heroName = hero.name || `Emissary #${heroId}`;
+    const missions = microMissionsState.availableMissions;
+
+    modal.innerHTML = `
+        <div class="terminal-modal" style="max-width: 600px;">
+            <div class="terminal-modal-header">
+                SELECT MICRO-MISSION
+                <button class="terminal-modal-close" onclick="document.getElementById('micro-mission-select-modal').style.display='none'">×</button>
+            </div>
+            <div class="terminal-modal-body" style="padding: 15px;">
+                <p style="color: #888; margin-bottom: 15px;">
+                    Select a quick adventure for <span style="color: var(--gold, #f59e0b);">${heroName}</span>
+                </p>
+                <div class="micro-mission-list" style="max-height: 400px; overflow-y: auto;">
+                    ${missions.map(m => {
+                        const diff = DIFFICULTY_CONFIG[m.difficulty] || DIFFICULTY_CONFIG.EASY;
+                        return `
+                            <div class="micro-mission-item" style="padding: 12px; margin-bottom: 10px; border: 1px solid #333; cursor: pointer; transition: all 0.2s;"
+                                 onmouseover="this.style.borderColor='var(--gold)'; this.style.background='rgba(245,158,11,0.1)';"
+                                 onmouseout="this.style.borderColor='#333'; this.style.background='transparent';"
+                                 onclick="startMicroMissionFromModal('${m.id}', '${heroId}')">
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <div>
+                                        <div style="color: var(--gold, #f59e0b); font-size: 14px; margin-bottom: 4px;">${m.name}</div>
+                                        <div style="color: #888; font-size: 12px;">${m.description || ''}</div>
+                                    </div>
+                                    <div style="text-align: right;">
+                                        <div style="color: ${diff.color}; font-size: 11px;">${diff.label}</div>
+                                        <div style="color: #888; font-size: 11px;">${formatDuration(m.duration_seconds)}</div>
+                                    </div>
+                                </div>
+                                <div style="margin-top: 8px; color: #666; font-size: 11px;">
+                                    Rewards: ${m.ember_reward?.min || 0}-${m.ember_reward?.max || 0} $EMBER, ${m.pyre_reward?.min || 0}-${m.pyre_reward?.max || 0} $PYRE
+                                </div>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            </div>
+        </div>
+    `;
+
+    modal.style.display = 'flex';
+}
+
+/**
+ * Start a micro-mission from the hero-specific modal
+ */
+async function startMicroMissionFromModal(missionId, heroId) {
+    // Hide the selection modal
+    const modal = document.getElementById('micro-mission-select-modal');
+    if (modal) modal.style.display = 'none';
+
+    // Start the mission
+    const wallet = window.connectedWallet;
+    if (!wallet) {
+        showInfoModal('WALLET REQUIRED', 'Please connect your wallet first.');
+        return;
+    }
+
+    showInfoModal('STARTING MISSION', 'Preparing your emissary for adventure...');
+
+    const result = await startMicroMission(wallet, heroId, missionId);
+
+    if (result && result.success) {
+        closeInfoModal();
+        // Navigate to micro-missions section to show the active mission
+        if (typeof switchScreen === 'function') {
+            switchScreen('micro-missions');
+        }
+        // Render the active mission
+        if (result.active_mission) {
+            renderActiveMission(result);
+        } else {
+            initMicroMissionsSection();
+        }
+    } else {
+        showInfoModal('ERROR', result?.error || 'Failed to start mission');
+    }
+}
+
 // =========================================================================
 // EXPORTS
 // =========================================================================
@@ -694,3 +814,5 @@ window.confirmMissionStart = confirmMissionStart;
 window.handleMissionChoice = handleMissionChoice;
 window.handleMissionComplete = handleMissionComplete;
 window.closeEmissarySelectModal = closeEmissarySelectModal;
+window.showMicroMissionsForHero = showMicroMissionsForHero;
+window.startMicroMissionFromModal = startMicroMissionFromModal;
