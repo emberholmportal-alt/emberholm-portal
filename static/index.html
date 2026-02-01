@@ -1442,8 +1442,10 @@ document.addEventListener('DOMContentLoaded', initPortalWarning);
             <button class="cmd-link" data-target="home">[HOME]</button>
             <button class="cmd-link" data-target="guilds">[STATS/GUILDS]</button>
             <button class="cmd-link" data-target="missions">[MISSIONS]</button>
+            <button class="cmd-link" data-target="micro-missions">[MICRO-MISSIONS]</button>
             <button class="cmd-link" data-target="profile">[PROFILE]</button>
             <button class="cmd-link" data-target="vault">[VAULT]</button>
+            <button class="cmd-link" data-target="world">[WORLD]</button>
             <button class="cmd-link cmd-link-disabled" data-target="ember-roll">[EMBER ROLL]</button>
             <button class="cmd-link cmd-link-disabled" data-target="marketplace">[MARKETPLACE]</button>
         </div>
@@ -1651,6 +1653,89 @@ document.addEventListener('DOMContentLoaded', initPortalWarning);
             <div class="mono-small-note">
                 Each Emissary can only run each mission once per rotation.<br/>
                 Failure possible. Energy will be consumed on SEND.
+            </div>
+        </div>
+    </section>
+
+    <!-- MICRO-MISSIONS -->
+    <section class="screen" data-screen="micro-missions">
+        <div class="section-block">
+            <div class="section-title">MICRO-MISSIONS // QUICK ADVENTURES</div>
+            <div class="section-subtitle">1-5 minute missions for instant rewards</div>
+
+            <div id="micro-missions-content">
+                <div class="loading-container">
+                    <div class="loading-spinner"></div>
+                    <p>Loading missions...</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- WORLD / SOCIAL -->
+    <section class="screen" data-screen="world">
+        <div class="section-block">
+            <div class="section-title">WORLD MAP // GLOBAL COMMUNITY</div>
+
+            <!-- Stats Bar -->
+            <div class="world-stats-bar">
+                <div class="stat-item">
+                    <span class="stat-label">ONLINE NOW:</span>
+                    <span class="stat-value" id="social-total-online">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">NATIONS:</span>
+                    <span class="stat-value" id="social-total-countries">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">TOTAL OPERATORS:</span>
+                    <span class="stat-value" id="social-total-users">0</span>
+                </div>
+            </div>
+
+            <!-- Globe Container -->
+            <div class="world-layout">
+                <div class="globe-section">
+                    <div id="globe-container" class="globe-container">
+                        <div class="globe-fallback">
+                            <div class="globe-emoji">Loading...</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="world-sidebar">
+                    <!-- Top Countries -->
+                    <div class="sidebar-section">
+                        <div class="sidebar-title">TOP NATIONS</div>
+                        <div id="social-top-countries" class="top-countries-list">
+                            <p class="dim">Loading...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Global Chat -->
+            <div class="global-chat-section">
+                <div class="chat-header">
+                    <span class="chat-title">GLOBAL CHAT</span>
+                    <span class="chat-stats">
+                        <span id="chat-daily-stats">Messages: 0/50</span>
+                        <span class="separator">|</span>
+                        <span id="chat-ember-reward">+0.1 $EMBER/msg</span>
+                    </span>
+                </div>
+
+                <div id="global-chat-messages" class="chat-messages">
+                    <div class="chat-empty">
+                        <p>Loading messages...</p>
+                    </div>
+                </div>
+
+                <form class="chat-input-form" onsubmit="handleChatSubmit(event); return false;">
+                    <input type="text" id="global-chat-input" class="terminal-input chat-input"
+                           placeholder="Type a message..." maxlength="500" autocomplete="off">
+                    <button type="submit" id="global-chat-send" class="terminal-btn chat-send-btn">SEND</button>
+                </form>
             </div>
         </div>
     </section>
@@ -5012,6 +5097,34 @@ navButtons.forEach((btn, index) => {
             } else if (target === "tutorial") {
                 // 🔥 Load missions dynamically into tutorial section
                 loadTutorialMissions();
+            } else if (target === "world") {
+                // 🌍 WORLD/SOCIAL section - requires wallet
+                if (!connectedWallet) {
+                    showInfoModal("WALLET REQUIRED", "You must connect your wallet to access WORLD features.\n\nPlease click the [CONNECT WALLET] button.");
+                    switchScreen("profile");
+                    return;
+                }
+                if (typeof initSocialSection === 'function') {
+                    initSocialSection();
+                }
+            } else if (target === "micro-missions") {
+                // 🎮 MICRO-MISSIONS section - requires wallet
+                if (!connectedWallet) {
+                    showInfoModal("WALLET REQUIRED", "You must connect your wallet to access Micro-Missions.\n\nPlease click the [CONNECT WALLET] button.");
+                    switchScreen("profile");
+                    return;
+                }
+                if (typeof initMicroMissionsSection === 'function') {
+                    initMicroMissionsSection();
+                }
+            }
+
+            // 🧹 Cleanup previous sections when leaving
+            if (target !== "world" && typeof cleanupSocialSection === 'function') {
+                cleanupSocialSection();
+            }
+            if (target !== "micro-missions" && typeof cleanupMicroMissionsSection === 'function') {
+                cleanupMicroMissionsSection();
             }
         } else {
             // si NO tiene data-target (por ej. MINT / INVOKE que hace window.location)
@@ -10745,10 +10858,791 @@ img.death-icon {
     border: 1px dashed #ff4444;
     margin-top: 8px;
 }
+
+/* ============================================
+   WORLD / SOCIAL SECTION STYLES
+   ============================================ */
+
+.world-stats-bar {
+    display: flex;
+    justify-content: center;
+    gap: 30px;
+    margin-bottom: 20px;
+    padding: 10px 20px;
+    background: rgba(245, 158, 11, 0.1);
+    border: 1px solid var(--gold, #f59e0b);
+}
+
+.world-stats-bar .stat-item {
+    text-align: center;
+}
+
+.world-stats-bar .stat-label {
+    color: var(--dim-green, #8b9a3e);
+    font-size: 11px;
+    margin-right: 5px;
+}
+
+.world-stats-bar .stat-value {
+    color: var(--gold, #f59e0b);
+    font-weight: bold;
+    font-size: 16px;
+}
+
+.world-layout {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 20px;
+    margin-bottom: 20px;
+}
+
+@media (max-width: 768px) {
+    .world-layout {
+        grid-template-columns: 1fr;
+    }
+}
+
+.globe-container {
+    width: 100%;
+    height: 400px;
+    background: #0a0f0a;
+    border: 1px solid var(--gold, #f59e0b);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.globe-fallback {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: var(--dim-green, #8b9a3e);
+}
+
+.globe-emoji {
+    font-size: 64px;
+    margin-bottom: 10px;
+}
+
+.world-sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.sidebar-section {
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--border-color, #333);
+    padding: 15px;
+}
+
+.sidebar-title {
+    color: var(--gold, #f59e0b);
+    font-weight: bold;
+    margin-bottom: 10px;
+    padding-bottom: 5px;
+    border-bottom: 1px solid var(--border-color, #333);
+}
+
+.top-countries-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.top-country-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 0;
+}
+
+.top-country-row .rank {
+    color: var(--dim-green, #8b9a3e);
+    width: 20px;
+}
+
+.top-country-row .flag {
+    font-size: 18px;
+}
+
+.top-country-row .name {
+    flex: 1;
+    color: var(--bright-green, #00ff00);
+}
+
+.top-country-row .count {
+    color: var(--dim-green, #8b9a3e);
+    font-size: 12px;
+}
+
+/* Global Chat Styles */
+.global-chat-section {
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--gold, #f59e0b);
+    padding: 15px;
+}
+
+.chat-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border-color, #333);
+}
+
+.chat-title {
+    color: var(--gold, #f59e0b);
+    font-weight: bold;
+}
+
+.chat-stats {
+    color: var(--dim-green, #8b9a3e);
+    font-size: 12px;
+}
+
+.chat-stats .separator {
+    margin: 0 8px;
+    opacity: 0.5;
+}
+
+.chat-messages {
+    height: 250px;
+    overflow-y: auto;
+    margin-bottom: 10px;
+    padding: 10px;
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid var(--border-color, #333);
+}
+
+.chat-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: var(--dim-green, #8b9a3e);
+}
+
+.chat-message {
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px dashed rgba(255, 255, 255, 0.1);
+}
+
+.chat-message.own-message {
+    background: rgba(245, 158, 11, 0.05);
+    padding: 8px;
+    margin: -8px;
+    margin-bottom: 12px;
+}
+
+.chat-message-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 4px;
+    font-size: 12px;
+}
+
+.chat-flag {
+    color: var(--gold, #f59e0b);
+}
+
+.chat-username {
+    color: var(--bright-green, #00ff00);
+    font-weight: bold;
+}
+
+.chat-time {
+    color: var(--dim-green, #8b9a3e);
+    margin-left: auto;
+}
+
+.chat-message-body {
+    color: var(--text-primary, #ccc);
+    padding-left: 30px;
+    word-break: break-word;
+}
+
+.chat-input-form {
+    display: flex;
+    gap: 10px;
+}
+
+.chat-input {
+    flex: 1;
+    background: rgba(0, 0, 0, 0.5);
+    border: 1px solid var(--border-color, #333);
+    color: var(--bright-green, #00ff00);
+    padding: 10px;
+    font-family: inherit;
+}
+
+.chat-input:focus {
+    border-color: var(--gold, #f59e0b);
+    outline: none;
+}
+
+.chat-send-btn {
+    padding: 10px 20px;
+}
+
+/* Country Selection Modal */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.9);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    padding: 20px;
+}
+
+.modal-overlay.modal-active {
+    display: flex;
+}
+
+.modal-content {
+    background: #0a0f0a;
+    border: 2px solid var(--gold, #f59e0b);
+    max-width: 500px;
+    width: 100%;
+    max-height: 80vh;
+    overflow-y: auto;
+    padding: 20px;
+}
+
+.country-modal-content {
+    max-height: 90vh;
+}
+
+.modal-header {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.modal-title {
+    color: var(--gold, #f59e0b);
+    font-size: 18px;
+    margin-bottom: 5px;
+}
+
+.modal-subtitle {
+    color: var(--dim-green, #8b9a3e);
+    font-size: 14px;
+}
+
+.country-search-container {
+    margin-bottom: 15px;
+}
+
+.country-section {
+    margin-bottom: 15px;
+}
+
+.country-section-title {
+    color: var(--dim-green, #8b9a3e);
+    font-size: 12px;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+}
+
+.country-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+}
+
+@media (max-width: 480px) {
+    .country-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+.country-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 10px;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--border-color, #333);
+    color: var(--bright-green, #00ff00);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.country-btn:hover, .country-btn.selected {
+    border-color: var(--gold, #f59e0b);
+    background: rgba(245, 158, 11, 0.1);
+}
+
+.country-btn .country-flag {
+    font-size: 24px;
+    margin-bottom: 4px;
+}
+
+.country-btn .country-name {
+    font-size: 11px;
+}
+
+.country-list {
+    max-height: 200px;
+    overflow-y: auto;
+    border: 1px solid var(--border-color, #333);
+}
+
+.country-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    cursor: pointer;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.country-row:hover, .country-row.selected {
+    background: rgba(245, 158, 11, 0.1);
+}
+
+.country-row .country-flag {
+    font-size: 18px;
+}
+
+.country-row .country-name {
+    color: var(--bright-green, #00ff00);
+}
+
+.modal-footer {
+    margin-top: 20px;
+    text-align: center;
+}
+
+.modal-note {
+    color: var(--dim-green, #8b9a3e);
+    font-size: 12px;
+    margin-bottom: 10px;
+}
+
+/* ============================================
+   MICRO-MISSIONS SECTION STYLES
+   ============================================ */
+
+.section-subtitle {
+    color: var(--dim-green, #8b9a3e);
+    font-size: 14px;
+    margin-bottom: 20px;
+}
+
+.loading-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px;
+    color: var(--dim-green, #8b9a3e);
+}
+
+.loading-spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid var(--border-color, #333);
+    border-top-color: var(--gold, #f59e0b);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: 15px;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.micro-missions-header {
+    margin-bottom: 20px;
+}
+
+.micro-missions-header h3 {
+    color: var(--gold, #f59e0b);
+    margin-bottom: 5px;
+}
+
+.missions-section {
+    margin-bottom: 25px;
+}
+
+.missions-section .section-title {
+    font-size: 14px;
+    margin-bottom: 10px;
+    padding-bottom: 5px;
+    border-bottom: 1px dashed var(--border-color, #333);
+}
+
+.missions-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 15px;
+}
+
+.mission-card {
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--border-color, #333);
+    padding: 15px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.mission-card:hover {
+    border-color: var(--gold, #f59e0b);
+    background: rgba(245, 158, 11, 0.05);
+}
+
+.mission-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.mission-difficulty {
+    font-size: 11px;
+    font-weight: bold;
+}
+
+.mission-duration {
+    color: var(--dim-green, #8b9a3e);
+    font-size: 12px;
+}
+
+.mission-name {
+    color: var(--bright-green, #00ff00);
+    font-size: 14px;
+    margin-bottom: 5px;
+}
+
+.mission-description {
+    color: var(--dim-green, #8b9a3e);
+    font-size: 12px;
+    margin-bottom: 10px;
+    line-height: 1.4;
+}
+
+.mission-rewards {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.reward {
+    font-size: 11px;
+    padding: 3px 8px;
+    border-radius: 3px;
+}
+
+.ember-reward {
+    background: rgba(245, 158, 11, 0.2);
+    color: var(--gold, #f59e0b);
+    border: 1px solid var(--gold, #f59e0b);
+}
+
+.xp-reward {
+    background: rgba(34, 197, 94, 0.2);
+    color: #22c55e;
+}
+
+.aura-reward {
+    background: rgba(168, 85, 247, 0.2);
+    color: #a855f7;
+}
+
+.start-mission-btn {
+    width: 100%;
+    margin-top: 5px;
+}
+
+/* Active Mission */
+.active-mission-container {
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.active-mission-header {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.active-mission-header h3 {
+    color: var(--gold, #f59e0b);
+    margin-bottom: 5px;
+}
+
+.mission-title {
+    color: var(--bright-green, #00ff00);
+    font-size: 18px;
+}
+
+.mission-narrative {
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--border-color, #333);
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.narrative-text {
+    color: var(--text-primary, #ccc);
+    line-height: 1.6;
+    font-style: italic;
+}
+
+.mission-timer {
+    text-align: center;
+    padding: 20px;
+    background: rgba(245, 158, 11, 0.1);
+    border: 1px solid var(--gold, #f59e0b);
+    margin-bottom: 20px;
+}
+
+.timer-label {
+    color: var(--dim-green, #8b9a3e);
+    font-size: 12px;
+    margin-bottom: 5px;
+}
+
+.timer-value {
+    color: var(--gold, #f59e0b);
+    font-size: 32px;
+    font-weight: bold;
+    font-family: monospace;
+}
+
+.timer-value.complete {
+    color: #22c55e;
+    animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+.timer-bar {
+    height: 8px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 4px;
+    margin-top: 10px;
+    overflow: hidden;
+}
+
+.timer-progress {
+    height: 100%;
+    background: var(--gold, #f59e0b);
+    transition: width 1s linear;
+}
+
+.mission-choices {
+    margin-bottom: 20px;
+}
+
+.mission-choices h4 {
+    color: var(--gold, #f59e0b);
+    margin-bottom: 10px;
+}
+
+.choices-grid {
+    display: grid;
+    gap: 10px;
+}
+
+.choice-btn {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 15px;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--border-color, #333);
+    color: var(--bright-green, #00ff00);
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.2s;
+}
+
+.choice-btn:hover {
+    border-color: var(--gold, #f59e0b);
+    background: rgba(245, 158, 11, 0.1);
+}
+
+.choice-icon {
+    font-size: 24px;
+}
+
+.choice-text {
+    flex: 1;
+}
+
+.choice-made {
+    text-align: center;
+    padding: 15px;
+    background: rgba(34, 197, 94, 0.1);
+    border: 1px solid #22c55e;
+    margin-bottom: 20px;
+}
+
+.mission-actions {
+    text-align: center;
+}
+
+/* Emissary Selection Modal */
+.emissary-select-modal {
+    max-height: 80vh;
+}
+
+.emissary-list {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.emissary-row {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 12px;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--border-color, #333);
+    margin-bottom: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.emissary-row:hover {
+    border-color: var(--gold, #f59e0b);
+    background: rgba(245, 158, 11, 0.1);
+}
+
+.emissary-avatar {
+    width: 50px;
+    height: 50px;
+    border-radius: 4px;
+    overflow: hidden;
+    border: 1px solid var(--border-color, #333);
+}
+
+.emissary-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.emissary-info {
+    flex: 1;
+}
+
+.emissary-name {
+    color: var(--bright-green, #00ff00);
+    font-weight: bold;
+    margin-bottom: 4px;
+}
+
+.emissary-details {
+    color: var(--dim-green, #8b9a3e);
+    font-size: 12px;
+}
+
+.emissary-status {
+    padding: 4px 8px;
+    font-size: 11px;
+    border-radius: 3px;
+}
+
+.emissary-status.ready {
+    background: rgba(34, 197, 94, 0.2);
+    color: #22c55e;
+}
+
+/* Rewards Modal */
+.rewards-list {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    margin: 20px 0;
+    flex-wrap: wrap;
+}
+
+.reward-item {
+    text-align: center;
+    padding: 15px 25px;
+    border-radius: 4px;
+}
+
+.reward-item.ember {
+    background: rgba(245, 158, 11, 0.2);
+    border: 1px solid var(--gold, #f59e0b);
+}
+
+.reward-item.pyre {
+    background: rgba(239, 68, 68, 0.2);
+    border: 1px solid #ef4444;
+}
+
+.reward-item.xp {
+    background: rgba(34, 197, 94, 0.2);
+    border: 1px solid #22c55e;
+}
+
+.reward-item.aura {
+    background: rgba(168, 85, 247, 0.2);
+    border: 1px solid #a855f7;
+}
+
+.reward-value {
+    display: block;
+    font-size: 24px;
+    font-weight: bold;
+    color: inherit;
+}
+
+.reward-label {
+    font-size: 12px;
+    opacity: 0.8;
+}
+
+/* Reward Toast */
+.reward-toast {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: rgba(245, 158, 11, 0.9);
+    color: #000;
+    padding: 12px 20px;
+    border-radius: 4px;
+    font-weight: bold;
+    z-index: 10001;
+    transform: translateX(120%);
+    transition: transform 0.3s ease;
+}
+
+.reward-toast.show {
+    transform: translateX(0);
+}
 </style>
 
 <!-- INVENTORY & VAULT SYSTEM -->
 <script src="/js/inventory.js"></script>
+
+<!-- THREE.JS FOR 3D GLOBE -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+<!-- SOCIAL & WORLD FEATURES -->
+<script src="/js/countries-data.js"></script>
+<script src="/js/globe.js"></script>
+<script src="/js/social.js"></script>
+
+<!-- MICRO-MISSIONS -->
+<script src="/js/micro-missions.js"></script>
 
 <!-- TOKENOMICS LIVE DATA -->
 <script>

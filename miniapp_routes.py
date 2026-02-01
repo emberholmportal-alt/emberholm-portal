@@ -2408,11 +2408,22 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
     # GLOBAL CHAT ENDPOINTS
     # =====================================================================
 
+    # Daily message limit and EMBER reward per message
+    DAILY_MESSAGE_LIMIT = 50
+    EMBER_PER_MESSAGE = 0.1
+
     @app.route('/api/social/global-chat', methods=['GET'])
     def api_social_global_chat_get():
-        """Get global chat messages"""
+        """
+        Get global chat messages with country flags.
+        Query params:
+        - limit: max messages to return (default 100)
+        - before_id: pagination cursor
+        - wallet: (optional) include message count for this wallet
+        """
         limit = request.args.get('limit', 100, type=int)
         before_id = request.args.get('before_id', type=int)
+        wallet = request.args.get('wallet', '').lower()
 
         if not POSTGRESQL_AVAILABLE:
             return jsonify({"error": "Database not available"}), 503
@@ -2420,20 +2431,30 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
         try:
             with get_db_connection() as conn:
                 with conn.cursor() as cur:
-                    # Check if global_messages table exists, create if not
+                    # Check if global_messages table exists, create with country_code if not
                     cur.execute("""
                         CREATE TABLE IF NOT EXISTS global_messages (
                             id SERIAL PRIMARY KEY,
                             wallet VARCHAR(42) NOT NULL,
                             message TEXT NOT NULL,
+                            country_code CHAR(3),
                             created_at TIMESTAMP DEFAULT NOW()
                         )
+                    """)
+                    # Add country_code column if it doesn't exist (for existing tables)
+                    cur.execute("""
+                        ALTER TABLE global_messages ADD COLUMN IF NOT EXISTS country_code CHAR(3)
+                    """)
+                    # Create index for faster queries
+                    cur.execute("""
+                        CREATE INDEX IF NOT EXISTS idx_global_messages_created ON global_messages(created_at DESC)
                     """)
 
                     if before_id:
                         cur.execute("""
-                            SELECT gm.id, gm.wallet, gm.message, gm.created_at,
-                                   up.display_name, up.farcaster_username, up.farcaster_pfp_url
+                            SELECT gm.id, gm.wallet, gm.message, gm.created_at, gm.country_code,
+                                   up.display_name, up.farcaster_username, up.farcaster_pfp_url,
+                                   up.country_code as profile_country
                             FROM global_messages gm
                             LEFT JOIN user_profiles up ON gm.wallet = up.wallet
                             WHERE gm.id < %s
@@ -2442,8 +2463,9 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
                         """, (before_id, limit))
                     else:
                         cur.execute("""
-                            SELECT gm.id, gm.wallet, gm.message, gm.created_at,
-                                   up.display_name, up.farcaster_username, up.farcaster_pfp_url
+                            SELECT gm.id, gm.wallet, gm.message, gm.created_at, gm.country_code,
+                                   up.display_name, up.farcaster_username, up.farcaster_pfp_url,
+                                   up.country_code as profile_country
                             FROM global_messages gm
                             LEFT JOIN user_profiles up ON gm.wallet = up.wallet
                             ORDER BY gm.id DESC
@@ -2453,22 +2475,38 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
                     rows = cur.fetchall()
                     messages = []
                     for row in rows:
+                        # Use message country_code, fallback to profile country
+                        country = row[4] or row[8]
                         messages.append({
                             "id": row[0],
                             "wallet": row[1],
                             "message": row[2],
                             "created_at": row[3].isoformat() if row[3] else None,
-                            "display_name": row[4],
-                            "farcaster_username": row[5],
-                            "farcaster_pfp_url": row[6]
+                            "country_code": country,
+                            "display_name": row[5],
+                            "farcaster_username": row[6],
+                            "farcaster_pfp_url": row[7]
                         })
 
                     # Return in chronological order
                     messages.reverse()
 
+                    # Get message count for wallet if provided
+                    messages_today = 0
+                    if wallet:
+                        cur.execute("""
+                            SELECT COUNT(*) FROM global_messages
+                            WHERE wallet = %s
+                            AND created_at >= CURRENT_DATE
+                        """, (wallet,))
+                        messages_today = cur.fetchone()[0]
+
                     return jsonify({
                         "success": True,
-                        "messages": messages
+                        "messages": messages,
+                        "messages_today": messages_today,
+                        "daily_limit": DAILY_MESSAGE_LIMIT,
+                        "ember_per_message": EMBER_PER_MESSAGE
                     })
 
         except Exception as e:
@@ -2477,7 +2515,15 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
 
     @app.route('/api/social/global-chat', methods=['POST'])
     def api_social_global_chat_post():
-        """Send a message to global chat"""
+        """
+        Send a message to global chat.
+        Rewards: +0.1 EMBER per message, max 50 messages/day (5 EMBER/day)
+
+        Body: {
+            "wallet": "0x...",
+            "message": "Hello world!"
+        }
+        """
         data = request.get_json() or {}
         wallet = data.get('wallet', '').lower()
         message = data.get('message', '').strip()
@@ -2500,36 +2546,80 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
                             id SERIAL PRIMARY KEY,
                             wallet VARCHAR(42) NOT NULL,
                             message TEXT NOT NULL,
+                            country_code CHAR(3),
                             created_at TIMESTAMP DEFAULT NOW()
                         )
                     """)
-
-                    # Insert message
                     cur.execute("""
-                        INSERT INTO global_messages (wallet, message)
-                        VALUES (%s, %s)
-                        RETURNING id, created_at
-                    """, (wallet, message))
-                    row = cur.fetchone()
+                        ALTER TABLE global_messages ADD COLUMN IF NOT EXISTS country_code CHAR(3)
+                    """)
 
-                    # Get user profile
+                    # Check daily message limit
                     cur.execute("""
-                        SELECT display_name, farcaster_username, farcaster_pfp_url
+                        SELECT COUNT(*) FROM global_messages
+                        WHERE wallet = %s
+                        AND created_at >= CURRENT_DATE
+                    """, (wallet,))
+                    messages_today = cur.fetchone()[0]
+
+                    if messages_today >= DAILY_MESSAGE_LIMIT:
+                        return jsonify({
+                            "error": f"Daily message limit reached ({DAILY_MESSAGE_LIMIT}/day)",
+                            "messages_today": messages_today,
+                            "daily_limit": DAILY_MESSAGE_LIMIT
+                        }), 429
+
+                    # Get user profile including country_code
+                    cur.execute("""
+                        SELECT display_name, farcaster_username, farcaster_pfp_url, country_code
                         FROM user_profiles WHERE wallet = %s
                     """, (wallet,))
                     profile = cur.fetchone()
+                    country_code = profile[3] if profile else None
+
+                    # Insert message with country_code
+                    cur.execute("""
+                        INSERT INTO global_messages (wallet, message, country_code)
+                        VALUES (%s, %s, %s)
+                        RETURNING id, created_at
+                    """, (wallet, message, country_code))
+                    row = cur.fetchone()
+                    message_id = row[0]
+                    created_at = row[1]
+
+                    # Award EMBER for sending message
+                    ember_earned = EMBER_PER_MESSAGE
+                    cur.execute("""
+                        INSERT INTO user_balances (wallet, ember_balance, total_ember_earned, created_at, last_update)
+                        VALUES (%s, %s, %s, NOW(), NOW())
+                        ON CONFLICT (wallet) DO UPDATE SET
+                            ember_balance = user_balances.ember_balance + EXCLUDED.ember_balance,
+                            total_ember_earned = COALESCE(user_balances.total_ember_earned, 0) + EXCLUDED.total_ember_earned,
+                            last_update = NOW()
+                    """, (wallet, ember_earned, ember_earned))
+
+                    # Update last_seen in user_profiles
+                    cur.execute("""
+                        UPDATE user_profiles SET last_seen = NOW() WHERE wallet = %s
+                    """, (wallet,))
+
+                    print(f"💬 Global chat: {wallet[:8]}... sent message, +{ember_earned} EMBER ({messages_today + 1}/{DAILY_MESSAGE_LIMIT} today)")
 
                     return jsonify({
                         "success": True,
                         "message": {
-                            "id": row[0],
+                            "id": message_id,
                             "wallet": wallet,
                             "message": message,
-                            "created_at": row[1].isoformat() if row[1] else None,
+                            "created_at": created_at.isoformat() if created_at else None,
+                            "country_code": country_code,
                             "display_name": profile[0] if profile else None,
                             "farcaster_username": profile[1] if profile else None,
                             "farcaster_pfp_url": profile[2] if profile else None
-                        }
+                        },
+                        "ember_earned": ember_earned,
+                        "messages_today": messages_today + 1,
+                        "daily_limit": DAILY_MESSAGE_LIMIT
                     })
 
         except Exception as e:
