@@ -323,6 +323,276 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
                         )
                     """)
 
+                    # =========================================================
+                    # POPULATE NARRATIVE DATA FOR MISSIONS
+                    # =========================================================
+
+                    # MM-E001: The Whispering Flame (LORE)
+                    cur.execute("""
+                        UPDATE micro_missions SET
+                            category = 'LORE',
+                            narrative_choices = '[
+                                {"id": "A", "text": "Listen closely to the whispers", "icon": "ear"},
+                                {"id": "B", "text": "Add fuel to strengthen the flame", "icon": "flame"},
+                                {"id": "C", "text": "Attempt to communicate back", "icon": "chat"}
+                            ]'::jsonb,
+                            narrative_outcomes = '{
+                                "A": {"type": "GOOD", "text": "The whispers reveal a fragment of ancient knowledge.", "pyre_modifier": 1.2, "xp_modifier": 1.3},
+                                "B": {"type": "PERFECT", "text": "The flame roars to life, bestowing a blessing of the First Flame!", "pyre_modifier": 1.5, "xp_modifier": 1.4},
+                                "C": {"type": "NEUTRAL", "text": "The flame flickers but does not respond directly.", "pyre_modifier": 0.9, "xp_modifier": 1.0}
+                            }'::jsonb
+                        WHERE id = 'MM-E001' AND (narrative_choices IS NULL OR narrative_choices = '[]'::jsonb)
+                    """)
+
+                    # MM-E002: Ember Gathering (PATROL)
+                    cur.execute("""
+                        UPDATE micro_missions SET
+                            category = 'PATROL',
+                            narrative_choices = '[
+                                {"id": "A", "text": "Gather quickly before they fade", "icon": "run"},
+                                {"id": "B", "text": "Carefully select only the brightest embers", "icon": "gem"},
+                                {"id": "C", "text": "Follow the ember trail to its source", "icon": "compass"}
+                            ]'::jsonb,
+                            narrative_outcomes = '{
+                                "A": {"type": "GOOD", "text": "Quick reflexes save many embers from fading!", "pyre_modifier": 1.2, "xp_modifier": 1.1},
+                                "B": {"type": "NEUTRAL", "text": "Fewer embers, but each burns with exceptional intensity.", "pyre_modifier": 1.0, "xp_modifier": 1.0},
+                                "C": {"type": "PERFECT", "text": "You discover a hidden ember nest! A magnificent haul.", "pyre_modifier": 1.4, "xp_modifier": 1.5}
+                            }'::jsonb
+                        WHERE id = 'MM-E002' AND (narrative_choices IS NULL OR narrative_choices = '[]'::jsonb)
+                    """)
+
+                    # MM-E003: Patrol the Perimeter (PATROL)
+                    cur.execute("""
+                        UPDATE micro_missions SET
+                            category = 'PATROL',
+                            narrative_choices = '[
+                                {"id": "A", "text": "Maintain vigilant watch from your post", "icon": "eye"},
+                                {"id": "B", "text": "Investigate suspicious movement in the mists", "icon": "search"},
+                                {"id": "C", "text": "Signal other guards about unusual activity", "icon": "bell"}
+                            ]'::jsonb,
+                            narrative_outcomes = '{
+                                "A": {"type": "NEUTRAL", "text": "A quiet patrol is still a successful patrol.", "pyre_modifier": 1.0, "xp_modifier": 1.0},
+                                "B": {"type": "PERFECT", "text": "You discover a tear in the veil and seal it! The realm is safer.", "pyre_modifier": 1.5, "xp_modifier": 1.4},
+                                "C": {"type": "GOOD", "text": "Your teamwork neutralizes a potential threat.", "pyre_modifier": 1.2, "xp_modifier": 1.2}
+                            }'::jsonb
+                        WHERE id = 'MM-E003' AND (narrative_choices IS NULL OR narrative_choices = '[]'::jsonb)
+                    """)
+
+                    # MM-E004: Rune Meditation (LORE)
+                    cur.execute("""
+                        UPDATE micro_missions SET
+                            category = 'LORE',
+                            narrative_choices = '[
+                                {"id": "A", "text": "Empty your mind completely", "icon": "mind"},
+                                {"id": "B", "text": "Focus on a specific question", "icon": "question"},
+                                {"id": "C", "text": "Let the rune guide your thoughts", "icon": "rune"}
+                            ]'::jsonb,
+                            narrative_outcomes = '{
+                                "A": {"type": "GOOD", "text": "Power flows freely through your empty mind.", "pyre_modifier": 1.2, "xp_modifier": 1.1},
+                                "B": {"type": "NEUTRAL", "text": "The rune offers no clear answer to your question.", "pyre_modifier": 0.9, "xp_modifier": 1.0},
+                                "C": {"type": "PERFECT", "text": "The First Runesmiths speak through time! You understand their art.", "pyre_modifier": 1.4, "xp_modifier": 1.5}
+                            }'::jsonb
+                        WHERE id = 'MM-E004' AND (narrative_choices IS NULL OR narrative_choices = '[]'::jsonb)
+                    """)
+
+                    # MM-E005: Forge Apprentice (GUILD)
+                    cur.execute("""
+                        UPDATE micro_missions SET
+                            category = 'GUILD',
+                            narrative_choices = '[
+                                {"id": "A", "text": "Pump the bellows to heat the forge", "icon": "wind"},
+                                {"id": "B", "text": "Sort and organize the metal ingots", "icon": "boxes"},
+                                {"id": "C", "text": "Watch and learn the masters technique", "icon": "eye"}
+                            ]'::jsonb,
+                            narrative_outcomes = '{
+                                "A": {"type": "GOOD", "text": "Your steady rhythm brings the forge to perfect temperature.", "pyre_modifier": 1.2, "xp_modifier": 1.2},
+                                "B": {"type": "NEUTRAL", "text": "Simple but necessary work. Organization is the foundation.", "pyre_modifier": 1.0, "xp_modifier": 1.0},
+                                "C": {"type": "PERFECT", "text": "The master demonstrates a secret technique! Few earn such trust.", "pyre_modifier": 1.3, "xp_modifier": 1.5}
+                            }'::jsonb
+                        WHERE id = 'MM-E005' AND (narrative_choices IS NULL OR narrative_choices = '[]'::jsonb)
+                    """)
+
+                    # MM-M001: Void Echoes Investigation (EXPLORATION)
+                    cur.execute("""
+                        UPDATE micro_missions SET
+                            category = 'EXPLORATION',
+                            narrative_choices = '[
+                                {"id": "A", "text": "Record the sounds for analysis", "icon": "scroll"},
+                                {"id": "B", "text": "Trace them to their source", "icon": "compass"},
+                                {"id": "C", "text": "Use protective wards before proceeding", "icon": "shield"}
+                            ]'::jsonb,
+                            narrative_outcomes = '{
+                                "A": {"type": "GOOD", "text": "Your recordings capture patterns previously unknown!", "pyre_modifier": 1.2, "xp_modifier": 1.3},
+                                "B": {"type": "PERFECT", "text": "You discover a hidden void pocket with residual creation energy!", "pyre_modifier": 1.5, "xp_modifier": 1.4},
+                                "C": {"type": "NEUTRAL", "text": "Caution limits discovery, but you return safely.", "pyre_modifier": 1.0, "xp_modifier": 1.0}
+                            }'::jsonb
+                        WHERE id = 'MM-M001' AND (narrative_choices IS NULL OR narrative_choices = '[]'::jsonb)
+                    """)
+
+                    # MM-M002: Guild Rivalry (GUILD)
+                    cur.execute("""
+                        UPDATE micro_missions SET
+                            category = 'GUILD',
+                            name = 'Guild Rivalry',
+                            description = 'Tensions between guilds threaten to boil over. Diplomacy is required.',
+                            duration_seconds = 150,
+                            narrative_intro = 'The tavern falls silent as you enter. Scarred smiths of the Forge Legion glare at hooded Shadow Guild figures. Blood stains the floor.',
+                            narrative_choices = '[
+                                {"id": "A", "text": "Examine the cards for evidence of cheating", "icon": "search"},
+                                {"id": "B", "text": "Appeal to guild honor and shared history", "icon": "scroll"},
+                                {"id": "C", "text": "Propose a different contest to settle the dispute", "icon": "balance"}
+                            ]'::jsonb,
+                            narrative_outcomes = '{
+                                "A": {"type": "GOOD", "text": "A THIRD party planted marked cards! Both sides unite against the real culprit.", "pyre_modifier": 1.3, "xp_modifier": 1.2},
+                                "B": {"type": "PERFECT", "text": "You recount the Battle of Cinderpeak. Grudgingly, both sides shake hands.", "pyre_modifier": 1.45, "xp_modifier": 1.35},
+                                "C": {"type": "NEUTRAL", "text": "An arm-wrestling contest breaks the tension. Crisis averted, barely.", "pyre_modifier": 0.9, "xp_modifier": 1.0}
+                            }'::jsonb
+                        WHERE id = 'MM-M002'
+                    """)
+
+                    # MM-M003: Ash Beast Tracking (PATROL)
+                    cur.execute("""
+                        UPDATE micro_missions SET
+                            category = 'PATROL',
+                            narrative_choices = '[
+                                {"id": "A", "text": "Follow the tracks stealthily", "icon": "footprints"},
+                                {"id": "B", "text": "Set up a surveillance position", "icon": "eye"},
+                                {"id": "C", "text": "Mark the territory for other patrols", "icon": "flag"}
+                            ]'::jsonb,
+                            narrative_outcomes = '{
+                                "A": {"type": "PERFECT", "text": "You discover an entire ash beast den! Invaluable intelligence.", "pyre_modifier": 1.5, "xp_modifier": 1.4},
+                                "B": {"type": "GOOD", "text": "You observe their patrol patterns and feeding times.", "pyre_modifier": 1.2, "xp_modifier": 1.3},
+                                "C": {"type": "NEUTRAL", "text": "Your markers will guide future patrols safely.", "pyre_modifier": 1.0, "xp_modifier": 1.0}
+                            }'::jsonb
+                        WHERE id = 'MM-M003' AND (narrative_choices IS NULL OR narrative_choices = '[]'::jsonb)
+                    """)
+
+                    # MM-M004: Crystal Harvesting (EXPLORATION)
+                    cur.execute("""
+                        UPDATE micro_missions SET
+                            category = 'EXPLORATION',
+                            narrative_choices = '[
+                                {"id": "A", "text": "Harvest the most accessible crystals", "icon": "gem"},
+                                {"id": "B", "text": "Seek the deeper, more resonant formations", "icon": "compass"},
+                                {"id": "C", "text": "Attune to the caves song before harvesting", "icon": "music"}
+                            ]'::jsonb,
+                            narrative_outcomes = '{
+                                "A": {"type": "NEUTRAL", "text": "A standard haul of resonance crystals.", "pyre_modifier": 1.0, "xp_modifier": 1.0},
+                                "B": {"type": "GOOD", "text": "Deeper formations yield crystals of exceptional purity.", "pyre_modifier": 1.3, "xp_modifier": 1.2},
+                                "C": {"type": "PERFECT", "text": "You locate a mother crystal - the source of all others!", "pyre_modifier": 1.5, "xp_modifier": 1.5}
+                            }'::jsonb
+                        WHERE id = 'MM-M004' AND (narrative_choices IS NULL OR narrative_choices = '[]'::jsonb)
+                    """)
+
+                    # MM-M005: Spirit Communion (LORE)
+                    cur.execute("""
+                        UPDATE micro_missions SET
+                            category = 'LORE',
+                            narrative_choices = '[
+                                {"id": "A", "text": "Ask the spirits for tactical wisdom", "icon": "sword"},
+                                {"id": "B", "text": "Request knowledge of ancient history", "icon": "book"},
+                                {"id": "C", "text": "Offer to carry a message to the living", "icon": "scroll"}
+                            ]'::jsonb,
+                            narrative_outcomes = '{
+                                "A": {"type": "GOOD", "text": "Warrior spirits share battle techniques lost to time.", "pyre_modifier": 1.2, "xp_modifier": 1.3},
+                                "B": {"type": "GOOD", "text": "Spirits reveal fragments of erased history.", "pyre_modifier": 1.3, "xp_modifier": 1.4},
+                                "C": {"type": "PERFECT", "text": "Your selfless offer moves the spirits. They bestow their blessing!", "pyre_modifier": 1.5, "xp_modifier": 1.5}
+                            }'::jsonb
+                        WHERE id = 'MM-M005' AND (narrative_choices IS NULL OR narrative_choices = '[]'::jsonb)
+                    """)
+
+                    # MM-H001: Void Rift Sealing (LEGENDARY)
+                    cur.execute("""
+                        UPDATE micro_missions SET
+                            category = 'LEGENDARY',
+                            narrative_choices = '[
+                                {"id": "A", "text": "Use raw power to force the rift closed", "icon": "fist"},
+                                {"id": "B", "text": "Employ ancient sealing runes", "icon": "rune"},
+                                {"id": "C", "text": "Redirect the void energy back through the rift", "icon": "void"}
+                            ]'::jsonb,
+                            narrative_outcomes = '{
+                                "A": {"type": "NEUTRAL", "text": "Brute force succeeds, but leaves you exhausted.", "pyre_modifier": 0.9, "xp_modifier": 1.0},
+                                "B": {"type": "GOOD", "text": "Ancient runes seal the rift cleanly.", "pyre_modifier": 1.3, "xp_modifier": 1.3},
+                                "C": {"type": "PERFECT", "text": "You harness the void energy itself! The rift becomes your reward.", "pyre_modifier": 1.6, "xp_modifier": 1.5}
+                            }'::jsonb
+                        WHERE id = 'MM-H001' AND (narrative_choices IS NULL OR narrative_choices = '[]'::jsonb)
+                    """)
+
+                    # MM-H002: Ancient Guardian Trial (LEGENDARY)
+                    cur.execute("""
+                        UPDATE micro_missions SET
+                            category = 'LEGENDARY',
+                            narrative_choices = '[
+                                {"id": "A", "text": "Face the trial of strength", "icon": "sword"},
+                                {"id": "B", "text": "Choose the trial of wisdom", "icon": "book"},
+                                {"id": "C", "text": "Accept the trial of heart", "icon": "heart"}
+                            ]'::jsonb,
+                            narrative_outcomes = '{
+                                "A": {"type": "GOOD", "text": "Battered but victorious, you prove your martial worth.", "pyre_modifier": 1.3, "xp_modifier": 1.2},
+                                "B": {"type": "GOOD", "text": "Your answers demonstrate deep understanding.", "pyre_modifier": 1.2, "xp_modifier": 1.4},
+                                "C": {"type": "PERFECT", "text": "The guardian sees your dedication and bestows its greatest blessing!", "pyre_modifier": 1.5, "xp_modifier": 1.5}
+                            }'::jsonb
+                        WHERE id = 'MM-H002' AND (narrative_choices IS NULL OR narrative_choices = '[]'::jsonb)
+                    """)
+
+                    # MM-H003: Legendary Artifact Recovery (LEGENDARY)
+                    cur.execute("""
+                        UPDATE micro_missions SET
+                            category = 'LEGENDARY',
+                            narrative_choices = '[
+                                {"id": "A", "text": "Approach through the main path, ready for combat", "icon": "sword"},
+                                {"id": "B", "text": "Find an alternate route to avoid detection", "icon": "stealth"},
+                                {"id": "C", "text": "Study the area first to understand its dangers", "icon": "eye"}
+                            ]'::jsonb,
+                            narrative_outcomes = '{
+                                "A": {"type": "NEUTRAL", "text": "You fight through, sustaining injuries but claiming the prize.", "pyre_modifier": 1.0, "xp_modifier": 1.1},
+                                "B": {"type": "GOOD", "text": "Your alternative path avoids most dangers.", "pyre_modifier": 1.3, "xp_modifier": 1.3},
+                                "C": {"type": "PERFECT", "text": "It was a test! Guardians surrender the artifact plus bonus rewards.", "pyre_modifier": 1.6, "xp_modifier": 1.6}
+                            }'::jsonb
+                        WHERE id = 'MM-H003' AND (narrative_choices IS NULL OR narrative_choices = '[]'::jsonb)
+                    """)
+
+                    # MM-H004: Elite Ash Beast Hunt (PATROL)
+                    cur.execute("""
+                        UPDATE micro_missions SET
+                            category = 'PATROL',
+                            narrative_choices = '[
+                                {"id": "A", "text": "Engage the beast in direct combat", "icon": "sword"},
+                                {"id": "B", "text": "Lure it into a prepared trap", "icon": "trap"},
+                                {"id": "C", "text": "Use the terrain to gain advantage", "icon": "mountain"}
+                            ]'::jsonb,
+                            narrative_outcomes = '{
+                                "A": {"type": "NEUTRAL", "text": "A fierce battle. Victory at personal cost.", "pyre_modifier": 1.0, "xp_modifier": 1.1},
+                                "B": {"type": "GOOD", "text": "Your trap springs perfectly! Efficient neutralization.", "pyre_modifier": 1.3, "xp_modifier": 1.3},
+                                "C": {"type": "PERFECT", "text": "Masterful use of terrain! A clean victory worthy of legend.", "pyre_modifier": 1.5, "xp_modifier": 1.5}
+                            }'::jsonb
+                        WHERE id = 'MM-H004' AND (narrative_choices IS NULL OR narrative_choices = '[]'::jsonb)
+                    """)
+
+                    # MM-H005: Forge of Legends (GUILD)
+                    cur.execute("""
+                        UPDATE micro_missions SET
+                            category = 'GUILD',
+                            narrative_choices = '[
+                                {"id": "A", "text": "Contribute your own ember essence to the forging", "icon": "flame"},
+                                {"id": "B", "text": "Maintain perfect rhythm with the master smith", "icon": "anvil"},
+                                {"id": "C", "text": "Channel ancestral knowledge of metallurgy", "icon": "book"}
+                            ]'::jsonb,
+                            narrative_outcomes = '{
+                                "A": {"type": "GOOD", "text": "Your essence merges with the weapon. It carries part of you.", "pyre_modifier": 1.3, "xp_modifier": 1.2},
+                                "B": {"type": "GOOD", "text": "Perfect tempo! The weapon forms flawlessly.", "pyre_modifier": 1.2, "xp_modifier": 1.3},
+                                "C": {"type": "PERFECT", "text": "Ancient smiths speak through you! The weapon achieves perfection.", "pyre_modifier": 1.6, "xp_modifier": 1.5}
+                            }'::jsonb
+                        WHERE id = 'MM-H005' AND (narrative_choices IS NULL OR narrative_choices = '[]'::jsonb)
+                    """)
+
+                    # Clean up any corrupted active missions with wrong duration
+                    cur.execute("""
+                        DELETE FROM active_micro_missions
+                        WHERE status IN ('active', 'choice_pending')
+                        AND ends_at < NOW() - INTERVAL '1 hour'
+                    """)
+
                     print("✅ Database migrations applied (including narrative system)")
         except Exception as e:
             print(f"⚠️ Database migration warning: {e}")

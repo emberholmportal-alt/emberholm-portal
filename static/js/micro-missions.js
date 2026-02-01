@@ -501,12 +501,17 @@ function renderActiveMission(mission) {
 
     // Get emissary info for portrait
     const emissaries = window.userEmissaries || [];
-    const emissary = emissaries.find(e =>
-        (e.token_id || e.tokenId) === mission.emissary_token_id
-    );
+    // Normalize token IDs for comparison (handle "00042" vs "42")
+    const missionTokenId = String(mission.emissary_token_id).replace(/^0+/, '') || '0';
+    const emissary = emissaries.find(e => {
+        const eTokenId = String(e.token_id || e.tokenId || '').replace(/^0+/, '') || '0';
+        return eTokenId === missionTokenId;
+    });
     const emissaryName = emissary?.name || `Emissary #${mission.emissary_token_id}`;
-    const emissaryImage = emissary?.image || emissary?.cached_image ||
-        `https://www.emissaries.xyz/api/image/${mission.emissary_token_id}`;
+    // Use cached_image first, then image, then API fallback
+    const tokenIdForUrl = String(mission.emissary_token_id).replace(/^0+/, '') || '0';
+    const emissaryImage = emissary?.cached_image || emissary?.image ||
+        `https://portal.emissaries.xyz/api/emissary/${tokenIdForUrl}/image`;
 
     // Get choices with icons
     const choices = mission.choices || [];
