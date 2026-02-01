@@ -242,7 +242,88 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
                             NULL;
                         END $$;
                     """)
-                    print("✅ Database migrations applied")
+
+                    # =========================================================
+                    # MIGRATION 003: Micro-Missions Narrative System
+                    # =========================================================
+
+                    # Add narrative columns to micro_missions table
+                    cur.execute("""
+                        ALTER TABLE micro_missions ADD COLUMN IF NOT EXISTS narrative_choices JSONB DEFAULT '[]'::jsonb;
+                    """)
+                    cur.execute("""
+                        ALTER TABLE micro_missions ADD COLUMN IF NOT EXISTS narrative_outcomes JSONB DEFAULT '{}'::jsonb;
+                    """)
+                    cur.execute("""
+                        ALTER TABLE micro_missions ADD COLUMN IF NOT EXISTS category VARCHAR(20) DEFAULT 'PATROL';
+                    """)
+                    cur.execute("""
+                        ALTER TABLE micro_missions ADD COLUMN IF NOT EXISTS lore_connection TEXT;
+                    """)
+                    cur.execute("""
+                        ALTER TABLE micro_missions ADD COLUMN IF NOT EXISTS achievements JSONB DEFAULT '{}'::jsonb;
+                    """)
+
+                    # Create active_micro_missions table
+                    cur.execute("""
+                        CREATE TABLE IF NOT EXISTS active_micro_missions (
+                            id SERIAL PRIMARY KEY,
+                            wallet VARCHAR(42) NOT NULL,
+                            emissary_token_id VARCHAR(10) NOT NULL,
+                            micro_mission_id VARCHAR(20) NOT NULL REFERENCES micro_missions(id),
+                            current_step INTEGER DEFAULT 0,
+                            choice_made VARCHAR(50),
+                            score INTEGER DEFAULT 0,
+                            status VARCHAR(20) DEFAULT 'active',
+                            started_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                            ends_at TIMESTAMP,
+                            completed_at TIMESTAMP,
+                            outcome_type VARCHAR(20),
+                            outcome_text TEXT,
+                            pyre_earned NUMERIC(18,2) DEFAULT 0,
+                            xp_earned INTEGER DEFAULT 0,
+                            aura_earned INTEGER DEFAULT 0,
+                            rewards_claimed BOOLEAN DEFAULT FALSE
+                        )
+                    """)
+                    cur.execute("""
+                        CREATE INDEX IF NOT EXISTS idx_active_micro_missions_wallet ON active_micro_missions(wallet)
+                    """)
+                    cur.execute("""
+                        CREATE INDEX IF NOT EXISTS idx_active_micro_missions_status ON active_micro_missions(status)
+                    """)
+
+                    # Create micro_mission_cooldowns table
+                    cur.execute("""
+                        CREATE TABLE IF NOT EXISTS micro_mission_cooldowns (
+                            id SERIAL PRIMARY KEY,
+                            wallet VARCHAR(42) NOT NULL,
+                            micro_mission_id VARCHAR(20) NOT NULL REFERENCES micro_missions(id),
+                            completed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                            cooldown_until TIMESTAMP NOT NULL,
+                            UNIQUE(wallet, micro_mission_id)
+                        )
+                    """)
+
+                    # Create micro_mission_history table
+                    cur.execute("""
+                        CREATE TABLE IF NOT EXISTS micro_mission_history (
+                            id SERIAL PRIMARY KEY,
+                            wallet VARCHAR(42) NOT NULL,
+                            emissary_token_id VARCHAR(10) NOT NULL,
+                            micro_mission_id VARCHAR(20) NOT NULL,
+                            choice_made VARCHAR(50),
+                            outcome_type VARCHAR(20),
+                            score INTEGER DEFAULT 0,
+                            pyre_earned NUMERIC(18,2) DEFAULT 0,
+                            xp_earned INTEGER DEFAULT 0,
+                            ember_earned NUMERIC(18,2) DEFAULT 0,
+                            aura_earned BOOLEAN DEFAULT FALSE,
+                            completed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                        )
+                    """)
+
+                    print("✅ Database migrations applied (including narrative system)")
         except Exception as e:
             print(f"⚠️ Database migration warning: {e}")
 
