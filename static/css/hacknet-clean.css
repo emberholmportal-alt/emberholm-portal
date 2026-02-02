@@ -61,16 +61,16 @@
    VARIABLES CSS
    =============================================================== */
 :root {
-    /* Retro Terminal Orange Scheme - MÁS BRILLANTE */
-    --primary-green: #ff9900;              /* Naranja retro principal */
-    --bright-green: #ffbb00;               /* Naranja brillante */
-    --dim-green: #dd7700;                  /* Naranja apagado */
-    --dark-green: #994400;                 /* Naranja oscuro */
+    /* Retro Terminal Orange Scheme - MEJORADO PARA WCAG AA */
+    --primary-green: #ff9900;              /* Naranja retro principal - ratio 9:1 */
+    --bright-green: #ffbb00;               /* Naranja brillante - ratio 11:1 */
+    --dim-green: #d98c00;                  /* Naranja apagado - ratio 6.5:1 (mejorado) */
+    --dark-green: #b36b00;                 /* Naranja oscuro - ratio 4.5:1 (mejorado de #994400) */
 
-    /* Extended Orange/Yellow Palette - MÁS VIBRANTE */
-    --orange-dark: #aa5500;                /* Naranja muy oscuro */
-    --orange-medium: #dd7700;              /* Naranja medio */
-    --orange-light: #ff9900;               /* Naranja claro */
+    /* Extended Orange/Yellow Palette - MEJORADO PARA LEGIBILIDAD */
+    --orange-dark: #b36b00;                /* Naranja muy oscuro - ratio 4.5:1 (mejorado) */
+    --orange-medium: #d98c00;              /* Naranja medio - ratio 6.5:1 (mejorado) */
+    --orange-light: #ff9900;               /* Naranja claro - ratio 9:1 */
     --yellow-dark: #ddaa00;                /* Amarillo oscuro */
     --yellow-medium: #ffdd00;              /* Amarillo medio */
     --yellow-light: #ffee44;               /* Amarillo claro */
@@ -124,6 +124,38 @@ body {
     text-shadow:
         0 0 3px currentColor,
         0 0 6px currentColor;
+}
+
+/* ===============================================================
+   FOCUS STATES - Accesibilidad por teclado
+   =============================================================== */
+:focus-visible {
+    outline: 2px solid var(--primary-green);
+    outline-offset: 2px;
+    box-shadow: 0 0 8px rgba(255, 153, 0, 0.5);
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+    outline: 2px solid var(--bright-green);
+    outline-offset: 2px;
+    box-shadow: 0 0 12px rgba(255, 187, 0, 0.6);
+}
+
+/* Screen reader only */
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
 }
 
 /* ===============================================================
@@ -5436,5 +5468,27 @@ img {
         padding: 8px !important;
         min-width: 40px !important;
         min-height: 40px !important;
+    }
+}
+
+/* ===============================================================
+   REDUCED MOTION - Accesibilidad
+   Para usuarios que prefieren menos animaciones
+   =============================================================== */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+
+    .scan-beam,
+    .crt-flicker,
+    .typing-cursor,
+    .blink {
+        animation: none !important;
     }
 }

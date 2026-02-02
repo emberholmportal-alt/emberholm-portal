@@ -1458,7 +1458,7 @@ document.addEventListener('DOMContentLoaded', initPortalWarning);
             <button class="cmd-link" data-target="credits">[SOCIAL/CREDITS]</button>
             <button class="cmd-link" data-target="whitepaper">[WHITEPAPER/CONTRACTS]</button>
             <button class="cmd-link" data-target="tokenomics">[TOKENOMICS]</button>
-            <button class="cmd-link" data-target="world">[WORLD]</button>
+            <button class="cmd-link cmd-link-disabled" data-target="world">[WORLD]</button>
         </div>
 
         <!-- PROGRESS BAR -->
@@ -5057,9 +5057,10 @@ navButtons.forEach((btn, index) => {
 
         // si es un botón que navega interno (tiene data-target)
         if (target) {
-            // Show "coming soon" info for disabled sections but still navigate
+            // Botones deshabilitados no navegan - solo muestran mensaje
             if (btn.classList.contains('cmd-link-disabled')) {
-                // Still navigate to show the info page
+                showInfoModal("COMING SOON", "This feature is currently under development.\n\nStay tuned for updates!");
+                return; // No navegar
             }
 
             switchScreen(target);
