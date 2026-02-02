@@ -8052,9 +8052,27 @@ def claim_ember_tokens():
             'nonce': nonce,
         })
 
-        # 5. Sign and send transaction
+        # 5. Sign and send transaction with retry logic for rate limits
         signed_txn = ember_w3.eth.account.sign_transaction(txn, CLAIMER_PRIVATE_KEY)
-        tx_hash = ember_w3.eth.send_raw_transaction(signed_txn.rawTransaction)
+
+        # Retry with exponential backoff for rate limit errors
+        max_retries = 4
+        tx_hash = None
+        for attempt in range(max_retries):
+            try:
+                tx_hash = ember_w3.eth.send_raw_transaction(signed_txn.rawTransaction)
+                break  # Success, exit loop
+            except Exception as send_error:
+                error_msg = str(send_error).lower()
+                if ("rate limit" in error_msg or "too many requests" in error_msg) and attempt < max_retries - 1:
+                    wait_time = 2 ** (attempt + 1)  # 2s, 4s, 8s, 16s
+                    print(f"⚠️ Rate limit hit, retrying in {wait_time}s (attempt {attempt + 1}/{max_retries})")
+                    time.sleep(wait_time)
+                    continue
+                raise  # Re-raise if not rate limit or max retries reached
+
+        if tx_hash is None:
+            raise Exception("Failed to send transaction after retries")
 
         # 6. Wait for confirmation (with timeout)
         receipt = ember_w3.eth.wait_for_transaction_receipt(tx_hash, timeout=120)
