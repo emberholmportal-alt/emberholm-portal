@@ -61,16 +61,16 @@
    VARIABLES CSS
    =============================================================== */
 :root {
-    /* Retro Terminal Orange Scheme - MÁS BRILLANTE */
-    --primary-green: #ff9900;              /* Naranja retro principal */
-    --bright-green: #ffbb00;               /* Naranja brillante */
-    --dim-green: #dd7700;                  /* Naranja apagado */
-    --dark-green: #994400;                 /* Naranja oscuro */
+    /* Retro Terminal Orange Scheme - MEJORADO PARA WCAG AA */
+    --primary-green: #ff9900;              /* Naranja retro principal - ratio 9:1 */
+    --bright-green: #ffbb00;               /* Naranja brillante - ratio 11:1 */
+    --dim-green: #d98c00;                  /* Naranja apagado - ratio 6.5:1 (mejorado) */
+    --dark-green: #b36b00;                 /* Naranja oscuro - ratio 4.5:1 (mejorado de #994400) */
 
-    /* Extended Orange/Yellow Palette - MÁS VIBRANTE */
-    --orange-dark: #aa5500;                /* Naranja muy oscuro */
-    --orange-medium: #dd7700;              /* Naranja medio */
-    --orange-light: #ff9900;               /* Naranja claro */
+    /* Extended Orange/Yellow Palette - MEJORADO PARA LEGIBILIDAD */
+    --orange-dark: #b36b00;                /* Naranja muy oscuro - ratio 4.5:1 (mejorado) */
+    --orange-medium: #d98c00;              /* Naranja medio - ratio 6.5:1 (mejorado) */
+    --orange-light: #ff9900;               /* Naranja claro - ratio 9:1 */
     --yellow-dark: #ddaa00;                /* Amarillo oscuro */
     --yellow-medium: #ffdd00;              /* Amarillo medio */
     --yellow-light: #ffee44;               /* Amarillo claro */
@@ -124,6 +124,38 @@ body {
     text-shadow:
         0 0 3px currentColor,
         0 0 6px currentColor;
+}
+
+/* ===============================================================
+   FOCUS STATES - Accesibilidad por teclado
+   =============================================================== */
+:focus-visible {
+    outline: 2px solid var(--primary-green);
+    outline-offset: 2px;
+    box-shadow: 0 0 8px rgba(255, 153, 0, 0.5);
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+    outline: 2px solid var(--bright-green);
+    outline-offset: 2px;
+    box-shadow: 0 0 12px rgba(255, 187, 0, 0.6);
+}
+
+/* Screen reader only */
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
 }
 
 /* ===============================================================
@@ -1046,31 +1078,34 @@ strong {
     box-shadow: 0 0 25px rgba(255, 51, 68, 0.9);
 }
 
-/* COMING SOON BUTTONS - Muted grayish-orange, clickable to preview features */
+/* COMING SOON BUTTONS - Disabled, gray, non-functional */
 .cmd-link-disabled {
-    /* Muted gray-orange - clearly different from active yellow */
-    background: #b8a090;              /* Muted taupe/gray-brown */
-    color: #2a2a2a;                   /* Dark text */
+    /* Gray muted appearance */
+    background: #888888;              /* Gris neutro */
+    color: #333333;                   /* Texto oscuro */
     font-weight: 500;
-    cursor: pointer;                  /* Clickable */
-    /* Subtle muted glow */
-    box-shadow: 0 0 5px rgba(184, 160, 144, 0.4);
+    cursor: not-allowed;              /* Cursor deshabilitado */
+    opacity: 0.7;                     /* Ligeramente transparente */
+    /* Sin glow */
+    box-shadow: none;
 }
 
 .cmd-link-disabled:hover {
-    /* Slightly brighter on hover */
-    background: #c9b0a0;              /* Lighter taupe on hover */
-    color: #1a1a1a;
-    transform: translateY(-1px);      /* Normal lift effect */
-    box-shadow: 0 0 10px rgba(201, 176, 160, 0.5);
+    /* No cambia mucho al hover - sigue deshabilitado */
+    background: #888888;              /* Mismo color */
+    color: #333333;
+    transform: none;                  /* Sin efecto de lift */
+    box-shadow: none;
+    cursor: not-allowed;
 }
 
 /* Ensure disabled buttons don't get yellow active state */
 .cmd-link-disabled.is-active,
 .cmd-link-disabled.active {
-    background: #c9b0a0;              /* Keep muted color even when active */
-    color: #1a1a1a;
-    box-shadow: 0 0 10px rgba(201, 176, 160, 0.6);
+    background: #888888;              /* Mismo gris */
+    color: #333333;
+    box-shadow: none;
+    cursor: not-allowed;
 }
 
 /* NAV PROGRESS BAR - ESTILO RETRO BLOCKY */
@@ -5436,5 +5471,27 @@ img {
         padding: 8px !important;
         min-width: 40px !important;
         min-height: 40px !important;
+    }
+}
+
+/* ===============================================================
+   REDUCED MOTION - Accesibilidad
+   Para usuarios que prefieren menos animaciones
+   =============================================================== */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+
+    .scan-beam,
+    .crt-flicker,
+    .typing-cursor,
+    .blink {
+        animation: none !important;
     }
 }

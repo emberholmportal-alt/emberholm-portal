@@ -56,12 +56,12 @@
    CSS VARIABLES (From Prototipo v8)
    ═══════════════════════════════════════════════════════════ */
 :root {
-  /* Amber Palette */
-  --amber: #ff9500;
-  --amber-bright: #ffb340;
-  --amber-dim: #cc7700;
-  --amber-dark: #804d00;
-  --amber-darker: #4d2e00;
+  /* Amber Palette - MEJORADO PARA WCAG AA */
+  --amber: #ff9500;           /* Principal - ratio 9:1 */
+  --amber-bright: #ffb340;    /* Destacados - ratio 11:1 */
+  --amber-dim: #d98c00;       /* Secundario - ratio 6.5:1 (mejorado de #cc7700) */
+  --amber-dark: #b36b00;      /* Terciario legible - ratio 4.5:1 (mejorado de #804d00) */
+  --amber-darker: #8a5200;    /* Decorativo - ratio 3.5:1 (mejorado de #4d2e00) */
   --amber-glow: rgba(255, 149, 0, 0.5);
 
   /* Accent Colors */
@@ -105,9 +105,42 @@ body {
   min-height: 100vh;
   min-height: 100dvh;
   overflow-x: hidden;
-  line-height: 1.4;
+  line-height: 1.5;  /* Mejorado de 1.4 para mejor legibilidad */
   -webkit-font-smoothing: antialiased;
-  text-shadow: 0 0 5px var(--amber), 0 0 10px var(--amber-glow);
+  /* text-shadow removido del body - aplicar selectivamente */
+}
+
+/* ═══════════════════════════════════════════════════════════
+   FOCUS STATES - Accesibilidad por teclado
+   ═══════════════════════════════════════════════════════════ */
+:focus-visible {
+  outline: 2px solid var(--amber);
+  outline-offset: 2px;
+  box-shadow: 0 0 8px var(--amber-glow);
+}
+
+/* Focus para inputs y botones */
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--amber-bright);
+  outline-offset: 2px;
+  box-shadow: 0 0 12px var(--amber-glow);
+}
+
+/* Clase para screen reader only */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -360,8 +393,8 @@ body {
 }
 
 .btn.tiny {
-  padding: 4px 10px;
-  font-size: 10px;
+  padding: 6px 12px;
+  font-size: 11px;  /* Mejorado de 10px para legibilidad */
   white-space: nowrap;
 }
 
@@ -588,7 +621,7 @@ body {
   position: absolute;
   top: 2px;
   right: 4px;
-  font-size: 10px;
+  font-size: 11px;  /* Mejorado de 10px */
   color: var(--green);
 }
 
@@ -597,9 +630,9 @@ body {
 }
 
 .slot .slot-name {
-  font-size: 9px;
+  font-size: 11px;  /* Mejorado de 9px para legibilidad */
   color: var(--amber-dim);
-  margin-top: 2px;
+  margin-top: 3px;
   text-shadow: none;
 }
 
@@ -1004,7 +1037,7 @@ body {
 }
 
 .stat-label {
-  font-size: 10px;
+  font-size: 11px;  /* Mejorado de 10px para legibilidad */
   color: var(--amber-dim);
   letter-spacing: 1px;
   margin-top: 4px;
@@ -1224,4 +1257,33 @@ body {
 
 .settings-slider:disabled::-webkit-slider-thumb {
   cursor: not-allowed;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   REDUCED MOTION - Accesibilidad
+   Para usuarios que prefieren menos animaciones
+   ═══════════════════════════════════════════════════════════ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .crt-moving-line,
+  .animate-pulse,
+  .animate-blink,
+  .animate-pulse-glow,
+  .typewriter {
+    animation: none !important;
+  }
+
+  .crt-screen::after,
+  .crt-screen::before {
+    /* Mantener efectos CRT estáticos pero sin animación */
+    animation: none !important;
+  }
 }
