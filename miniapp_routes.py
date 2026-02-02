@@ -371,15 +371,14 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
                         CREATE INDEX IF NOT EXISTS idx_active_micro_missions_status ON active_micro_missions(status)
                     """)
 
-                    # Create micro_mission_cooldowns table
+                    # Create micro_mission_cooldowns table (per emissary, not per wallet)
                     cur.execute("""
                         CREATE TABLE IF NOT EXISTS micro_mission_cooldowns (
                             id SERIAL PRIMARY KEY,
-                            wallet VARCHAR(42) NOT NULL,
-                            micro_mission_id VARCHAR(20) NOT NULL REFERENCES micro_missions(id),
-                            completed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                            emissary_token_id VARCHAR(10) NOT NULL,
+                            mission_id VARCHAR(20) NOT NULL,
                             cooldown_until TIMESTAMP NOT NULL,
-                            UNIQUE(wallet, micro_mission_id)
+                            UNIQUE(emissary_token_id, mission_id)
                         )
                     """)
 
@@ -455,10 +454,18 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
                     active_deleted = cur.rowcount
                     print(f"[Migration] Deleted {active_deleted} active micro-missions")
 
-                    # Delete ALL cooldowns
-                    cur.execute("DELETE FROM micro_mission_cooldowns")
-                    cooldowns_deleted = cur.rowcount
-                    print(f"[Migration] Deleted {cooldowns_deleted} cooldowns")
+                    # Recreate cooldowns table with correct schema (per emissary)
+                    cur.execute("DROP TABLE IF EXISTS micro_mission_cooldowns CASCADE")
+                    cur.execute("""
+                        CREATE TABLE micro_mission_cooldowns (
+                            id SERIAL PRIMARY KEY,
+                            emissary_token_id VARCHAR(10) NOT NULL,
+                            mission_id VARCHAR(20) NOT NULL,
+                            cooldown_until TIMESTAMP NOT NULL,
+                            UNIQUE(emissary_token_id, mission_id)
+                        )
+                    """)
+                    print("[Migration] Recreated micro_mission_cooldowns table with emissary-based schema")
 
                     # Reset ALL emissaries stuck in ON_MICRO_MISSION state
                     cur.execute("""
@@ -1863,7 +1870,20 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
                     """)
                     results['emissaries_reset'] = cur.rowcount
 
-                    # 3. Force update ALL durations
+                    # 3. Recreate cooldowns table with correct schema
+                    cur.execute("DROP TABLE IF EXISTS micro_mission_cooldowns CASCADE")
+                    cur.execute("""
+                        CREATE TABLE micro_mission_cooldowns (
+                            id SERIAL PRIMARY KEY,
+                            emissary_token_id VARCHAR(10) NOT NULL,
+                            mission_id VARCHAR(20) NOT NULL,
+                            cooldown_until TIMESTAMP NOT NULL,
+                            UNIQUE(emissary_token_id, mission_id)
+                        )
+                    """)
+                    results['cooldowns_table_recreated'] = True
+
+                    # 4. Force update ALL durations
                     cur.execute("UPDATE micro_missions SET duration_seconds = 120 WHERE difficulty = 'EASY'")
                     cur.execute("UPDATE micro_missions SET duration_seconds = 180 WHERE difficulty = 'MEDIUM'")
                     cur.execute("UPDATE micro_missions SET duration_seconds = 300 WHERE difficulty = 'HARD'")
