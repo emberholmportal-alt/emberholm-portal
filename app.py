@@ -7701,6 +7701,26 @@ def invalidate_wallet_onchain_cache(wallet):
 _nonce_lock = threading.Lock()
 _pending_nonce = None  # Track the next nonce to use
 
+def rpc_call_with_retry(func, max_retries=4):
+    """
+    Execute an RPC call with retry logic for rate limits.
+    func should be a callable that performs the RPC call.
+    """
+    last_error = None
+    for attempt in range(max_retries):
+        try:
+            return func()
+        except Exception as e:
+            last_error = e
+            error_msg = str(e).lower()
+            if ("rate limit" in error_msg or "too many requests" in error_msg or "429" in error_msg) and attempt < max_retries - 1:
+                wait_time = 2 ** (attempt + 1)  # 2s, 4s, 8s, 16s
+                print(f"⚠️ RPC rate limit hit, retrying in {wait_time}s (attempt {attempt + 1}/{max_retries})")
+                time.sleep(wait_time)
+                continue
+            raise
+    raise last_error
+
 def get_next_nonce(web3_instance, address):
     """
     Get the next nonce for a transaction, thread-safe.
@@ -7709,8 +7729,10 @@ def get_next_nonce(web3_instance, address):
     global _pending_nonce
 
     with _nonce_lock:
-        # Get current on-chain nonce
-        onchain_nonce = web3_instance.eth.get_transaction_count(address, 'pending')
+        # Get current on-chain nonce (with retry for rate limits)
+        onchain_nonce = rpc_call_with_retry(
+            lambda: web3_instance.eth.get_transaction_count(address, 'pending')
+        )
 
         # If we have a pending nonce that's higher, use it
         if _pending_nonce is not None and _pending_nonce >= onchain_nonce:
@@ -8021,7 +8043,9 @@ def claim_ember_tokens():
             if cached_rewards is not None:
                 rewards_remaining_ether = cached_rewards
             else:
-                rewards_remaining_wei = ember_contract.functions.rewardsRemaining().call()
+                rewards_remaining_wei = rpc_call_with_retry(
+                    lambda: ember_contract.functions.rewardsRemaining().call()
+                )
                 rewards_remaining_ether = float(Web3Lib.from_wei(rewards_remaining_wei, 'ether'))
                 set_cached_onchain_data('rewards_remaining', rewards_remaining_ether)
 
@@ -8042,22 +8066,29 @@ def claim_ember_tokens():
         claimer_address = Web3Lib.to_checksum_address(CLAIMER_WALLET_ADDRESS)
         nonce = get_next_nonce(ember_w3, claimer_address)
 
+        # Get gas price with retry
+        gas_price = rpc_call_with_retry(lambda: ember_w3.eth.gas_price)
+
         txn = ember_contract.functions.claimTransfer(
             wallet_checksum,
             amount_wei
         ).build_transaction({
             'chainId': CHAIN_ID,  # Base Mainnet (8453)
             'gas': 100000,
-            'gasPrice': ember_w3.eth.gas_price,
+            'gasPrice': gas_price,
             'nonce': nonce,
         })
 
-        # 5. Sign and send transaction
+        # 5. Sign and send transaction with retry logic for rate limits
         signed_txn = ember_w3.eth.account.sign_transaction(txn, CLAIMER_PRIVATE_KEY)
-        tx_hash = ember_w3.eth.send_raw_transaction(signed_txn.raw_transaction)
+        tx_hash = rpc_call_with_retry(
+            lambda: ember_w3.eth.send_raw_transaction(signed_txn.rawTransaction)
+        )
 
-        # 6. Wait for confirmation (with timeout)
-        receipt = ember_w3.eth.wait_for_transaction_receipt(tx_hash, timeout=120)
+        # 6. Wait for confirmation (with timeout and retry)
+        receipt = rpc_call_with_retry(
+            lambda: ember_w3.eth.wait_for_transaction_receipt(tx_hash, timeout=120)
+        )
 
         if receipt['status'] == 1:
             # 7. Update database - increment total claimed (balance already 0)
