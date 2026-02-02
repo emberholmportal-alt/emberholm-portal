@@ -7,16 +7,17 @@ import { AppScreen } from '@/lib/store';
 
 /**
  * MainMenu - Main dashboard / command center
- * Shows: Logo, Connect Wallet, 7 menu buttons, bottom stats
- * Buttons: PLAY, MINT EMISSARY, SOCIAL, VAULT, EVENTS, LORE, TUTORIAL
+ * Shows: Logo, Connect Wallet, 6 menu buttons
+ * Buttons: MINT/INVOKE (primary), PLAY, COMO JUGAR, VAULT, WORLD CHAT, INFO
  */
 
 interface MenuItem {
   id: AppScreen;
   title: string;
-  icon: string;
+  icon?: string;
   iconSrc?: string;
   badge?: number;
+  variant?: 'primary' | 'default';
 }
 
 interface MainMenuProps {
@@ -49,46 +50,33 @@ export function MainMenu({
 }: MainMenuProps) {
   const [showWalletModal, setShowWalletModal] = useState(false);
 
+  // New 6-button menu structure based on redesign
   const menuItems: MenuItem[] = [
     {
-      id: 'play',
-      title: 'PLAY',
-      icon: '▶',
-    },
-    {
       id: 'mint',
-      title: 'MINT EMISSARY',
-      icon: '◈',
+      title: 'MINT / INVOKE',
+      variant: 'primary',
     },
     {
-      id: 'social-globe',
-      title: 'SOCIAL',
-      icon: '',
-      iconSrc: '/icons/crystalball.png',
-      badge: unreadMessages,
-    },
-    {
-      id: 'vault',
-      title: 'VAULT',
-      icon: '',
-      iconSrc: '/icons/moneybag.png',
-    },
-    {
-      id: 'events',
-      title: 'EVENTS',
-      icon: '',
-      iconSrc: '/icons/scroll.png',
-    },
-    {
-      id: 'lore',
-      title: 'LORE',
-      icon: '',
-      iconSrc: '/icons/EternalTorch.png',
+      id: 'play',
+      title: '[ PLAY ]',
+      badge: unreadMessages > 0 ? unreadMessages : undefined,
     },
     {
       id: 'tutorial',
-      title: 'TUTORIAL',
-      icon: '?',
+      title: '[ COMO JUGAR ]',
+    },
+    {
+      id: 'vault',
+      title: '[ VAULT ]',
+    },
+    {
+      id: 'global-chat',
+      title: '[ WORLD CHAT ]',
+    },
+    {
+      id: 'info',
+      title: '[ INFO ]',
     },
   ];
 
@@ -168,7 +156,7 @@ export function MainMenu({
         )}
       </motion.div>
 
-      {/* Menu buttons */}
+      {/* Menu buttons - 6 button vertical layout */}
       <div className="menu-container flex-1">
         {menuItems.map((item, index) => (
           <motion.button
@@ -177,22 +165,24 @@ export function MainMenu({
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.05 * index }}
             onClick={() => onNavigate(item.id)}
-            className={`menu-btn ${index === 0 ? 'selected' : ''}`}
+            className={`menu-btn ${item.variant === 'primary' ? 'primary' : ''}`}
           >
-            <span className="icon">
-              {item.iconSrc ? (
-                <Image
-                  src={item.iconSrc}
-                  alt=""
-                  width={20}
-                  height={20}
-                  className="pixel-icon"
-                />
-              ) : (
-                item.icon
-              )}
-            </span>
-            <span className="flex-1 text-left">{item.title}</span>
+            {item.icon && (
+              <span className="icon">
+                {item.iconSrc ? (
+                  <Image
+                    src={item.iconSrc}
+                    alt=""
+                    width={20}
+                    height={20}
+                    className="pixel-icon"
+                  />
+                ) : (
+                  item.icon
+                )}
+              </span>
+            )}
+            <span className="flex-1 text-center">{item.title}</span>
             {item.badge && item.badge > 0 && (
               <span className="notif-badge">{item.badge}</span>
             )}

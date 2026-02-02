@@ -26,6 +26,7 @@ import { EventsScreen } from '@/components/screens/EventsScreen';
 import { LoreScreen } from '@/components/screens/LoreScreen';
 import { TutorialScreen } from '@/components/screens/TutorialScreen';
 import { SettingsScreen } from '@/components/screens/SettingsScreen';
+import { InfoScreen } from '@/components/screens/InfoScreen';
 import { useApp, actions, AppScreen, AppProvider } from '@/lib/store';
 import { SoundProvider } from '@/lib/SoundContext';
 import { WalletProvider, useWallet } from '@/lib/WalletContext';
@@ -412,6 +413,14 @@ function AppContent() {
 
         {state.currentScreen === 'tutorial' && (
           <TutorialScreen wallet={state.wallet} onBack={handleBack} />
+        )}
+
+        {/* Info Section */}
+        {state.currentScreen === 'info' && (
+          <InfoScreen
+            onNavigate={handleNavigate}
+            onBack={handleBack}
+          />
         )}
 
         {/* Social Section */}

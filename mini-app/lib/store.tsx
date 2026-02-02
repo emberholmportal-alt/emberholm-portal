@@ -41,7 +41,8 @@ export type AppScreen =
   | 'tutorial'          // Tutorial screen
   | 'leaderboard'       // Leaderboard
   | 'mint'              // Mint new emissary
-  | 'settings';         // Settings screen
+  | 'settings'          // Settings screen
+  | 'info';             // Info submenu (Lore, Events, etc.)
 
 export interface AppState {
   // Navigation

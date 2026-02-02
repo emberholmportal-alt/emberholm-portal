@@ -421,6 +421,7 @@ textarea:focus-visible {
   cursor: pointer;
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 12px;
   transition: all 0.1s;
   position: relative;
@@ -437,6 +438,22 @@ textarea:focus-visible {
   color: var(--bg-dark);
   border-color: var(--amber);
   text-shadow: none;
+}
+
+/* Primary Menu Button (MINT/INVOKE - Red) */
+.menu-btn.primary {
+  background: var(--red);
+  color: #000000;
+  border-color: var(--red);
+  font-weight: bold;
+  text-shadow: none;
+  box-shadow: 0 0 20px rgba(255, 68, 68, 0.3);
+}
+
+.menu-btn.primary:hover {
+  background: #ff6666;
+  border-color: #ff6666;
+  box-shadow: 0 0 30px rgba(255, 68, 68, 0.5);
 }
 
 .menu-btn .icon {
