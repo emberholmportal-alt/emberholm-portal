@@ -5056,10 +5056,9 @@ navButtons.forEach((btn, index) => {
 
         // si es un botón que navega interno (tiene data-target)
         if (target) {
-            // Botones deshabilitados no navegan - solo muestran mensaje
+            // Botones deshabilitados no hacen nada
             if (btn.classList.contains('cmd-link-disabled')) {
-                showInfoModal("COMING SOON", "This feature is currently under development.\n\nStay tuned for updates!");
-                return; // No navegar
+                return; // No navegar, no hacer nada
             }
 
             switchScreen(target);

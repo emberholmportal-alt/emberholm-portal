@@ -1078,31 +1078,34 @@ strong {
     box-shadow: 0 0 25px rgba(255, 51, 68, 0.9);
 }
 
-/* COMING SOON BUTTONS - Muted grayish-orange, clickable to preview features */
+/* COMING SOON BUTTONS - Disabled, gray, non-functional */
 .cmd-link-disabled {
-    /* Muted gray-orange - clearly different from active yellow */
-    background: #b8a090;              /* Muted taupe/gray-brown */
-    color: #2a2a2a;                   /* Dark text */
+    /* Gray muted appearance */
+    background: #888888;              /* Gris neutro */
+    color: #333333;                   /* Texto oscuro */
     font-weight: 500;
-    cursor: pointer;                  /* Clickable */
-    /* Subtle muted glow */
-    box-shadow: 0 0 5px rgba(184, 160, 144, 0.4);
+    cursor: not-allowed;              /* Cursor deshabilitado */
+    opacity: 0.7;                     /* Ligeramente transparente */
+    /* Sin glow */
+    box-shadow: none;
 }
 
 .cmd-link-disabled:hover {
-    /* Slightly brighter on hover */
-    background: #c9b0a0;              /* Lighter taupe on hover */
-    color: #1a1a1a;
-    transform: translateY(-1px);      /* Normal lift effect */
-    box-shadow: 0 0 10px rgba(201, 176, 160, 0.5);
+    /* No cambia mucho al hover - sigue deshabilitado */
+    background: #888888;              /* Mismo color */
+    color: #333333;
+    transform: none;                  /* Sin efecto de lift */
+    box-shadow: none;
+    cursor: not-allowed;
 }
 
 /* Ensure disabled buttons don't get yellow active state */
 .cmd-link-disabled.is-active,
 .cmd-link-disabled.active {
-    background: #c9b0a0;              /* Keep muted color even when active */
-    color: #1a1a1a;
-    box-shadow: 0 0 10px rgba(201, 176, 160, 0.6);
+    background: #888888;              /* Mismo gris */
+    color: #333333;
+    box-shadow: none;
+    cursor: not-allowed;
 }
 
 /* NAV PROGRESS BAR - ESTILO RETRO BLOCKY */
