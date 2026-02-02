@@ -181,44 +181,44 @@ export function SocialGlobe({ onSelectCountry, onGlobalChat, onBack }: SocialGlo
           </div>
         </div>
 
-        {/* Top Countries */}
+        {/* Top Countries - TEMPORARILY DISABLED */}
         <div className="data-box">
           <div className="ornament text-xs mb-2">═══ TOP NATIONS ═══</div>
           <div className="space-y-1">
             {topCountries.map((country, index) => (
-              <button
+              <div
                 key={country.country_code}
-                onClick={() => onSelectCountry(country.country_code)}
                 className="w-full flex items-center justify-between px-2 py-1 rounded
-                           hover:bg-amber/10 transition-colors"
+                           opacity-50 cursor-not-allowed"
               >
                 <div className="flex items-center gap-2">
-                  <span className="text-amber-dim text-xs w-4">
+                  <span className="text-gray-500 text-xs w-4">
                     {index + 1}.
                   </span>
-                  <span className="text-amber">
+                  <span className="text-gray-500">
                     {getCountryName(country.country_code)}
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
                   {country.online_count > 0 && (
-                    <span className="text-green text-xs">
+                    <span className="text-gray-500 text-xs">
                       {country.online_count} online
                     </span>
                   )}
-                  <span className="text-amber-bright text-sm">
+                  <span className="text-gray-500 text-sm">
                     {country.user_count}
                   </span>
                 </div>
-              </button>
+              </div>
             ))}
           </div>
         </div>
 
-        {/* Global Chat Button */}
+        {/* Global Chat Button - TEMPORARILY DISABLED */}
         <button
           onClick={onGlobalChat}
-          className="w-full btn large flex items-center justify-center gap-2"
+          disabled={true}
+          className="w-full btn large flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <Image
             src="/icons/fire.png"
