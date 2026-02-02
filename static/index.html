@@ -5056,9 +5056,10 @@ navButtons.forEach((btn, index) => {
 
         // si es un botón que navega interno (tiene data-target)
         if (target) {
-            // Show "coming soon" info for disabled sections but still navigate
+            // Disabled buttons do nothing when clicked
             if (btn.classList.contains('cmd-link-disabled')) {
-                // Still navigate to show the info page
+                console.log("🚫 Button disabled:", target);
+                return; // Do not navigate
             }
 
             switchScreen(target);
