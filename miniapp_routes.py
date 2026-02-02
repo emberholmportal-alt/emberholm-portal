@@ -492,65 +492,34 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
                     
                     print(f"[Migration] Updated narratives for {len(narratives)} missions")
 
-                    # AGGRESSIVE CLEANUP: Remove ALL expired/corrupted micro-missions
-                    # This prevents emissaries from getting stuck with no action buttons
+                    # =========================================================
+                    # FULL CLEANUP: Delete ALL active micro-missions (fresh start)
+                    # This prevents issues with corrupted data formats
+                    # =========================================================
+                    cur.execute("DELETE FROM active_micro_missions WHERE status IN ('active', 'choice_pending')")
+                    deleted = cur.rowcount
+                    print(f"🧹 Deleted {deleted} active micro-missions (fresh start)")
 
-                    # 1. Delete any micro-mission that has already ended
+                    # Reset ALL emissaries from ON_MICRO_MISSION to READY
                     cur.execute("""
-                        DELETE FROM active_micro_missions
-                        WHERE status IN ('active', 'choice_pending')
-                        AND ends_at < NOW()
+                        UPDATE nfts SET
+                            dynamic_state = jsonb_set(
+                                COALESCE(dynamic_state, '{}'::jsonb),
+                                '{state}',
+                                '"READY"'
+                            )
+                        WHERE dynamic_state->>'state' = 'ON_MICRO_MISSION'
                     """)
-
-                    # 2. Delete any micro-mission older than 10 minutes (max should be 5 min)
-                    cur.execute("""
-                        DELETE FROM active_micro_missions
-                        WHERE status IN ('active', 'choice_pending')
-                        AND started_at < NOW() - INTERVAL '10 minutes'
-                    """)
-
-                    # 3. Delete any micro-mission with NULL ends_at (corrupted data)
-                    cur.execute("""
-                        DELETE FROM active_micro_missions
-                        WHERE status IN ('active', 'choice_pending')
-                        AND ends_at IS NULL
-                    """)
-
-                    # 4. Force complete any stuck micro-missions
-                    cur.execute("""
-                        UPDATE active_micro_missions
-                        SET status = 'expired', completed_at = NOW()
-                        WHERE status IN ('active', 'choice_pending')
-                        AND (
-                            ends_at < NOW() - INTERVAL '1 minute'
-                            OR started_at < NOW() - INTERVAL '15 minutes'
-                        )
-                    """)
-
-                    print("🧹 Cleaned up expired/corrupted micro-missions")
+                    reset_count = cur.rowcount
+                    print(f"🔄 Reset {reset_count} emissaries from ON_MICRO_MISSION to READY")
 
                     # =========================================================
-                    # FIX DURATIONS: EASY=120s, MEDIUM=240s, HARD=360s
+                    # FIX DURATIONS: EASY=120s (2min), MEDIUM=180s (3min), HARD=300s (5min)
                     # =========================================================
-                    cur.execute("""
-                        UPDATE micro_missions SET duration_seconds = 120 WHERE difficulty = 'EASY'
-                    """)
-                    cur.execute("""
-                        UPDATE micro_missions SET duration_seconds = 240 WHERE difficulty = 'MEDIUM'
-                    """)
-                    cur.execute("""
-                        UPDATE micro_missions SET duration_seconds = 300 WHERE difficulty = 'HARD'
-                    """)
-
-                    # Also fix ends_at for any active missions with wrong duration
-                    cur.execute("""
-                        UPDATE active_micro_missions amm SET
-                            ends_at = amm.started_at + (mm.duration_seconds * interval '1 second')
-                        FROM micro_missions mm
-                        WHERE amm.micro_mission_id = mm.id
-                        AND amm.status IN ('active', 'choice_pending')
-                    """)
-                    print("⏱️ Fixed mission durations (EASY=2min, MEDIUM=4min, HARD=6min)")
+                    cur.execute("UPDATE micro_missions SET duration_seconds = 120 WHERE difficulty = 'EASY'")
+                    cur.execute("UPDATE micro_missions SET duration_seconds = 180 WHERE difficulty = 'MEDIUM'")
+                    cur.execute("UPDATE micro_missions SET duration_seconds = 300 WHERE difficulty = 'HARD'")
+                    print("⏱️ Fixed mission durations (EASY=2min, MEDIUM=3min, HARD=5min)")
 
                     print("✅ Database migrations applied (including narrative system)")
         except Exception as e:
@@ -1234,26 +1203,20 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
 
                     print(f"[MicroMission] Available steps: {list(steps.keys())}")
 
-                    # Find current step (can be "1", "2A", "2B", "3A", etc.)
-                    # First step is always "1", subsequent steps are stored in choices_path progression
-                    if len(choices_path) == 0:
-                        step_key = "1"
-                    else:
-                        # Reconstruct step key from choices_path
-                        step_key = str(len(choices_path) + 1) + choices_path[-1] if choices_path else "1"
-                        # Actually, we store the step key directly after first choice
-                        # Let's use a simpler approach: store the current step key
-                        pass
-
-                    # For simplicity, let's use current_step as the step key directly
+                    # For linear narratives (new format), step is just the number based on choices made
+                    # For branching narratives (old format), step might be like "2A", "2B"
+                    # current_step from DB is the authoritative source
                     step_key = str(current_step) if current_step else "1"
                     current_step_data = steps.get(step_key, {})
 
                     if not current_step_data:
                         # Try finding the step another way - maybe it's like "2A" after first choice
-                        # Reconstruct from choices_path
+                        # Reconstruct from choices_path (handle both old string format and new dict format)
                         if len(choices_path) > 0:
-                            step_key = str(len(choices_path) + 1) + choices_path[-1]
+                            last_choice = choices_path[-1]
+                            # Handle new format {"choice": "A", "bold": 0} or old format "A"
+                            choice_letter = last_choice.get('choice', last_choice) if isinstance(last_choice, dict) else last_choice
+                            step_key = str(len(choices_path) + 1) + str(choice_letter)
                             current_step_data = steps.get(step_key, {})
 
                     if not current_step_data:
