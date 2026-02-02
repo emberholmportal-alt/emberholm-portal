@@ -143,9 +143,8 @@ export function MicroMissionsScreen({
         {['ALL', 'EASY', 'MEDIUM', 'HARD'].map((diff) => (
           <button
             key={diff}
-            onClick={() => setFilter(diff)}
             disabled={true}
-            className={`tab whitespace-nowrap ${filter === diff ? 'active' : ''} disabled:opacity-50 disabled:cursor-not-allowed`}
+            className="tab whitespace-nowrap text-gray-500 bg-gray-800/50 border-gray-700 cursor-not-allowed opacity-50"
           >
             {diff}
           </button>
