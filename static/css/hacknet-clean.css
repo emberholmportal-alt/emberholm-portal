@@ -996,18 +996,17 @@ strong {
     border: none;                           /* Sin borde */
     color: #000;                            /* Texto NEGRO */
     padding: 6px 10px;
-    font-family: 'Pixelify Sans', 'Classic Console Neue', monospace;
-    font-size: 11px;
-    font-weight: 600;
+    font-family: 'Share Tech Mono', 'IBM Plex Mono', monospace;  /* Más legible que Pixelify Sans */
+    font-size: 12px;                        /* Aumentado de 11px para mejor legibilidad */
+    font-weight: 500;
     cursor: pointer;
     text-transform: uppercase;
     letter-spacing: 0.5px;
     transition: all 0.2s;
     white-space: nowrap;
     flex-shrink: 0;
-    /* GLOW + BLUR EN BOTONES */
+    /* GLOW EN BOTONES - Sin blur para mejor legibilidad */
     box-shadow: 0 0 10px rgba(255, 153, 0, 0.5);
-    filter: blur(0.2px);                    /* Blur sutil para efecto CRT */
 }
 
 .cmd-link:hover {
@@ -1017,7 +1016,6 @@ strong {
     transform: translateY(-1px);
     /* GLOW MÁS INTENSO AL HOVER */
     box-shadow: 0 0 20px rgba(255, 187, 0, 0.7);
-    filter: blur(0.3px);
 }
 
 .cmd-link.is-active,
@@ -1025,10 +1023,9 @@ strong {
     /* Amarillo más brillante para estado activo */
     background: var(--yellow-light);
     color: #000;
-    font-weight: normal;
+    font-weight: 500;
     /* GLOW INTENSO PARA ACTIVO */
     box-shadow: 0 0 20px rgba(255, 221, 0, 0.7);
-    filter: blur(0.3px);
 }
 
 /* MINT BUTTON - Destacado en rojo BRILLANTE con estilo retro */
@@ -1036,10 +1033,9 @@ strong {
     /* Fondo rojo con texto negro */
     background: var(--error-red);
     color: #000;
-    font-weight: 900;                     /* Extra bold */
-    /* GLOW ROJO INTENSO + BLUR */
+    font-weight: 700;                     /* Bold */
+    /* GLOW ROJO INTENSO */
     box-shadow: 0 0 15px rgba(255, 51, 68, 0.7);
-    filter: blur(0.3px);
 }
 
 .cmd-link-mint:hover {
@@ -1048,7 +1044,6 @@ strong {
     color: #000;
     /* GLOW MÁS INTENSO */
     box-shadow: 0 0 25px rgba(255, 51, 68, 0.9);
-    filter: blur(0.3px);
 }
 
 /* COMING SOON BUTTONS - Muted grayish-orange, clickable to preview features */
@@ -1056,11 +1051,10 @@ strong {
     /* Muted gray-orange - clearly different from active yellow */
     background: #b8a090;              /* Muted taupe/gray-brown */
     color: #2a2a2a;                   /* Dark text */
-    font-weight: 700;
+    font-weight: 500;
     cursor: pointer;                  /* Clickable */
     /* Subtle muted glow */
     box-shadow: 0 0 5px rgba(184, 160, 144, 0.4);
-    filter: blur(0.3px);
 }
 
 .cmd-link-disabled:hover {
@@ -1069,7 +1063,6 @@ strong {
     color: #1a1a1a;
     transform: translateY(-1px);      /* Normal lift effect */
     box-shadow: 0 0 10px rgba(201, 176, 160, 0.5);
-    filter: blur(0.3px);
 }
 
 /* Ensure disabled buttons don't get yellow active state */
