@@ -7964,7 +7964,7 @@ def get_ember_token_balance(wallet):
         return jsonify({"error": str(e)}), 500
 
 @app.route('/api/ember/claim', methods=['POST'])
-@rate_limit(requests_per_minute=5)
+@rate_limit(requests_per_minute=15)
 def claim_ember_tokens():
     """
     Claim pending $EMBER tokens (gasless - paid by claimer wallet).
