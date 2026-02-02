@@ -72,3 +72,6 @@ data/achievements.json
 # -------------------------------
 # Fin de .gitignore
 # -------------------------------
+
+# Backups locales
+backups/
