@@ -215,10 +215,11 @@ export function SocialGlobe({ onSelectCountry, onGlobalChat, onBack }: SocialGlo
           </div>
         </div>
 
-        {/* Global Chat Button */}
+        {/* Global Chat Button - TEMPORARILY DISABLED */}
         <button
           onClick={onGlobalChat}
-          className="w-full btn large flex items-center justify-center gap-2"
+          disabled={true}
+          className="w-full btn large flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <Image
             src="/icons/fire.png"

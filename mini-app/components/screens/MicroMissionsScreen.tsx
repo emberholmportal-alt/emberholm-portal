@@ -133,7 +133,7 @@ export function MicroMissionsScreen({
         </motion.div>
       )}
 
-      {/* Difficulty filter tabs */}
+      {/* Difficulty filter tabs - TEMPORARILY DISABLED */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -144,7 +144,8 @@ export function MicroMissionsScreen({
           <button
             key={diff}
             onClick={() => setFilter(diff)}
-            className={`tab whitespace-nowrap ${filter === diff ? 'active' : ''}`}
+            disabled={true}
+            className={`tab whitespace-nowrap ${filter === diff ? 'active' : ''} disabled:opacity-50 disabled:cursor-not-allowed`}
           >
             {diff}
           </button>
