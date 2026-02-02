@@ -401,58 +401,9 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
                     """)
 
                     # =========================================================
-                    # FORCE FIX: Update mission durations UNCONDITIONALLY
-                    # EASY=120s (2min), MEDIUM=240s (4min), HARD=300s (5min)
-                    # =========================================================
-                    print("[Migration] Forcing duration updates for all missions...")
-                    # EASY = 2 minutes (120s)
-                    cur.execute("""
-                        UPDATE micro_missions SET duration_seconds = 120
-                        WHERE difficulty = 'EASY'
-                    """)
-                    easy_updated = cur.rowcount
-                    # MEDIUM = 3 minutes (180s)
-                    cur.execute("""
-                        UPDATE micro_missions SET duration_seconds = 180
-                        WHERE difficulty = 'MEDIUM'
-                    """)
-                    medium_updated = cur.rowcount
-                    # HARD = 5 minutes (300s)
-                    cur.execute("""
-                        UPDATE micro_missions SET duration_seconds = 300
-                        WHERE difficulty = 'HARD'
-                    """)
-                    hard_updated = cur.rowcount
-
-                    # FORCE FIX: Any mission with duration > 600s (10 min) is broken
-                    cur.execute("""
-                        UPDATE micro_missions SET duration_seconds = 120
-                        WHERE duration_seconds > 600 OR duration_seconds IS NULL
-                    """)
-                    broken_fixed = cur.rowcount
-
-                    print(f"[Migration] Duration updates: EASY={easy_updated}, MEDIUM={medium_updated}, HARD={hard_updated}, broken_fixed={broken_fixed}")
-
-                    # =========================================================
-                    # FORCE FIX: Set PYRE rewards to 0 (NO PYRE in micro-missions)
-                    # =========================================================
-                    print("[Migration] Setting PYRE rewards to 0...")
-                    cur.execute("""
-                        UPDATE micro_missions SET pyre_reward_min = 0, pyre_reward_max = 0
-                    """)
-                    pyre_reset = cur.rowcount
-                    print(f"[Migration] Reset PYRE to 0 for {pyre_reset} missions")
-
-                    # =========================================================
-                    # FULL RESET: Delete ALL active micro-missions and cooldowns
-                    # Start fresh with clean state
+                    # FULL RESET: Recreate cooldowns table, delete active missions
                     # =========================================================
                     print("[Migration] Resetting micro-missions system...")
-
-                    # Delete ALL active missions
-                    cur.execute("DELETE FROM active_micro_missions")
-                    active_deleted = cur.rowcount
-                    print(f"[Migration] Deleted {active_deleted} active micro-missions")
 
                     # Recreate cooldowns table with correct schema (per emissary)
                     cur.execute("DROP TABLE IF EXISTS micro_mission_cooldowns CASCADE")
@@ -465,7 +416,12 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
                             UNIQUE(emissary_token_id, mission_id)
                         )
                     """)
-                    print("[Migration] Recreated micro_mission_cooldowns table with emissary-based schema")
+                    print("[Migration] Recreated micro_mission_cooldowns table")
+
+                    # Delete ALL active missions for fresh start
+                    cur.execute("DELETE FROM active_micro_missions")
+                    active_deleted = cur.rowcount
+                    print(f"[Migration] Deleted {active_deleted} active micro-missions")
 
                     # Reset ALL emissaries stuck in ON_MICRO_MISSION state
                     cur.execute("""
@@ -479,56 +435,81 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
                         WHERE dynamic_state->>'state' = 'ON_MICRO_MISSION'
                     """)
                     emissaries_reset = cur.rowcount
-                    print(f"[Migration] Reset {emissaries_reset} emissaries from ON_MICRO_MISSION to READY")
+                    print(f"[Migration] Reset {emissaries_reset} emissaries to READY")
 
                     # =========================================================
-                    # POPULATE NARRATIVES FROM narrative_data.py
-                    # EASY=10 steps, MEDIUM=20 steps, HARD=35 steps
+                    # UPSERT ALL 15 MISSIONS WITH NARRATIVES AND CORRECT DATA
+                    # Uses INSERT ON CONFLICT to ensure missions exist
+                    # EASY=10 steps/2min, MEDIUM=20 steps/3min, HARD=35 steps/5min
                     # =========================================================
-                    print("[Migration] Populating narratives from narrative_data.py...")
+                    print("[Migration] UPSERT all missions with narratives from narrative_data.py...")
                     narratives = get_all_narratives()
-                    categories = MISSION_CATEGORIES
-                    
-                    for mission_id, narrative in narratives.items():
-                        category = categories.get(mission_id, 'PATROL')
+
+                    # Complete mission definitions
+                    mission_definitions = [
+                        # EASY missions (10 steps, 2 min = 120s)
+                        ('MM-E001', 'The Whispering Flame', 'A faint voice calls from the eternal brazier.', 'EASY', 120, 5, 5, 10, 10, 20, 5.00, 'The flames flicker as you approach...', 'LORE'),
+                        ('MM-E002', 'Ember Gathering', 'Collect scattered embers in the Ashen Fields.', 'EASY', 120, 5, 3, 8, 8, 15, 3.00, 'Glowing embers dot the landscape...', 'PATROL'),
+                        ('MM-E003', 'Patrol the Perimeter', 'A routine patrol around the portal edge.', 'EASY', 120, 5, 5, 10, 10, 20, 5.00, 'You take your position at the edge...', 'PATROL'),
+                        ('MM-E004', 'Rune Meditation', 'Meditate before the ancient rune stone.', 'EASY', 120, 3, 2, 5, 5, 12, 2.00, 'The rune stone hums with energy...', 'LORE'),
+                        ('MM-E005', 'Forge Apprentice', 'Assist the blacksmith at the Eternal Forge.', 'EASY', 120, 5, 3, 8, 8, 15, 3.00, 'The heat of the forge washes over you...', 'GUILD'),
+                        # MEDIUM missions (20 steps, 3 min = 180s)
+                        ('MM-M001', 'Void Echoes Investigation', 'Strange sounds from the void. Investigate.', 'MEDIUM', 180, 10, 10, 20, 25, 40, 10.00, 'The void whispers secrets...', 'EXPLORATION'),
+                        ('MM-M002', 'Guild Messenger', 'Deliver urgent message between outposts.', 'MEDIUM', 180, 8, 8, 15, 20, 35, 8.00, 'A sealed scroll bears your guild mark...', 'GUILD'),
+                        ('MM-M003', 'Ash Beast Tracking', 'Track ash beast movements near settlement.', 'MEDIUM', 180, 10, 10, 20, 25, 40, 10.00, 'Strange tracks mark the ground...', 'PATROL'),
+                        ('MM-M004', 'Crystal Harvesting', 'Harvest crystals from the Singing Caves.', 'MEDIUM', 180, 8, 8, 15, 20, 35, 8.00, 'The caves sing with harmonies...', 'EXPLORATION'),
+                        ('MM-M005', 'Spirit Communion', 'Commune with spirits of fallen emissaries.', 'MEDIUM', 180, 10, 10, 20, 25, 40, 12.00, 'The veil between worlds grows thin...', 'LORE'),
+                        # HARD missions (35 steps, 5 min = 300s)
+                        ('MM-H001', 'Void Rift Sealing', 'A dangerous rift has opened. Seal it.', 'HARD', 300, 15, 20, 35, 50, 80, 20.00, 'Reality tears before you...', 'LEGENDARY'),
+                        ('MM-H002', 'Ancient Guardian Trial', 'Face the trial of the Ancient Guardian.', 'HARD', 300, 20, 25, 40, 60, 100, 25.00, 'The stone guardian awakens...', 'EXPLORATION'),
+                        ('MM-H003', 'Legendary Artifact Recovery', 'Retrieve artifact from dangerous territory.', 'HARD', 300, 25, 30, 50, 80, 120, 30.00, 'The artifact pulses with power...', 'LEGENDARY'),
+                        ('MM-H004', 'Elite Ash Beast Hunt', 'An elite ash beast threatens the realm.', 'HARD', 300, 20, 25, 40, 60, 100, 25.00, 'Massive tracks scar the landscape...', 'LEGENDARY'),
+                        ('MM-H005', 'Forge of Legends', 'Assist in forging a legendary weapon.', 'HARD', 300, 15, 20, 35, 50, 80, 20.00, 'The master smith summons you...', 'GUILD'),
+                    ]
+
+                    missions_upserted = 0
+                    for mission_def in mission_definitions:
+                        mission_id = mission_def[0]
+                        narrative = narratives.get(mission_id, {})
+                        category = mission_def[12]
+
                         cur.execute("""
-                            UPDATE micro_missions 
-                            SET narrative_steps = %s::jsonb, category = %s
-                            WHERE id = %s
-                        """, (json.dumps(narrative), category, mission_id))
-                    
-                    print(f"[Migration] Updated narratives for {len(narratives)} missions")
-
-                    # =========================================================
-                    # FULL CLEANUP: Delete ALL active micro-missions (fresh start)
-                    # This prevents issues with corrupted data formats
-                    # =========================================================
-                    cur.execute("DELETE FROM active_micro_missions WHERE status IN ('active', 'choice_pending')")
-                    deleted = cur.rowcount
-                    print(f"🧹 Deleted {deleted} active micro-missions (fresh start)")
-
-                    # Reset ALL emissaries from ON_MICRO_MISSION to READY
-                    cur.execute("""
-                        UPDATE nfts SET
-                            dynamic_state = jsonb_set(
-                                COALESCE(dynamic_state, '{}'::jsonb),
-                                '{state}',
-                                '"READY"'
+                            INSERT INTO micro_missions (
+                                id, name, description, difficulty, duration_seconds,
+                                energy_cost, xp_reward_min, xp_reward_max,
+                                ember_reward_min, ember_reward_max, aura_chance,
+                                narrative_intro, category, narrative_steps,
+                                pyre_reward_min, pyre_reward_max, is_active
+                            ) VALUES (
+                                %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb, 0, 0, TRUE
                             )
-                        WHERE dynamic_state->>'state' = 'ON_MICRO_MISSION'
-                    """)
-                    reset_count = cur.rowcount
-                    print(f"🔄 Reset {reset_count} emissaries from ON_MICRO_MISSION to READY")
+                            ON CONFLICT (id) DO UPDATE SET
+                                name = EXCLUDED.name,
+                                description = EXCLUDED.description,
+                                difficulty = EXCLUDED.difficulty,
+                                duration_seconds = EXCLUDED.duration_seconds,
+                                energy_cost = EXCLUDED.energy_cost,
+                                xp_reward_min = EXCLUDED.xp_reward_min,
+                                xp_reward_max = EXCLUDED.xp_reward_max,
+                                ember_reward_min = EXCLUDED.ember_reward_min,
+                                ember_reward_max = EXCLUDED.ember_reward_max,
+                                aura_chance = EXCLUDED.aura_chance,
+                                narrative_intro = EXCLUDED.narrative_intro,
+                                category = EXCLUDED.category,
+                                narrative_steps = EXCLUDED.narrative_steps,
+                                pyre_reward_min = 0,
+                                pyre_reward_max = 0,
+                                is_active = TRUE
+                        """, (
+                            mission_id, mission_def[1], mission_def[2], mission_def[3],
+                            mission_def[4], mission_def[5], mission_def[6], mission_def[7],
+                            mission_def[8], mission_def[9], mission_def[10], mission_def[11],
+                            category, json.dumps(narrative)
+                        ))
+                        missions_upserted += 1
 
-                    # =========================================================
-                    # FIX DURATIONS: EASY=120s (2min), MEDIUM=180s (3min), HARD=300s (5min)
-                    # =========================================================
-                    cur.execute("UPDATE micro_missions SET duration_seconds = 120 WHERE difficulty = 'EASY'")
-                    cur.execute("UPDATE micro_missions SET duration_seconds = 180 WHERE difficulty = 'MEDIUM'")
-                    cur.execute("UPDATE micro_missions SET duration_seconds = 300 WHERE difficulty = 'HARD'")
-                    print("⏱️ Fixed mission durations (EASY=2min, MEDIUM=3min, HARD=5min)")
-
-                    print("✅ Database migrations applied (including narrative system)")
+                    print(f"[Migration] UPSERTED {missions_upserted} missions with narratives (EASY=10 steps/2min, MEDIUM=20 steps/3min, HARD=35 steps/5min)")
+                    print("✅ Database migrations applied successfully!")
         except Exception as e:
             print(f"⚠️ Database migration warning: {e}")
 
@@ -1843,6 +1824,7 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
     def api_micro_mission_emergency_cleanup():
         """
         EMERGENCY: Force reload ALL narratives and fix ALL durations.
+        Uses UPSERT to ensure all 15 missions exist with correct data.
         Deletes all active missions and resets all emissaries.
         """
         if not POSTGRESQL_AVAILABLE:
@@ -1883,30 +1865,84 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
                     """)
                     results['cooldowns_table_recreated'] = True
 
-                    # 4. Force update ALL durations
-                    cur.execute("UPDATE micro_missions SET duration_seconds = 120 WHERE difficulty = 'EASY'")
-                    cur.execute("UPDATE micro_missions SET duration_seconds = 180 WHERE difficulty = 'MEDIUM'")
-                    cur.execute("UPDATE micro_missions SET duration_seconds = 300 WHERE difficulty = 'HARD'")
-                    results['durations_fixed'] = True
-
                     # 4. Load narratives from narrative_data.py
                     narratives = get_all_narratives()
                     categories = MISSION_CATEGORIES
 
-                    for mission_id, narrative in narratives.items():
-                        category = categories.get(mission_id, 'PATROL')
-                        cur.execute("""
-                            UPDATE micro_missions
-                            SET narrative_steps = %s::jsonb, category = %s
-                            WHERE id = %s
-                        """, (json.dumps(narrative), category, mission_id))
+                    # Define complete mission data with narratives
+                    # EASY missions: 10 steps, 120 seconds (2 min)
+                    # MEDIUM missions: 20 steps, 180 seconds (3 min)
+                    # HARD missions: 35 steps, 300 seconds (5 min)
+                    mission_definitions = [
+                        # EASY missions (10 steps, 2 min)
+                        ('MM-E001', 'The Whispering Flame', 'A faint voice calls from the eternal brazier.', 'EASY', 120, 5, 5, 10, 10, 20, 5.00, 'The flames flicker as you approach...', 'LORE'),
+                        ('MM-E002', 'Ember Gathering', 'Collect scattered embers in the Ashen Fields.', 'EASY', 120, 5, 3, 8, 8, 15, 3.00, 'Glowing embers dot the landscape...', 'PATROL'),
+                        ('MM-E003', 'Patrol the Perimeter', 'A routine patrol around the portal edge.', 'EASY', 120, 5, 5, 10, 10, 20, 5.00, 'You take your position at the edge...', 'PATROL'),
+                        ('MM-E004', 'Rune Meditation', 'Meditate before the ancient rune stone.', 'EASY', 120, 3, 2, 5, 5, 12, 2.00, 'The rune stone hums with energy...', 'LORE'),
+                        ('MM-E005', 'Forge Apprentice', 'Assist the blacksmith at the Eternal Forge.', 'EASY', 120, 5, 3, 8, 8, 15, 3.00, 'The heat of the forge washes over you...', 'GUILD'),
+                        # MEDIUM missions (20 steps, 3 min)
+                        ('MM-M001', 'Void Echoes Investigation', 'Strange sounds from the void. Investigate.', 'MEDIUM', 180, 10, 10, 20, 25, 40, 10.00, 'The void whispers secrets...', 'EXPLORATION'),
+                        ('MM-M002', 'Guild Messenger', 'Deliver urgent message between outposts.', 'MEDIUM', 180, 8, 8, 15, 20, 35, 8.00, 'A sealed scroll bears your guild mark...', 'GUILD'),
+                        ('MM-M003', 'Ash Beast Tracking', 'Track ash beast movements near settlement.', 'MEDIUM', 180, 10, 10, 20, 25, 40, 10.00, 'Strange tracks mark the ground...', 'PATROL'),
+                        ('MM-M004', 'Crystal Harvesting', 'Harvest crystals from the Singing Caves.', 'MEDIUM', 180, 8, 8, 15, 20, 35, 8.00, 'The caves sing with harmonies...', 'EXPLORATION'),
+                        ('MM-M005', 'Spirit Communion', 'Commune with spirits of fallen emissaries.', 'MEDIUM', 180, 10, 10, 20, 25, 40, 12.00, 'The veil between worlds grows thin...', 'LORE'),
+                        # HARD missions (35 steps, 5 min)
+                        ('MM-H001', 'Void Rift Sealing', 'A dangerous rift has opened. Seal it.', 'HARD', 300, 15, 20, 35, 50, 80, 20.00, 'Reality tears before you...', 'LEGENDARY'),
+                        ('MM-H002', 'Ancient Guardian Trial', 'Face the trial of the Ancient Guardian.', 'HARD', 300, 20, 25, 40, 60, 100, 25.00, 'The stone guardian awakens...', 'EXPLORATION'),
+                        ('MM-H003', 'Legendary Artifact Recovery', 'Retrieve artifact from dangerous territory.', 'HARD', 300, 25, 30, 50, 80, 120, 30.00, 'The artifact pulses with power...', 'LEGENDARY'),
+                        ('MM-H004', 'Elite Ash Beast Hunt', 'An elite ash beast threatens the realm.', 'HARD', 300, 20, 25, 40, 60, 100, 25.00, 'Massive tracks scar the landscape...', 'LEGENDARY'),
+                        ('MM-H005', 'Forge of Legends', 'Assist in forging a legendary weapon.', 'HARD', 300, 15, 20, 35, 50, 80, 20.00, 'The master smith summons you...', 'GUILD'),
+                    ]
 
+                    # UPSERT each mission with complete data including narratives
+                    missions_upserted = 0
+                    for mission_def in mission_definitions:
+                        mission_id = mission_def[0]
+                        narrative = narratives.get(mission_id, {})
+                        category = mission_def[12]
+
+                        cur.execute("""
+                            INSERT INTO micro_missions (
+                                id, name, description, difficulty, duration_seconds,
+                                energy_cost, xp_reward_min, xp_reward_max,
+                                ember_reward_min, ember_reward_max, aura_chance,
+                                narrative_intro, category, narrative_steps,
+                                pyre_reward_min, pyre_reward_max, is_active
+                            ) VALUES (
+                                %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb, 0, 0, TRUE
+                            )
+                            ON CONFLICT (id) DO UPDATE SET
+                                name = EXCLUDED.name,
+                                description = EXCLUDED.description,
+                                difficulty = EXCLUDED.difficulty,
+                                duration_seconds = EXCLUDED.duration_seconds,
+                                energy_cost = EXCLUDED.energy_cost,
+                                xp_reward_min = EXCLUDED.xp_reward_min,
+                                xp_reward_max = EXCLUDED.xp_reward_max,
+                                ember_reward_min = EXCLUDED.ember_reward_min,
+                                ember_reward_max = EXCLUDED.ember_reward_max,
+                                aura_chance = EXCLUDED.aura_chance,
+                                narrative_intro = EXCLUDED.narrative_intro,
+                                category = EXCLUDED.category,
+                                narrative_steps = EXCLUDED.narrative_steps,
+                                pyre_reward_min = 0,
+                                pyre_reward_max = 0,
+                                is_active = TRUE
+                        """, (
+                            mission_id, mission_def[1], mission_def[2], mission_def[3],
+                            mission_def[4], mission_def[5], mission_def[6], mission_def[7],
+                            mission_def[8], mission_def[9], mission_def[10], mission_def[11],
+                            category, json.dumps(narrative)
+                        ))
+                        missions_upserted += 1
+
+                    results['missions_upserted'] = missions_upserted
                     results['narratives_loaded'] = len(narratives)
 
-                    # 5. Verify narratives loaded correctly
+                    # 5. Verify all missions have correct data
                     cur.execute("""
                         SELECT id,
-                               (narrative_steps->'total_steps')::int as total_steps,
+                               COALESCE((narrative_steps->'total_steps')::int, 0) as total_steps,
                                difficulty,
                                duration_seconds
                         FROM micro_missions
@@ -1923,10 +1959,22 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
                         })
                     results['missions'] = missions
 
+                    # Summary for verification
+                    easy_ok = sum(1 for m in missions if m['difficulty'] == 'EASY' and m['total_steps'] == 10 and m['duration_seconds'] == 120)
+                    medium_ok = sum(1 for m in missions if m['difficulty'] == 'MEDIUM' and m['total_steps'] == 20 and m['duration_seconds'] == 180)
+                    hard_ok = sum(1 for m in missions if m['difficulty'] == 'HARD' and m['total_steps'] == 35 and m['duration_seconds'] == 300)
+
+                    results['verification'] = {
+                        'easy_correct': f"{easy_ok}/5",
+                        'medium_correct': f"{medium_ok}/5",
+                        'hard_correct': f"{hard_ok}/5",
+                        'all_correct': easy_ok == 5 and medium_ok == 5 and hard_ok == 5
+                    }
+
                     return jsonify({
                         "success": True,
                         "results": results,
-                        "message": f"Emergency cleanup complete! Loaded {len(narratives)} narratives with correct step counts."
+                        "message": f"Emergency cleanup complete! UPSERTED {missions_upserted} missions with {len(narratives)} narratives. EASY=10 steps/2min, MEDIUM=20 steps/3min, HARD=35 steps/5min."
                     })
 
         except Exception as e:
