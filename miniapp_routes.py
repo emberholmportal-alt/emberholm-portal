@@ -292,120 +292,85 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
         try:
             with get_db_connection() as conn:
                 with conn.cursor() as cur:
-                    # FIX: Ensure ember_balance supports decimal values (0.1, 0.5, etc.)
-                    # This migration converts INTEGER to NUMERIC for proper EMBER tracking
-                    cur.execute("""
-                        DO $$
-                        BEGIN
-                            ALTER TABLE user_balances ALTER COLUMN ember_balance TYPE NUMERIC(18,2);
-                        EXCEPTION WHEN undefined_table THEN
-                            -- Table doesn't exist yet, will be created with correct type
-                            NULL;
-                        END $$;
-                    """)
+                    print("=" * 60)
+                    print("[MICRO-MISSIONS] Starting complete system initialization...")
+                    print("=" * 60)
 
                     # =========================================================
-                    # MIGRATION 003: Micro-Missions Narrative System
+                    # STEP 1: CREATE micro_missions TABLE (if not exists)
+                    # This is the MASTER table - must exist before anything else
                     # =========================================================
-
-                    # Add narrative columns to micro_missions table
+                    print("[Step 1] Creating micro_missions table...")
                     cur.execute("""
-                        ALTER TABLE micro_missions ADD COLUMN IF NOT EXISTS narrative_choices JSONB DEFAULT '[]'::jsonb;
-                    """)
-                    cur.execute("""
-                        ALTER TABLE micro_missions ADD COLUMN IF NOT EXISTS narrative_outcomes JSONB DEFAULT '{}'::jsonb;
-                    """)
-                    cur.execute("""
-                        ALTER TABLE micro_missions ADD COLUMN IF NOT EXISTS category VARCHAR(20) DEFAULT 'PATROL';
-                    """)
-                    cur.execute("""
-                        ALTER TABLE micro_missions ADD COLUMN IF NOT EXISTS lore_connection TEXT;
-                    """)
-                    cur.execute("""
-                        ALTER TABLE micro_missions ADD COLUMN IF NOT EXISTS achievements JSONB DEFAULT '{}'::jsonb;
-                    """)
-                    # Add narrative_steps for multi-step adventures
-                    cur.execute("""
-                        ALTER TABLE micro_missions ADD COLUMN IF NOT EXISTS narrative_steps JSONB DEFAULT '{}'::jsonb;
-                    """)
-
-                    # Create active_micro_missions table
-                    cur.execute("""
-                        CREATE TABLE IF NOT EXISTS active_micro_missions (
-                            id SERIAL PRIMARY KEY,
-                            wallet VARCHAR(42) NOT NULL,
-                            emissary_token_id VARCHAR(10) NOT NULL,
-                            micro_mission_id VARCHAR(20) NOT NULL REFERENCES micro_missions(id),
-                            current_step VARCHAR(10) DEFAULT '1',
-                            choices_path JSONB DEFAULT '[]'::jsonb,
-                            choice_made VARCHAR(50),
-                            score INTEGER DEFAULT 0,
-                            status VARCHAR(20) DEFAULT 'active',
-                            started_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                            ends_at TIMESTAMP,
-                            completed_at TIMESTAMP,
-                            outcome_type VARCHAR(20),
-                            outcome_text TEXT,
-                            pyre_earned NUMERIC(18,2) DEFAULT 0,
-                            xp_earned INTEGER DEFAULT 0,
-                            aura_earned INTEGER DEFAULT 0,
-                            rewards_claimed BOOLEAN DEFAULT FALSE
-                        )
-                    """)
-                    # Add choices_path column if missing
-                    cur.execute("""
-                        ALTER TABLE active_micro_missions ADD COLUMN IF NOT EXISTS choices_path JSONB DEFAULT '[]'::jsonb
-                    """)
-                    # Add ending_reached column for multi-step narrative endings
-                    cur.execute("""
-                        ALTER TABLE active_micro_missions ADD COLUMN IF NOT EXISTS ending_reached VARCHAR(50) DEFAULT NULL
-                    """)
-                    # Update current_step to VARCHAR if it's INTEGER (for step keys like "2A", "2B")
-                    cur.execute("""
-                        ALTER TABLE active_micro_missions ALTER COLUMN current_step TYPE VARCHAR(10) USING current_step::VARCHAR
-                    """)
-                    cur.execute("""
-                        CREATE INDEX IF NOT EXISTS idx_active_micro_missions_wallet ON active_micro_missions(wallet)
-                    """)
-                    cur.execute("""
-                        CREATE INDEX IF NOT EXISTS idx_active_micro_missions_status ON active_micro_missions(status)
-                    """)
-
-                    # Create micro_mission_cooldowns table (per emissary, not per wallet)
-                    cur.execute("""
-                        CREATE TABLE IF NOT EXISTS micro_mission_cooldowns (
-                            id SERIAL PRIMARY KEY,
-                            emissary_token_id VARCHAR(10) NOT NULL,
-                            mission_id VARCHAR(20) NOT NULL,
-                            cooldown_until TIMESTAMP NOT NULL,
-                            UNIQUE(emissary_token_id, mission_id)
+                        CREATE TABLE IF NOT EXISTS micro_missions (
+                            id VARCHAR(20) PRIMARY KEY,
+                            name VARCHAR(100) NOT NULL,
+                            description TEXT,
+                            difficulty VARCHAR(20) NOT NULL,
+                            duration_seconds INTEGER NOT NULL DEFAULT 120,
+                            energy_cost INTEGER DEFAULT 0,
+                            pyre_reward_min INTEGER DEFAULT 0,
+                            pyre_reward_max INTEGER DEFAULT 0,
+                            xp_reward_min INTEGER DEFAULT 0,
+                            xp_reward_max INTEGER DEFAULT 0,
+                            ember_reward_min INTEGER DEFAULT 0,
+                            ember_reward_max INTEGER DEFAULT 0,
+                            aura_chance DECIMAL(5,2) DEFAULT 0,
+                            narrative_intro TEXT,
+                            narrative_choices JSONB DEFAULT '[]'::jsonb,
+                            narrative_outcomes JSONB DEFAULT '{}'::jsonb,
+                            narrative_steps JSONB DEFAULT '{}'::jsonb,
+                            category VARCHAR(20) DEFAULT 'PATROL',
+                            is_active BOOLEAN DEFAULT TRUE,
+                            cooldown_minutes INTEGER DEFAULT 0,
+                            created_at TIMESTAMP DEFAULT NOW()
                         )
                     """)
 
-                    # Create micro_mission_history table
+                    # Add columns that might be missing from old schema
+                    cur.execute("ALTER TABLE micro_missions ADD COLUMN IF NOT EXISTS narrative_steps JSONB DEFAULT '{}'::jsonb")
+                    cur.execute("ALTER TABLE micro_missions ADD COLUMN IF NOT EXISTS category VARCHAR(20) DEFAULT 'PATROL'")
+                    cur.execute("ALTER TABLE micro_missions ADD COLUMN IF NOT EXISTS ember_reward_min INTEGER DEFAULT 0")
+                    cur.execute("ALTER TABLE micro_missions ADD COLUMN IF NOT EXISTS ember_reward_max INTEGER DEFAULT 0")
+                    print("[Step 1] micro_missions table ready ✓")
+
+                    # =========================================================
+                    # STEP 2: DROP and RECREATE active_micro_missions
+                    # Fresh start - no corrupted data
+                    # =========================================================
+                    print("[Step 2] Recreating active_micro_missions table...")
+                    cur.execute("DROP TABLE IF EXISTS active_micro_missions CASCADE")
                     cur.execute("""
-                        CREATE TABLE IF NOT EXISTS micro_mission_history (
+                        CREATE TABLE active_micro_missions (
                             id SERIAL PRIMARY KEY,
                             wallet VARCHAR(42) NOT NULL,
                             emissary_token_id VARCHAR(10) NOT NULL,
                             micro_mission_id VARCHAR(20) NOT NULL,
-                            choice_made VARCHAR(50),
+                            current_step VARCHAR(10) DEFAULT '1',
+                            choices_path JSONB DEFAULT '[]'::jsonb,
+                            bold_score INTEGER DEFAULT 0,
+                            status VARCHAR(20) DEFAULT 'active',
+                            started_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                            ends_at TIMESTAMP,
+                            completed_at TIMESTAMP,
+                            ending_reached VARCHAR(50),
                             outcome_type VARCHAR(20),
-                            score INTEGER DEFAULT 0,
-                            pyre_earned NUMERIC(18,2) DEFAULT 0,
+                            outcome_text TEXT,
                             xp_earned INTEGER DEFAULT 0,
                             ember_earned NUMERIC(18,2) DEFAULT 0,
-                            aura_earned BOOLEAN DEFAULT FALSE,
-                            completed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                            aura_earned INTEGER DEFAULT 0,
+                            rewards_claimed BOOLEAN DEFAULT FALSE
                         )
                     """)
+                    cur.execute("CREATE INDEX IF NOT EXISTS idx_active_mm_wallet ON active_micro_missions(wallet)")
+                    cur.execute("CREATE INDEX IF NOT EXISTS idx_active_mm_status ON active_micro_missions(status)")
+                    cur.execute("CREATE INDEX IF NOT EXISTS idx_active_mm_emissary ON active_micro_missions(emissary_token_id)")
+                    print("[Step 2] active_micro_missions table recreated ✓")
 
                     # =========================================================
-                    # FULL RESET: Recreate cooldowns table, delete active missions
+                    # STEP 3: DROP and RECREATE cooldowns table
                     # =========================================================
-                    print("[Migration] Resetting micro-missions system...")
-
-                    # Recreate cooldowns table with correct schema (per emissary)
+                    print("[Step 3] Recreating cooldowns table...")
                     cur.execute("DROP TABLE IF EXISTS micro_mission_cooldowns CASCADE")
                     cur.execute("""
                         CREATE TABLE micro_mission_cooldowns (
@@ -416,14 +381,12 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
                             UNIQUE(emissary_token_id, mission_id)
                         )
                     """)
-                    print("[Migration] Recreated micro_mission_cooldowns table")
+                    print("[Step 3] micro_mission_cooldowns table recreated ✓")
 
-                    # Delete ALL active missions for fresh start
-                    cur.execute("DELETE FROM active_micro_missions")
-                    active_deleted = cur.rowcount
-                    print(f"[Migration] Deleted {active_deleted} active micro-missions")
-
-                    # Reset ALL emissaries stuck in ON_MICRO_MISSION state
+                    # =========================================================
+                    # STEP 4: Reset ALL emissaries stuck in ON_MICRO_MISSION
+                    # =========================================================
+                    print("[Step 4] Resetting emissaries...")
                     cur.execute("""
                         UPDATE nfts SET
                             dynamic_state = jsonb_set(
@@ -435,31 +398,36 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
                         WHERE dynamic_state->>'state' = 'ON_MICRO_MISSION'
                     """)
                     emissaries_reset = cur.rowcount
-                    print(f"[Migration] Reset {emissaries_reset} emissaries to READY")
+                    print(f"[Step 4] Reset {emissaries_reset} emissaries to READY ✓")
 
                     # =========================================================
-                    # UPSERT ALL 15 MISSIONS WITH NARRATIVES AND CORRECT DATA
-                    # Uses INSERT ON CONFLICT to ensure missions exist
-                    # EASY=10 steps/2min, MEDIUM=20 steps/3min, HARD=35 steps/5min
+                    # STEP 5: DELETE ALL existing missions and INSERT fresh
+                    # This ensures NO corrupted data remains
                     # =========================================================
-                    print("[Migration] UPSERT all missions with narratives from narrative_data.py...")
+                    print("[Step 5] Loading all 15 missions with narratives...")
+
+                    # First delete all existing missions
+                    cur.execute("DELETE FROM micro_missions")
+                    print(f"[Step 5] Cleared old mission data")
+
+                    # Get narratives from narrative_data.py
                     narratives = get_all_narratives()
 
-                    # Complete mission definitions
-                    mission_definitions = [
-                        # EASY missions (10 steps, 2 min = 120s)
+                    # Insert all 15 missions with complete data
+                    missions_data = [
+                        # EASY: 10 steps, 2 minutes (120s)
                         ('MM-E001', 'The Whispering Flame', 'A faint voice calls from the eternal brazier.', 'EASY', 120, 5, 5, 10, 10, 20, 5.00, 'The flames flicker as you approach...', 'LORE'),
                         ('MM-E002', 'Ember Gathering', 'Collect scattered embers in the Ashen Fields.', 'EASY', 120, 5, 3, 8, 8, 15, 3.00, 'Glowing embers dot the landscape...', 'PATROL'),
                         ('MM-E003', 'Patrol the Perimeter', 'A routine patrol around the portal edge.', 'EASY', 120, 5, 5, 10, 10, 20, 5.00, 'You take your position at the edge...', 'PATROL'),
                         ('MM-E004', 'Rune Meditation', 'Meditate before the ancient rune stone.', 'EASY', 120, 3, 2, 5, 5, 12, 2.00, 'The rune stone hums with energy...', 'LORE'),
                         ('MM-E005', 'Forge Apprentice', 'Assist the blacksmith at the Eternal Forge.', 'EASY', 120, 5, 3, 8, 8, 15, 3.00, 'The heat of the forge washes over you...', 'GUILD'),
-                        # MEDIUM missions (20 steps, 3 min = 180s)
+                        # MEDIUM: 20 steps, 3 minutes (180s)
                         ('MM-M001', 'Void Echoes Investigation', 'Strange sounds from the void. Investigate.', 'MEDIUM', 180, 10, 10, 20, 25, 40, 10.00, 'The void whispers secrets...', 'EXPLORATION'),
                         ('MM-M002', 'Guild Messenger', 'Deliver urgent message between outposts.', 'MEDIUM', 180, 8, 8, 15, 20, 35, 8.00, 'A sealed scroll bears your guild mark...', 'GUILD'),
                         ('MM-M003', 'Ash Beast Tracking', 'Track ash beast movements near settlement.', 'MEDIUM', 180, 10, 10, 20, 25, 40, 10.00, 'Strange tracks mark the ground...', 'PATROL'),
                         ('MM-M004', 'Crystal Harvesting', 'Harvest crystals from the Singing Caves.', 'MEDIUM', 180, 8, 8, 15, 20, 35, 8.00, 'The caves sing with harmonies...', 'EXPLORATION'),
                         ('MM-M005', 'Spirit Communion', 'Commune with spirits of fallen emissaries.', 'MEDIUM', 180, 10, 10, 20, 25, 40, 12.00, 'The veil between worlds grows thin...', 'LORE'),
-                        # HARD missions (35 steps, 5 min = 300s)
+                        # HARD: 35 steps, 5 minutes (300s)
                         ('MM-H001', 'Void Rift Sealing', 'A dangerous rift has opened. Seal it.', 'HARD', 300, 15, 20, 35, 50, 80, 20.00, 'Reality tears before you...', 'LEGENDARY'),
                         ('MM-H002', 'Ancient Guardian Trial', 'Face the trial of the Ancient Guardian.', 'HARD', 300, 20, 25, 40, 60, 100, 25.00, 'The stone guardian awakens...', 'EXPLORATION'),
                         ('MM-H003', 'Legendary Artifact Recovery', 'Retrieve artifact from dangerous territory.', 'HARD', 300, 25, 30, 50, 80, 120, 30.00, 'The artifact pulses with power...', 'LEGENDARY'),
@@ -467,11 +435,10 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
                         ('MM-H005', 'Forge of Legends', 'Assist in forging a legendary weapon.', 'HARD', 300, 15, 20, 35, 50, 80, 20.00, 'The master smith summons you...', 'GUILD'),
                     ]
 
-                    missions_upserted = 0
-                    for mission_def in mission_definitions:
-                        mission_id = mission_def[0]
+                    for m in missions_data:
+                        mission_id = m[0]
                         narrative = narratives.get(mission_id, {})
-                        category = mission_def[12]
+                        narrative_json = json.dumps(narrative) if narrative else '{}'
 
                         cur.execute("""
                             INSERT INTO micro_missions (
@@ -480,38 +447,51 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
                                 ember_reward_min, ember_reward_max, aura_chance,
                                 narrative_intro, category, narrative_steps,
                                 pyre_reward_min, pyre_reward_max, is_active
-                            ) VALUES (
-                                %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb, 0, 0, TRUE
-                            )
-                            ON CONFLICT (id) DO UPDATE SET
-                                name = EXCLUDED.name,
-                                description = EXCLUDED.description,
-                                difficulty = EXCLUDED.difficulty,
-                                duration_seconds = EXCLUDED.duration_seconds,
-                                energy_cost = EXCLUDED.energy_cost,
-                                xp_reward_min = EXCLUDED.xp_reward_min,
-                                xp_reward_max = EXCLUDED.xp_reward_max,
-                                ember_reward_min = EXCLUDED.ember_reward_min,
-                                ember_reward_max = EXCLUDED.ember_reward_max,
-                                aura_chance = EXCLUDED.aura_chance,
-                                narrative_intro = EXCLUDED.narrative_intro,
-                                category = EXCLUDED.category,
-                                narrative_steps = EXCLUDED.narrative_steps,
-                                pyre_reward_min = 0,
-                                pyre_reward_max = 0,
-                                is_active = TRUE
+                            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb, 0, 0, TRUE)
                         """, (
-                            mission_id, mission_def[1], mission_def[2], mission_def[3],
-                            mission_def[4], mission_def[5], mission_def[6], mission_def[7],
-                            mission_def[8], mission_def[9], mission_def[10], mission_def[11],
-                            category, json.dumps(narrative)
+                            m[0], m[1], m[2], m[3], m[4], m[5], m[6], m[7],
+                            m[8], m[9], m[10], m[11], m[12], narrative_json
                         ))
-                        missions_upserted += 1
 
-                    print(f"[Migration] UPSERTED {missions_upserted} missions with narratives (EASY=10 steps/2min, MEDIUM=20 steps/3min, HARD=35 steps/5min)")
-                    print("✅ Database migrations applied successfully!")
+                    print(f"[Step 5] Inserted 15 missions with narratives ✓")
+
+                    # =========================================================
+                    # STEP 6: VERIFY data is correct
+                    # =========================================================
+                    print("[Step 6] Verifying data...")
+                    cur.execute("""
+                        SELECT id, difficulty, duration_seconds,
+                               COALESCE((narrative_steps->>'total_steps')::int, 0) as total_steps
+                        FROM micro_missions
+                        ORDER BY id
+                    """)
+                    rows = cur.fetchall()
+
+                    easy_ok = sum(1 for r in rows if r[1] == 'EASY' and r[2] == 120 and r[3] == 10)
+                    medium_ok = sum(1 for r in rows if r[1] == 'MEDIUM' and r[2] == 180 and r[3] == 20)
+                    hard_ok = sum(1 for r in rows if r[1] == 'HARD' and r[2] == 300 and r[3] == 35)
+
+                    print(f"[Step 6] EASY missions: {easy_ok}/5 correct (10 steps, 120s)")
+                    print(f"[Step 6] MEDIUM missions: {medium_ok}/5 correct (20 steps, 180s)")
+                    print(f"[Step 6] HARD missions: {hard_ok}/5 correct (35 steps, 300s)")
+
+                    if easy_ok == 5 and medium_ok == 5 and hard_ok == 5:
+                        print("=" * 60)
+                        print("✅ MICRO-MISSIONS SYSTEM INITIALIZED SUCCESSFULLY!")
+                        print("   - 15 missions loaded with full narratives")
+                        print("   - EASY: 10 steps, 2 min timer")
+                        print("   - MEDIUM: 20 steps, 3 min timer")
+                        print("   - HARD: 35 steps, 5 min timer")
+                        print("=" * 60)
+                    else:
+                        print("⚠️ WARNING: Some missions may not have loaded correctly!")
+                        for r in rows:
+                            print(f"   {r[0]}: {r[1]}, {r[2]}s, {r[3]} steps")
+
         except Exception as e:
-            print(f"⚠️ Database migration warning: {e}")
+            print(f"❌ CRITICAL ERROR in micro-missions migration: {e}")
+            import traceback
+            traceback.print_exc()
 
     # =====================================================================
     # REALM STATUS
@@ -1823,9 +1803,8 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
     @app.route('/api/micro-mission/emergency-cleanup', methods=['POST'])
     def api_micro_mission_emergency_cleanup():
         """
-        EMERGENCY: Force reload ALL narratives and fix ALL durations.
-        Uses UPSERT to ensure all 15 missions exist with correct data.
-        Deletes all active missions and resets all emissaries.
+        EMERGENCY: Complete system reset and reload.
+        Drops all mission data and reloads from scratch.
         """
         if not POSTGRESQL_AVAILABLE:
             return jsonify({"error": "Database not available"}), 503
@@ -1835,11 +1814,46 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
                 with conn.cursor() as cur:
                     results = {}
 
-                    # 1. Delete ALL active micro-missions
-                    cur.execute("DELETE FROM active_micro_missions WHERE status IN ('active', 'choice_pending')")
-                    results['deleted_missions'] = cur.rowcount
+                    # 1. Drop and recreate active_micro_missions
+                    cur.execute("DROP TABLE IF EXISTS active_micro_missions CASCADE")
+                    cur.execute("""
+                        CREATE TABLE active_micro_missions (
+                            id SERIAL PRIMARY KEY,
+                            wallet VARCHAR(42) NOT NULL,
+                            emissary_token_id VARCHAR(10) NOT NULL,
+                            micro_mission_id VARCHAR(20) NOT NULL,
+                            current_step VARCHAR(10) DEFAULT '1',
+                            choices_path JSONB DEFAULT '[]'::jsonb,
+                            bold_score INTEGER DEFAULT 0,
+                            status VARCHAR(20) DEFAULT 'active',
+                            started_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                            ends_at TIMESTAMP,
+                            completed_at TIMESTAMP,
+                            ending_reached VARCHAR(50),
+                            outcome_type VARCHAR(20),
+                            outcome_text TEXT,
+                            xp_earned INTEGER DEFAULT 0,
+                            ember_earned NUMERIC(18,2) DEFAULT 0,
+                            aura_earned INTEGER DEFAULT 0,
+                            rewards_claimed BOOLEAN DEFAULT FALSE
+                        )
+                    """)
+                    results['active_missions_reset'] = True
 
-                    # 2. Reset ALL emissaries from ON_MICRO_MISSION to READY
+                    # 2. Drop and recreate cooldowns
+                    cur.execute("DROP TABLE IF EXISTS micro_mission_cooldowns CASCADE")
+                    cur.execute("""
+                        CREATE TABLE micro_mission_cooldowns (
+                            id SERIAL PRIMARY KEY,
+                            emissary_token_id VARCHAR(10) NOT NULL,
+                            mission_id VARCHAR(20) NOT NULL,
+                            cooldown_until TIMESTAMP NOT NULL,
+                            UNIQUE(emissary_token_id, mission_id)
+                        )
+                    """)
+                    results['cooldowns_reset'] = True
+
+                    # 3. Reset ALL emissaries
                     cur.execute("""
                         UPDATE nfts SET
                             dynamic_state = jsonb_set(
@@ -1852,41 +1866,21 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
                     """)
                     results['emissaries_reset'] = cur.rowcount
 
-                    # 3. Recreate cooldowns table with correct schema
-                    cur.execute("DROP TABLE IF EXISTS micro_mission_cooldowns CASCADE")
-                    cur.execute("""
-                        CREATE TABLE micro_mission_cooldowns (
-                            id SERIAL PRIMARY KEY,
-                            emissary_token_id VARCHAR(10) NOT NULL,
-                            mission_id VARCHAR(20) NOT NULL,
-                            cooldown_until TIMESTAMP NOT NULL,
-                            UNIQUE(emissary_token_id, mission_id)
-                        )
-                    """)
-                    results['cooldowns_table_recreated'] = True
-
-                    # 4. Load narratives from narrative_data.py
+                    # 4. Delete ALL missions and reload fresh
+                    cur.execute("DELETE FROM micro_missions")
                     narratives = get_all_narratives()
-                    categories = MISSION_CATEGORIES
 
-                    # Define complete mission data with narratives
-                    # EASY missions: 10 steps, 120 seconds (2 min)
-                    # MEDIUM missions: 20 steps, 180 seconds (3 min)
-                    # HARD missions: 35 steps, 300 seconds (5 min)
-                    mission_definitions = [
-                        # EASY missions (10 steps, 2 min)
+                    missions_data = [
                         ('MM-E001', 'The Whispering Flame', 'A faint voice calls from the eternal brazier.', 'EASY', 120, 5, 5, 10, 10, 20, 5.00, 'The flames flicker as you approach...', 'LORE'),
                         ('MM-E002', 'Ember Gathering', 'Collect scattered embers in the Ashen Fields.', 'EASY', 120, 5, 3, 8, 8, 15, 3.00, 'Glowing embers dot the landscape...', 'PATROL'),
                         ('MM-E003', 'Patrol the Perimeter', 'A routine patrol around the portal edge.', 'EASY', 120, 5, 5, 10, 10, 20, 5.00, 'You take your position at the edge...', 'PATROL'),
                         ('MM-E004', 'Rune Meditation', 'Meditate before the ancient rune stone.', 'EASY', 120, 3, 2, 5, 5, 12, 2.00, 'The rune stone hums with energy...', 'LORE'),
                         ('MM-E005', 'Forge Apprentice', 'Assist the blacksmith at the Eternal Forge.', 'EASY', 120, 5, 3, 8, 8, 15, 3.00, 'The heat of the forge washes over you...', 'GUILD'),
-                        # MEDIUM missions (20 steps, 3 min)
                         ('MM-M001', 'Void Echoes Investigation', 'Strange sounds from the void. Investigate.', 'MEDIUM', 180, 10, 10, 20, 25, 40, 10.00, 'The void whispers secrets...', 'EXPLORATION'),
                         ('MM-M002', 'Guild Messenger', 'Deliver urgent message between outposts.', 'MEDIUM', 180, 8, 8, 15, 20, 35, 8.00, 'A sealed scroll bears your guild mark...', 'GUILD'),
                         ('MM-M003', 'Ash Beast Tracking', 'Track ash beast movements near settlement.', 'MEDIUM', 180, 10, 10, 20, 25, 40, 10.00, 'Strange tracks mark the ground...', 'PATROL'),
                         ('MM-M004', 'Crystal Harvesting', 'Harvest crystals from the Singing Caves.', 'MEDIUM', 180, 8, 8, 15, 20, 35, 8.00, 'The caves sing with harmonies...', 'EXPLORATION'),
                         ('MM-M005', 'Spirit Communion', 'Commune with spirits of fallen emissaries.', 'MEDIUM', 180, 10, 10, 20, 25, 40, 12.00, 'The veil between worlds grows thin...', 'LORE'),
-                        # HARD missions (35 steps, 5 min)
                         ('MM-H001', 'Void Rift Sealing', 'A dangerous rift has opened. Seal it.', 'HARD', 300, 15, 20, 35, 50, 80, 20.00, 'Reality tears before you...', 'LEGENDARY'),
                         ('MM-H002', 'Ancient Guardian Trial', 'Face the trial of the Ancient Guardian.', 'HARD', 300, 20, 25, 40, 60, 100, 25.00, 'The stone guardian awakens...', 'EXPLORATION'),
                         ('MM-H003', 'Legendary Artifact Recovery', 'Retrieve artifact from dangerous territory.', 'HARD', 300, 25, 30, 50, 80, 120, 30.00, 'The artifact pulses with power...', 'LEGENDARY'),
@@ -1894,13 +1888,9 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
                         ('MM-H005', 'Forge of Legends', 'Assist in forging a legendary weapon.', 'HARD', 300, 15, 20, 35, 50, 80, 20.00, 'The master smith summons you...', 'GUILD'),
                     ]
 
-                    # UPSERT each mission with complete data including narratives
-                    missions_upserted = 0
-                    for mission_def in mission_definitions:
-                        mission_id = mission_def[0]
-                        narrative = narratives.get(mission_id, {})
-                        category = mission_def[12]
-
+                    for m in missions_data:
+                        narrative = narratives.get(m[0], {})
+                        narrative_json = json.dumps(narrative) if narrative else '{}'
                         cur.execute("""
                             INSERT INTO micro_missions (
                                 id, name, description, difficulty, duration_seconds,
@@ -1908,35 +1898,10 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
                                 ember_reward_min, ember_reward_max, aura_chance,
                                 narrative_intro, category, narrative_steps,
                                 pyre_reward_min, pyre_reward_max, is_active
-                            ) VALUES (
-                                %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb, 0, 0, TRUE
-                            )
-                            ON CONFLICT (id) DO UPDATE SET
-                                name = EXCLUDED.name,
-                                description = EXCLUDED.description,
-                                difficulty = EXCLUDED.difficulty,
-                                duration_seconds = EXCLUDED.duration_seconds,
-                                energy_cost = EXCLUDED.energy_cost,
-                                xp_reward_min = EXCLUDED.xp_reward_min,
-                                xp_reward_max = EXCLUDED.xp_reward_max,
-                                ember_reward_min = EXCLUDED.ember_reward_min,
-                                ember_reward_max = EXCLUDED.ember_reward_max,
-                                aura_chance = EXCLUDED.aura_chance,
-                                narrative_intro = EXCLUDED.narrative_intro,
-                                category = EXCLUDED.category,
-                                narrative_steps = EXCLUDED.narrative_steps,
-                                pyre_reward_min = 0,
-                                pyre_reward_max = 0,
-                                is_active = TRUE
-                        """, (
-                            mission_id, mission_def[1], mission_def[2], mission_def[3],
-                            mission_def[4], mission_def[5], mission_def[6], mission_def[7],
-                            mission_def[8], mission_def[9], mission_def[10], mission_def[11],
-                            category, json.dumps(narrative)
-                        ))
-                        missions_upserted += 1
+                            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb, 0, 0, TRUE)
+                        """, (m[0], m[1], m[2], m[3], m[4], m[5], m[6], m[7], m[8], m[9], m[10], m[11], m[12], narrative_json))
 
-                    results['missions_upserted'] = missions_upserted
+                    results['missions_loaded'] = 15
                     results['narratives_loaded'] = len(narratives)
 
                     # 5. Verify all missions have correct data
@@ -1974,7 +1939,7 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
                     return jsonify({
                         "success": True,
                         "results": results,
-                        "message": f"Emergency cleanup complete! UPSERTED {missions_upserted} missions with {len(narratives)} narratives. EASY=10 steps/2min, MEDIUM=20 steps/3min, HARD=35 steps/5min."
+                        "message": f"System reset complete! 15 missions loaded with narratives. EASY=10 steps/2min, MEDIUM=20 steps/3min, HARD=35 steps/5min."
                     })
 
         except Exception as e:
