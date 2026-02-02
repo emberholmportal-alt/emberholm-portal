@@ -593,7 +593,8 @@ function renderActiveMission(mission) {
     // Calculate step progress for multi-step adventures
     const currentStep = mission.current_step || '1';
     const choicesPath = mission.choices_path || [];
-    const stepNumber = choicesPath.length + 1;
+    const stepNumber = mission.step_number || (choicesPath.length + 1);
+    const totalSteps = mission.total_steps || 10;
     const endingReached = mission.ending_reached;
     const endingType = mission.ending_type;
 
@@ -619,7 +620,7 @@ function renderActiveMission(mission) {
                 <div class="narrative-header-info">
                     <div class="emissary-name">${emissaryName}</div>
                     <div class="mission-title">${missionName}</div>
-                    ${!endingReached ? `<div class="step-indicator">Step ${stepNumber}</div>` : ''}
+                    ${!endingReached ? `<div class="step-indicator">Step ${stepNumber} of ${totalSteps}</div>` : ''}
                 </div>
             </div>
 
@@ -647,7 +648,7 @@ function renderActiveMission(mission) {
             ${endingReached ? `
                 <div class="ending-reached-section">
                     <div class="ending-message">Your journey has reached its conclusion.</div>
-                    <div class="ending-hint">Wait for the timer to claim your rewards!</div>
+                    <div class="ending-hint">Mission complete! Claim your rewards now!</div>
                 </div>
             ` : choices.length > 0 ? `
                 <div class="narrative-choices">
@@ -674,8 +675,8 @@ function renderActiveMission(mission) {
         </div>
     `;
 
-    // Start countdown
-    startMissionCountdown(mission);
+    // Start countdown (pass ending_reached to enable immediate completion)
+    startMissionCountdown(mission, endingReached);
 }
 
 /**
@@ -820,8 +821,10 @@ async function handleMissionComplete(activeId) {
 
 /**
  * Start countdown timer for active mission
+ * @param {object} mission - The active mission data
+ * @param {boolean} endingReached - If true, allow immediate completion
  */
-function startMissionCountdown(mission) {
+function startMissionCountdown(mission, endingReached = false) {
     // Clear any existing interval
     if (microMissionsState.countdownInterval) {
         clearInterval(microMissionsState.countdownInterval);
@@ -830,6 +833,8 @@ function startMissionCountdown(mission) {
     const endsAt = new Date(mission.ends_at);
     const startedAt = new Date(mission.started_at);
     const totalDuration = endsAt - startedAt;
+    const activeId = mission.active_id;
+    let autoCompleteTriggered = false;
 
     function updateTimer() {
         const now = new Date();
@@ -841,10 +846,28 @@ function startMissionCountdown(mission) {
         const timerProgress = document.getElementById('timer-progress');
         const completeBtn = document.getElementById('complete-mission-btn');
 
-        if (timerValue) {
-            if (remaining <= 0) {
+        // If ending is reached, allow immediate claim regardless of timer
+        if (endingReached) {
+            if (timerValue) {
                 timerValue.textContent = 'COMPLETE!';
                 timerValue.classList.add('complete');
+            }
+            if (timerProgress) {
+                timerProgress.style.width = '100%';
+            }
+            if (completeBtn) {
+                completeBtn.disabled = false;
+                completeBtn.textContent = '[CLAIM REWARDS]';
+            }
+            clearInterval(microMissionsState.countdownInterval);
+            return;
+        }
+
+        // Normal countdown
+        if (timerValue) {
+            if (remaining <= 0) {
+                timerValue.textContent = 'TIME UP!';
+                timerValue.classList.add('expired');
             } else {
                 const minutes = Math.floor(remaining / 60000);
                 const seconds = Math.floor((remaining % 60000) / 1000);
@@ -859,15 +882,24 @@ function startMissionCountdown(mission) {
         if (completeBtn) {
             if (remaining <= 0) {
                 completeBtn.disabled = false;
-                completeBtn.textContent = '[CLAIM REWARDS]';
+                completeBtn.textContent = '[CHECK RESULTS]';
             } else {
                 completeBtn.disabled = true;
-                completeBtn.textContent = '[WAITING...]';
+                completeBtn.textContent = '[IN PROGRESS...]';
             }
         }
 
+        // Auto-trigger completion when time expires (will fail if no ending reached)
         if (remaining <= 0) {
             clearInterval(microMissionsState.countdownInterval);
+
+            // Auto-complete after a short delay (gives UI time to update)
+            if (!autoCompleteTriggered) {
+                autoCompleteTriggered = true;
+                setTimeout(() => {
+                    handleMissionComplete(activeId);
+                }, 1500);
+            }
         }
     }
 
@@ -879,6 +911,20 @@ function startMissionCountdown(mission) {
  * Show mission rewards modal
  */
 function showMissionRewardsModal(result) {
+    // Check if mission failed (time ran out without completing steps)
+    if (result.failed) {
+        const outcomeText = result.outcome_text || 'Time ran out! The mission has failed.';
+        showInfoModal('MISSION FAILED', `
+            <div style="color: #ef4444; text-align: center;">
+                ${outcomeText}
+            </div>
+            <div style="color: #888; font-size: 12px; margin-top: 15px; text-align: center;">
+                Complete all steps before the timer expires to earn rewards.
+            </div>
+        `);
+        return;
+    }
+
     const rewards = result.rewards || {};
 
     let rewardsHtml = '<div class="rewards-list">';
@@ -913,8 +959,15 @@ function showMissionRewardsModal(result) {
     rewardsHtml += '</div>';
 
     const outcomeText = result.outcome_text || 'Mission completed successfully!';
+    const endingType = result.ending_type || 'NEUTRAL';
 
-    showInfoModal('MISSION COMPLETE', `
+    // Title based on ending type
+    let title = 'MISSION COMPLETE';
+    if (endingType === 'LEGENDARY') title = 'LEGENDARY SUCCESS!';
+    else if (endingType === 'PERFECT') title = 'PERFECT RUN!';
+    else if (endingType === 'GOOD') title = 'WELL DONE!';
+
+    showInfoModal(title, `
         ${outcomeText}
 
         ${rewardsHtml}
