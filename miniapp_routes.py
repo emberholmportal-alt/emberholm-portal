@@ -996,8 +996,27 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
                             WHERE token_id = %s
                         """, (current_energy - mission[3], token_id))
 
-                    # Calculate end time
+                    # Check 24-hour cooldown per emissary
                     now = datetime.now(timezone.utc).replace(tzinfo=None)
+                    cur.execute("""
+                        SELECT cooldown_until FROM micro_mission_cooldowns
+                        WHERE emissary_token_id = %s AND mission_id = %s
+                        AND cooldown_until > %s
+                    """, (token_id, mission_id, now))
+                    cooldown_row = cur.fetchone()
+
+                    if cooldown_row:
+                        cooldown_until = cooldown_row[0]
+                        remaining = (cooldown_until - now).total_seconds()
+                        hours_remaining = int(remaining // 3600)
+                        mins_remaining = int((remaining % 3600) // 60)
+                        return jsonify({
+                            "error": f"This emissary must wait before repeating this mission",
+                            "cooldown_until": cooldown_until.isoformat(),
+                            "time_remaining": f"{hours_remaining}h {mins_remaining}m"
+                        }), 400
+
+                    # Calculate end time
                     ends_at = now + timedelta(seconds=mission[2])
 
                     # Create active micro-mission with current_step = "1"
@@ -1530,6 +1549,15 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
 
                     print(f"[MicroMission] Complete: {mission_name} -> XP:{xp_earned}, EMBER:{ember_earned}, AURA:{aura_earned}")
 
+                    # Set 24-hour cooldown for this emissary/mission combo
+                    cooldown_until = datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(hours=24)
+                    cur.execute("""
+                        INSERT INTO micro_mission_cooldowns (emissary_token_id, mission_id, cooldown_until)
+                        VALUES (%s, %s, %s)
+                        ON CONFLICT (emissary_token_id, mission_id) DO UPDATE SET
+                            cooldown_until = EXCLUDED.cooldown_until
+                    """, (token_id, row[2], cooldown_until))
+
                     return jsonify({
                         "success": True,
                         "completed": True,
@@ -1542,7 +1570,8 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
                         "outcome_text": outcome_text,
                         "ending_type": ending_type,
                         "ending_reached": ending_reached,
-                        "emissary_token_id": token_id
+                        "emissary_token_id": token_id,
+                        "cooldown_hours": 24
                     })
 
         except Exception as e:
@@ -1806,8 +1835,8 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
     @app.route('/api/micro-mission/emergency-cleanup', methods=['POST'])
     def api_micro_mission_emergency_cleanup():
         """
-        EMERGENCY: Clean up ALL corrupted active micro-missions.
-        This will free all emissaries stuck in ON_MICRO_MISSION state.
+        EMERGENCY: Force reload ALL narratives and fix ALL durations.
+        Deletes all active missions and resets all emissaries.
         """
         if not POSTGRESQL_AVAILABLE:
             return jsonify({"error": "Database not available"}), 503
@@ -1815,40 +1844,13 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
         try:
             with get_db_connection() as conn:
                 with conn.cursor() as cur:
-                    # Count before cleanup
-                    cur.execute("SELECT COUNT(*) FROM active_micro_missions WHERE status IN ('active', 'choice_pending')")
-                    count_before = cur.fetchone()[0]
+                    results = {}
 
-                    # Get emissary token IDs from active micro missions (to reset their state)
-                    cur.execute("""
-                        SELECT DISTINCT emissary_token_id FROM active_micro_missions
-                        WHERE status IN ('active', 'choice_pending')
-                    """)
-                    stuck_emissary_tokens = [row[0] for row in cur.fetchall()]
+                    # 1. Delete ALL active micro-missions
+                    cur.execute("DELETE FROM active_micro_missions WHERE status IN ('active', 'choice_pending')")
+                    results['deleted_missions'] = cur.rowcount
 
-                    # Delete ALL active/pending micro missions
-                    cur.execute("""
-                        DELETE FROM active_micro_missions
-                        WHERE status IN ('active', 'choice_pending')
-                    """)
-                    deleted = cur.rowcount
-
-                    # Reset emissary states to READY for all stuck emissaries
-                    emissaries_reset = 0
-                    for token_id in stuck_emissary_tokens:
-                        cur.execute("""
-                            UPDATE nfts SET
-                                dynamic_state = jsonb_set(
-                                    COALESCE(dynamic_state, '{}'::jsonb),
-                                    '{state}',
-                                    '"READY"'
-                                ),
-                                last_update = NOW()
-                            WHERE token_id = %s
-                        """, (token_id,))
-                        emissaries_reset += cur.rowcount
-
-                    # Also reset any emissary with ON_MICRO_MISSION state that doesn't have an active mission
+                    # 2. Reset ALL emissaries from ON_MICRO_MISSION to READY
                     cur.execute("""
                         UPDATE nfts SET
                             dynamic_state = jsonb_set(
@@ -1858,118 +1860,53 @@ def register_miniapp_routes(app, database_module=None, postgresql_available=Fals
                             ),
                             last_update = NOW()
                         WHERE dynamic_state->>'state' = 'ON_MICRO_MISSION'
-                        AND token_id NOT IN (
-                            SELECT emissary_token_id FROM active_micro_missions
-                            WHERE status IN ('active', 'choice_pending')
-                        )
                     """)
-                    orphaned_reset = cur.rowcount
+                    results['emissaries_reset'] = cur.rowcount
 
-                    print(f"[Emergency Cleanup] Deleted {deleted} missions, reset {emissaries_reset} emissaries, fixed {orphaned_reset} orphaned states")
+                    # 3. Force update ALL durations
+                    cur.execute("UPDATE micro_missions SET duration_seconds = 120 WHERE difficulty = 'EASY'")
+                    cur.execute("UPDATE micro_missions SET duration_seconds = 180 WHERE difficulty = 'MEDIUM'")
+                    cur.execute("UPDATE micro_missions SET duration_seconds = 300 WHERE difficulty = 'HARD'")
+                    results['durations_fixed'] = True
 
-                    # Force update narrative data (remove restrictive conditions)
+                    # 4. Load narratives from narrative_data.py
+                    narratives = get_all_narratives()
+                    categories = MISSION_CATEGORIES
+
+                    for mission_id, narrative in narratives.items():
+                        category = categories.get(mission_id, 'PATROL')
+                        cur.execute("""
+                            UPDATE micro_missions
+                            SET narrative_steps = %s::jsonb, category = %s
+                            WHERE id = %s
+                        """, (json.dumps(narrative), category, mission_id))
+
+                    results['narratives_loaded'] = len(narratives)
+
+                    # 5. Verify narratives loaded correctly
                     cur.execute("""
-                        UPDATE micro_missions SET
-                            narrative_choices = '[
-                                {"id": "A", "text": "Listen closely to the whispers", "icon": "ear"},
-                                {"id": "B", "text": "Add fuel to strengthen the flame", "icon": "flame"},
-                                {"id": "C", "text": "Attempt to communicate back", "icon": "chat"}
-                            ]'::jsonb,
-                            narrative_outcomes = '{
-                                "A": {"type": "GOOD", "text": "The whispers reveal ancient knowledge.", "pyre_modifier": 1.2, "xp_modifier": 1.3},
-                                "B": {"type": "PERFECT", "text": "The flame bestows a blessing!", "pyre_modifier": 1.5, "xp_modifier": 1.4},
-                                "C": {"type": "NEUTRAL", "text": "The flame does not respond.", "pyre_modifier": 0.9, "xp_modifier": 1.0}
-                            }'::jsonb
-                        WHERE id = 'MM-E001'
+                        SELECT id,
+                               (narrative_steps->'total_steps')::int as total_steps,
+                               difficulty,
+                               duration_seconds
+                        FROM micro_missions
+                        WHERE id LIKE 'MM-%%'
+                        ORDER BY id
                     """)
+                    missions = []
+                    for row in cur.fetchall():
+                        missions.append({
+                            "id": row[0],
+                            "total_steps": row[1],
+                            "difficulty": row[2],
+                            "duration_seconds": row[3]
+                        })
+                    results['missions'] = missions
 
-                    cur.execute("""
-                        UPDATE micro_missions SET
-                            narrative_choices = '[
-                                {"id": "A", "text": "Gather quickly before they fade", "icon": "run"},
-                                {"id": "B", "text": "Select only the brightest embers", "icon": "gem"},
-                                {"id": "C", "text": "Follow the ember trail to its source", "icon": "compass"}
-                            ]'::jsonb,
-                            narrative_outcomes = '{
-                                "A": {"type": "GOOD", "text": "Quick reflexes save many embers!", "pyre_modifier": 1.2, "xp_modifier": 1.1},
-                                "B": {"type": "NEUTRAL", "text": "Fewer but exceptional embers.", "pyre_modifier": 1.0, "xp_modifier": 1.0},
-                                "C": {"type": "PERFECT", "text": "You discover a hidden ember nest!", "pyre_modifier": 1.4, "xp_modifier": 1.5}
-                            }'::jsonb
-                        WHERE id = 'MM-E002'
-                    """)
-
-                    cur.execute("""
-                        UPDATE micro_missions SET
-                            narrative_choices = '[
-                                {"id": "A", "text": "Maintain vigilant watch", "icon": "eye"},
-                                {"id": "B", "text": "Investigate the mists", "icon": "search"},
-                                {"id": "C", "text": "Signal other guards", "icon": "bell"}
-                            ]'::jsonb,
-                            narrative_outcomes = '{
-                                "A": {"type": "NEUTRAL", "text": "A quiet but successful patrol.", "pyre_modifier": 1.0, "xp_modifier": 1.0},
-                                "B": {"type": "PERFECT", "text": "You seal a tear in the veil!", "pyre_modifier": 1.5, "xp_modifier": 1.4},
-                                "C": {"type": "GOOD", "text": "Teamwork neutralizes a threat.", "pyre_modifier": 1.2, "xp_modifier": 1.2}
-                            }'::jsonb
-                        WHERE id = 'MM-E003'
-                    """)
-
-                    cur.execute("""
-                        UPDATE micro_missions SET
-                            narrative_choices = '[
-                                {"id": "A", "text": "Empty your mind completely", "icon": "mind"},
-                                {"id": "B", "text": "Focus on a specific question", "icon": "question"},
-                                {"id": "C", "text": "Let the rune guide you", "icon": "rune"}
-                            ]'::jsonb,
-                            narrative_outcomes = '{
-                                "A": {"type": "GOOD", "text": "Power flows through your empty mind.", "pyre_modifier": 1.2, "xp_modifier": 1.1},
-                                "B": {"type": "NEUTRAL", "text": "The rune offers no clear answer.", "pyre_modifier": 0.9, "xp_modifier": 1.0},
-                                "C": {"type": "PERFECT", "text": "Ancient Runesmiths speak through time!", "pyre_modifier": 1.4, "xp_modifier": 1.5}
-                            }'::jsonb
-                        WHERE id = 'MM-E004'
-                    """)
-
-                    cur.execute("""
-                        UPDATE micro_missions SET
-                            narrative_choices = '[
-                                {"id": "A", "text": "Pump the bellows", "icon": "wind"},
-                                {"id": "B", "text": "Sort the metal ingots", "icon": "boxes"},
-                                {"id": "C", "text": "Watch the master work", "icon": "eye"}
-                            ]'::jsonb,
-                            narrative_outcomes = '{
-                                "A": {"type": "GOOD", "text": "Perfect forge temperature achieved.", "pyre_modifier": 1.2, "xp_modifier": 1.2},
-                                "B": {"type": "NEUTRAL", "text": "Organization is the foundation.", "pyre_modifier": 1.0, "xp_modifier": 1.0},
-                                "C": {"type": "PERFECT", "text": "The master shares a secret technique!", "pyre_modifier": 1.3, "xp_modifier": 1.5}
-                            }'::jsonb
-                        WHERE id = 'MM-E005'
-                    """)
-
-                    # Update all remaining missions with default choices
-                    cur.execute("""
-                        UPDATE micro_missions SET
-                            narrative_choices = '[
-                                {"id": "A", "text": "Take the cautious approach", "icon": "shield"},
-                                {"id": "B", "text": "Act boldly and swiftly", "icon": "sword"},
-                                {"id": "C", "text": "Seek a clever solution", "icon": "book"}
-                            ]'::jsonb,
-                            narrative_outcomes = '{
-                                "A": {"type": "NEUTRAL", "text": "Caution serves you well.", "pyre_modifier": 1.0, "xp_modifier": 1.0},
-                                "B": {"type": "GOOD", "text": "Fortune favors the bold!", "pyre_modifier": 1.3, "xp_modifier": 1.2},
-                                "C": {"type": "PERFECT", "text": "Your wit earns great rewards!", "pyre_modifier": 1.5, "xp_modifier": 1.5}
-                            }'::jsonb
-                        WHERE narrative_choices IS NULL OR narrative_choices = '[]'::jsonb OR narrative_choices::text = '[]'
-                    """)
-
-                    # Verify updates
-                    cur.execute("SELECT COUNT(*) FROM micro_missions WHERE narrative_choices IS NOT NULL AND narrative_choices::text != '[]'")
-                    missions_updated = cur.fetchone()[0]
-
-                    total_emissaries_fixed = emissaries_reset + orphaned_reset
                     return jsonify({
                         "success": True,
-                        "deleted_missions": deleted,
-                        "emissaries_reset": total_emissaries_fixed,
-                        "missions_with_narrative": missions_updated,
-                        "message": f"Cleanup complete! Deleted {deleted} corrupted missions, reset {total_emissaries_fixed} emissary states. {missions_updated} missions now have narrative data."
+                        "results": results,
+                        "message": f"Emergency cleanup complete! Loaded {len(narratives)} narratives with correct step counts."
                     })
 
         except Exception as e:
