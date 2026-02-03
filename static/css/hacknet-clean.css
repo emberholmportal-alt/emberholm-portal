@@ -5549,18 +5549,18 @@ img {
     max-width: 240px;
 }
 
-/* Home navigation buttons - Retro Terminal Style */
+/* Home navigation buttons - Pixelify Sans Style */
 .home-nav-btn {
     position: relative;
-    font-family: 'Share Tech Mono', monospace;
-    font-size: 13px;
-    font-weight: normal;
+    font-family: 'Pixelify Sans', 'Classic Console Neue', monospace;
+    font-size: 12px;
+    font-weight: 600;
     padding: 10px 20px;
     border: 1px solid var(--gold);
-    background: transparent;
+    background: var(--bg-panel);
     color: var(--gold);
     cursor: pointer;
-    transition: all 0.15s ease;
+    transition: all 0.2s ease;
     text-transform: uppercase;
     letter-spacing: 1px;
     text-align: center;
@@ -5572,10 +5572,13 @@ img {
     color: #ffcc00;
     border-color: #ffcc00;
     text-shadow: 0 0 8px rgba(255, 136, 0, 0.5);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(255, 136, 0, 0.3);
 }
 
 .home-nav-btn:active {
     background: rgba(255, 136, 0, 0.25);
+    transform: translateY(0);
 }
 
 /* MINT button - Highlighted terminal style */
@@ -5646,7 +5649,8 @@ img {
 .pixel-icon-large {
     width: 36px;
     height: 36px;
-    image-rendering: pixelated;
+    object-fit: contain;
+    image-rendering: auto;
 }
 
 /* Orange filter for scroll/announcements icon */
