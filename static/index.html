@@ -5843,7 +5843,8 @@ async function connectWallet() {
 
         connectedWallet = address;
         window.connectedWallet = address;  // Sync with window for external JS files
-        document.getElementById("wallet-display").textContent = address.slice(0, 6) + "..." + address.slice(-4);
+        const walletDisplayEl = document.getElementById("wallet-display");
+        if (walletDisplayEl) walletDisplayEl.textContent = address.slice(0, 6) + "..." + address.slice(-4);
         console.log(`✅ Wallet connected: ${address}`);
 
         // 🔥 TRIPLE CHECK: Verify we're still on Base Mainnet before querying
@@ -6060,15 +6061,21 @@ function disconnectWallet() {
         accessLevelEl.style.color = "";
     }
 
-    // Clear profile data
-    document.getElementById("wallet-summary").innerHTML = "";
-    document.getElementById("prime-emissary-card").innerHTML = `<div class="character-sheet-empty">NO DATA</div>`;
-    document.getElementById("roster-table-wrap").innerHTML = "";
+    // Clear profile data (with null checks)
+    const walletSummary = document.getElementById("wallet-summary");
+    const primeCard = document.getElementById("prime-emissary-card");
+    const rosterWrap = document.getElementById("roster-table-wrap");
+    if (walletSummary) walletSummary.innerHTML = "";
+    if (primeCard) primeCard.innerHTML = `<div class="character-sheet-empty">NO DATA</div>`;
+    if (rosterWrap) rosterWrap.innerHTML = "";
 
-    // 🔥 Reset profile balances
-    document.getElementById('profile-ember-balance').textContent = '--';
-    document.getElementById('profile-ash-balance').textContent = '--';
-    document.getElementById('profile-pending-section').style.display = 'none';
+    // 🔥 Reset profile balances (with null checks)
+    const emberBal = document.getElementById('profile-ember-balance');
+    const ashBal = document.getElementById('profile-ash-balance');
+    const pendingSection = document.getElementById('profile-pending-section');
+    if (emberBal) emberBal.textContent = '--';
+    if (ashBal) ashBal.textContent = '--';
+    if (pendingSection) pendingSection.style.display = 'none';
 
     // 🔥 Update Vault UI
     if (typeof updateVaultWalletUI === 'function') {
@@ -6106,11 +6113,21 @@ function updateWalletButtonsVisibility() {
 
 // 🔥 PROFILE BALANCE FUNCTIONS
 async function loadProfileBalances() {
+    // Helper for safe element text update
+    const safeSetText = (id, text) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = text;
+    };
+    const safeSetDisplay = (id, display) => {
+        const el = document.getElementById(id);
+        if (el) el.style.display = display;
+    };
+
     if (!connectedWallet) {
         // Reset display if no wallet
-        document.getElementById('profile-ember-balance').textContent = '--';
-        document.getElementById('profile-ash-balance').textContent = '--';
-        document.getElementById('profile-pending-section').style.display = 'none';
+        safeSetText('profile-ember-balance', '--');
+        safeSetText('profile-ash-balance', '--');
+        safeSetDisplay('profile-pending-section', 'none');
         return;
     }
 
@@ -6124,15 +6141,14 @@ async function loadProfileBalances() {
             const totalEmber = pendingEmber + onchainEmber;
 
             // Update total EMBER display
-            document.getElementById('profile-ember-balance').textContent = formatNumber(totalEmber);
+            safeSetText('profile-ember-balance', formatNumber(totalEmber));
 
             // Show/hide pending section
-            const pendingSection = document.getElementById('profile-pending-section');
             if (pendingEmber > 0) {
-                pendingSection.style.display = 'block';
-                document.getElementById('profile-ember-pending').textContent = formatNumber(pendingEmber);
+                safeSetDisplay('profile-pending-section', 'block');
+                safeSetText('profile-ember-pending', formatNumber(pendingEmber));
             } else {
-                pendingSection.style.display = 'none';
+                safeSetDisplay('profile-pending-section', 'none');
             }
         }
 
@@ -6146,14 +6162,14 @@ async function loadProfileBalances() {
             );
             const ashBalanceWei = await ashContract.balanceOf(connectedWallet);
             const ashBalance = parseFloat(ethers.utils.formatEther(ashBalanceWei));
-            document.getElementById('profile-ash-balance').textContent = formatNumber(ashBalance);
+            safeSetText('profile-ash-balance', formatNumber(ashBalance));
         }
 
         console.log('📊 Profile balances loaded');
     } catch (error) {
         console.error('Error loading profile balances:', error);
-        document.getElementById('profile-ember-balance').textContent = 'Error';
-        document.getElementById('profile-ash-balance').textContent = 'Error';
+        safeSetText('profile-ember-balance', 'Error');
+        safeSetText('profile-ash-balance', 'Error');
     }
 }
 
@@ -6269,14 +6285,16 @@ if (window.ethereum) {
             console.log("⚠️ User disconnected wallet");
             connectedWallet = null;
             window.connectedWallet = null;  // Sync with window for external JS files
-            document.getElementById("wallet-display").textContent = "NOT CONNECTED";
-            updateWalletBtn("[CONNECT WALLET]");
-            setWalletBtnDisabled(false);
+            const walletDisplayEl = document.getElementById("wallet-display");
+            if (walletDisplayEl) walletDisplayEl.textContent = "NOT CONNECTED";
+            updateWalletBtn("[CONNECT WALLET]", false);
 
             // 🔥 Reset ACCESS LEVEL to CITIZEN with default color
             const accessLevelEl = document.getElementById("access-level");
-            accessLevelEl.textContent = "ACCESS LEVEL: [CITIZEN]";
-            accessLevelEl.style.color = ""; // Reset to default color
+            if (accessLevelEl) {
+                accessLevelEl.textContent = "ACCESS LEVEL: [CITIZEN]";
+                accessLevelEl.style.color = ""; // Reset to default color
+            }
             console.log("🔄 Access level downgraded to CITIZEN");
 
             // Update button visibility
@@ -6292,19 +6310,26 @@ if (window.ethereum) {
 async function fetchStatsAndRender(){
     try {
         const stats = await fetchJSON("/api/stats");
-        document.getElementById("stat-total-emissaries").textContent = stats.total_characters ?? 35000;
-        document.getElementById("stat-active-guilds").textContent    = stats.active_guilds ?? 6;
-        document.getElementById("stat-missions-done").textContent    = stats.missions_completed ?? 0;
-        document.getElementById("stat-missions-failed").textContent  = stats.missions_failed ?? 0;
-        document.getElementById("stat-missions-in-progress").textContent = stats.missions_in_progress ?? 0;
-        document.getElementById("stat-total-xp").textContent         = stats.total_exp_collected ?? 0;
-        document.getElementById("stat-total-aura").textContent       = stats.total_aura_collected ?? 0;
+
+        // Safe element updates with null checks
+        const setStatText = (id, value) => {
+            const el = document.getElementById(id);
+            if (el) el.textContent = value;
+        };
+
+        setStatText("stat-total-emissaries", stats.total_characters ?? 35000);
+        setStatText("stat-active-guilds", stats.active_guilds ?? 6);
+        setStatText("stat-missions-done", stats.missions_completed ?? 0);
+        setStatText("stat-missions-failed", stats.missions_failed ?? 0);
+        setStatText("stat-missions-in-progress", stats.missions_in_progress ?? 0);
+        setStatText("stat-total-xp", stats.total_exp_collected ?? 0);
+        setStatText("stat-total-aura", stats.total_aura_collected ?? 0);
 
         // 🔥 Actualizar timestamp
         if (stats.last_updated) {
             const timestamp = new Date(stats.last_updated);
             const formattedTime = timestamp.toISOString().replace('T', ' ').substring(0, 19) + ' UTC';
-            document.getElementById("stats-last-updated").textContent = `Last updated: ${formattedTime}`;
+            setStatText("stats-last-updated", `Last updated: ${formattedTime}`);
         }
 
         // 🔥 Guild Ranking - el backend devuelve un ARRAY, no un objeto
