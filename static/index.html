@@ -1428,185 +1428,165 @@ document.addEventListener('DOMContentLoaded', initPortalWarning);
 
 <div class="wrapper">
 
-    <!-- HEADER -->
-    <header class="top-header">
-        <div class="top-status-row">
-            <span>EMBERHOLM PORTAL : NODE-Δ / REALM MONITOR</span>
-            <span id="access-level">ACCESS LEVEL: [CITIZEN]</span>
-            <span>STATUS: FLAME WEAKENING // MISSIONS REQUIRED</span>
-        </div>
-
-        <!-- Navigation Row 1 -->
-        <div class="top-command-bar" id="nav-bar">
-            <button class="cmd-link cmd-link-mint" onclick="window.location.href='/mint'">MINT / INVOKE</button>
-            <button class="cmd-link" data-target="home">[HOME]</button>
-            <button class="cmd-link" data-target="guilds">[STATS/GUILDS]</button>
-            <button class="cmd-link" data-target="missions">[MISSIONS]</button>
-            <button class="cmd-link cmd-link-disabled" data-target="micro-missions">[MICRO-MISSIONS]</button>
-            <button class="cmd-link" data-target="profile">[PROFILE]</button>
-            <button class="cmd-link" data-target="vault">[VAULT]</button>
-            <button class="cmd-link cmd-link-disabled" data-target="ember-roll">[EMBER ROLL]</button>
-            <button class="cmd-link cmd-link-disabled" data-target="marketplace">[MARKETPLACE]</button>
-        </div>
-        <!-- Navigation Row 2 -->
-        <div class="top-command-bar" id="nav-bar-2">
-            <button class="cmd-link" data-target="tutorial">[HELP/TUTORIAL]</button>
-            <button class="cmd-link" data-target="lore">[LORE]</button>
-            <button class="cmd-link" data-target="announcements">[ANNOUNCEMENTS]</button>
-            <button class="cmd-link" data-target="events">[EVENTS]</button>
-            <button class="cmd-link" data-target="credits">[SOCIAL/CREDITS]</button>
-            <button class="cmd-link" data-target="whitepaper">[WHITEPAPER/CONTRACTS]</button>
-            <button class="cmd-link" data-target="tokenomics">[TOKENOMICS]</button>
-            <button class="cmd-link cmd-link-disabled" data-target="world">[WORLD]</button>
-        </div>
-
-        <!-- PROGRESS BAR -->
-        <div class="nav-progress-bar">
-            <div class="nav-progress-fill"></div>
-        </div>
-
-        <div class="command-hint">
-            USE COMMAND KEYS TO NAVIGATE. ACCESS OUTSIDE AUTHORIZATION WILL BE LOGGED BY EMBER PROTOCOL.
-        </div>
-
-        <div class="double-line"></div>
-    </header>
-
-    <!-- HOME -->
+    <!-- HOME - REDESIGNED WITH SIDE BUTTONS -->
     <section class="screen active" data-screen="home">
-        <div class="section-block">
-            <div class="section-title">EMBERHOLM PORTAL // WARNING NODE</div>
-
-            <div class="logo-wrapper">
-                <img src="img/logo-site2.png" class="project-logo-img" alt="Emberholm Portal" />
-                <div class="center-text-line" style="font-weight:bold;">
-                    EMBER PROTOCOL v0.1972 // RETRO RPG INTERFACE
-                </div>
-                <div class="center-text-line mono-small-note" style="margin-top:6px;">
-                    UNAUTHORIZED ACCESS WILL BE LOGGED BY EMBER PROTOCOL
-                </div>
-
-                <!-- ECOSYSTEM TOUR BUTTON -->
-                <div class="site-tour-btn-container" style="margin-top: 12px;">
-                    <button class="cmd site-tour-btn" onclick="startSiteTour()" title="Discover Emberholm Portal ecosystem">
-                        <span class="tour-btn-main">START YOUR JOURNEY</span>
-                        <span class="tour-btn-sub">Explore the Portal</span>
-                    </button>
-                </div>
-            </div>
-
-            <!-- REALM MAP -->
-            <div class="section-block realm-map-container">
-                <div class="section-title">REALM MAP // EMBERHOLM TERRITORIES</div>
-
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px; align-items: start;">
-                    <!-- Columna izquierda: Texto terminal -->
-                    <div>
-                        <div class="mono-block" style="margin-bottom: 15px;">
-                            <span class="glow-green">&gt;</span> ACCESSING REALM CARTOGRAPHY...<br/>
-                            <span class="glow-green">&gt;</span> AUTHORIZATION: <span class="glow-yellow">CONFIRMED</span>
-                        </div>
-
-                        <div class="mono-block" style="margin-bottom: 15px;">
-                            <div style="color: var(--gold); font-weight: 700; margin-bottom: 10px;">MAP SYSTEM // EMBERHOLM TERRITORIAL OVERVIEW</div>
-
-                            <div style="margin-bottom: 12px;">
-                                <span class="glow-yellow">WARNING:</span> This map represents Emberholm as it existed 72 hours ago.
-                                Border stability is NOT guaranteed. Voidform breach zones update in real-time.
-                            </div>
-
-                            <div style="margin-bottom: 12px;">
-                                The Six Orders maintain operational zones across the realm:<br/>
-                                <span class="glow-red">•</span> Red zones indicate active Voidform incursions<br/>
-                                <span class="glow-yellow">•</span> Amber zones show unstable reality pockets<br/>
-                                <span class="glow-green">•</span> Green zones are currently defended (but not safe)
-                            </div>
-
-                            <div style="margin-bottom: 12px;">
-                                Your Emissaries can be deployed to any accessible mission point.
-                                Choose carefully. <span class="glow-red">Not all who enter a red zone return.</span>
-                            </div>
-                        </div>
+        <div class="home-main-layout">
+            <!-- LEFT SIDE: Logo and Text -->
+            <div class="home-logo-side">
+                <div class="logo-wrapper">
+                    <img src="img/logo-site2.png" class="project-logo-img" alt="Emberholm Portal" />
+                    <div class="center-text-line" style="font-weight:bold; color: var(--gold);">
+                        EMBER PROTOCOL v0.1972 // RETRO RPG INTERFACE
                     </div>
-
-                    <!-- Columna derecha: Mapa -->
-                    <div style="text-align: center;">
-                        <img src="img/map.gif" alt="Emberholm Realm Map" class="realm-map-img" style="max-width: 100%;" loading="lazy" />
-                        <div class="mono-small-note" style="margin-top: 12px;">
-                            CARTOGRAPHIC DATA v3.7.2 // SIX ORDERS MAPPED<br/>
-                            LAST UPDATE: 72H AGO // REAL-TIME SYNC: <span class="glow-red">OFFLINE</span>
-                        </div>
+                    <div class="center-text-line mono-small-note" style="margin-top:6px; color: var(--dim-green);">
+                        UNAUTHORIZED ACCESS WILL BE LOGGED BY EMBER PROTOCOL
                     </div>
                 </div>
             </div>
 
-            <div class="warning-block">
-                <div class="subheading" style="margin-bottom:10px;">
-                    CAMPAIGN: SEASON I // THE DYING FLAME
-                </div>
-
-                <div class="mono-block" style="margin-bottom:15px;">
-                    <div style="color: var(--gold); font-weight: 700;">HOME – ACCESS TERMINAL</div>
-                    <div style="margin-top:8px;">
-                        <span class="glow-green">&gt;</span>CONNECTION ESTABLISHED<br/>
-                        <span class="glow-green">&gt;</span>EMBER PROTOCOL: <span class="glow-green">ACTIVE</span><br/>
-                        <span class="glow-green">&gt;</span>CLASSIFICATION: <span class="glow-yellow">AUTHORIZED BEARER</span>
-                    </div>
-                </div>
-
-                <div class="mono-block" style="margin-bottom:15px;">
-                    <div style="color: var(--gold); font-weight: 700; margin-bottom:8px;">ACTIVE CAMPAIGN: SEASON I // THE FADING FLAME</div>
-                    <div>
-                        <span class="glow-red blink">CRITICAL ALERT:</span> Core stability levels are below the safe threshold.
-                        Immediate deployments are required. The Kingdom relies on your response.
-                    </div>
-                </div>
-
-                <div class="mono-block" style="margin-bottom:15px;">
-                    <div style="color: var(--warning-orange); font-weight: 700;">
-                        <span class="glow-yellow">WARNING:</span> If you do not possess a registered hero-class asset,
-                        disconnect now. Unauthorized access to the Portal is prohibited
-                        under the Ember Emergency Protocol.
-                    </div>
-                </div>
-
-                <div style="text-align:center; margin-top:15px;">
-                    <span style="color: var(--gold);">[LOG IN]</span>
-                    <span style="color: var(--dim-green);">•</span>
-                    <span style="color: var(--gold);">[VERIFY EMISSARIES]</span>
-                    <span style="color: var(--dim-green);">•</span>
-                    <span style="color: var(--gold);">[VIEW ACTIVE MISSIONS]</span>
-                </div>
-            </div>
-
-            <div class="status-block">
-                <div class="subheading" style="margin-bottom:6px;">
-                    REALM-STATUS // CRITICAL
-                </div>
-                <div>EMBER CORE STABILITY: 12%</div>
-                <div>AURA DEMAND EXCEEDS SUPPLY.</div>
-                <div>EMISSARIES OF EMBERHOLM REQUIRED.</div>
-            </div>
-
-            <div class="mono-small-note" style="margin-top:10px;">
-                NOTE: Campaign window ~45 days. Mission board refreshes every 72h.
-                Each hero can only attempt each mission once per rotation.
+            <!-- RIGHT SIDE: 6 Navigation Buttons -->
+            <div class="home-buttons-side">
+                <button class="home-nav-btn home-nav-btn-mint" onclick="window.location.href='/mint'">
+                    MINT / INVOKE
+                </button>
+                <button class="home-nav-btn" data-target="play-hub" id="btn-play">
+                    [ PLAY ]
+                    <span class="nav-badge" id="play-badge" style="display:none;">0</span>
+                </button>
+                <button class="home-nav-btn" data-target="tutorial">
+                    [ COMO JUGAR ]
+                </button>
+                <button class="home-nav-btn" data-target="vault">
+                    [ VAULT ]
+                </button>
+                <button class="home-nav-btn" data-target="world-chat">
+                    [ WORLD CHAT ]
+                </button>
+                <button class="home-nav-btn" data-target="info-hub">
+                    [ INFO ]
+                </button>
             </div>
         </div>
 
-        <!-- REALM DISPATCH LIVE FEED -->
-        <div class="section-block" style="margin-top: 20px;">
-            <div class="section-title"><img src="/img/scroll.png" class="pixel-icon" alt=""> REALM DISPATCH // LIVE FEED</div>
+        <!-- FOOTER ICONS -->
+        <div class="home-footer-icons">
+            <a href="#" class="footer-icon" title="Settings" onclick="showInfoModal('SETTINGS', 'Settings panel coming soon.')">
+                <img src="img/gear.png" alt="Settings" class="pixel-icon-large" onerror="this.textContent='⚙️'">
+            </a>
+            <a href="/docs/Official_Whitepaper_of_Emberholm_Portal_V1.pdf" class="footer-icon" title="Whitepaper" target="_blank">
+                <img src="img/scroll.png" alt="Docs" class="pixel-icon-large" onerror="this.textContent='📜'">
+            </a>
+            <a href="https://twitter.com/EmberholmGame" class="footer-icon" title="Twitter/X" target="_blank">
+                <img src="img/x-logo.png" alt="X" class="pixel-icon-large" onerror="this.textContent='𝕏'">
+            </a>
+            <a href="https://discord.gg/Pw7YQtH4Y" class="footer-icon" title="Discord" target="_blank">
+                <img src="img/discord.png" alt="Discord" class="pixel-icon-large" onerror="this.textContent='💬'">
+            </a>
+        </div>
+    </section>
 
-            <div id="realm-feed-container" class="live-feed-container">
-                <!-- Los eventos se cargarán aquí dinámicamente -->
-                <div class="feed-loading">
-                    <span class="status-flicker">LOADING TRANSMISSIONS...</span>
-                </div>
+    <!-- ===============================================================
+         PLAY HUB - NEW CONSOLIDATED SCREEN
+         =============================================================== -->
+    <section class="screen" data-screen="play-hub">
+        <div class="section-block">
+            <div class="section-title">PLAY // ADVENTURE HUB</div>
+
+            <!-- PLAY TABS -->
+            <div class="hub-tabs" id="play-tabs">
+                <button class="hub-tab active" data-play-tab="profile">
+                    👤 PROFILE
+                </button>
+                <button class="hub-tab" data-play-tab="guilds">
+                    📊 STATS
+                </button>
+                <button class="hub-tab" data-play-tab="missions">
+                    ⚔️ MISSIONS
+                    <span class="tab-badge" id="missions-badge" style="display:none;">0</span>
+                </button>
+                <button class="hub-tab" data-play-tab="events">
+                    📅 EVENTS
+                    <span class="tab-badge tab-badge-new" id="events-badge" style="display:none;">NEW</span>
+                </button>
+                <button class="hub-tab" data-play-tab="lore">
+                    📜 LORE
+                </button>
+                <button class="hub-tab disabled" data-play-tab="micro-missions">
+                    🎲 MICRO
+                </button>
+                <button class="hub-tab disabled" data-play-tab="marketplace">
+                    🛒 MARKET
+                </button>
             </div>
 
-            <div class="mono-small-note" style="margin-top:10px;">
-                FEED AUTO-UPDATES EVERY 20 SECONDS // REALM ACTIVITY MONITORED
+            <!-- PLAY CONTENT - Will be populated dynamically -->
+            <div class="hub-content" id="play-content">
+                <!-- Content loaded from existing screens -->
+            </div>
+
+            <!-- BACK BUTTON -->
+            <div class="back-btn-container">
+                <button class="terminal-btn" onclick="switchScreen('home')">[← BACK TO HOME]</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===============================================================
+         INFO HUB - NEW CONSOLIDATED SCREEN
+         =============================================================== -->
+    <section class="screen" data-screen="info-hub">
+        <div class="section-block">
+            <div class="section-title">INFO // PROJECT DOCUMENTATION</div>
+
+            <!-- INFO TABS -->
+            <div class="hub-tabs" id="info-tabs">
+                <button class="hub-tab active" data-info-tab="announcements">
+                    📢 ANNOUNCEMENTS
+                </button>
+                <button class="hub-tab" data-info-tab="credits">
+                    👥 SOCIAL
+                </button>
+                <button class="hub-tab" data-info-tab="whitepaper">
+                    📄 WHITEPAPER
+                </button>
+                <button class="hub-tab" data-info-tab="tokenomics">
+                    💰 TOKENOMICS
+                </button>
+            </div>
+
+            <!-- INFO CONTENT - Will be populated dynamically -->
+            <div class="hub-content" id="info-content">
+                <!-- Content loaded from existing screens -->
+            </div>
+
+            <!-- BACK BUTTON -->
+            <div class="back-btn-container">
+                <button class="terminal-btn" onclick="switchScreen('home')">[← BACK TO HOME]</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===============================================================
+         WORLD CHAT - PLACEHOLDER SCREEN
+         =============================================================== -->
+    <section class="screen" data-screen="world-chat">
+        <div class="section-block">
+            <div class="section-title">WORLD CHAT // INTER-REALM COMMUNICATION</div>
+
+            <div class="placeholder-content">
+                <div class="placeholder-icon">🌍💬</div>
+                <div class="placeholder-title">GLOBAL COMMUNICATION SYSTEM</div>
+                <div class="placeholder-text">
+                    The World Chat feature is currently being developed by the Circle of Mist.
+                    Soon, operators from across all realms will be able to communicate in real-time,
+                    share strategies, and coordinate expeditions together.
+                </div>
+                <div class="placeholder-status">STATUS: IN DEVELOPMENT</div>
+            </div>
+
+            <!-- BACK BUTTON -->
+            <div class="back-btn-container">
+                <button class="terminal-btn" onclick="switchScreen('home')">[← BACK TO HOME]</button>
             </div>
         </div>
     </section>
@@ -5131,6 +5111,15 @@ navButtons.forEach((btn, index) => {
                 if (typeof initMicroMissionsSection === 'function') {
                     initMicroMissionsSection();
                 }
+            } else if (target === "play-hub") {
+                // 🎮 PLAY HUB - Load default tab (profile)
+                initPlayHub();
+            } else if (target === "info-hub") {
+                // 📚 INFO HUB - Load default tab (announcements)
+                initInfoHub();
+            } else if (target === "world-chat") {
+                // 🌍 WORLD CHAT - Placeholder screen, no special loading needed
+                console.log("🌍 World Chat placeholder loaded");
             }
 
             // 🧹 Cleanup previous sections when leaving
@@ -5146,6 +5135,217 @@ navButtons.forEach((btn, index) => {
         }
     });
 });
+
+/* ===============================================================
+   HOME BUTTONS NAVIGATION (6-button layout on home screen)
+   =============================================================== */
+
+const homeNavButtons = document.querySelectorAll(".home-nav-btn");
+console.log("🏠 Home navigation buttons found:", homeNavButtons.length);
+
+homeNavButtons.forEach((btn) => {
+    btn.addEventListener("click", () => {
+        const target = btn.getAttribute("data-target");
+        console.log("🏠 Home button clicked:", target);
+
+        if (target) {
+            switchScreen(target);
+
+            // Load data based on target
+            if (target === 'vault') {
+                if (typeof updateVaultWalletUI === 'function') updateVaultWalletUI();
+                if (connectedWallet && typeof loadVault === 'function') loadVault(connectedWallet, null);
+                if (connectedWallet) {
+                    if (window.loadEmberBalance) window.loadEmberBalance();
+                    if (window.loadAshBalance) window.loadAshBalance();
+                }
+            } else if (target === 'play-hub') {
+                initPlayHub();
+            } else if (target === 'info-hub') {
+                initInfoHub();
+            } else if (target === 'tutorial') {
+                if (typeof loadTutorialMissions === 'function') loadTutorialMissions();
+            } else if (target === 'world-chat') {
+                console.log("🌍 World Chat placeholder loaded");
+            }
+
+            // Ensure music is playing
+            if (typeof ensureMusicPlaying === "function") {
+                ensureMusicPlaying();
+            }
+        }
+    });
+});
+
+/* ===============================================================
+   PLAY HUB & INFO HUB NAVIGATION SYSTEM
+   =============================================================== */
+
+let currentPlayTab = 'profile';
+let currentInfoTab = 'announcements';
+
+// Initialize PLAY Hub with default tab
+function initPlayHub() {
+    console.log("🎮 Initializing PLAY Hub");
+    currentPlayTab = 'profile';
+
+    // Set up tab click listeners
+    document.querySelectorAll('[data-play-tab]').forEach(tab => {
+        tab.onclick = () => {
+            if (tab.classList.contains('disabled')) return;
+            switchPlayTab(tab.getAttribute('data-play-tab'));
+        };
+    });
+
+    // Load default tab content
+    switchPlayTab('profile');
+
+    // Update badges
+    updatePlayBadges();
+}
+
+// Switch PLAY Hub tab
+function switchPlayTab(tabName) {
+    console.log("🎮 Switching PLAY tab to:", tabName);
+    currentPlayTab = tabName;
+
+    // Update active tab styling
+    document.querySelectorAll('[data-play-tab]').forEach(tab => {
+        tab.classList.remove('active');
+        if (tab.getAttribute('data-play-tab') === tabName) {
+            tab.classList.add('active');
+        }
+    });
+
+    // Load content from existing screen
+    loadPlayContent(tabName);
+}
+
+// Load content into PLAY Hub from existing screens
+function loadPlayContent(tabName) {
+    const contentContainer = document.getElementById('play-content');
+    const sourceScreen = document.querySelector(`[data-screen="${tabName}"]`);
+
+    if (sourceScreen && contentContainer) {
+        // Clone the content from the source screen
+        const sectionBlock = sourceScreen.querySelector('.section-block');
+        if (sectionBlock) {
+            contentContainer.innerHTML = sectionBlock.innerHTML;
+        }
+
+        // Trigger data loading for the tab
+        if (tabName === 'guilds') {
+            if (typeof fetchStatsAndRender === 'function') fetchStatsAndRender();
+            if (typeof fetchGuildsAndRender === 'function') fetchGuildsAndRender();
+        } else if (tabName === 'missions') {
+            if (!connectedWallet) {
+                contentContainer.innerHTML = `
+                    <div class="placeholder-content">
+                        <div class="placeholder-icon">🔐</div>
+                        <div class="placeholder-title">WALLET REQUIRED</div>
+                        <div class="placeholder-text">
+                            You must connect your wallet to access MISSIONS.<br>
+                            Go to PROFILE tab and click [CONNECT WALLET].
+                        </div>
+                    </div>
+                `;
+            } else if (typeof fetchMissionsAndRender === 'function') {
+                fetchMissionsAndRender();
+            }
+        } else if (tabName === 'events') {
+            if (typeof fetchEventsAndRender === 'function') fetchEventsAndRender();
+        } else if (tabName === 'profile') {
+            if (connectedWallet && typeof loadPlayerAndRender === 'function') {
+                loadPlayerAndRender();
+            }
+        } else if (tabName === 'lore') {
+            // Lore is static, already loaded
+        }
+    }
+}
+
+// Initialize INFO Hub with default tab
+function initInfoHub() {
+    console.log("📚 Initializing INFO Hub");
+    currentInfoTab = 'announcements';
+
+    // Set up tab click listeners
+    document.querySelectorAll('[data-info-tab]').forEach(tab => {
+        tab.onclick = () => {
+            switchInfoTab(tab.getAttribute('data-info-tab'));
+        };
+    });
+
+    // Load default tab content
+    switchInfoTab('announcements');
+}
+
+// Switch INFO Hub tab
+function switchInfoTab(tabName) {
+    console.log("📚 Switching INFO tab to:", tabName);
+    currentInfoTab = tabName;
+
+    // Update active tab styling
+    document.querySelectorAll('[data-info-tab]').forEach(tab => {
+        tab.classList.remove('active');
+        if (tab.getAttribute('data-info-tab') === tabName) {
+            tab.classList.add('active');
+        }
+    });
+
+    // Load content from existing screen
+    loadInfoContent(tabName);
+}
+
+// Load content into INFO Hub from existing screens
+function loadInfoContent(tabName) {
+    const contentContainer = document.getElementById('info-content');
+    const sourceScreen = document.querySelector(`[data-screen="${tabName}"]`);
+
+    if (sourceScreen && contentContainer) {
+        // Clone the content from the source screen
+        const sectionBlock = sourceScreen.querySelector('.section-block');
+        if (sectionBlock) {
+            contentContainer.innerHTML = sectionBlock.innerHTML;
+        }
+    }
+}
+
+// Update badges in PLAY button and tabs
+function updatePlayBadges() {
+    console.log("🔔 Updating PLAY badges");
+
+    // Count active missions from cached data
+    let activeMissions = 0;
+    if (window.cachedHeroesData && Array.isArray(window.cachedHeroesData)) {
+        activeMissions = window.cachedHeroesData.filter(h => h.state === "ON_MISSION").length;
+    }
+
+    // Update missions badge
+    const missionsBadge = document.getElementById('missions-badge');
+    if (missionsBadge) {
+        if (activeMissions > 0) {
+            missionsBadge.textContent = activeMissions;
+            missionsBadge.style.display = 'inline-flex';
+        } else {
+            missionsBadge.style.display = 'none';
+        }
+    }
+
+    // Update main PLAY button badge
+    const playBadge = document.getElementById('play-badge');
+    if (playBadge) {
+        if (activeMissions > 0) {
+            playBadge.textContent = activeMissions;
+            playBadge.style.display = 'inline-flex';
+        } else {
+            playBadge.style.display = 'none';
+        }
+    }
+}
+
+// Call badge update periodically and after data loads
+setInterval(updatePlayBadges, 30000); // Update every 30 seconds
 
 /* --------- FETCH UTILS --------- */
 async function fetchJSON(url, opts={}){
