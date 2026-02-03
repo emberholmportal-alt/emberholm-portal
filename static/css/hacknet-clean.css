@@ -5497,23 +5497,35 @@ img {
 }
 
 /* ===============================================================
-   HOME REDESIGN - LOGO LEFT, BUTTONS RIGHT
+   HOME REDESIGN - LOGO LEFT, BUTTONS RIGHT (NO SCROLL)
    =============================================================== */
+
+/* Home screen container - fit in viewport */
+/* Home screen specific layout - only when active */
+[data-screen="home"].active {
+    height: calc(100vh - 80px);
+    display: flex !important;
+    flex-direction: column;
+    overflow: hidden;
+}
 
 /* Main home layout - 2 columns */
 .home-main-layout {
     display: flex;
     justify-content: center;
     align-items: center;
-    min-height: calc(100vh - 200px);
-    padding: 40px 20px;
+    flex: 1;
+    padding: 10px 30px;
     gap: 60px;
+    max-height: calc(100vh - 180px);
+    max-width: 900px;
+    margin: 0 auto;
 }
 
 /* Left side - Logo and text */
 .home-logo-side {
-    flex: 1;
-    max-width: 600px;
+    flex: 0 0 auto;
+    max-width: 450px;
     text-align: center;
 }
 
@@ -5523,57 +5535,61 @@ img {
 
 .home-logo-side .project-logo-img {
     max-width: 100%;
+    max-height: 280px;
     height: auto;
+    object-fit: contain;
 }
 
 /* Right side - Navigation buttons */
 .home-buttons-side {
     display: flex;
     flex-direction: column;
-    gap: 12px;
-    min-width: 220px;
-    max-width: 280px;
+    gap: 8px;
+    min-width: 200px;
+    max-width: 240px;
 }
 
-/* Home navigation buttons */
+/* Home navigation buttons - Retro Terminal Style */
 .home-nav-btn {
     position: relative;
     font-family: 'Share Tech Mono', monospace;
-    font-size: 16px;
-    font-weight: bold;
-    padding: 14px 24px;
-    border: 2px solid #ff9900;
-    background: #ff9900;
-    color: #000;
+    font-size: 13px;
+    font-weight: normal;
+    padding: 10px 20px;
+    border: 1px solid var(--gold);
+    background: transparent;
+    color: var(--gold);
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all 0.15s ease;
     text-transform: uppercase;
     letter-spacing: 1px;
     text-align: center;
+    width: 100%;
 }
 
 .home-nav-btn:hover {
-    background: #ffb833;
-    border-color: #ffb833;
-    box-shadow: 0 0 20px rgba(255, 153, 0, 0.5);
-    transform: translateY(-2px);
+    background: rgba(255, 136, 0, 0.15);
+    color: #ffcc00;
+    border-color: #ffcc00;
+    text-shadow: 0 0 8px rgba(255, 136, 0, 0.5);
 }
 
 .home-nav-btn:active {
-    transform: translateY(0);
+    background: rgba(255, 136, 0, 0.25);
 }
 
-/* MINT button - Red/coral color */
+/* MINT button - Highlighted terminal style */
 .home-nav-btn-mint {
-    background: #e84855;
     border-color: #e84855;
-    color: #000;
+    color: #e84855;
+    background: rgba(232, 72, 85, 0.1);
 }
 
 .home-nav-btn-mint:hover {
-    background: #ff6b6b;
+    background: rgba(232, 72, 85, 0.25);
+    color: #ff6b6b;
     border-color: #ff6b6b;
-    box-shadow: 0 0 20px rgba(232, 72, 85, 0.5);
+    text-shadow: 0 0 8px rgba(232, 72, 85, 0.5);
 }
 
 /* Badge for nav buttons */
@@ -5605,8 +5621,8 @@ img {
 .home-footer-icons {
     display: flex;
     justify-content: center;
-    gap: 30px;
-    padding: 30px 20px;
+    gap: 25px;
+    padding: 15px 20px;
     margin-top: auto;
 }
 
@@ -5614,60 +5630,126 @@ img {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 48px;
-    height: 48px;
-    opacity: 0.7;
+    width: 44px;
+    height: 44px;
+    opacity: 0.8;
     transition: all 0.2s ease;
 }
 
 .footer-icon:hover {
     opacity: 1;
-    transform: scale(1.1);
+    transform: scale(1.15);
+    filter: drop-shadow(0 0 8px rgba(255, 153, 0, 0.6));
 }
 
 .footer-icon img,
 .pixel-icon-large {
-    width: 40px;
-    height: 40px;
+    width: 36px;
+    height: 36px;
     image-rendering: pixelated;
+}
+
+/* Orange filter for scroll/announcements icon */
+.footer-icon-orange img {
+    filter: sepia(100%) saturate(300%) brightness(100%) hue-rotate(-10deg);
+}
+
+/* ===============================================================
+   BACK HOME BUTTON (top of all screens)
+   =============================================================== */
+
+.back-home-bar {
+    display: flex;
+    align-items: center;
+    padding: 8px 15px;
+    border-bottom: 1px solid var(--border-primary);
+    background: rgba(0, 0, 0, 0.3);
+}
+
+.back-home-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: transparent;
+    border: 1px solid var(--gold);
+    color: var(--gold);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.back-home-btn:hover {
+    background: var(--gold);
+    color: #000;
+    box-shadow: 0 0 10px rgba(255, 153, 0, 0.4);
+}
+
+/* Play Hub floating overlay */
+.play-hub-overlay {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(10, 5, 0, 0.95);
+    border-bottom: 2px solid var(--gold);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+}
+
+.play-hub-overlay .hub-tabs {
+    margin-bottom: 0;
+    border-bottom: none;
 }
 
 /* Responsive - Stack vertically on mobile */
 @media (max-width: 900px) {
+    [data-screen="home"].active {
+        height: auto;
+        min-height: calc(100vh - 80px);
+    }
+
     .home-main-layout {
         flex-direction: column;
-        gap: 40px;
-        padding: 20px;
-        min-height: auto;
+        gap: 20px;
+        padding: 15px;
+        max-height: none;
     }
 
     .home-logo-side {
         max-width: 100%;
     }
 
+    .home-logo-side .project-logo-img {
+        max-height: 200px;
+    }
+
     .home-buttons-side {
         width: 100%;
-        max-width: 320px;
+        max-width: 300px;
     }
 
     .home-nav-btn {
-        font-size: 14px;
-        padding: 12px 20px;
+        font-size: 13px;
+        padding: 10px 16px;
     }
 }
 
 @media (max-width: 480px) {
     .home-main-layout {
-        padding: 15px;
-        gap: 30px;
+        padding: 10px;
+        gap: 15px;
+    }
+
+    .home-logo-side .project-logo-img {
+        max-height: 150px;
     }
 
     .home-buttons-side {
-        gap: 10px;
+        gap: 6px;
     }
 
     .home-nav-btn {
-        font-size: 13px;
+        font-size: 12px;
         padding: 10px 16px;
     }
 
@@ -5874,5 +5956,537 @@ img {
     .hub-tab {
         padding: 6px 8px;
         font-size: 9px;
+    }
+}
+
+/* ===============================================================
+   LIVING TERMINAL WALLPAPER SYSTEM
+   =============================================================== */
+
+/* Layer container */
+.wallpaper-layers {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 1;
+}
+
+/* Layer 1: Gradient Pulse (warm ember colors) */
+.wp-gradient-pulse {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(ellipse at 30% 70%, rgba(255, 100, 0, 0.08) 0%, transparent 50%),
+                radial-gradient(ellipse at 70% 30%, rgba(255, 140, 0, 0.06) 0%, transparent 50%),
+                radial-gradient(ellipse at 50% 50%, rgba(200, 80, 0, 0.04) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 2;
+    animation: gradientPulse 8s ease-in-out infinite;
+}
+
+@keyframes gradientPulse {
+    0%, 100% { opacity: 0.6; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.02); }
+}
+
+/* Layer 2: Dot Grid (pixel pattern) */
+.wp-dot-grid {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image:
+        radial-gradient(circle at center, rgba(255, 136, 0, 0.15) 1px, transparent 1px);
+    background-size: 20px 20px;
+    pointer-events: none;
+    z-index: 3;
+    opacity: 0.4;
+}
+
+/* Layer 3: Moving Horizontal Lines */
+.wp-moving-lines {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+        0deg,
+        transparent 0%,
+        transparent 50%,
+        rgba(255, 136, 0, 0.03) 50%,
+        rgba(255, 136, 0, 0.03) 51%,
+        transparent 51%,
+        transparent 100%
+    );
+    background-size: 100% 80px;
+    pointer-events: none;
+    z-index: 4;
+    animation: movingLines 20s linear infinite;
+    opacity: 0.6;
+}
+
+@keyframes movingLines {
+    0% { background-position: 0 0; }
+    100% { background-position: 0 800px; }
+}
+
+/* Layer 4: Ghost Code Columns (Matrix-style falling characters) */
+.wp-ghost-code {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 5;
+    overflow: hidden;
+    opacity: 0.25;
+}
+
+.wp-ghost-code canvas {
+    width: 100%;
+    height: 100%;
+}
+
+/* Layer 5: Data Streams (vertical flowing data) */
+.wp-data-streams {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 6;
+    opacity: 0.15;
+    overflow: hidden;
+}
+
+.data-stream {
+    position: absolute;
+    width: 2px;
+    height: 60px;
+    background: linear-gradient(
+        to bottom,
+        transparent,
+        rgba(255, 136, 0, 0.8),
+        rgba(255, 200, 100, 1),
+        rgba(255, 136, 0, 0.8),
+        transparent
+    );
+    animation: dataStreamFall linear infinite;
+    border-radius: 50%;
+    filter: blur(0.5px);
+}
+
+@keyframes dataStreamFall {
+    0% { transform: translateY(-100px); opacity: 0; }
+    10% { opacity: 1; }
+    90% { opacity: 1; }
+    100% { transform: translateY(100vh); opacity: 0; }
+}
+
+/* Layer 6: Glitch Lines (horizontal glitch effect) */
+.wp-glitch-lines {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 7;
+    opacity: 0.3;
+}
+
+.glitch-line {
+    position: absolute;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background: linear-gradient(
+        90deg,
+        transparent 0%,
+        rgba(255, 136, 0, 0.6) 20%,
+        rgba(255, 200, 100, 0.9) 50%,
+        rgba(255, 136, 0, 0.6) 80%,
+        transparent 100%
+    );
+    animation: glitchFlash 0.1s ease-out;
+}
+
+@keyframes glitchFlash {
+    0% { opacity: 0; transform: scaleX(0); }
+    50% { opacity: 1; transform: scaleX(1); }
+    100% { opacity: 0; transform: scaleX(0.8); }
+}
+
+/* Layer 7: CRT Flicker Enhancement */
+.wp-crt-flicker {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 8;
+    opacity: 0;
+    background: rgba(255, 255, 255, 0.02);
+    animation: crtFlicker 4s infinite;
+}
+
+@keyframes crtFlicker {
+    0%, 97%, 100% { opacity: 0; }
+    97.5% { opacity: 1; }
+    98% { opacity: 0; }
+    98.5% { opacity: 0.5; }
+    99% { opacity: 0; }
+}
+
+/* Layer 8: Border Glow (golden edge glow) */
+.wp-border-glow {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 9;
+    box-shadow:
+        inset 0 0 60px rgba(255, 136, 0, 0.15),
+        inset 0 0 120px rgba(255, 100, 0, 0.08),
+        inset 0 0 200px rgba(255, 80, 0, 0.04);
+    animation: borderGlowPulse 6s ease-in-out infinite;
+}
+
+@keyframes borderGlowPulse {
+    0%, 100% { opacity: 0.7; }
+    50% { opacity: 1; }
+}
+
+/* Wallpaper layer visibility control */
+.wp-layer-hidden {
+    display: none !important;
+}
+
+/* Scanlines toggle via body class */
+body.no-scanlines::before {
+    display: none !important;
+}
+
+/* ===============================================================
+   WALLPAPER SETTINGS MODAL
+   =============================================================== */
+
+.wallpaper-settings-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.85);
+    z-index: 10000;
+    display: none;
+    justify-content: center;
+    align-items: center;
+    backdrop-filter: blur(5px);
+}
+
+.wallpaper-settings-modal.active {
+    display: flex;
+}
+
+.wallpaper-settings-panel {
+    background: linear-gradient(135deg, #0a0500 0%, #1a0f00 100%);
+    border: 2px solid var(--gold);
+    border-radius: 8px;
+    max-width: 500px;
+    width: 90%;
+    max-height: 85vh;
+    overflow-y: auto;
+    box-shadow:
+        0 0 40px rgba(255, 136, 0, 0.3),
+        inset 0 0 30px rgba(0, 0, 0, 0.5);
+}
+
+.wallpaper-settings-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 20px;
+    border-bottom: 1px solid var(--border-primary);
+    background: rgba(255, 136, 0, 0.05);
+}
+
+.wallpaper-settings-header h2 {
+    font-family: 'Alagard', serif;
+    color: var(--gold);
+    font-size: 18px;
+    margin: 0;
+    text-shadow: 0 0 10px rgba(255, 136, 0, 0.5);
+}
+
+.wallpaper-settings-close {
+    background: none;
+    border: 1px solid var(--border-primary);
+    color: var(--gold);
+    width: 32px;
+    height: 32px;
+    cursor: pointer;
+    font-size: 18px;
+    border-radius: 4px;
+    transition: all 0.2s;
+}
+
+.wallpaper-settings-close:hover {
+    background: rgba(255, 136, 0, 0.2);
+    border-color: var(--gold);
+}
+
+.wallpaper-settings-body {
+    padding: 20px;
+}
+
+.settings-section-title {
+    color: var(--gold);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 15px;
+    padding-bottom: 8px;
+    border-bottom: 1px dashed var(--border-primary);
+}
+
+/* Layer control item */
+.layer-control {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 0;
+    border-bottom: 1px solid rgba(255, 136, 0, 0.1);
+}
+
+.layer-control:last-child {
+    border-bottom: none;
+}
+
+.layer-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1;
+}
+
+.layer-name {
+    color: var(--primary-green);
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.layer-desc {
+    color: #666;
+    font-size: 11px;
+}
+
+.layer-controls {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+/* Toggle switch */
+.toggle-switch {
+    position: relative;
+    width: 44px;
+    height: 24px;
+}
+
+.toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.toggle-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: #1a1a1a;
+    border: 1px solid #333;
+    border-radius: 24px;
+    transition: 0.3s;
+}
+
+.toggle-slider:before {
+    position: absolute;
+    content: "";
+    height: 18px;
+    width: 18px;
+    left: 2px;
+    bottom: 2px;
+    background: #666;
+    border-radius: 50%;
+    transition: 0.3s;
+}
+
+.toggle-switch input:checked + .toggle-slider {
+    background: rgba(255, 136, 0, 0.3);
+    border-color: var(--gold);
+}
+
+.toggle-switch input:checked + .toggle-slider:before {
+    transform: translateX(20px);
+    background: var(--gold);
+    box-shadow: 0 0 8px rgba(255, 136, 0, 0.6);
+}
+
+/* Opacity slider */
+.opacity-slider {
+    width: 80px;
+    height: 4px;
+    -webkit-appearance: none;
+    appearance: none;
+    background: #1a1a1a;
+    border: 1px solid #333;
+    border-radius: 4px;
+    outline: none;
+}
+
+.opacity-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 14px;
+    height: 14px;
+    background: var(--gold);
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 0 8px rgba(255, 136, 0, 0.5);
+}
+
+.opacity-slider::-moz-range-thumb {
+    width: 14px;
+    height: 14px;
+    background: var(--gold);
+    border-radius: 50%;
+    cursor: pointer;
+    border: none;
+    box-shadow: 0 0 8px rgba(255, 136, 0, 0.5);
+}
+
+.opacity-value {
+    color: #888;
+    font-size: 11px;
+    min-width: 35px;
+    text-align: right;
+}
+
+/* Settings footer with buttons */
+.wallpaper-settings-footer {
+    display: flex;
+    justify-content: space-between;
+    padding: 15px 20px;
+    border-top: 1px solid var(--border-primary);
+    background: rgba(0, 0, 0, 0.3);
+}
+
+.settings-btn {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 12px;
+    padding: 10px 20px;
+    border: 1px solid var(--border-primary);
+    background: rgba(0, 0, 0, 0.5);
+    color: var(--dim-green);
+    cursor: pointer;
+    border-radius: 4px;
+    transition: all 0.2s;
+}
+
+.settings-btn:hover {
+    border-color: var(--gold);
+    color: var(--gold);
+    background: rgba(255, 136, 0, 0.1);
+}
+
+.settings-btn-primary {
+    background: linear-gradient(180deg, #ff9900 0%, #cc7a00 100%);
+    color: #000;
+    border-color: #ff9900;
+    font-weight: bold;
+}
+
+.settings-btn-primary:hover {
+    background: linear-gradient(180deg, #ffaa22 0%, #dd8b11 100%);
+    color: #000;
+}
+
+/* Master control at top */
+.master-control {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 15px;
+    background: rgba(255, 136, 0, 0.08);
+    border: 1px solid rgba(255, 136, 0, 0.2);
+    border-radius: 6px;
+    margin-bottom: 20px;
+}
+
+.master-control .layer-name {
+    font-size: 14px;
+    color: var(--gold);
+}
+
+/* Performance mode indicator */
+.perf-indicator {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 15px;
+    background: rgba(0, 100, 0, 0.1);
+    border: 1px dashed rgba(0, 255, 0, 0.2);
+    border-radius: 4px;
+    margin-top: 15px;
+}
+
+.perf-indicator-dot {
+    width: 8px;
+    height: 8px;
+    background: #33ff33;
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+}
+
+.perf-indicator-text {
+    color: var(--dim-green);
+    font-size: 11px;
+}
+
+/* Responsive for settings modal */
+@media (max-width: 600px) {
+    .wallpaper-settings-panel {
+        max-height: 90vh;
+        margin: 10px;
+    }
+
+    .layer-control {
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .layer-controls {
+        width: 100%;
+        justify-content: flex-end;
+    }
+
+    .opacity-slider {
+        width: 60px;
     }
 }
