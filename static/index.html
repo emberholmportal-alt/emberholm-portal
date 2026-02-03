@@ -1692,16 +1692,16 @@ document.addEventListener('DOMContentLoaded', initPortalWarning);
         <!-- FOOTER ICONS -->
         <div class="home-footer-icons">
             <a href="#" class="footer-icon" title="Wallpaper Settings" onclick="openWallpaperSettings(); return false;">
-                <img src="/img/confighome.png" alt="Settings" class="pixel-icon-large">
+                <span class="footer-icon-text">⚙️</span>
             </a>
             <a href="#" class="footer-icon footer-icon-orange" title="Announcements" onclick="switchScreen('info-hub'); switchInfoTab('announcements'); return false;">
-                <img src="/img/scroll.png" alt="Announcements" class="pixel-icon-large">
+                <span class="footer-icon-text">📜</span>
             </a>
             <a href="https://x.com/EmberholmPortal" class="footer-icon" title="Twitter/X" target="_blank">
-                <img src="/img/xhome.png" alt="X" class="pixel-icon-large">
+                <span class="footer-icon-text">𝕏</span>
             </a>
             <a href="https://discord.gg/Pw7YQtH4Y" class="footer-icon" title="Discord" target="_blank">
-                <img src="/img/discordhome.png" alt="Discord" class="pixel-icon-large">
+                <span class="footer-icon-text">💬</span>
             </a>
         </div>
     </section>
@@ -9369,8 +9369,8 @@ function openMissionTypeSelector(heroId) {
         showInfoModal("WALLET REQUIRED", "Please connect your wallet first!");
         return;
     }
-    selectedHeroForMission = heroId;
-    showModal('mission-type-modal');
+    // Directly open normal missions (skip micro-mission selector)
+    openMissionListModal(heroId);
 }
 
 function selectMissionType(type) {

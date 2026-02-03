@@ -5654,6 +5654,16 @@ img {
     filter: sepia(100%) saturate(300%) brightness(100%) hue-rotate(-10deg);
 }
 
+/* Footer icon text/emoji styling */
+.footer-icon-text {
+    font-size: 28px;
+    line-height: 1;
+}
+
+.footer-icon-orange .footer-icon-text {
+    filter: sepia(100%) saturate(300%) brightness(100%) hue-rotate(-10deg);
+}
+
 /* ===============================================================
    BACK HOME BUTTON (top of all screens)
    =============================================================== */
