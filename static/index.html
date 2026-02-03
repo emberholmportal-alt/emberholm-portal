@@ -1668,14 +1668,14 @@ document.addEventListener('DOMContentLoaded', initPortalWarning);
             <!-- RIGHT SIDE: 6 Navigation Buttons -->
             <div class="home-buttons-side">
                 <button class="home-nav-btn home-nav-btn-mint" onclick="window.location.href='/mint'">
-                    MINT / INVOKE
+                    [ MINT / INVOKE ]
                 </button>
                 <button class="home-nav-btn" data-target="play-hub" id="btn-play">
                     [ PLAY ]
                     <span class="nav-badge" id="play-badge" style="display:none;">0</span>
                 </button>
                 <button class="home-nav-btn" data-target="tutorial">
-                    [ COMO JUGAR ]
+                    [ HOW TO PLAY ]
                 </button>
                 <button class="home-nav-btn" data-target="vault">
                     [ VAULT ]
@@ -1692,16 +1692,16 @@ document.addEventListener('DOMContentLoaded', initPortalWarning);
         <!-- FOOTER ICONS -->
         <div class="home-footer-icons">
             <a href="#" class="footer-icon" title="Wallpaper Settings" onclick="openWallpaperSettings(); return false;">
-                <img src="img/confighome.png" alt="Settings" class="pixel-icon-large" onerror="this.textContent='⚙️'">
+                <img src="/img/confighome.png" alt="Settings" class="pixel-icon-large">
             </a>
             <a href="#" class="footer-icon footer-icon-orange" title="Announcements" onclick="switchScreen('info-hub'); switchInfoTab('announcements'); return false;">
-                <img src="img/scroll.png" alt="Announcements" class="pixel-icon-large" onerror="this.textContent='📜'">
+                <img src="/img/scroll.png" alt="Announcements" class="pixel-icon-large">
             </a>
-            <a href="https://twitter.com/EmberholmGame" class="footer-icon" title="Twitter/X" target="_blank">
-                <img src="img/xhome.png" alt="X" class="pixel-icon-large" onerror="this.textContent='𝕏'">
+            <a href="https://x.com/EmberholmPortal" class="footer-icon" title="Twitter/X" target="_blank">
+                <img src="/img/xhome.png" alt="X" class="pixel-icon-large">
             </a>
             <a href="https://discord.gg/Pw7YQtH4Y" class="footer-icon" title="Discord" target="_blank">
-                <img src="img/discordhome.png" alt="Discord" class="pixel-icon-large" onerror="this.textContent='💬'">
+                <img src="/img/discordhome.png" alt="Discord" class="pixel-icon-large">
             </a>
         </div>
     </section>
@@ -4905,7 +4905,8 @@ async function loadNFTsWithPagination(tokenIds, page = 0) {
 
         // Update progress
         const progress = Math.min(100, Math.round((i + batch.length) / pageTokenIds.length * 100));
-        document.getElementById("connect-wallet-btn").textContent = `[LOADING ${progress}%...]`;
+        const connectBtn = document.getElementById("connect-wallet-btn");
+        if (connectBtn) connectBtn.textContent = `[LOADING ${progress}%...]`;
     }
 
     window.paginationState.nfts.loading = false;
@@ -5695,6 +5696,26 @@ function hideGlitchOverlay() {
 }
 
 /* --------- 🔥 METAMASK CONNECTION + BLOCKCHAIN QUERY --------- */
+
+// Helper functions to safely update wallet button
+function updateWalletBtn(text, disabled = null) {
+    const btn = document.getElementById("connect-wallet-btn");
+    if (btn) {
+        btn.textContent = text;
+        if (disabled !== null) btn.disabled = disabled;
+    }
+}
+
+function setWalletBtnDisabled(disabled) {
+    const btn = document.getElementById("connect-wallet-btn");
+    if (btn) btn.disabled = disabled;
+}
+
+function setWalletBtnDisplay(display) {
+    const btn = document.getElementById("connect-wallet-btn");
+    if (btn) btn.style.display = display;
+}
+
 async function connectWallet() {
     if (!window.ethereum) {
         alert("MetaMask not detected! Please install MetaMask or Coinbase Wallet.");
@@ -5717,12 +5738,11 @@ async function connectWallet() {
         console.log(`🎯 TARGET NETWORK: Base Mainnet Chain ID ${BASE_CHAIN_ID} (hex: ${BASE_CHAIN_ID_HEX})`);
 
         // Show current network in button
-        document.getElementById("connect-wallet-btn").textContent = `[Network: ${currentChainId}]`;
-        document.getElementById("connect-wallet-btn").disabled = true;
+        updateWalletBtn(`[Network: ${currentChainId}]`, true);
 
         if (currentChainId !== BASE_CHAIN_ID) {
             console.log(`❌ WRONG NETWORK! Current: ${currentChainId}, Required: ${BASE_CHAIN_ID}`);
-            document.getElementById("connect-wallet-btn").textContent = "[SWITCHING TO BASE...]";
+            updateWalletBtn("[SWITCHING TO BASE...]");
 
             try {
                 console.log(`📡 Requesting network switch to Base Mainnet...`);
@@ -5761,23 +5781,23 @@ async function connectWallet() {
                               "Chain ID: 8453\n" +
                               "Símbolo: ETH\n" +
                               "Explorer: https://basescan.org");
-                        document.getElementById("connect-wallet-btn").textContent = "[CONNECT WALLET]";
-                        document.getElementById("connect-wallet-btn").disabled = false;
+                        updateWalletBtn("[CONNECT WALLET]");
+                        setWalletBtnDisabled(false);
                         hideGlitchOverlay();
                         return null;
                     }
                 } else if (switchError.code === 4001) {
                     console.log("❌ User REJECTED network switch");
                     alert("🛑 DEBES cambiar a Base para ver tus NFTs.\n\nEste proyecto funciona en Base Mainnet.\n\nIntenta de nuevo y APRUEBA el cambio de red.");
-                    document.getElementById("connect-wallet-btn").textContent = "[CONNECT WALLET]";
-                    document.getElementById("connect-wallet-btn").disabled = false;
+                    updateWalletBtn("[CONNECT WALLET]");
+                    setWalletBtnDisabled(false);
                     hideGlitchOverlay();
                     return null;
                 } else {
                     console.error("❌ Unexpected switch error:", switchError);
                     alert("❌ Error al cambiar de red.\n\nPor favor cambia MANUALMENTE a Base en MetaMask y vuelve a conectar.");
-                    document.getElementById("connect-wallet-btn").textContent = "[CONNECT WALLET]";
-                    document.getElementById("connect-wallet-btn").disabled = false;
+                    updateWalletBtn("[CONNECT WALLET]");
+                    setWalletBtnDisabled(false);
                     hideGlitchOverlay();
                     return null;
                 }
@@ -5802,8 +5822,8 @@ async function connectWallet() {
                       `2. Cambia MANUALMENTE a "Base"\n` +
                       `3. Actualiza esta página (F5)\n` +
                       `4. Haz clic en CONNECT WALLET de nuevo`);
-                document.getElementById("connect-wallet-btn").textContent = "[WRONG NETWORK!]";
-                document.getElementById("connect-wallet-btn").disabled = false;
+                updateWalletBtn("[WRONG NETWORK!]");
+                setWalletBtnDisabled(false);
                 hideGlitchOverlay();
                 return null;
             }
@@ -5834,13 +5854,13 @@ async function connectWallet() {
         if (finalChainId !== BASE_CHAIN_ID) {
             console.error(`❌ ABORT: Chain ID changed to ${finalChainId}! Expected ${BASE_CHAIN_ID}`);
             alert(`🛑 ERROR: La red cambió!\n\nEstás en Chain ID ${finalChainId} pero necesitas Base (${BASE_CHAIN_ID}).\n\nPor favor actualiza la página e intenta de nuevo.`);
-            document.getElementById("connect-wallet-btn").textContent = "[WRONG NETWORK!]";
-            document.getElementById("connect-wallet-btn").disabled = false;
+            updateWalletBtn("[WRONG NETWORK!]");
+            setWalletBtnDisabled(false);
             hideGlitchOverlay();
             return null;
         }
 
-        document.getElementById("connect-wallet-btn").textContent = "[QUERYING BLOCKCHAIN...]";
+        updateWalletBtn("[QUERYING BLOCKCHAIN...]");
         updateGlitchSubtext("Querying blockchain for NFTs...");
 
         // 🔥 Query NFT contract on Base Mainnet to get user's NFTs
@@ -5918,7 +5938,7 @@ async function connectWallet() {
             // 🔥🔥🔥 FETCH IPFS METADATA WITH PAGINATION (scalable for 35k+ NFTs) 🔥🔥🔥
             // Uses parallel loading and pagination for performance
             if (tokenIds.length > 0) {
-                document.getElementById("connect-wallet-btn").textContent = "[LOADING METADATA...]";
+                updateWalletBtn("[LOADING METADATA...]");
                 updateGlitchSubtext("Fetching NFT metadata from IPFS...");
 
                 console.log(`🔥 Fetching IPFS metadata for ${tokenIds.length} NFTs (with pagination)...`);
@@ -5937,7 +5957,7 @@ async function connectWallet() {
             // 🔥 OPTIONAL: Still sync to backend for game state persistence
             // But display comes from IPFS, not backend!
             console.log("📤 Syncing NFT data to backend (optional)...");
-            document.getElementById("connect-wallet-btn").textContent = "[SYNCING...]";
+            updateWalletBtn("[SYNCING...]");
 
             try {
                 const response = await fetch(`/api/player/${encodeURIComponent(address)}`, {
@@ -5966,7 +5986,7 @@ async function connectWallet() {
                 console.log("ℹ️ No NFTs found for this wallet on Base Mainnet");
             }
 
-            document.getElementById("connect-wallet-btn").textContent = "[CONNECTED ✓]";
+            updateWalletBtn("[CONNECTED ✓]");
 
             // 🔥 Update ACCESS LEVEL to EMBERHOLM EMISSARY with green color
             const accessLevelEl = document.getElementById("access-level");
@@ -5980,8 +6000,8 @@ async function connectWallet() {
             console.error("Error code:", blockchainError.code);
 
             alert(`❌ ERROR al consultar blockchain:\n\n${blockchainError.message}\n\nRevisa la consola (F12) para más detalles.`);
-            document.getElementById("connect-wallet-btn").textContent = "[ERROR - Check Console]";
-            document.getElementById("connect-wallet-btn").disabled = false;
+            updateWalletBtn("[ERROR - Check Console]");
+            setWalletBtnDisabled(false);
             hideGlitchOverlay();
             return null;
         }
@@ -6008,8 +6028,8 @@ async function connectWallet() {
     } catch (error) {
         console.error("Wallet connection error:", error);
         alert("Failed to connect wallet: " + error.message);
-        document.getElementById("connect-wallet-btn").textContent = "[CONNECT WALLET]";
-        document.getElementById("connect-wallet-btn").disabled = false;
+        updateWalletBtn("[CONNECT WALLET]");
+        setWalletBtnDisabled(false);
         hideGlitchOverlay();
         return null;
     }
@@ -6026,16 +6046,19 @@ function disconnectWallet() {
     window.connectedWallet = null;  // Sync with window for external JS files
 
     // Update UI
-    document.getElementById("wallet-display").textContent = "Not connected";
-    document.getElementById("connect-wallet-btn").style.display = "inline-block";
-    document.getElementById("connect-wallet-btn").textContent = "[CONNECT WALLET]";
-    document.getElementById("connect-wallet-btn").disabled = false;
-    document.getElementById("disconnect-wallet-btn").style.display = "none";
+    const walletDisplay = document.getElementById("wallet-display");
+    if (walletDisplay) walletDisplay.textContent = "Not connected";
+    setWalletBtnDisplay("inline-block");
+    updateWalletBtn("[CONNECT WALLET]", false);
+    const disconnectBtn = document.getElementById("disconnect-wallet-btn");
+    if (disconnectBtn) disconnectBtn.style.display = "none";
 
     // Reset ACCESS LEVEL to CITIZEN
     const accessLevelEl = document.getElementById("access-level");
-    accessLevelEl.textContent = "ACCESS LEVEL: [CITIZEN]";
-    accessLevelEl.style.color = "";
+    if (accessLevelEl) {
+        accessLevelEl.textContent = "ACCESS LEVEL: [CITIZEN]";
+        accessLevelEl.style.color = "";
+    }
 
     // Clear profile data
     document.getElementById("wallet-summary").innerHTML = "";
@@ -6058,22 +6081,26 @@ function disconnectWallet() {
     showInfoModal("WALLET DISCONNECTED", "Your wallet has been disconnected.\n\nClick [CONNECT WALLET] to reconnect.");
 }
 
-document.getElementById("disconnect-wallet-btn").addEventListener("click", disconnectWallet);
+const disconnectBtnEl = document.getElementById("disconnect-wallet-btn");
+if (disconnectBtnEl) disconnectBtnEl.addEventListener("click", disconnectWallet);
 
 // 🔥 Helper: Update button visibility based on connection state
 function updateWalletButtonsVisibility() {
+    const connectBtn = document.getElementById("connect-wallet-btn");
+    const disconnectBtn = document.getElementById("disconnect-wallet-btn");
+    const vaultConnectBtn = document.getElementById("vault-connect-btn");
+    const vaultDisconnectBtn = document.getElementById("vault-disconnect-btn");
+
     if (connectedWallet) {
-        document.getElementById("connect-wallet-btn").style.display = "none";
-        document.getElementById("disconnect-wallet-btn").style.display = "inline-block";
-        // Vault buttons
-        document.getElementById("vault-connect-btn").style.display = "none";
-        document.getElementById("vault-disconnect-btn").style.display = "inline-block";
+        if (connectBtn) connectBtn.style.display = "none";
+        if (disconnectBtn) disconnectBtn.style.display = "inline-block";
+        if (vaultConnectBtn) vaultConnectBtn.style.display = "none";
+        if (vaultDisconnectBtn) vaultDisconnectBtn.style.display = "inline-block";
     } else {
-        document.getElementById("connect-wallet-btn").style.display = "inline-block";
-        document.getElementById("disconnect-wallet-btn").style.display = "none";
-        // Vault buttons
-        document.getElementById("vault-connect-btn").style.display = "inline-block";
-        document.getElementById("vault-disconnect-btn").style.display = "none";
+        if (connectBtn) connectBtn.style.display = "inline-block";
+        if (disconnectBtn) disconnectBtn.style.display = "none";
+        if (vaultConnectBtn) vaultConnectBtn.style.display = "inline-block";
+        if (vaultDisconnectBtn) vaultDisconnectBtn.style.display = "none";
     }
 }
 
@@ -6243,8 +6270,8 @@ if (window.ethereum) {
             connectedWallet = null;
             window.connectedWallet = null;  // Sync with window for external JS files
             document.getElementById("wallet-display").textContent = "NOT CONNECTED";
-            document.getElementById("connect-wallet-btn").textContent = "[CONNECT WALLET]";
-            document.getElementById("connect-wallet-btn").disabled = false;
+            updateWalletBtn("[CONNECT WALLET]");
+            setWalletBtnDisabled(false);
 
             // 🔥 Reset ACCESS LEVEL to CITIZEN with default color
             const accessLevelEl = document.getElementById("access-level");

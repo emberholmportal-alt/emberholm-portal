@@ -5501,9 +5501,10 @@ img {
    =============================================================== */
 
 /* Home screen container - fit in viewport */
-[data-screen="home"] {
+/* Home screen specific layout - only when active */
+[data-screen="home"].active {
     height: calc(100vh - 80px);
-    display: flex;
+    display: flex !important;
     flex-direction: column;
     overflow: hidden;
 }
@@ -5515,14 +5516,16 @@ img {
     align-items: center;
     flex: 1;
     padding: 10px 30px;
-    gap: 40px;
+    gap: 60px;
     max-height: calc(100vh - 180px);
+    max-width: 900px;
+    margin: 0 auto;
 }
 
 /* Left side - Logo and text */
 .home-logo-side {
-    flex: 1;
-    max-width: 550px;
+    flex: 0 0 auto;
+    max-width: 450px;
     text-align: center;
 }
 
@@ -5546,83 +5549,47 @@ img {
     max-width: 240px;
 }
 
-/* Home navigation buttons - Enhanced design */
+/* Home navigation buttons - Retro Terminal Style */
 .home-nav-btn {
     position: relative;
     font-family: 'Share Tech Mono', monospace;
-    font-size: 14px;
-    font-weight: bold;
-    padding: 12px 20px;
-    border: 2px solid #ff9900;
-    background: linear-gradient(180deg, #ff9900 0%, #cc7a00 100%);
-    color: #000;
+    font-size: 13px;
+    font-weight: normal;
+    padding: 10px 20px;
+    border: 1px solid var(--gold);
+    background: transparent;
+    color: var(--gold);
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all 0.15s ease;
     text-transform: uppercase;
-    letter-spacing: 2px;
+    letter-spacing: 1px;
     text-align: center;
-    box-shadow:
-        0 4px 0 #995c00,
-        0 6px 10px rgba(0, 0, 0, 0.4),
-        inset 0 1px 0 rgba(255, 255, 255, 0.2);
-    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.3);
-}
-
-.home-nav-btn::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 50%;
-    background: linear-gradient(180deg, rgba(255,255,255,0.15) 0%, transparent 100%);
-    pointer-events: none;
+    width: 100%;
 }
 
 .home-nav-btn:hover {
-    background: linear-gradient(180deg, #ffb833 0%, #ff9900 100%);
+    background: rgba(255, 136, 0, 0.15);
+    color: #ffcc00;
     border-color: #ffcc00;
-    box-shadow:
-        0 4px 0 #995c00,
-        0 6px 15px rgba(255, 153, 0, 0.5),
-        inset 0 1px 0 rgba(255, 255, 255, 0.3);
-    transform: translateY(-2px);
+    text-shadow: 0 0 8px rgba(255, 136, 0, 0.5);
 }
 
 .home-nav-btn:active {
-    transform: translateY(2px);
-    box-shadow:
-        0 2px 0 #995c00,
-        0 3px 5px rgba(0, 0, 0, 0.4),
-        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    background: rgba(255, 136, 0, 0.25);
 }
 
-/* MINT button - Red/coral color with 3D effect */
+/* MINT button - Highlighted terminal style */
 .home-nav-btn-mint {
-    background: linear-gradient(180deg, #e84855 0%, #c23040 100%);
     border-color: #e84855;
-    color: #fff;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
-    box-shadow:
-        0 4px 0 #8a2030,
-        0 6px 10px rgba(0, 0, 0, 0.4),
-        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    color: #e84855;
+    background: rgba(232, 72, 85, 0.1);
 }
 
 .home-nav-btn-mint:hover {
-    background: linear-gradient(180deg, #ff6b6b 0%, #e84855 100%);
+    background: rgba(232, 72, 85, 0.25);
+    color: #ff6b6b;
     border-color: #ff6b6b;
-    box-shadow:
-        0 4px 0 #8a2030,
-        0 6px 15px rgba(232, 72, 85, 0.5),
-        inset 0 1px 0 rgba(255, 255, 255, 0.3);
-}
-
-.home-nav-btn-mint:active {
-    box-shadow:
-        0 2px 0 #8a2030,
-        0 3px 5px rgba(0, 0, 0, 0.4),
-        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    text-shadow: 0 0 8px rgba(232, 72, 85, 0.5);
 }
 
 /* Badge for nav buttons */
@@ -5736,7 +5703,7 @@ img {
 
 /* Responsive - Stack vertically on mobile */
 @media (max-width: 900px) {
-    [data-screen="home"] {
+    [data-screen="home"].active {
         height: auto;
         min-height: calc(100vh - 80px);
     }
