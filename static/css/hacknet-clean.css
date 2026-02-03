@@ -5495,3 +5495,241 @@ img {
         animation: none !important;
     }
 }
+
+/* ===============================================================
+   NAVIGATION REDESIGN - 6 BUTTON LAYOUT
+   =============================================================== */
+
+/* Single row layout for 6 buttons */
+.top-command-bar-redesign {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    padding: 8px 12px;
+}
+
+/* Hide second nav bar when redesign is active */
+.nav-bar-hidden {
+    display: none !important;
+}
+
+/* PLAY button special styling with relative positioning for badge */
+.cmd-link-play {
+    position: relative;
+}
+
+/* Badge for nav buttons */
+.nav-badge {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    background: #ff3333;
+    color: #000;
+    font-size: 10px;
+    font-weight: bold;
+    min-width: 18px;
+    height: 18px;
+    border-radius: 9px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 4px;
+    animation: pulse-badge 2s infinite;
+    box-shadow: 0 0 8px rgba(255, 51, 51, 0.8);
+}
+
+@keyframes pulse-badge {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.1); opacity: 0.9; }
+}
+
+/* ===============================================================
+   PLAY HUB & INFO HUB STYLES
+   =============================================================== */
+
+.hub-tabs {
+    display: flex;
+    gap: 4px;
+    border-bottom: 1px solid var(--border-primary);
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    padding: 0 10px;
+}
+
+.hub-tab {
+    position: relative;
+    padding: 10px 16px;
+    background: transparent;
+    border: 1px solid var(--border-primary);
+    border-bottom: none;
+    color: var(--dim-green);
+    font-family: 'Pixelify Sans', monospace;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin-bottom: -1px;
+}
+
+.hub-tab:hover {
+    background: rgba(255, 153, 0, 0.1);
+    color: var(--bright-green);
+}
+
+.hub-tab.active {
+    background: rgba(255, 153, 0, 0.2);
+    color: var(--gold);
+    border-color: var(--gold);
+    border-bottom-color: #0a0a0a;
+}
+
+.hub-tab.disabled {
+    color: #444;
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+
+.hub-tab.disabled:hover {
+    background: transparent;
+    color: #444;
+}
+
+/* Tab badges */
+.tab-badge {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    background: var(--warning-orange);
+    color: #000;
+    font-size: 9px;
+    font-weight: bold;
+    min-width: 16px;
+    height: 16px;
+    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 3px;
+    box-shadow: 0 0 6px rgba(255, 153, 0, 0.8);
+}
+
+.tab-badge-new {
+    background: #ff3333;
+    color: #fff;
+    box-shadow: 0 0 6px rgba(255, 51, 51, 0.8);
+}
+
+/* Content area for hubs */
+.hub-content {
+    min-height: 400px;
+    animation: fadeInHub 0.3s ease;
+}
+
+@keyframes fadeInHub {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Back button container */
+.back-btn-container {
+    margin-top: 30px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border-primary);
+    text-align: center;
+}
+
+.back-btn-container .terminal-btn {
+    min-width: 200px;
+}
+
+/* ===============================================================
+   PLACEHOLDER STYLES
+   =============================================================== */
+
+.placeholder-content {
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px dashed var(--border-primary);
+    border-radius: 4px;
+    text-align: center;
+    padding: 60px 20px;
+}
+
+.placeholder-content .placeholder-icon {
+    font-size: 48px;
+    margin-bottom: 20px;
+}
+
+.placeholder-content .placeholder-title {
+    color: var(--gold);
+    font-size: 18px;
+    margin-bottom: 15px;
+    font-family: 'Alagard', serif;
+}
+
+.placeholder-content .placeholder-text {
+    color: var(--dim-green);
+    max-width: 500px;
+    margin: 0 auto;
+    line-height: 1.6;
+}
+
+.placeholder-content .placeholder-status {
+    margin-top: 30px;
+    color: #666;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+/* ===============================================================
+   RESPONSIVE - MOBILE ADJUSTMENTS FOR REDESIGN
+   =============================================================== */
+
+@media (max-width: 768px) {
+    .top-command-bar-redesign {
+        gap: 6px;
+        padding: 6px 8px;
+    }
+
+    .top-command-bar-redesign .cmd-link {
+        font-size: 10px !important;
+        padding: 8px 10px !important;
+        min-width: auto;
+    }
+
+    .hub-tabs {
+        gap: 2px;
+        padding: 0 5px;
+    }
+
+    .hub-tab {
+        padding: 8px 10px;
+        font-size: 10px;
+    }
+
+    .nav-badge {
+        min-width: 16px;
+        height: 16px;
+        font-size: 9px;
+        top: -6px;
+        right: -6px;
+    }
+
+    .tab-badge {
+        min-width: 14px;
+        height: 14px;
+        font-size: 8px;
+    }
+}
+
+@media (max-width: 480px) {
+    .top-command-bar-redesign .cmd-link {
+        font-size: 9px !important;
+        padding: 6px 8px !important;
+    }
+
+    .hub-tab {
+        padding: 6px 8px;
+        font-size: 9px;
+    }
+}

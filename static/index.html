@@ -1436,28 +1436,17 @@ document.addEventListener('DOMContentLoaded', initPortalWarning);
             <span>STATUS: FLAME WEAKENING // MISSIONS REQUIRED</span>
         </div>
 
-        <!-- Navigation Row 1 -->
-        <div class="top-command-bar" id="nav-bar">
+        <!-- Navigation Row - REDESIGNED 6 BUTTONS -->
+        <div class="top-command-bar top-command-bar-redesign" id="nav-bar">
             <button class="cmd-link cmd-link-mint" onclick="window.location.href='/mint'">MINT / INVOKE</button>
-            <button class="cmd-link" data-target="home">[HOME]</button>
-            <button class="cmd-link" data-target="guilds">[STATS/GUILDS]</button>
-            <button class="cmd-link" data-target="missions">[MISSIONS]</button>
-            <button class="cmd-link cmd-link-disabled" data-target="micro-missions">[MICRO-MISSIONS]</button>
-            <button class="cmd-link" data-target="profile">[PROFILE]</button>
+            <button class="cmd-link cmd-link-play" data-target="play-hub" id="btn-play">
+                [PLAY]
+                <span class="nav-badge" id="play-badge" style="display:none;">0</span>
+            </button>
+            <button class="cmd-link" data-target="tutorial">[COMO JUGAR]</button>
             <button class="cmd-link" data-target="vault">[VAULT]</button>
-            <button class="cmd-link cmd-link-disabled" data-target="ember-roll">[EMBER ROLL]</button>
-            <button class="cmd-link cmd-link-disabled" data-target="marketplace">[MARKETPLACE]</button>
-        </div>
-        <!-- Navigation Row 2 -->
-        <div class="top-command-bar" id="nav-bar-2">
-            <button class="cmd-link" data-target="tutorial">[HELP/TUTORIAL]</button>
-            <button class="cmd-link" data-target="lore">[LORE]</button>
-            <button class="cmd-link" data-target="announcements">[ANNOUNCEMENTS]</button>
-            <button class="cmd-link" data-target="events">[EVENTS]</button>
-            <button class="cmd-link" data-target="credits">[SOCIAL/CREDITS]</button>
-            <button class="cmd-link" data-target="whitepaper">[WHITEPAPER/CONTRACTS]</button>
-            <button class="cmd-link" data-target="tokenomics">[TOKENOMICS]</button>
-            <button class="cmd-link cmd-link-disabled" data-target="world">[WORLD]</button>
+            <button class="cmd-link" data-target="world-chat">[WORLD CHAT]</button>
+            <button class="cmd-link" data-target="info-hub">[INFO]</button>
         </div>
 
         <!-- PROGRESS BAR -->
@@ -1607,6 +1596,112 @@ document.addEventListener('DOMContentLoaded', initPortalWarning);
 
             <div class="mono-small-note" style="margin-top:10px;">
                 FEED AUTO-UPDATES EVERY 20 SECONDS // REALM ACTIVITY MONITORED
+            </div>
+        </div>
+    </section>
+
+    <!-- ===============================================================
+         PLAY HUB - NEW CONSOLIDATED SCREEN
+         =============================================================== -->
+    <section class="screen" data-screen="play-hub">
+        <div class="section-block">
+            <div class="section-title">PLAY // ADVENTURE HUB</div>
+
+            <!-- PLAY TABS -->
+            <div class="hub-tabs" id="play-tabs">
+                <button class="hub-tab active" data-play-tab="profile">
+                    👤 PROFILE
+                </button>
+                <button class="hub-tab" data-play-tab="guilds">
+                    📊 STATS
+                </button>
+                <button class="hub-tab" data-play-tab="missions">
+                    ⚔️ MISSIONS
+                    <span class="tab-badge" id="missions-badge" style="display:none;">0</span>
+                </button>
+                <button class="hub-tab" data-play-tab="events">
+                    📅 EVENTS
+                    <span class="tab-badge tab-badge-new" id="events-badge" style="display:none;">NEW</span>
+                </button>
+                <button class="hub-tab" data-play-tab="lore">
+                    📜 LORE
+                </button>
+                <button class="hub-tab disabled" data-play-tab="micro-missions">
+                    🎲 MICRO
+                </button>
+                <button class="hub-tab disabled" data-play-tab="marketplace">
+                    🛒 MARKET
+                </button>
+            </div>
+
+            <!-- PLAY CONTENT - Will be populated dynamically -->
+            <div class="hub-content" id="play-content">
+                <!-- Content loaded from existing screens -->
+            </div>
+
+            <!-- BACK BUTTON -->
+            <div class="back-btn-container">
+                <button class="terminal-btn" onclick="switchScreen('home')">[← BACK TO HOME]</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===============================================================
+         INFO HUB - NEW CONSOLIDATED SCREEN
+         =============================================================== -->
+    <section class="screen" data-screen="info-hub">
+        <div class="section-block">
+            <div class="section-title">INFO // PROJECT DOCUMENTATION</div>
+
+            <!-- INFO TABS -->
+            <div class="hub-tabs" id="info-tabs">
+                <button class="hub-tab active" data-info-tab="announcements">
+                    📢 ANNOUNCEMENTS
+                </button>
+                <button class="hub-tab" data-info-tab="credits">
+                    👥 SOCIAL
+                </button>
+                <button class="hub-tab" data-info-tab="whitepaper">
+                    📄 WHITEPAPER
+                </button>
+                <button class="hub-tab" data-info-tab="tokenomics">
+                    💰 TOKENOMICS
+                </button>
+            </div>
+
+            <!-- INFO CONTENT - Will be populated dynamically -->
+            <div class="hub-content" id="info-content">
+                <!-- Content loaded from existing screens -->
+            </div>
+
+            <!-- BACK BUTTON -->
+            <div class="back-btn-container">
+                <button class="terminal-btn" onclick="switchScreen('home')">[← BACK TO HOME]</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===============================================================
+         WORLD CHAT - PLACEHOLDER SCREEN
+         =============================================================== -->
+    <section class="screen" data-screen="world-chat">
+        <div class="section-block">
+            <div class="section-title">WORLD CHAT // INTER-REALM COMMUNICATION</div>
+
+            <div class="placeholder-content">
+                <div class="placeholder-icon">🌍💬</div>
+                <div class="placeholder-title">GLOBAL COMMUNICATION SYSTEM</div>
+                <div class="placeholder-text">
+                    The World Chat feature is currently being developed by the Circle of Mist.
+                    Soon, operators from across all realms will be able to communicate in real-time,
+                    share strategies, and coordinate expeditions together.
+                </div>
+                <div class="placeholder-status">STATUS: IN DEVELOPMENT</div>
+            </div>
+
+            <!-- BACK BUTTON -->
+            <div class="back-btn-container">
+                <button class="terminal-btn" onclick="switchScreen('home')">[← BACK TO HOME]</button>
             </div>
         </div>
     </section>
@@ -5131,6 +5226,15 @@ navButtons.forEach((btn, index) => {
                 if (typeof initMicroMissionsSection === 'function') {
                     initMicroMissionsSection();
                 }
+            } else if (target === "play-hub") {
+                // 🎮 PLAY HUB - Load default tab (profile)
+                initPlayHub();
+            } else if (target === "info-hub") {
+                // 📚 INFO HUB - Load default tab (announcements)
+                initInfoHub();
+            } else if (target === "world-chat") {
+                // 🌍 WORLD CHAT - Placeholder screen, no special loading needed
+                console.log("🌍 World Chat placeholder loaded");
             }
 
             // 🧹 Cleanup previous sections when leaving
@@ -5146,6 +5250,176 @@ navButtons.forEach((btn, index) => {
         }
     });
 });
+
+/* ===============================================================
+   PLAY HUB & INFO HUB NAVIGATION SYSTEM
+   =============================================================== */
+
+let currentPlayTab = 'profile';
+let currentInfoTab = 'announcements';
+
+// Initialize PLAY Hub with default tab
+function initPlayHub() {
+    console.log("🎮 Initializing PLAY Hub");
+    currentPlayTab = 'profile';
+
+    // Set up tab click listeners
+    document.querySelectorAll('[data-play-tab]').forEach(tab => {
+        tab.onclick = () => {
+            if (tab.classList.contains('disabled')) return;
+            switchPlayTab(tab.getAttribute('data-play-tab'));
+        };
+    });
+
+    // Load default tab content
+    switchPlayTab('profile');
+
+    // Update badges
+    updatePlayBadges();
+}
+
+// Switch PLAY Hub tab
+function switchPlayTab(tabName) {
+    console.log("🎮 Switching PLAY tab to:", tabName);
+    currentPlayTab = tabName;
+
+    // Update active tab styling
+    document.querySelectorAll('[data-play-tab]').forEach(tab => {
+        tab.classList.remove('active');
+        if (tab.getAttribute('data-play-tab') === tabName) {
+            tab.classList.add('active');
+        }
+    });
+
+    // Load content from existing screen
+    loadPlayContent(tabName);
+}
+
+// Load content into PLAY Hub from existing screens
+function loadPlayContent(tabName) {
+    const contentContainer = document.getElementById('play-content');
+    const sourceScreen = document.querySelector(`[data-screen="${tabName}"]`);
+
+    if (sourceScreen && contentContainer) {
+        // Clone the content from the source screen
+        const sectionBlock = sourceScreen.querySelector('.section-block');
+        if (sectionBlock) {
+            contentContainer.innerHTML = sectionBlock.innerHTML;
+        }
+
+        // Trigger data loading for the tab
+        if (tabName === 'guilds') {
+            if (typeof fetchStatsAndRender === 'function') fetchStatsAndRender();
+            if (typeof fetchGuildsAndRender === 'function') fetchGuildsAndRender();
+        } else if (tabName === 'missions') {
+            if (!connectedWallet) {
+                contentContainer.innerHTML = `
+                    <div class="placeholder-content">
+                        <div class="placeholder-icon">🔐</div>
+                        <div class="placeholder-title">WALLET REQUIRED</div>
+                        <div class="placeholder-text">
+                            You must connect your wallet to access MISSIONS.<br>
+                            Go to PROFILE tab and click [CONNECT WALLET].
+                        </div>
+                    </div>
+                `;
+            } else if (typeof fetchMissionsAndRender === 'function') {
+                fetchMissionsAndRender();
+            }
+        } else if (tabName === 'events') {
+            if (typeof fetchEventsAndRender === 'function') fetchEventsAndRender();
+        } else if (tabName === 'profile') {
+            if (connectedWallet && typeof loadPlayerAndRender === 'function') {
+                loadPlayerAndRender();
+            }
+        } else if (tabName === 'lore') {
+            // Lore is static, already loaded
+        }
+    }
+}
+
+// Initialize INFO Hub with default tab
+function initInfoHub() {
+    console.log("📚 Initializing INFO Hub");
+    currentInfoTab = 'announcements';
+
+    // Set up tab click listeners
+    document.querySelectorAll('[data-info-tab]').forEach(tab => {
+        tab.onclick = () => {
+            switchInfoTab(tab.getAttribute('data-info-tab'));
+        };
+    });
+
+    // Load default tab content
+    switchInfoTab('announcements');
+}
+
+// Switch INFO Hub tab
+function switchInfoTab(tabName) {
+    console.log("📚 Switching INFO tab to:", tabName);
+    currentInfoTab = tabName;
+
+    // Update active tab styling
+    document.querySelectorAll('[data-info-tab]').forEach(tab => {
+        tab.classList.remove('active');
+        if (tab.getAttribute('data-info-tab') === tabName) {
+            tab.classList.add('active');
+        }
+    });
+
+    // Load content from existing screen
+    loadInfoContent(tabName);
+}
+
+// Load content into INFO Hub from existing screens
+function loadInfoContent(tabName) {
+    const contentContainer = document.getElementById('info-content');
+    const sourceScreen = document.querySelector(`[data-screen="${tabName}"]`);
+
+    if (sourceScreen && contentContainer) {
+        // Clone the content from the source screen
+        const sectionBlock = sourceScreen.querySelector('.section-block');
+        if (sectionBlock) {
+            contentContainer.innerHTML = sectionBlock.innerHTML;
+        }
+    }
+}
+
+// Update badges in PLAY button and tabs
+function updatePlayBadges() {
+    console.log("🔔 Updating PLAY badges");
+
+    // Count active missions from cached data
+    let activeMissions = 0;
+    if (window.cachedHeroesData && Array.isArray(window.cachedHeroesData)) {
+        activeMissions = window.cachedHeroesData.filter(h => h.state === "ON_MISSION").length;
+    }
+
+    // Update missions badge
+    const missionsBadge = document.getElementById('missions-badge');
+    if (missionsBadge) {
+        if (activeMissions > 0) {
+            missionsBadge.textContent = activeMissions;
+            missionsBadge.style.display = 'inline-flex';
+        } else {
+            missionsBadge.style.display = 'none';
+        }
+    }
+
+    // Update main PLAY button badge
+    const playBadge = document.getElementById('play-badge');
+    if (playBadge) {
+        if (activeMissions > 0) {
+            playBadge.textContent = activeMissions;
+            playBadge.style.display = 'inline-flex';
+        } else {
+            playBadge.style.display = 'none';
+        }
+    }
+}
+
+// Call badge update periodically and after data loads
+setInterval(updatePlayBadges, 30000); // Update every 30 seconds
 
 /* --------- FETCH UTILS --------- */
 async function fetchJSON(url, opts={}){
