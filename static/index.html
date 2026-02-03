@@ -1358,6 +1358,227 @@ document.addEventListener('DOMContentLoaded', initPortalWarning);
 <div class="noise"></div>
 <div class="crt-overlay"></div>
 
+<!-- LIVING TERMINAL WALLPAPER LAYERS -->
+<div class="wallpaper-layers" id="wallpaper-layers">
+    <div class="wp-gradient-pulse" id="wp-gradient-pulse"></div>
+    <div class="wp-dot-grid" id="wp-dot-grid"></div>
+    <div class="wp-moving-lines" id="wp-moving-lines"></div>
+    <div class="wp-ghost-code" id="wp-ghost-code">
+        <canvas id="ghost-code-canvas"></canvas>
+    </div>
+    <div class="wp-data-streams" id="wp-data-streams"></div>
+    <div class="wp-glitch-lines" id="wp-glitch-lines"></div>
+    <div class="wp-crt-flicker" id="wp-crt-flicker"></div>
+    <div class="wp-border-glow" id="wp-border-glow"></div>
+</div>
+
+<!-- WALLPAPER SETTINGS MODAL -->
+<div class="wallpaper-settings-modal" id="wallpaper-settings-modal">
+    <div class="wallpaper-settings-panel">
+        <div class="wallpaper-settings-header">
+            <h2>LIVING WALLPAPER</h2>
+            <button class="wallpaper-settings-close" onclick="closeWallpaperSettings()">&times;</button>
+        </div>
+        <div class="wallpaper-settings-body">
+            <!-- Master Control -->
+            <div class="master-control">
+                <div class="layer-info">
+                    <span class="layer-name">MASTER TOGGLE</span>
+                    <span class="layer-desc">Enable/disable all wallpaper effects</span>
+                </div>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="wp-master-toggle" checked onchange="toggleMasterWallpaper()">
+                    <span class="toggle-slider"></span>
+                </label>
+            </div>
+
+            <div class="settings-section-title">Visual Layers</div>
+
+            <!-- Gradient Pulse -->
+            <div class="layer-control">
+                <div class="layer-info">
+                    <span class="layer-name">Gradient Pulse</span>
+                    <span class="layer-desc">Warm ember color gradients</span>
+                </div>
+                <div class="layer-controls">
+                    <input type="range" class="opacity-slider" min="0" max="100" value="60" data-layer="gradient-pulse" onchange="updateLayerOpacity(this)">
+                    <span class="opacity-value" id="opacity-gradient-pulse">60%</span>
+                    <label class="toggle-switch">
+                        <input type="checkbox" checked data-layer="gradient-pulse" onchange="toggleLayer(this)">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Dot Grid -->
+            <div class="layer-control">
+                <div class="layer-info">
+                    <span class="layer-name">Dot Grid</span>
+                    <span class="layer-desc">Pixel pattern overlay</span>
+                </div>
+                <div class="layer-controls">
+                    <input type="range" class="opacity-slider" min="0" max="100" value="40" data-layer="dot-grid" onchange="updateLayerOpacity(this)">
+                    <span class="opacity-value" id="opacity-dot-grid">40%</span>
+                    <label class="toggle-switch">
+                        <input type="checkbox" checked data-layer="dot-grid" onchange="toggleLayer(this)">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Moving Lines -->
+            <div class="layer-control">
+                <div class="layer-info">
+                    <span class="layer-name">Moving Lines</span>
+                    <span class="layer-desc">Horizontal scan animation</span>
+                </div>
+                <div class="layer-controls">
+                    <input type="range" class="opacity-slider" min="0" max="100" value="60" data-layer="moving-lines" onchange="updateLayerOpacity(this)">
+                    <span class="opacity-value" id="opacity-moving-lines">60%</span>
+                    <label class="toggle-switch">
+                        <input type="checkbox" checked data-layer="moving-lines" onchange="toggleLayer(this)">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Ghost Code -->
+            <div class="layer-control">
+                <div class="layer-info">
+                    <span class="layer-name">Ghost Code</span>
+                    <span class="layer-desc">Falling code columns (Matrix-style)</span>
+                </div>
+                <div class="layer-controls">
+                    <input type="range" class="opacity-slider" min="0" max="100" value="25" data-layer="ghost-code" onchange="updateLayerOpacity(this)">
+                    <span class="opacity-value" id="opacity-ghost-code">25%</span>
+                    <label class="toggle-switch">
+                        <input type="checkbox" checked data-layer="ghost-code" onchange="toggleLayer(this)">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Data Streams -->
+            <div class="layer-control">
+                <div class="layer-info">
+                    <span class="layer-name">Data Streams</span>
+                    <span class="layer-desc">Vertical data flow particles</span>
+                </div>
+                <div class="layer-controls">
+                    <input type="range" class="opacity-slider" min="0" max="100" value="15" data-layer="data-streams" onchange="updateLayerOpacity(this)">
+                    <span class="opacity-value" id="opacity-data-streams">15%</span>
+                    <label class="toggle-switch">
+                        <input type="checkbox" checked data-layer="data-streams" onchange="toggleLayer(this)">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Glitch Lines -->
+            <div class="layer-control">
+                <div class="layer-info">
+                    <span class="layer-name">Glitch Lines</span>
+                    <span class="layer-desc">Random horizontal glitches</span>
+                </div>
+                <div class="layer-controls">
+                    <input type="range" class="opacity-slider" min="0" max="100" value="30" data-layer="glitch-lines" onchange="updateLayerOpacity(this)">
+                    <span class="opacity-value" id="opacity-glitch-lines">30%</span>
+                    <label class="toggle-switch">
+                        <input type="checkbox" checked data-layer="glitch-lines" onchange="toggleLayer(this)">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- CRT Flicker -->
+            <div class="layer-control">
+                <div class="layer-info">
+                    <span class="layer-name">CRT Flicker</span>
+                    <span class="layer-desc">Occasional screen flicker</span>
+                </div>
+                <div class="layer-controls">
+                    <input type="range" class="opacity-slider" min="0" max="100" value="100" data-layer="crt-flicker" onchange="updateLayerOpacity(this)">
+                    <span class="opacity-value" id="opacity-crt-flicker">100%</span>
+                    <label class="toggle-switch">
+                        <input type="checkbox" checked data-layer="crt-flicker" onchange="toggleLayer(this)">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Border Glow -->
+            <div class="layer-control">
+                <div class="layer-info">
+                    <span class="layer-name">Border Glow</span>
+                    <span class="layer-desc">Golden edge glow effect</span>
+                </div>
+                <div class="layer-controls">
+                    <input type="range" class="opacity-slider" min="0" max="100" value="70" data-layer="border-glow" onchange="updateLayerOpacity(this)">
+                    <span class="opacity-value" id="opacity-border-glow">70%</span>
+                    <label class="toggle-switch">
+                        <input type="checkbox" checked data-layer="border-glow" onchange="toggleLayer(this)">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="settings-section-title" style="margin-top:20px;">Classic CRT Effects</div>
+
+            <!-- Scanlines (existing) -->
+            <div class="layer-control">
+                <div class="layer-info">
+                    <span class="layer-name">Scanlines</span>
+                    <span class="layer-desc">Classic CRT scanline effect</span>
+                </div>
+                <div class="layer-controls">
+                    <label class="toggle-switch">
+                        <input type="checkbox" checked data-layer="scanlines" onchange="toggleClassicCRT(this)">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Noise (existing) -->
+            <div class="layer-control">
+                <div class="layer-info">
+                    <span class="layer-name">Static Noise</span>
+                    <span class="layer-desc">Film grain noise overlay</span>
+                </div>
+                <div class="layer-controls">
+                    <label class="toggle-switch">
+                        <input type="checkbox" checked data-layer="noise" onchange="toggleClassicCRT(this)">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Vignette (existing) -->
+            <div class="layer-control">
+                <div class="layer-info">
+                    <span class="layer-name">Vignette</span>
+                    <span class="layer-desc">Edge darkening effect</span>
+                </div>
+                <div class="layer-controls">
+                    <label class="toggle-switch">
+                        <input type="checkbox" checked data-layer="vignette" onchange="toggleClassicCRT(this)">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Performance indicator -->
+            <div class="perf-indicator">
+                <div class="perf-indicator-dot"></div>
+                <span class="perf-indicator-text">All effects optimized for performance</span>
+            </div>
+        </div>
+        <div class="wallpaper-settings-footer">
+            <button class="settings-btn" onclick="resetWallpaperSettings()">RESET DEFAULTS</button>
+            <button class="settings-btn settings-btn-primary" onclick="saveWallpaperSettings()">SAVE & CLOSE</button>
+        </div>
+    </div>
+</div>
+
 <!-- CRT GLITCH LOADING OVERLAY -->
 <div class="crt-glitch-overlay" id="crt-glitch-overlay">
     <div class="crt-loading-text" data-text="ESTABLISHING UPLINK">ESTABLISHING UPLINK</div>
@@ -5008,6 +5229,13 @@ let cachedHeroesData = {};
 /* --------- BASIC NAV --------- */
 function switchScreen(screenName){
     console.log("🔘 switchScreen called:", screenName);
+
+    // Remove play-hub overlay if switching to home or other screens
+    if (screenName === 'home' || screenName === 'info-hub' || screenName === 'world-chat' || screenName === 'vault' || screenName === 'tutorial') {
+        const overlay = document.getElementById('play-hub-overlay');
+        if (overlay) overlay.remove();
+    }
+
     document.querySelectorAll(".screen").forEach(s=>{
         if(s.getAttribute("data-screen") === screenName){
             s.classList.add("active");
@@ -5221,14 +5449,19 @@ function switchPlayTab(tabName) {
 // Load content into PLAY Hub from existing screens
 function loadPlayContent(tabName) {
     const contentContainer = document.getElementById('play-content');
-    const sourceScreen = document.querySelector(`[data-screen="${tabName}"]`);
 
-    if (sourceScreen && contentContainer) {
-        // Clone the content from the source screen
-        const sectionBlock = sourceScreen.querySelector('.section-block');
-        if (sectionBlock) {
-            contentContainer.innerHTML = sectionBlock.innerHTML;
-        }
+    // First, hide play-hub and show the actual screen directly
+    // This ensures the original screen's data functions work correctly
+    const playHub = document.querySelector('[data-screen="play-hub"]');
+    const targetScreen = document.querySelector(`[data-screen="${tabName}"]`);
+
+    if (targetScreen) {
+        // Show the actual screen (this triggers proper data loading)
+        document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
+        targetScreen.classList.add("active");
+
+        // Add a floating tab bar at the top of the shown screen
+        addPlayHubOverlay(tabName);
 
         // Trigger data loading for the tab
         if (tabName === 'guilds') {
@@ -5236,19 +5469,11 @@ function loadPlayContent(tabName) {
             if (typeof fetchGuildsAndRender === 'function') fetchGuildsAndRender();
         } else if (tabName === 'missions') {
             if (!connectedWallet) {
-                contentContainer.innerHTML = `
-                    <div class="placeholder-content">
-                        <div class="placeholder-icon">🔐</div>
-                        <div class="placeholder-title">WALLET REQUIRED</div>
-                        <div class="placeholder-text">
-                            You must connect your wallet to access MISSIONS.<br>
-                            Go to PROFILE tab and click [CONNECT WALLET].
-                        </div>
-                    </div>
-                `;
-            } else if (typeof fetchMissionsAndRender === 'function') {
-                fetchMissionsAndRender();
+                showInfoModal("WALLET REQUIRED", "You must connect your wallet to access MISSIONS.\\n\\nGo to PROFILE and click [CONNECT WALLET].");
+                switchPlayTab('profile');
+                return;
             }
+            if (typeof fetchMissionsAndRender === 'function') fetchMissionsAndRender();
         } else if (tabName === 'events') {
             if (typeof fetchEventsAndRender === 'function') fetchEventsAndRender();
         } else if (tabName === 'profile') {
@@ -5259,6 +5484,41 @@ function loadPlayContent(tabName) {
             // Lore is static, already loaded
         }
     }
+}
+
+// Add floating Play Hub tabs overlay to any screen
+function addPlayHubOverlay(activeTab) {
+    // Remove existing overlay if any
+    const existingOverlay = document.getElementById('play-hub-overlay');
+    if (existingOverlay) existingOverlay.remove();
+
+    // Create overlay with tabs
+    const overlay = document.createElement('div');
+    overlay.id = 'play-hub-overlay';
+    overlay.className = 'play-hub-overlay';
+    overlay.innerHTML = `
+        <div class="back-home-bar" style="border-bottom: none; padding: 5px 15px;">
+            <button class="back-home-btn" onclick="backToHomeFromPlay()">← BACK TO HOME</button>
+        </div>
+        <div class="hub-tabs" style="margin: 0; padding: 5px 15px; border-top: 1px solid var(--border-primary);">
+            <button class="hub-tab ${activeTab === 'profile' ? 'active' : ''}" onclick="switchPlayTab('profile')">👤 PROFILE</button>
+            <button class="hub-tab ${activeTab === 'guilds' ? 'active' : ''}" onclick="switchPlayTab('guilds')">📊 STATS</button>
+            <button class="hub-tab ${activeTab === 'missions' ? 'active' : ''}" onclick="switchPlayTab('missions')">⚔️ MISSIONS</button>
+            <button class="hub-tab ${activeTab === 'events' ? 'active' : ''}" onclick="switchPlayTab('events')">📅 EVENTS</button>
+            <button class="hub-tab ${activeTab === 'lore' ? 'active' : ''}" onclick="switchPlayTab('lore')">📜 LORE</button>
+        </div>
+    `;
+
+    // Add to document
+    document.querySelector('.wrapper').insertBefore(overlay, document.querySelector('.wrapper').firstChild);
+}
+
+function backToHomeFromPlay() {
+    // Remove overlay
+    const existingOverlay = document.getElementById('play-hub-overlay');
+    if (existingOverlay) existingOverlay.remove();
+    // Go back to home
+    switchScreen('home');
 }
 
 // Initialize INFO Hub with default tab
@@ -7945,17 +8205,420 @@ function hideModal(modalId) {
 // Callback for info modal
 let infoModalCallback = null;
 
-// Placeholder for wallpaper settings
+// ===============================================================
+// LIVING TERMINAL WALLPAPER SYSTEM
+// ===============================================================
+
+// Default wallpaper settings
+const defaultWallpaperSettings = {
+    master: true,
+    layers: {
+        'gradient-pulse': { enabled: true, opacity: 60 },
+        'dot-grid': { enabled: true, opacity: 40 },
+        'moving-lines': { enabled: true, opacity: 60 },
+        'ghost-code': { enabled: true, opacity: 25 },
+        'data-streams': { enabled: true, opacity: 15 },
+        'glitch-lines': { enabled: true, opacity: 30 },
+        'crt-flicker': { enabled: true, opacity: 100 },
+        'border-glow': { enabled: true, opacity: 70 }
+    },
+    classicCRT: {
+        scanlines: true,
+        noise: true,
+        vignette: true
+    }
+};
+
+// Current wallpaper settings
+let wallpaperSettings = JSON.parse(JSON.stringify(defaultWallpaperSettings));
+
+// Ghost code animation state
+let ghostCodeAnimationId = null;
+let dataStreamsIntervalId = null;
+let glitchLinesIntervalId = null;
+
+// Open wallpaper settings modal
 function openWallpaperSettings() {
-    showInfoModal('WALLPAPER SETTINGS',
-        'Living Terminal Wallpaper configuration is coming soon.\n\n' +
-        'You will be able to customize:\n' +
-        '• Ghost Code columns\n' +
-        '• Data Streams\n' +
-        '• Dot Grid\n' +
-        '• Animation speeds\n' +
-        '• Opacity levels');
+    const modal = document.getElementById('wallpaper-settings-modal');
+    if (modal) {
+        modal.classList.add('active');
+        loadWallpaperSettingsUI();
+    }
 }
+
+// Close wallpaper settings modal
+function closeWallpaperSettings() {
+    const modal = document.getElementById('wallpaper-settings-modal');
+    if (modal) {
+        modal.classList.remove('active');
+    }
+}
+
+// Load settings into UI
+function loadWallpaperSettingsUI() {
+    // Master toggle
+    const masterToggle = document.getElementById('wp-master-toggle');
+    if (masterToggle) {
+        masterToggle.checked = wallpaperSettings.master;
+    }
+
+    // Layer toggles and opacity sliders
+    document.querySelectorAll('.layer-control input[type="checkbox"][data-layer]').forEach(toggle => {
+        const layer = toggle.dataset.layer;
+        if (wallpaperSettings.layers[layer]) {
+            toggle.checked = wallpaperSettings.layers[layer].enabled;
+        }
+    });
+
+    document.querySelectorAll('.opacity-slider[data-layer]').forEach(slider => {
+        const layer = slider.dataset.layer;
+        if (wallpaperSettings.layers[layer]) {
+            slider.value = wallpaperSettings.layers[layer].opacity;
+            const valueSpan = document.getElementById(`opacity-${layer}`);
+            if (valueSpan) {
+                valueSpan.textContent = `${wallpaperSettings.layers[layer].opacity}%`;
+            }
+        }
+    });
+
+    // Classic CRT toggles
+    document.querySelectorAll('input[data-layer="scanlines"]').forEach(t => t.checked = wallpaperSettings.classicCRT.scanlines);
+    document.querySelectorAll('input[data-layer="noise"]').forEach(t => t.checked = wallpaperSettings.classicCRT.noise);
+    document.querySelectorAll('input[data-layer="vignette"]').forEach(t => t.checked = wallpaperSettings.classicCRT.vignette);
+}
+
+// Toggle master wallpaper on/off
+function toggleMasterWallpaper() {
+    const masterToggle = document.getElementById('wp-master-toggle');
+    wallpaperSettings.master = masterToggle.checked;
+
+    const wallpaperLayers = document.getElementById('wallpaper-layers');
+    if (wallpaperLayers) {
+        wallpaperLayers.style.display = wallpaperSettings.master ? 'block' : 'none';
+    }
+
+    // Update animations
+    if (wallpaperSettings.master) {
+        startWallpaperAnimations();
+    } else {
+        stopWallpaperAnimations();
+    }
+}
+
+// Toggle individual layer
+function toggleLayer(checkbox) {
+    const layer = checkbox.dataset.layer;
+    if (wallpaperSettings.layers[layer]) {
+        wallpaperSettings.layers[layer].enabled = checkbox.checked;
+        applyLayerVisibility(layer);
+    }
+}
+
+// Update layer opacity
+function updateLayerOpacity(slider) {
+    const layer = slider.dataset.layer;
+    const opacity = parseInt(slider.value);
+
+    if (wallpaperSettings.layers[layer]) {
+        wallpaperSettings.layers[layer].opacity = opacity;
+
+        // Update display value
+        const valueSpan = document.getElementById(`opacity-${layer}`);
+        if (valueSpan) {
+            valueSpan.textContent = `${opacity}%`;
+        }
+
+        // Apply opacity to layer
+        applyLayerOpacity(layer);
+    }
+}
+
+// Apply layer visibility
+function applyLayerVisibility(layer) {
+    const elementId = `wp-${layer}`;
+    const element = document.getElementById(elementId);
+    if (element) {
+        if (wallpaperSettings.layers[layer].enabled) {
+            element.classList.remove('wp-layer-hidden');
+        } else {
+            element.classList.add('wp-layer-hidden');
+        }
+    }
+}
+
+// Apply layer opacity
+function applyLayerOpacity(layer) {
+    const elementId = `wp-${layer}`;
+    const element = document.getElementById(elementId);
+    if (element) {
+        element.style.opacity = wallpaperSettings.layers[layer].opacity / 100;
+    }
+}
+
+// Toggle classic CRT effects
+function toggleClassicCRT(checkbox) {
+    const layer = checkbox.dataset.layer;
+
+    if (layer === 'scanlines') {
+        wallpaperSettings.classicCRT.scanlines = checkbox.checked;
+        document.body.style.setProperty('--scanlines-opacity', checkbox.checked ? '1' : '0');
+        // Toggle the body::before pseudo-element by adding/removing a class
+        if (checkbox.checked) {
+            document.body.classList.remove('no-scanlines');
+        } else {
+            document.body.classList.add('no-scanlines');
+        }
+    } else if (layer === 'noise') {
+        wallpaperSettings.classicCRT.noise = checkbox.checked;
+        const noiseEl = document.querySelector('.noise');
+        if (noiseEl) {
+            noiseEl.style.display = checkbox.checked ? 'block' : 'none';
+        }
+    } else if (layer === 'vignette') {
+        wallpaperSettings.classicCRT.vignette = checkbox.checked;
+        const vignetteEl = document.querySelector('.crt-overlay');
+        if (vignetteEl) {
+            vignetteEl.style.display = checkbox.checked ? 'block' : 'none';
+        }
+    }
+}
+
+// Save settings to localStorage
+function saveWallpaperSettings() {
+    try {
+        localStorage.setItem('emberholm-wallpaper-settings', JSON.stringify(wallpaperSettings));
+        closeWallpaperSettings();
+        console.log('🎨 Wallpaper settings saved');
+    } catch (e) {
+        console.error('Failed to save wallpaper settings:', e);
+    }
+}
+
+// Reset to default settings
+function resetWallpaperSettings() {
+    wallpaperSettings = JSON.parse(JSON.stringify(defaultWallpaperSettings));
+    loadWallpaperSettingsUI();
+    applyAllWallpaperSettings();
+    console.log('🎨 Wallpaper settings reset to defaults');
+}
+
+// Load settings from localStorage
+function loadWallpaperSettings() {
+    try {
+        const saved = localStorage.getItem('emberholm-wallpaper-settings');
+        if (saved) {
+            wallpaperSettings = JSON.parse(saved);
+            console.log('🎨 Wallpaper settings loaded from storage');
+        }
+    } catch (e) {
+        console.error('Failed to load wallpaper settings:', e);
+    }
+}
+
+// Apply all wallpaper settings
+function applyAllWallpaperSettings() {
+    // Apply master toggle
+    const wallpaperLayers = document.getElementById('wallpaper-layers');
+    if (wallpaperLayers) {
+        wallpaperLayers.style.display = wallpaperSettings.master ? 'block' : 'none';
+    }
+
+    // Apply each layer
+    Object.keys(wallpaperSettings.layers).forEach(layer => {
+        applyLayerVisibility(layer);
+        applyLayerOpacity(layer);
+    });
+
+    // Apply classic CRT
+    toggleClassicCRT({ dataset: { layer: 'scanlines' }, checked: wallpaperSettings.classicCRT.scanlines });
+    toggleClassicCRT({ dataset: { layer: 'noise' }, checked: wallpaperSettings.classicCRT.noise });
+    toggleClassicCRT({ dataset: { layer: 'vignette' }, checked: wallpaperSettings.classicCRT.vignette });
+}
+
+// Initialize Ghost Code animation (Matrix-style falling characters)
+function initGhostCodeAnimation() {
+    const canvas = document.getElementById('ghost-code-canvas');
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+
+    // Set canvas size
+    function resizeCanvas() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+    }
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
+
+    // Characters to use (runic/mystical looking)
+    const chars = 'ᚠᚡᚢᚣᚤᚥᚦᚧᚨᚩᚪᚫᚬᚭᚮᚯᛟᛞᛝᛜᛛᛚᛙᛘ01EMBER';
+    const fontSize = 14;
+    const columns = Math.floor(canvas.width / fontSize);
+    const drops = new Array(columns).fill(1);
+
+    function draw() {
+        if (!wallpaperSettings.master || !wallpaperSettings.layers['ghost-code'].enabled) {
+            ghostCodeAnimationId = requestAnimationFrame(draw);
+            return;
+        }
+
+        // Semi-transparent black for fade effect
+        ctx.fillStyle = 'rgba(10, 5, 0, 0.05)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Set text style
+        ctx.fillStyle = 'rgba(255, 136, 0, 0.4)';
+        ctx.font = `${fontSize}px monospace`;
+
+        for (let i = 0; i < drops.length; i++) {
+            // Random character
+            const char = chars[Math.floor(Math.random() * chars.length)];
+
+            // Draw character
+            ctx.fillText(char, i * fontSize, drops[i] * fontSize);
+
+            // Reset drop to top with some randomness
+            if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) {
+                drops[i] = 0;
+            }
+            drops[i]++;
+        }
+
+        ghostCodeAnimationId = requestAnimationFrame(draw);
+    }
+
+    // Start animation with slower framerate for performance
+    let lastTime = 0;
+    const fps = 15;
+    const frameInterval = 1000 / fps;
+
+    function animateGhostCode(timestamp) {
+        if (!wallpaperSettings.master) {
+            ghostCodeAnimationId = requestAnimationFrame(animateGhostCode);
+            return;
+        }
+
+        const delta = timestamp - lastTime;
+        if (delta >= frameInterval) {
+            lastTime = timestamp - (delta % frameInterval);
+
+            if (wallpaperSettings.layers['ghost-code'].enabled) {
+                // Semi-transparent black for fade effect
+                ctx.fillStyle = 'rgba(10, 5, 0, 0.05)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                // Set text style
+                ctx.fillStyle = 'rgba(255, 136, 0, 0.4)';
+                ctx.font = `${fontSize}px monospace`;
+
+                for (let i = 0; i < drops.length; i++) {
+                    const char = chars[Math.floor(Math.random() * chars.length)];
+                    ctx.fillText(char, i * fontSize, drops[i] * fontSize);
+                    if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) {
+                        drops[i] = 0;
+                    }
+                    drops[i]++;
+                }
+            }
+        }
+
+        ghostCodeAnimationId = requestAnimationFrame(animateGhostCode);
+    }
+
+    ghostCodeAnimationId = requestAnimationFrame(animateGhostCode);
+}
+
+// Initialize Data Streams
+function initDataStreams() {
+    const container = document.getElementById('wp-data-streams');
+    if (!container) return;
+
+    function createStream() {
+        if (!wallpaperSettings.master || !wallpaperSettings.layers['data-streams'].enabled) return;
+
+        const stream = document.createElement('div');
+        stream.className = 'data-stream';
+        stream.style.left = `${Math.random() * 100}%`;
+        stream.style.animationDuration = `${2 + Math.random() * 3}s`;
+        stream.style.height = `${30 + Math.random() * 60}px`;
+        container.appendChild(stream);
+
+        // Remove after animation
+        setTimeout(() => {
+            if (stream.parentNode) {
+                stream.parentNode.removeChild(stream);
+            }
+        }, 5000);
+    }
+
+    // Create streams periodically
+    dataStreamsIntervalId = setInterval(createStream, 300);
+}
+
+// Initialize Glitch Lines
+function initGlitchLines() {
+    const container = document.getElementById('wp-glitch-lines');
+    if (!container) return;
+
+    function createGlitch() {
+        if (!wallpaperSettings.master || !wallpaperSettings.layers['glitch-lines'].enabled) return;
+
+        // Random chance of glitch
+        if (Math.random() > 0.3) return;
+
+        const line = document.createElement('div');
+        line.className = 'glitch-line';
+        line.style.top = `${Math.random() * 100}%`;
+        container.appendChild(line);
+
+        // Remove after animation
+        setTimeout(() => {
+            if (line.parentNode) {
+                line.parentNode.removeChild(line);
+            }
+        }, 150);
+    }
+
+    // Check for glitches periodically
+    glitchLinesIntervalId = setInterval(createGlitch, 500);
+}
+
+// Start all wallpaper animations
+function startWallpaperAnimations() {
+    initGhostCodeAnimation();
+    initDataStreams();
+    initGlitchLines();
+}
+
+// Stop all wallpaper animations
+function stopWallpaperAnimations() {
+    if (ghostCodeAnimationId) {
+        cancelAnimationFrame(ghostCodeAnimationId);
+        ghostCodeAnimationId = null;
+    }
+    if (dataStreamsIntervalId) {
+        clearInterval(dataStreamsIntervalId);
+        dataStreamsIntervalId = null;
+    }
+    if (glitchLinesIntervalId) {
+        clearInterval(glitchLinesIntervalId);
+        glitchLinesIntervalId = null;
+    }
+}
+
+// Initialize wallpaper system
+function initWallpaperSystem() {
+    console.log('🎨 Initializing Living Terminal Wallpaper...');
+    loadWallpaperSettings();
+    applyAllWallpaperSettings();
+
+    if (wallpaperSettings.master) {
+        startWallpaperAnimations();
+    }
+}
+
+// Start wallpaper system when DOM is ready
+document.addEventListener('DOMContentLoaded', initWallpaperSystem);
 
 function showInfoModal(title, message, onClose = null) {
     document.getElementById('info-modal-title').textContent = title;
