@@ -5497,23 +5497,32 @@ img {
 }
 
 /* ===============================================================
-   HOME REDESIGN - LOGO LEFT, BUTTONS RIGHT
+   HOME REDESIGN - LOGO LEFT, BUTTONS RIGHT (NO SCROLL)
    =============================================================== */
+
+/* Home screen container - fit in viewport */
+[data-screen="home"] {
+    height: calc(100vh - 80px);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
 
 /* Main home layout - 2 columns */
 .home-main-layout {
     display: flex;
     justify-content: center;
     align-items: center;
-    min-height: calc(100vh - 200px);
-    padding: 40px 20px;
-    gap: 60px;
+    flex: 1;
+    padding: 10px 30px;
+    gap: 40px;
+    max-height: calc(100vh - 180px);
 }
 
 /* Left side - Logo and text */
 .home-logo-side {
     flex: 1;
-    max-width: 600px;
+    max-width: 550px;
     text-align: center;
 }
 
@@ -5523,57 +5532,97 @@ img {
 
 .home-logo-side .project-logo-img {
     max-width: 100%;
+    max-height: 280px;
     height: auto;
+    object-fit: contain;
 }
 
 /* Right side - Navigation buttons */
 .home-buttons-side {
     display: flex;
     flex-direction: column;
-    gap: 12px;
-    min-width: 220px;
-    max-width: 280px;
+    gap: 8px;
+    min-width: 200px;
+    max-width: 240px;
 }
 
-/* Home navigation buttons */
+/* Home navigation buttons - Enhanced design */
 .home-nav-btn {
     position: relative;
     font-family: 'Share Tech Mono', monospace;
-    font-size: 16px;
+    font-size: 14px;
     font-weight: bold;
-    padding: 14px 24px;
+    padding: 12px 20px;
     border: 2px solid #ff9900;
-    background: #ff9900;
+    background: linear-gradient(180deg, #ff9900 0%, #cc7a00 100%);
     color: #000;
     cursor: pointer;
     transition: all 0.2s ease;
     text-transform: uppercase;
-    letter-spacing: 1px;
+    letter-spacing: 2px;
     text-align: center;
+    box-shadow:
+        0 4px 0 #995c00,
+        0 6px 10px rgba(0, 0, 0, 0.4),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+.home-nav-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 50%;
+    background: linear-gradient(180deg, rgba(255,255,255,0.15) 0%, transparent 100%);
+    pointer-events: none;
 }
 
 .home-nav-btn:hover {
-    background: #ffb833;
-    border-color: #ffb833;
-    box-shadow: 0 0 20px rgba(255, 153, 0, 0.5);
+    background: linear-gradient(180deg, #ffb833 0%, #ff9900 100%);
+    border-color: #ffcc00;
+    box-shadow:
+        0 4px 0 #995c00,
+        0 6px 15px rgba(255, 153, 0, 0.5),
+        inset 0 1px 0 rgba(255, 255, 255, 0.3);
     transform: translateY(-2px);
 }
 
 .home-nav-btn:active {
-    transform: translateY(0);
+    transform: translateY(2px);
+    box-shadow:
+        0 2px 0 #995c00,
+        0 3px 5px rgba(0, 0, 0, 0.4),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
 
-/* MINT button - Red/coral color */
+/* MINT button - Red/coral color with 3D effect */
 .home-nav-btn-mint {
-    background: #e84855;
+    background: linear-gradient(180deg, #e84855 0%, #c23040 100%);
     border-color: #e84855;
-    color: #000;
+    color: #fff;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+    box-shadow:
+        0 4px 0 #8a2030,
+        0 6px 10px rgba(0, 0, 0, 0.4),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
 
 .home-nav-btn-mint:hover {
-    background: #ff6b6b;
+    background: linear-gradient(180deg, #ff6b6b 0%, #e84855 100%);
     border-color: #ff6b6b;
-    box-shadow: 0 0 20px rgba(232, 72, 85, 0.5);
+    box-shadow:
+        0 4px 0 #8a2030,
+        0 6px 15px rgba(232, 72, 85, 0.5),
+        inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+.home-nav-btn-mint:active {
+    box-shadow:
+        0 2px 0 #8a2030,
+        0 3px 5px rgba(0, 0, 0, 0.4),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
 
 /* Badge for nav buttons */
@@ -5605,8 +5654,8 @@ img {
 .home-footer-icons {
     display: flex;
     justify-content: center;
-    gap: 30px;
-    padding: 30px 20px;
+    gap: 25px;
+    padding: 15px 20px;
     margin-top: auto;
 }
 
@@ -5614,60 +5663,111 @@ img {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 48px;
-    height: 48px;
-    opacity: 0.7;
+    width: 44px;
+    height: 44px;
+    opacity: 0.8;
     transition: all 0.2s ease;
 }
 
 .footer-icon:hover {
     opacity: 1;
-    transform: scale(1.1);
+    transform: scale(1.15);
+    filter: drop-shadow(0 0 8px rgba(255, 153, 0, 0.6));
 }
 
 .footer-icon img,
 .pixel-icon-large {
-    width: 40px;
-    height: 40px;
+    width: 36px;
+    height: 36px;
     image-rendering: pixelated;
+}
+
+/* Orange filter for scroll/announcements icon */
+.footer-icon-orange img {
+    filter: sepia(100%) saturate(300%) brightness(100%) hue-rotate(-10deg);
+}
+
+/* ===============================================================
+   BACK HOME BUTTON (top of all screens)
+   =============================================================== */
+
+.back-home-bar {
+    display: flex;
+    align-items: center;
+    padding: 8px 15px;
+    border-bottom: 1px solid var(--border-primary);
+    background: rgba(0, 0, 0, 0.3);
+}
+
+.back-home-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: transparent;
+    border: 1px solid var(--gold);
+    color: var(--gold);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.back-home-btn:hover {
+    background: var(--gold);
+    color: #000;
+    box-shadow: 0 0 10px rgba(255, 153, 0, 0.4);
 }
 
 /* Responsive - Stack vertically on mobile */
 @media (max-width: 900px) {
+    [data-screen="home"] {
+        height: auto;
+        min-height: calc(100vh - 80px);
+    }
+
     .home-main-layout {
         flex-direction: column;
-        gap: 40px;
-        padding: 20px;
-        min-height: auto;
+        gap: 20px;
+        padding: 15px;
+        max-height: none;
     }
 
     .home-logo-side {
         max-width: 100%;
     }
 
+    .home-logo-side .project-logo-img {
+        max-height: 200px;
+    }
+
     .home-buttons-side {
         width: 100%;
-        max-width: 320px;
+        max-width: 300px;
     }
 
     .home-nav-btn {
-        font-size: 14px;
-        padding: 12px 20px;
+        font-size: 13px;
+        padding: 10px 16px;
     }
 }
 
 @media (max-width: 480px) {
     .home-main-layout {
-        padding: 15px;
-        gap: 30px;
+        padding: 10px;
+        gap: 15px;
+    }
+
+    .home-logo-side .project-logo-img {
+        max-height: 150px;
     }
 
     .home-buttons-side {
-        gap: 10px;
+        gap: 6px;
     }
 
     .home-nav-btn {
-        font-size: 13px;
+        font-size: 12px;
         padding: 10px 16px;
     }
 

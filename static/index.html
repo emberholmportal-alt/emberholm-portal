@@ -1470,17 +1470,17 @@ document.addEventListener('DOMContentLoaded', initPortalWarning);
 
         <!-- FOOTER ICONS -->
         <div class="home-footer-icons">
-            <a href="#" class="footer-icon" title="Settings" onclick="showInfoModal('SETTINGS', 'Settings panel coming soon.')">
-                <img src="img/gear.png" alt="Settings" class="pixel-icon-large" onerror="this.textContent='⚙️'">
+            <a href="#" class="footer-icon" title="Wallpaper Settings" onclick="openWallpaperSettings(); return false;">
+                <img src="img/confighome.png" alt="Settings" class="pixel-icon-large" onerror="this.textContent='⚙️'">
             </a>
-            <a href="/docs/Official_Whitepaper_of_Emberholm_Portal_V1.pdf" class="footer-icon" title="Whitepaper" target="_blank">
-                <img src="img/scroll.png" alt="Docs" class="pixel-icon-large" onerror="this.textContent='📜'">
+            <a href="#" class="footer-icon footer-icon-orange" title="Announcements" onclick="switchScreen('info-hub'); switchInfoTab('announcements'); return false;">
+                <img src="img/scroll.png" alt="Announcements" class="pixel-icon-large" onerror="this.textContent='📜'">
             </a>
             <a href="https://twitter.com/EmberholmGame" class="footer-icon" title="Twitter/X" target="_blank">
-                <img src="img/x-logo.png" alt="X" class="pixel-icon-large" onerror="this.textContent='𝕏'">
+                <img src="img/xhome.png" alt="X" class="pixel-icon-large" onerror="this.textContent='𝕏'">
             </a>
             <a href="https://discord.gg/Pw7YQtH4Y" class="footer-icon" title="Discord" target="_blank">
-                <img src="img/discord.png" alt="Discord" class="pixel-icon-large" onerror="this.textContent='💬'">
+                <img src="img/discordhome.png" alt="Discord" class="pixel-icon-large" onerror="this.textContent='💬'">
             </a>
         </div>
     </section>
@@ -1489,6 +1489,10 @@ document.addEventListener('DOMContentLoaded', initPortalWarning);
          PLAY HUB - NEW CONSOLIDATED SCREEN
          =============================================================== -->
     <section class="screen" data-screen="play-hub">
+        <!-- BACK HOME BAR -->
+        <div class="back-home-bar">
+            <button class="back-home-btn" onclick="switchScreen('home')">← BACK TO HOME</button>
+        </div>
         <div class="section-block">
             <div class="section-title">PLAY // ADVENTURE HUB</div>
 
@@ -1523,11 +1527,6 @@ document.addEventListener('DOMContentLoaded', initPortalWarning);
             <div class="hub-content" id="play-content">
                 <!-- Content loaded from existing screens -->
             </div>
-
-            <!-- BACK BUTTON -->
-            <div class="back-btn-container">
-                <button class="terminal-btn" onclick="switchScreen('home')">[← BACK TO HOME]</button>
-            </div>
         </div>
     </section>
 
@@ -1535,6 +1534,10 @@ document.addEventListener('DOMContentLoaded', initPortalWarning);
          INFO HUB - NEW CONSOLIDATED SCREEN
          =============================================================== -->
     <section class="screen" data-screen="info-hub">
+        <!-- BACK HOME BAR -->
+        <div class="back-home-bar">
+            <button class="back-home-btn" onclick="switchScreen('home')">← BACK TO HOME</button>
+        </div>
         <div class="section-block">
             <div class="section-title">INFO // PROJECT DOCUMENTATION</div>
 
@@ -1558,11 +1561,6 @@ document.addEventListener('DOMContentLoaded', initPortalWarning);
             <div class="hub-content" id="info-content">
                 <!-- Content loaded from existing screens -->
             </div>
-
-            <!-- BACK BUTTON -->
-            <div class="back-btn-container">
-                <button class="terminal-btn" onclick="switchScreen('home')">[← BACK TO HOME]</button>
-            </div>
         </div>
     </section>
 
@@ -1570,6 +1568,10 @@ document.addEventListener('DOMContentLoaded', initPortalWarning);
          WORLD CHAT - PLACEHOLDER SCREEN
          =============================================================== -->
     <section class="screen" data-screen="world-chat">
+        <!-- BACK HOME BAR -->
+        <div class="back-home-bar">
+            <button class="back-home-btn" onclick="switchScreen('home')">← BACK TO HOME</button>
+        </div>
         <div class="section-block">
             <div class="section-title">WORLD CHAT // INTER-REALM COMMUNICATION</div>
 
@@ -1582,11 +1584,6 @@ document.addEventListener('DOMContentLoaded', initPortalWarning);
                     share strategies, and coordinate expeditions together.
                 </div>
                 <div class="placeholder-status">STATUS: IN DEVELOPMENT</div>
-            </div>
-
-            <!-- BACK BUTTON -->
-            <div class="back-btn-container">
-                <button class="terminal-btn" onclick="switchScreen('home')">[← BACK TO HOME]</button>
             </div>
         </div>
     </section>
@@ -1975,8 +1972,8 @@ document.addEventListener('DOMContentLoaded', initPortalWarning);
                         Learn to play with a step-by-step guide. Perfect for new players.
                     </div>
                 </div>
-                <button class="cmd tutorial-start-btn" onclick="startInteractiveTutorial()" style="font-size: 13px; padding: 10px 20px; background: rgba(255,204,0,0.15); border-color: var(--gold); color: var(--gold);">
-                    [START STEP-BY-STEP TUTORIAL]
+                <button class="cmd tutorial-start-btn" disabled onclick="return false;" style="font-size: 13px; padding: 10px 20px; background: rgba(100,100,100,0.15); border-color: #666; color: #666; cursor: not-allowed; opacity: 0.5;">
+                    [STEP-BY-STEP - COMING SOON]
                 </button>
             </div>
 
@@ -7947,6 +7944,18 @@ function hideModal(modalId) {
 // Show Info Modal (replaces alert())
 // Callback for info modal
 let infoModalCallback = null;
+
+// Placeholder for wallpaper settings
+function openWallpaperSettings() {
+    showInfoModal('WALLPAPER SETTINGS',
+        'Living Terminal Wallpaper configuration is coming soon.\n\n' +
+        'You will be able to customize:\n' +
+        '• Ghost Code columns\n' +
+        '• Data Streams\n' +
+        '• Dot Grid\n' +
+        '• Animation speeds\n' +
+        '• Opacity levels');
+}
 
 function showInfoModal(title, message, onClose = null) {
     document.getElementById('info-modal-title').textContent = title;
