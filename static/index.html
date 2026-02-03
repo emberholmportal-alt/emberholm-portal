@@ -5989,11 +5989,13 @@ async function connectWallet() {
 
             updateWalletBtn("[CONNECTED ✓]");
 
-            // 🔥 Update ACCESS LEVEL to EMBERHOLM EMISSARY with green color
+            // 🔥 Update ACCESS LEVEL to EMBERHOLM EMISSARY with green color (if element exists)
             const accessLevelEl = document.getElementById("access-level");
-            accessLevelEl.textContent = "ACCESS LEVEL: [EMBERHOLM EMISSARY]";
-            accessLevelEl.style.color = "#44ff44"; // Green color
-            console.log("✅ Access level upgraded to EMBERHOLM EMISSARY");
+            if (accessLevelEl) {
+                accessLevelEl.textContent = "ACCESS LEVEL: [EMBERHOLM EMISSARY]";
+                accessLevelEl.style.color = "#44ff44"; // Green color
+                console.log("✅ Access level upgraded to EMBERHOLM EMISSARY");
+            }
         } catch (blockchainError) {
             console.error("❌❌❌ BLOCKCHAIN QUERY ERROR:", blockchainError);
             console.error("Error name:", blockchainError.name);
